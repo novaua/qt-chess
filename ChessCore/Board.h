@@ -37,7 +37,7 @@ namespace Chess {
 		EPieceTypes Type;
 		EPieceColors Color;
 	};
-	
+
 	struct Move;
 
 	class Board
@@ -46,7 +46,9 @@ namespace Chess {
 		std::vector<EPieceTypes> _piece;  /* PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, or EMPTY */
 		bool _whiteFirst;
 	public:
-		Board(bool whiteFirst);
+
+		Board(bool whiteFirst = true);
+		void Initialize(bool whiteFirst);
 
 		const std::vector<EPieceColors>  &color() const
 		{
