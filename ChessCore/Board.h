@@ -60,6 +60,8 @@ namespace Chess {
 			return _piece;
 		}
 
+		//Piece At(int position);
+
 		bool AreWhiteFirst() const { return _whiteFirst; }
 
 		Move DoMove(const Move &move, bool force = false);
