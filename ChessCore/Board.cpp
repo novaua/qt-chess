@@ -7,8 +7,13 @@ namespace Chess {
 	Board::Board(bool whiteFirst)
 	{
 		_whiteFirst = whiteFirst;
+		Initialize(whiteFirst);
+	}
 
+	void Board::Initialize(bool whiteFirst)
+	{
 		auto baseOffset = 0;
+		_color = {};
 		for (auto i = 0; i < 64; ++i)
 		{
 			if (i < 16)
