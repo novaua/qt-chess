@@ -98,18 +98,21 @@ namespace Chess {
 		// Standard approach to decide where to move.
 		// This code mainly taken from http://chessprogramming.wikispaces.com/10x12+Board#OffsetMG
 		// Style and comments were preserved.
-		bool slide[6] = { false, false, true, true, true, false };
+		bool slide[] = { false, false, true, true, true, false, false };
 
-		int offsets[6] = { 0, 8, 4, 4, 8, 8 }; /* knight or ray directions */
+		int offsets[] = { 0, 8, 4, 4, 8, 8, 3 }; /* knight or ray directions */
 
-		int offset[6][8] = {
-				{ 0, 0, 0, 0, 0, 0, 0, 0 },
-				{ -21, -19, -12, -8, 8, 12, 19, 21 }, /* KNIGHT */
-				{ -11, -9, 9, 11, 0, 0, 0, 0 }, /* BISHOP */
-				{ -10, -1, 1, 10, 0, 0, 0, 0 }, /* ROOK */
-				{ -11, -10, -9, -1, 1, 9, 10, 11 }, /* QUEEN */
-				{ -11, -10, -9, -1, 1, 9, 10, 11 }  /* KING */
+		int offset[][8] = {
+			{ 0, 0, 0, 0, 0, 0, 0, 0 },
+			{ -21, -19, -12, -8, 8, 12, 19, 21 }, /* KNIGHT */
+			{ -11, -9, 9, 11, 0, 0, 0, 0 }, /* BISHOP */
+			{ -10, -1, 1, 10, 0, 0, 0, 0 }, /* ROOK */
+			{ -11, -10, -9, -1, 1, 9, 10, 11 }, /* QUEEN */
+			{ -11, -10, -9, -1, 1, 9, 10, 11 },  /* KING */
+			{ 9, 11, 10, 0, 0, 0, 0, 0 } /* PAWN */
 		};
+
+		int pawn_capturing[] = { 1, 1, 0, 0, 0, 0, 0 }; /* 1 for mandatory capturing move */
 
 		/* Now we have the mailbox array, so called because it looks like a
 		mailbox, at least according to Bob Hyatt. This is useful when we
@@ -164,7 +167,7 @@ namespace Chess {
 						break; /* outside board */
 
 					if (board.color()[n] != EC_EMPTY) {
-						if (board.color()[n] == !side)
+						if (board.color()[n] != side)
 							moves.push_back({ pieceOffset, n, true }); /* capture from i to n */
 						break;
 					}
@@ -176,22 +179,42 @@ namespace Chess {
 		}
 		else
 		{
-			/* pawn moves */
-			auto direction = side == LIGHT && board.AreWhiteFirst() ? 1 : -1;
+			// pawn moves
+			auto forwardMovesCount = 0;
+			for (auto j = 0; j < offsets[p]; ++j) {
+				for (auto n = pieceOffset;;) {
+					n = mailbox[mailbox64[n] + offset[p][j]];
+					if (n == -1)
+					{
+						break;
+					}
 
-			for (auto toGo : { pieceOffset + 8 * direction, pieceOffset + 16 * direction })
-			{
-				if (board.color()[toGo] == EC_EMPTY)
-				{
-					moves.push_back({ pieceOffset, toGo, false });
-				}
-			}
+					if (pawn_capturing[j])
+					{
+						if (board.color()[n] != EC_EMPTY) {
+							if (board.color()[n] != side)
+							{
+								moves.push_back({ pieceOffset, n, true }); /* capture from i to n */
+							}
+						}
 
-			for (auto toStrike : { pieceOffset + 7 * direction, pieceOffset + 9 * direction })
-			{
-				if (board.color()[toStrike] != EC_EMPTY && board.color()[toStrike] != side)
-				{
-					moves.push_back({ pieceOffset, toStrike, true });
+						break;
+					}
+
+					if (board.color()[n] == EC_EMPTY)
+					{
+						moves.push_back({ pieceOffset, n, false }); /* quiet move from i to n */
+						++forwardMovesCount;
+					}
+					else
+					{
+						break;
+					}
+
+					if (forwardMovesCount == 2)
+					{
+						break;
+					}
 				}
 			}
 		}

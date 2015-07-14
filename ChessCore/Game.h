@@ -30,5 +30,4 @@ namespace Chess
 		virtual void UndoMove() = 0;
 		virtual ~Game();
 	};
-
 }

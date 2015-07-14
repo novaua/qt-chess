@@ -6,13 +6,13 @@ namespace Chess {
 
 	enum EPieceTypes
 	{
-		PAWN,
+		EMPTY,
 		KNIGHT,
 		BISHOP,
 		ROOK,
 		QUEEN,
 		KING,
-		EMPTY,
+		PAWN,
 	};
 
 	enum EPieceColors {
