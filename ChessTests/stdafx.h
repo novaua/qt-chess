@@ -13,5 +13,8 @@
 #include <fstream>
 #include <filesystem>
 #include <list>
+#include <functional>
+#include <stack>
+#include <vector>
 
 // TODO: reference additional headers your program requires here

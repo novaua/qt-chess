@@ -1,27 +1,11 @@
 #pragma once
 #include <vector>
 #include <ostream>
+#include "Piece.h"
 
 namespace Chess {
 
-	enum EPieceTypes
-	{
-		EMPTY,
-		KNIGHT,
-		BISHOP,
-		ROOK,
-		QUEEN,
-		KING,
-		PAWN,
-	};
-
-	enum EPieceColors {
-		EC_EMPTY,
-		LIGHT,
-		DARK
-	};
-
-	enum EMoves {
+	enum BoardPosition {
 		a1, b1, c1, d1, e1, f1, g1, h1,
 		a2, b2, c2, d2, e2, f2, g2, h2,
 		a3, b3, c3, d3, e3, f3, g3, h3,
@@ -32,13 +16,8 @@ namespace Chess {
 		a8, b8, c8, d8, e8, f8, g8, h8,
 	};
 
-	struct Piece
-	{
-		EPieceTypes Type;
-		EPieceColors Color;
-	};
-
 	struct Move;
+	struct HistoryMove;
 
 	class Board
 	{
@@ -60,32 +39,19 @@ namespace Chess {
 			return _piece;
 		}
 
-		//Piece At(int position);
+		Piece At(BoardPosition position) const;
+		void Place(BoardPosition position, const Piece & piece);
 
 		bool AreWhiteFirst() const { return _whiteFirst; }
 
-		Move DoMove(const Move &move, bool force = false);
+		HistoryMove DoMove(const Move &move, bool force = false);
 		void ValidateMove(const Move &move);
 
 		~Board();
 	};
 
-	struct Move
-	{
-		int From;
-
-		int To;
-
-		bool Capturing;
-
-		Piece Captured;
-
-		void Serialize(std::ostream &ostream) const;
-		static Move Deserialize(std::istream &istream);
-	};
-
 	struct MoveGeneration
 	{
-		static std::vector<Move> GenerateMoves(const Board &board, int pieceOffset, EPieceColors side);
+		static std::vector<Move> GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side);
 	};
 };

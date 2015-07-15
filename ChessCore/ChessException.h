@@ -12,5 +12,9 @@ namespace Chess
 		~ChessException();
 	};
 
+	class CannotUndoException : public ChessException
+	{
+	public:
+		CannotUndoException();
+	};
 }
-
