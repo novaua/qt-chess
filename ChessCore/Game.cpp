@@ -1,9 +1,14 @@
 #include "stdafx.h"
 #include "Game.h"
+#include "Move.h"
+#include "Piece.h"
+#include "ChessException.h"
 
 namespace Chess
 {
 	Game::Game()
+		: _board(new Board()),
+		_whiteFirst(true)
 	{
 	}
 
@@ -11,95 +16,144 @@ namespace Chess
 	{
 	}
 
-	class GameImplementation : public Game
+	void Game::RegisterGameActionsListeners(const GameActionListener & listener)
 	{
-		Board _board;
-		int _movesCount;
-
-	public:
-		GameImplementation(bool whiteFirst);
-
-		void CheckNotify(const Action &listener);
-		void MateNotify(const Action &listener);
-		void EnPassantNotify(const Action &listener);
-		void PawnPromotionNotify(const std::function<void(int)> &listener);
-
-		void RegisterBoardChanged(const std::function<Move> &listener);
-
-		std::vector<Move> GetPossibleMoves(int index);
-		std::vector<Move> GetGameRecord();
-
-		void Save(const std::string &path);
-		void Load(const std::string &path);
-
-		void DoMove(EMoves from, EMoves to);
-		void UndoMove();
-	};
-
-	GameAptr Game::StartNewGame(bool whiteFirst)
-	{
-		return GameAptr(new GameImplementation(whiteFirst));
+		_gameActionsListeners.push_back(listener);
 	}
 
-	GameImplementation::GameImplementation(bool whiteFirst)
+	void Game::RegisterBoardChanged(const BoardChangesListener &listener)
 	{
+		_boardChangesListeners.push_back(listener);
 	}
 
-	void GameImplementation::CheckNotify(const Action &listener)
+	std::vector<Move> Game::GetPossibleMoves(int index)
 	{
-
-	}
-	void GameImplementation::MateNotify(const Action &listener)
-	{
-
+		auto moves = MoveGeneration::GenerateMoves(*_board, (BoardPosition)index, IsWhiteMove() ? LIGHT : DARK);
+		return moves;
 	}
 
-	void GameImplementation::EnPassantNotify(const Action &listener)
+	const GameHistory &Game::GetGameRecord() const
 	{
-
-	}
-	void GameImplementation::PawnPromotionNotify(const std::function<void(int)> &listener)
-	{
-
+		return _history;
 	}
 
-	void GameImplementation::RegisterBoardChanged(const std::function<Move> &listener)
+	void Game::Restart(bool whiteFirst)
 	{
+		_whiteFirst = whiteFirst;
+		_history.empty();
+		_captured.empty();
 
+		_board.reset(new Board(whiteFirst));
 	}
 
-	std::vector<Move> GameImplementation::GetPossibleMoves(int index)
+	void Game::Play(const GameHistory &gameHistory)
 	{
-		std::vector<Move> result;
-
-		return result;
+		for each (auto historyMove in _loadedHistory)
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(AutoPlayMoveWaitSeconds));
+			auto move = historyMove.ToMove();
+			DoMove(move.From, move.To);
+		}
 	}
 
-	std::vector<Move> GameImplementation::GetGameRecord()
+	void Game::Save(const std::string &path)
 	{
-		std::vector<Move> result;
+		auto moveCount = GetMoveCount();
+		std::ofstream outFileStream(path, std::ios::out | std::ios::binary);
 
-		return result;
+		outFileStream.write((char*)&moveCount, sizeof(int));
+
+		for (auto move : _history)
+		{
+			BinarySerializer::Serialize(move, outFileStream);
+		}
 	}
 
-	void GameImplementation::Save(const std::string &path)
+	void Game::Load(const std::string &path)
 	{
+		std::ifstream fs(path, std::ios::in | std::ios::binary);
+		int count = 0;
+		fs.read((char *)&count, sizeof(int));
 
+		for (auto i = 0; i < count; ++i)
+		{
+			_loadedHistory.push_back(BinarySerializer::Deserialize<HistoryMove>(fs));
+		}
 	}
 
-	void GameImplementation::Load(const std::string &path)
+	void NotifyBoardChanged(const BoardChangesListeners & boardChangesListeners, const Move &move)
 	{
-
-
-
+		for (auto listener : boardChangesListeners)
+		{
+			if (listener)
+			{
+				listener(move);
+			}
+		}
 	}
 
-	void GameImplementation::DoMove(EMoves from, EMoves to)
+	void Game::DoMove(BoardPosition from, BoardPosition to)
 	{
+		AssureMove(from, to);
 
+		auto historyMove = _board->DoMove({ from, to }, false);
+		historyMove.Id = GetMoveCount();
+
+		NotifyBoardChanged(_boardChangesListeners, { from, to });
+		if (historyMove.IsCapturingMove())
+		{
+			_captured.push(historyMove.To.Piece);
+		}
+
+		_history.push_back(historyMove);
 	}
 
-	void GameImplementation::UndoMove()
+	void Game::UndoMove()
 	{
+		if (GetMoveCount() == 0)
+		{
+			throw CannotUndoException();
+		}
+
+		// undoing move
+		HistoryMove topMove = *(_history.rbegin());
+		Move undoMove{ topMove.To.Position, topMove.From.Position };
+		_board->DoMove(undoMove, true);
+
+		// placing removed item
+		Piece lastPiece = {};
+		if (topMove.IsCapturingMove())
+		{
+			lastPiece = _captured.top();
+			_captured.pop();
+			_board->Place(topMove.To.Position, lastPiece);
+			assert(topMove.To.Piece == lastPiece && "Has to be the same Piece!");
+		}
+
+		_history.pop_back();
+		NotifyBoardChanged(_boardChangesListeners, undoMove);
+	}
+
+	bool Game::IsWhiteMove()
+	{
+		auto isEven = GetMoveCount() % 2 == 0;
+		return _whiteFirst ? isEven : !isEven;
+	}
+
+	int Game::GetMoveCount() const
+	{
+		return _history.size();
+	}
+
+	void Game::AssureMove(BoardPosition from, BoardPosition to)
+	{
+		auto fromPiece = _board->At(from);
+
+		if (fromPiece.Color == LIGHT && !IsWhiteMove()
+			|| fromPiece.Color == DARK && IsWhiteMove()
+			|| fromPiece.Color == CEMPTY)
+		{
+			throw ChessException("Invalid move!");
+		}
 	}
 }

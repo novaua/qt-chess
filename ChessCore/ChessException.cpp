@@ -15,3 +15,8 @@ const char* ChessException::what() const
 {
 	return _message.c_str();
 }
+
+CannotUndoException::CannotUndoException()
+	: ChessException("Undo is not available!")
+{
+}

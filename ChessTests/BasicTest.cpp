@@ -3,6 +3,8 @@
 #include <CppUnitTestAssert.h>
 #include "ChessMain.h"
 #include "ChessException.h"
+#include "Move.h"
+#include "Game.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -19,19 +21,19 @@ namespace ChessTests
 		{
 			auto chessMain = new ChessMain();
 			auto boardPtr = new Board(true);
-			boardPtr->DoMove({ a2, a4, false, {} });
 
-			boardPtr->DoMove({ e7, e3, false, {} }, true);
+			boardPtr->DoMove({ a2, a4, false });
+			boardPtr->DoMove({ e7, e3, false }, true);
 
 			int figs[] = { a1, b1, c1, g1, e2, a2, b2, f2 };
 			int movesForFigs[] = { 2, 2, 0, 2, 0, 0, 2, 3 };
-			bool isCapturing[] = { 0, 0, 0, 0, 0, 0, 0, 1 };
+			int isCapturing[] = { 0, 0, 0, 0, 0, 0, 0, 1 };
 
 			auto count = 0;
 			for (auto a : figs)
 			{
 				auto wasCapturing = 0;
-				auto moves = MoveGeneration::GenerateMoves(*boardPtr, a, LIGHT);
+				auto moves = MoveGeneration::GenerateMoves(*boardPtr, (BoardPosition)a, LIGHT);
 
 				Assert().IsTrue(moves.size() == movesForFigs[count]);
 
@@ -48,15 +50,27 @@ namespace ChessTests
 			}
 		}
 
+		TEST_METHOD(HistoryMoveSerialization_Works)
+		{
+			HistoryMove hm;
+
+			hm.From = { a1, Piece{ KING, LIGHT } };
+			hm.To = { a1, Piece{ QUEEN, LIGHT } };
+
+			PositionPiece from = hm.From;
+			Assert().AreEqual<int>(from.Piece.Type, KING);
+
+		}
+
 		TEST_METHOD(MovesSerialization_Works_Test)
 		{
 			auto tempPath = tr2::sys::path(getenv("TEMP"));
 			tempPath /= "tempFile";
 
-			Move moves[] =
-			{ { 0, 33 },
-			{ 1, 44, true, { (EPieceTypes)2, (EPieceColors)0 } },
-			{ 2, 55, true, { (EPieceTypes)2, (EPieceColors)1 } },
+			Move moves[] = {
+				{ a1, f5 },
+				{ d3, f4, true },
+				{ c2, c4, true },
 			};
 
 			int movesCount = sizeof(moves) / sizeof(*moves);
@@ -69,7 +83,7 @@ namespace ChessTests
 
 				for (auto move : moves)
 				{
-					move.Serialize(outFileStream);
+					BinarySerializer::Serialize(move, outFileStream);
 				}
 			}
 
@@ -82,7 +96,7 @@ namespace ChessTests
 
 				for (auto i = 0; i < count; ++i)
 				{
-					loadedMoves.push_back(Move::Deserialize(fs));
+					loadedMoves.push_back(BinarySerializer::Deserialize<Move>(fs));
 				}
 			}
 
@@ -92,8 +106,8 @@ namespace ChessTests
 			auto id = 0;
 			for (auto move : loadedMoves)
 			{
-				Assert::AreEqual(moves[id].From, move.From);
-				Assert::AreEqual(moves[id].To, move.To);
+				Assert::AreEqual<int>(moves[id].From, move.From);
+				Assert::AreEqual<int>(moves[id].To, move.To);
 				++id;
 			}
 		}
@@ -107,6 +121,31 @@ namespace ChessTests
 			{
 				boardPtr->DoMove({ b1, b8 });
 			});
+		}
+
+		TEST_METHOD(BasicGame_Works_Test)
+		{
+			auto game = std::make_unique<Game>();
+
+			Assert::IsTrue(game->IsWhiteMove());
+
+			std::vector <Move> observedMoves;
+			game->RegisterBoardChanged([&observedMoves](const Move &move)
+			{
+				observedMoves.push_back(move);
+			});
+
+			game->DoMove(e2, e4);
+
+			Assert::AreEqual<int>(observedMoves[0].From, e2);
+			Assert::AreEqual<int>(observedMoves[0].To, e4);
+
+			Assert::IsFalse(game->IsWhiteMove());
+			game->DoMove(e7, e5);
+
+			Assert::IsTrue(game->IsWhiteMove());
+
+			Assert::AreEqual(2u, observedMoves.size());
 		}
 	};
 }

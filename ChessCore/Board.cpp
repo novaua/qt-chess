@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Board.h"
 #include "ChessException.h"
+#include "Move.h"
 
 namespace Chess {
 
@@ -20,9 +21,9 @@ namespace Chess {
 			{
 				_color.push_back({ whiteFirst ? LIGHT : DARK });
 			}
-			else if (i < 32)
+			else if (i < 16 + 32)
 			{
-				_color.push_back({ EC_EMPTY });
+				_color.push_back({ CEMPTY });
 			}
 			else
 			{
@@ -65,32 +66,41 @@ namespace Chess {
 		}
 	}
 
-	Move Board::DoMove(const Move &move, bool force)
+	Piece Board::At(BoardPosition position) const
+	{
+		return{ _piece[position], _color[position] };
+	}
+
+	void Board::Place(BoardPosition position, const Piece & piece)
+	{
+		_piece[position] = piece.Type;
+		_color[position] = piece.Color;
+	}
+
+	HistoryMove Board::DoMove(const Move &move, bool force)
 	{
 		if (!force)
 		{
 			ValidateMove(move);
 		}
 
-		Move result = {};
+		HistoryMove result = {};
 		auto side = _color[move.From];
-		assert(side != EC_EMPTY);
+		assert(side != CEMPTY);
 
-		if (_color[move.To] != EC_EMPTY)
+		if (_color[move.To] != CEMPTY)
 		{
 			assert(move.Capturing);
-			result.Capturing = false;
-			result.Captured = { _piece[move.To], _color[move.To] };
 		}
 
-		result.From = move.To;
-		result.To = move.From;
+		result.From = { move.From, At(move.From) };
+		result.To = { move.To, At(move.To) };
 
 		_piece[move.To] = _piece[move.From];
 		_color[move.To] = _color[move.From];
 
 		_piece[move.From] = EMPTY;
-		_color[move.From] = EC_EMPTY;
+		_color[move.From] = CEMPTY;
 		return result;
 	}
 
@@ -153,26 +163,26 @@ namespace Chess {
 		};
 	}
 
-	std::vector<Move> MoveGeneration::GenerateMoves(const Board &board, int pieceOffset, EPieceColors side)
+	std::vector<Move> MoveGeneration::GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side)
 	{
 		std::vector<Move> moves;
 		auto p = board.piece()[pieceOffset];
 		if (p != PAWN) { /* piece or pawn */
 			for (auto j = 0; j < offsets[p]; ++j) { /* for all knight or ray directions */
-				for (auto n = pieceOffset;;) { /* starting with from square */
+				for (int n = pieceOffset;;) { /* starting with from square */
 
 					n = mailbox[mailbox64[n] + offset[p][j]]; /* next square along the ray j */
 
 					if (n == -1)
 						break; /* outside board */
 
-					if (board.color()[n] != EC_EMPTY) {
+					if (board.color()[n] != CEMPTY) {
 						if (board.color()[n] != side)
-							moves.push_back({ pieceOffset, n, true }); /* capture from i to n */
+							moves.push_back({ pieceOffset, (BoardPosition)n, true }); /* capture from i to n */
 						break;
 					}
 
-					moves.push_back({ pieceOffset, n, false }); /* quiet move from i to n */
+					moves.push_back({ pieceOffset, (BoardPosition)n, false }); /* quiet move from i to n */
 					if (!slide[p]) break; /* next direction */
 				}
 			}
@@ -181,9 +191,12 @@ namespace Chess {
 		{
 			// pawn moves
 			auto forwardMovesCount = 0;
-			for (auto j = 0; j < offsets[p]; ++j) {
-				for (auto n = pieceOffset;;) {
-					n = mailbox[mailbox64[n] + offset[p][j]];
+			auto colorDirection = board.At(pieceOffset).Color == DARK ? -1 : 1;
+			for (auto j = 0; j < offsets[p]; ++j)
+			{
+				for (int n = pieceOffset;;)
+				{
+					n = mailbox[mailbox64[n] + colorDirection * offset[p][j]];
 					if (n == -1)
 					{
 						break;
@@ -191,19 +204,19 @@ namespace Chess {
 
 					if (pawn_capturing[j])
 					{
-						if (board.color()[n] != EC_EMPTY) {
+						if (board.color()[n] != CEMPTY) {
 							if (board.color()[n] != side)
 							{
-								moves.push_back({ pieceOffset, n, true }); /* capture from i to n */
+								moves.push_back({ pieceOffset, (BoardPosition)n, true }); /* capture from i to n */
 							}
 						}
 
 						break;
 					}
 
-					if (board.color()[n] == EC_EMPTY)
+					if (board.color()[n] == CEMPTY)
 					{
-						moves.push_back({ pieceOffset, n, false }); /* quiet move from i to n */
+						moves.push_back({ pieceOffset, (BoardPosition)n, false }); /* quiet move from i to n */
 						++forwardMovesCount;
 					}
 					else
@@ -220,17 +233,5 @@ namespace Chess {
 		}
 
 		return moves;
-	}
-
-	void Move::Serialize(std::ostream &ostream) const
-	{
-		ostream.write((char*)this, sizeof(*this));
-	}
-
-	Move Move::Deserialize(std::istream &istream)
-	{
-		Move out;
-		istream.read((char*)&out, sizeof(out));
-		return out;
 	}
 }
