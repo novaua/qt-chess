@@ -1,10 +1,10 @@
 #include "stdafx.h"
 #include <CppUnitTest.h>
 #include <CppUnitTestAssert.h>
-#include "ChessMain.h"
 #include "ChessException.h"
 #include "Move.h"
 #include "Game.h"
+#include "Serializer.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -19,8 +19,7 @@ namespace ChessTests
 
 		TEST_METHOD(MainInit_IsGoood_Test)
 		{
-			auto chessMain = new ChessMain();
-			auto boardPtr = new Board(true);
+			auto boardPtr = new Board();
 
 			boardPtr->DoMove({ a2, a4, false });
 			boardPtr->DoMove({ e7, e3, false }, true);
@@ -114,7 +113,7 @@ namespace ChessTests
 
 		TEST_METHOD(MoveValidation_Works_Test)
 		{
-			auto boardPtr = std::unique_ptr<Board>(new Board(true));
+			auto boardPtr = std::make_unique<Board>();
 			boardPtr->DoMove({ e2, e4 });
 
 			Assert::ExpectException<ChessException>([&boardPtr]()

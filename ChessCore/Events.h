@@ -8,13 +8,14 @@ namespace Chess
 		EtCheck,
 		EtMate,
 		PawnPromotion,
+
 		CannotUndo,
 	};
 
 	class EventBase
 	{
 		EventType _type;
-	
+
 	public:
 		EventBase(EventType et = EtEmpty);
 		EventType GetType();

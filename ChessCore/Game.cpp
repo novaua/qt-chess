@@ -3,6 +3,7 @@
 #include "Move.h"
 #include "Piece.h"
 #include "ChessException.h"
+#include "Serializer.h"
 
 namespace Chess
 {
@@ -43,7 +44,7 @@ namespace Chess
 		_history.empty();
 		_captured.empty();
 
-		_board.reset(new Board(whiteFirst));
+		_board.reset(new Board());
 	}
 
 	void Game::Play(const GameHistory &gameHistory)
@@ -61,7 +62,8 @@ namespace Chess
 		auto moveCount = GetMoveCount();
 		std::ofstream outFileStream(path, std::ios::out | std::ios::binary);
 
-		outFileStream.write((char*)&moveCount, sizeof(int));
+		outFileStream.write(SaveGameHeader, sizeof(SaveGameHeader));
+		BinarySerializer::Serialize(moveCount, outFileStream);
 
 		for (auto move : _history)
 		{
@@ -69,12 +71,24 @@ namespace Chess
 		}
 	}
 
+	void ValidateHeader(std::ifstream &fs, const std::string &header)
+	{
+		std::vector<char> buffer(header.size() * sizeof(char) + 1, '\0');
+		fs.read(&buffer[0], header.size() * sizeof(char));
+
+		std::string fileHeader(buffer.begin(), buffer.end());
+		if (fileHeader != header)
+		{
+			throw ChessException("Invalid Game Save file format!");
+		}
+	}
+
 	void Game::Load(const std::string &path)
 	{
 		std::ifstream fs(path, std::ios::in | std::ios::binary);
-		int count = 0;
-		fs.read((char *)&count, sizeof(int));
+		ValidateHeader(fs, SaveGameHeader);
 
+		auto count = BinarySerializer::Deserialize<int>(fs);
 		for (auto i = 0; i < count; ++i)
 		{
 			_loadedHistory.push_back(BinarySerializer::Deserialize<HistoryMove>(fs));
