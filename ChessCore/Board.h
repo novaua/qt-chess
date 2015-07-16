@@ -23,11 +23,10 @@ namespace Chess {
 	{
 		std::vector<EPieceColors> _color;  /* EMPTY, LIGHT, DARK */
 		std::vector<EPieceTypes> _piece;  /* PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, or EMPTY */
-		bool _whiteFirst;
 	public:
 
-		Board(bool whiteFirst = true);
-		void Initialize(bool whiteFirst);
+		Board();
+		void Initialize();
 
 		const std::vector<EPieceColors>  &color() const
 		{
@@ -42,16 +41,9 @@ namespace Chess {
 		Piece At(BoardPosition position) const;
 		void Place(BoardPosition position, const Piece & piece);
 
-		bool AreWhiteFirst() const { return _whiteFirst; }
-
 		HistoryMove DoMove(const Move &move, bool force = false);
 		void ValidateMove(const Move &move);
 
 		~Board();
-	};
-
-	struct MoveGeneration
-	{
-		static std::vector<Move> GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side);
 	};
 };

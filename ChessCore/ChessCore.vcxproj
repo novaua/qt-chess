@@ -77,18 +77,17 @@
   <ItemGroup>
     <ClInclude Include="Board.h" />
     <ClInclude Include="ChessException.h" />
-    <ClInclude Include="ChessMain.h" />
     <ClInclude Include="Events.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Move.h" />
     <ClInclude Include="Piece.h" />
+    <ClInclude Include="Serializer.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Board.cpp" />
     <ClCompile Include="ChessException.cpp" />
-    <ClCompile Include="ChessMain.cpp" />
     <ClCompile Include="Event.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Move.cpp" />

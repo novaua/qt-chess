@@ -13,6 +13,8 @@ namespace Chess
 	class Game
 	{
 		const int AutoPlayMoveWaitSeconds = 3;
+		const char *SaveGameHeader = "com.chess.0.1";
+
 		std::list<GameActionListener> _gameActionsListeners;
 		BoardChangesListeners _boardChangesListeners;
 
