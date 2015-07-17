@@ -25,4 +25,4 @@ namespace Chess
 		EPieceColors Color;
 		bool operator == (const Piece &o)const;
 	};
-};
+}

@@ -34,4 +34,4 @@ namespace Chess
 	{
 		static std::vector<Move> GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side);
 	};
-};
+}

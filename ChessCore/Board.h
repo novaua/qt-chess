@@ -46,4 +46,4 @@ namespace Chess {
 
 		~Board();
 	};
-};
+}

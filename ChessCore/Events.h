@@ -20,4 +20,4 @@ namespace Chess
 		EventBase(EventType et = EtEmpty);
 		EventType GetType();
 	};
-};
+}

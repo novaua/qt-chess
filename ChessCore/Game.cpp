@@ -49,7 +49,7 @@ namespace Chess
 
 	void Game::Play(const GameHistory &gameHistory)
 	{
-		for each (auto historyMove in _loadedHistory)
+		for each (auto historyMove in gameHistory)
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(AutoPlayMoveWaitSeconds));
 			auto move = historyMove.ToMove();
@@ -162,10 +162,12 @@ namespace Chess
 	void Game::AssureMove(BoardPosition from, BoardPosition to)
 	{
 		auto fromPiece = _board->At(from);
+		auto toPiece = _board->At(to);
 
 		if (fromPiece.Color == LIGHT && !IsWhiteMove()
 			|| fromPiece.Color == DARK && IsWhiteMove()
-			|| fromPiece.Color == CEMPTY)
+			|| fromPiece.Color == CEMPTY
+			|| fromPiece.Color == toPiece.Color)
 		{
 			throw ChessException("Invalid move!");
 		}
