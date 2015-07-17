@@ -12,7 +12,7 @@ Rectangle {
     property string markerBackColor: "#95a5a6"
     property string backRecBackColor: "#bdc3c7"
     property string backRecBorderColor: "#2c3e50"
-    property string chessFigureGlow: "#EB974E"
+    property string chessFigureGlow: "blue"
 
     property int angle:0;
     rotation:angle;
