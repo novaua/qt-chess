@@ -9,9 +9,12 @@ SOURCES += main.cpp \
     ../../ChessCore/Game.cpp \
     ../../ChessCore/Move.cpp \
     ../../ChessCore/Piece.cpp \
-    ../../ChessCore/stdafx.cpp
+    ../../ChessCore/stdafx.cpp \
+    chessconnector.cpp
 
 RESOURCES += qml.qrc
+
+CONFIG += c++11
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH =
@@ -31,4 +34,5 @@ HEADERS += \
     ../../ChessCore/Piece.h \
     ../../ChessCore/Serializer.h \
     ../../ChessCore/stdafx.h \
-    ../../ChessCore/targetver.h
+    ../../ChessCore/targetver.h \
+    chessconnector.h

@@ -11,5 +11,7 @@
         <file>ChessGui.pro</file>
         <file>MarkerColumn.qml</file>
         <file>MarkerRow.qml</file>
+        <file>NavigationLayer.qml</file>
+        <file>Notificator.qml</file>
     </qresource>
 </RCC>

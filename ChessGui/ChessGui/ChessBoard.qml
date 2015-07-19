@@ -74,5 +74,26 @@ Rectangle {
        anchors.left:  chessBoxes.left
        anchors.leftMargin: 0
    }
+
+   Connections {
+       target:chessConnector
+       //onDoQmlMove:chessPiecesGrid.makeMove(move)
+
+       onCheckNotify:showNotification("Check")
+
+       onCheckMateNotify:showNotification("CheckMate")
+   }
+
+   Notificator
+   {
+       id:notificator
+   }
+
+   function showNotification(notificationText)
+   {
+       notificator.opacity=0.8
+       notificator.children[0].text=notificationText
+       notificator.resources[0].start()
+   }
 }
 
