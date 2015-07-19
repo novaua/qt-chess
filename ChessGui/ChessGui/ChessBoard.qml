@@ -31,69 +31,75 @@ Rectangle {
     }
 
     ChessBoxes{
-       id: chessBoxes
-       anchors.centerIn: parent
-   }
+        id: chessBoxes
+        anchors.centerIn: parent
+    }
 
-   ChessFigures{
-       id:chessPiecesGrid
-       objectName:"chessPiecesGrid"
-       anchors.centerIn: parent
-   }
+    ChessFigures{
+        id:chessPiecesGrid
+        objectName:"chessPiecesGrid"
+        anchors.centerIn: parent
+    }
 
-   MarkerColumn {
-       id:markerColumnLeft
-       anchors.top: chessBoxes.top
-       anchors.topMargin: 0
-       anchors.right: chessBoxes.left
-       anchors.rightMargin: 0
-   }
+    MarkerColumn {
+        id:markerColumnLeft
+        anchors.top: chessBoxes.top
+        anchors.topMargin: 0
+        anchors.right: chessBoxes.left
+        anchors.rightMargin: 0
+    }
 
-   MarkerColumn {
-       id:markerColumnRight
-       anchors.top: chessBoxes.top
-       anchors.topMargin: 0
-       anchors.left: chessBoxes.right
-       anchors.rightMargin: 0
-   }
+    MarkerColumn {
+        id:markerColumnRight
+        anchors.top: chessBoxes.top
+        anchors.topMargin: 0
+        anchors.left: chessBoxes.right
+        anchors.rightMargin: 0
+    }
 
-   MarkerRow {
-       id:markerRowTop
-       antialiasing: true
-       anchors.bottom:  chessBoxes.top
-       anchors.bottomMargin: 0
-       anchors.left:  chessBoxes.left
-       anchors.leftMargin: 0
-   }
+    MarkerRow {
+        id:markerRowTop
+        antialiasing: true
+        anchors.bottom:  chessBoxes.top
+        anchors.bottomMargin: 0
+        anchors.left:  chessBoxes.left
+        anchors.leftMargin: 0
+    }
 
-   MarkerRow {
-       id:markerRowBottom
-       antialiasing: true
-       anchors.top:  chessBoxes.bottom
-       anchors.bottomMargin: 0
-       anchors.left:  chessBoxes.left
-       anchors.leftMargin: 0
-   }
+    MarkerRow {
+        id:markerRowBottom
+        antialiasing: true
+        anchors.top:  chessBoxes.bottom
+        anchors.bottomMargin: 0
+        anchors.left:  chessBoxes.left
+        anchors.leftMargin: 0
+    }
 
-   Connections {
-       target:chessConnector
-       //onDoQmlMove:chessPiecesGrid.makeMove(move)
+    Connections {
+        target:chessConnector
+        //onDoQmlMove:chessPiecesGrid.makeMove(move)
 
-       onCheckNotify:showNotification("Check")
+        onCheckNotify:showNotification("Check")
 
-       onCheckMateNotify:showNotification("CheckMate")
-   }
+        onCheckMateNotify:showNotification("CheckMate")
+    }
 
-   Notificator
-   {
-       id:notificator
-   }
+    NavigationLayer{
+        id:navigationLayerGrid
+        objectName:"navigationLayerGrid"
+        anchors.centerIn: parent
+    }
 
-   function showNotification(notificationText)
-   {
-       notificator.opacity=0.8
-       notificator.children[0].text=notificationText
-       notificator.resources[0].start()
-   }
+    Notificator
+    {
+        id:notificator
+    }
+
+    function showNotification(notificationText)
+    {
+        notificator.opacity=0.8
+        notificator.children[0].text=notificationText
+        notificator.resources[0].start()
+    }
 }
 
