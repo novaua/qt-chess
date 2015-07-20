@@ -104,11 +104,20 @@ Rectangle {
             }
         }
 
-        Text {
-            id: statusNote
-            width: 150
+        Row {
             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-            text: "Move #"+chessConnector.MoveCount + " " + chessConnector.IsWhiteMove ? "white":"black" + " turn"
+            Text {
+
+                id: statusNote
+                width: 50
+                text: chessConnector.MoveCount
+            }
+
+            Text {
+                id: statusNote1
+                width: 50
+                text: chessConnector.IsWhiteMove ? "white":"black"
+            }
         }
     }
 
