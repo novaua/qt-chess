@@ -57,6 +57,7 @@ Rectangle {
                 text: "Start"
                 onClicked: {
                     screen.state = "screen_2"
+                    console.log("New Game ")
                     chessConnector.startNewGame()
                     console.log("New Game started!")
                 }
@@ -105,8 +106,9 @@ Rectangle {
 
         Text {
             id: statusNote
+            width: 150
             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-            text: screen.state
+            text: "Move #"+chessConnector.MoveCount + " " + chessConnector.IsWhiteMove ? "white":"black" + " turn"
         }
     }
 

@@ -45,6 +45,14 @@ namespace Chess
 		_captured.empty();
 
 		_board.reset(new Board());
+
+		std::vector<BoardPosition> range(64);
+		for (int i = 0; i < 64; ++i)
+		{
+			range[i] = BoardPosition(i);
+		}
+
+		NotifyBoardChangesListeners(range);
 	}
 
 	void Game::Play(const GameHistory &gameHistory)
@@ -95,13 +103,16 @@ namespace Chess
 		}
 	}
 
-	void NotifyBoardChanged(const BoardChangesListeners & boardChangesListeners, const Move &move)
+	void Game::NotifyBoardChangesListeners(std::vector<BoardPosition> indexes)
 	{
-		for (auto listener : boardChangesListeners)
+		for (auto listener : _boardChangesListeners)
 		{
 			if (listener)
 			{
-				listener(move);
+				for each (auto index in indexes)
+				{
+					listener(index, _board->At(index));
+				}
 			}
 		}
 	}
@@ -115,7 +126,7 @@ namespace Chess
 
 		historyMove.Id = GetMoveCount();
 
-		NotifyBoardChanged(_boardChangesListeners, { from, to });
+		NotifyBoardChangesListeners({ from, to });
 		if (historyMove.IsCapturingMove())
 		{
 			_captured.push(historyMove.To.Piece);
@@ -147,7 +158,7 @@ namespace Chess
 		}
 
 		_history.pop_back();
-		NotifyBoardChanged(_boardChangesListeners, undoMove);
+		NotifyBoardChangesListeners({ undoMove.From, undoMove.To });
 	}
 
 	bool Game::IsWhiteMove()

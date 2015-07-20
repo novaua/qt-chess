@@ -6,55 +6,53 @@
 #include <functional>
 
 #include "Game.h"
+#include "model.h"
 
 class ChessConnector: public QObject
 {
     Q_OBJECT
-
     Q_PROPERTY(int MoveCount READ MoveCount NOTIFY MoveCountChanged)
     Q_PROPERTY(QStringList PossibleMoves READ PossibleMoves WRITE setPossibleMoves NOTIFY PossibleMovesChanged)
-
-    Q_PROPERTY(QStringList ChessBoard READ ChessBoard WRITE setChessBoard NOTIFY ChessBoardChanged)
+    Q_PROPERTY(int IsWhiteMove READ IsWhiteMove NOTIFY IsWhiteMoveChanged)
 
 public:
     ChessConnector();
-
-    Q_INVOKABLE void startNewGame();
-    Q_INVOKABLE QString GetFigureAt(int position);
-    Q_INVOKABLE void makeMove(int index, const QString &figure);
+    //Q_INVOKABLE void startNewGame();
 
     int MoveCount();
-    void setMoveCount(int moveCount);
+    int IsWhiteMove();
 
     QStringList &PossibleMoves();
     void setPossibleMoves(const QStringList &moves);
 
-    QStringList &ChessBoard();
-    void setChessBoard(const QStringList &board);
-
 signals:
-    //void boardChanged(int position, const QString &newValue);
+    void boardChanged(int position, const QString &newValue);
+
+    void PossibleMovesChanged();
 
     void MoveCountChanged();
-    void PossibleMovesChanged();
-    void ChessBoardChanged();
+    void IsWhiteMoveChanged();
 
     void checkNotify();
     void checkMateNotify();
 
-    // Likely we do not need it
-    //void doQmlMove(QString move);
-
 public slots:
+
+    void startNewGame();
     void figureSelected(int index);
 
+    void saveGame();
+    void loadGame();
+
+    void moveNext();
+    void movePrev();
+
+
 private:
-    QStringList _board;
+    void makeMove(int from, int to);
+
+private:
     QStringList _possibleMoves;
-
-    int _moveCount;
-
-    int _selectedPosition;
     std::unique_ptr<Chess::Game> _game;
 };
 

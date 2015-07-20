@@ -127,24 +127,28 @@ namespace ChessTests
 			auto game = std::make_unique<Game>();
 
 			Assert::IsTrue(game->IsWhiteMove());
+			Assert::AreEqual(0, game->GetMoveCount());
 
-			std::vector <Move> observedMoves;
-			game->RegisterBoardChanged([&observedMoves](const Move &move)
+			std::vector <BoardPosition> observedMoves;
+			game->RegisterBoardChanged([&observedMoves](int index, const Piece &piece)
 			{
-				observedMoves.push_back(move);
+				observedMoves.push_back(BoardPosition(index));
 			});
 
 			game->DoMove(e2, e4);
 
-			Assert::AreEqual<int>(observedMoves[0].From, e2);
-			Assert::AreEqual<int>(observedMoves[0].To, e4);
+			Assert::AreEqual<int>(observedMoves[0], e2);
+			Assert::AreEqual<int>(observedMoves[1], e4);
 
 			Assert::IsFalse(game->IsWhiteMove());
 			game->DoMove(e7, e5);
 
 			Assert::IsTrue(game->IsWhiteMove());
 
-			Assert::AreEqual(2u, observedMoves.size());
+			Assert::AreEqual(4u, observedMoves.size());
+
+			auto gameRecord = game->GetGameRecord();
+			Assert::AreEqual(2u, gameRecord.size());
 		}
 	};
 }

@@ -22,7 +22,7 @@ Grid {
         delegate:
             Item{
             id:navigationLayerItm
-            rotation: 180+mainRec.angle
+            rotation: 180+chessBoard.angle
             width: navigationLayerRptr.parent.height<navigationLayerRptr.parent.width?navigationLayerRptr.parent.height/8:navigationLayerRptr.parent.width/8
             height: width
 

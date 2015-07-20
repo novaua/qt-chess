@@ -15,18 +15,18 @@ Grid{
         angle: 180
     }
 
-    ChessFiguresModel{
+    EmptyBoardModel {
         id: chessFiguresModel
     }
 
-    Repeater{
+    Repeater {
         id:chessPiecesRptr
         objectName: "chessPiecesRptr"
 
         property int selectedIndex: -1
         signal chessfigureSelected(int index)
 
-        model:chessConnector.ChessBoard
+        model:chessFiguresModel
 
         delegate: Item{
             id:chessPiecesItm
@@ -42,7 +42,7 @@ Grid{
                 angle: 180
             }
 
-            Behavior on rotation  {
+            Behavior on rotation {
                 NumberAnimation {
                     id: chessPiecesRotation
                     easing {
@@ -64,7 +64,7 @@ Grid{
                 color: chessFigureGlow
                 source: chessPiecesImg
 
-                Behavior on opacity  {
+                Behavior on opacity {
                     NumberAnimation {
                         easing {
                             type: Easing.InCirc
@@ -75,7 +75,7 @@ Grid{
                 }
             }
 
-            Text{
+            Text {
                 id:chessPiecesImg
                 anchors.centerIn: chessPiecesItm
                 smooth: true
@@ -109,6 +109,14 @@ Grid{
                     chessConnector.figureSelected(index);
                 }
             }
+        }
+    }
+
+    Connections {
+        target: chessConnector
+        onBoardChanged: {
+            console.log("Setting board [" + position + "]: " + newValue)
+            updateChessFiguresModel(position, newValue)
         }
     }
 
@@ -157,5 +165,10 @@ Grid{
         chessPiecesRptr.selectedIndex=index
         chessPiecesRptr.itemAt(index).children[0].opacity=1
     }
-}
 
+    function updateChessFiguresModel(index, value)
+    {
+        chessFiguresModel.remove(index)
+        chessFiguresModel.insert(index,  { modelData: value})
+    }
+}

@@ -19,7 +19,7 @@ Rectangle {
     color: "transparent"
 
     Behavior on rotation {
-        id:mainRecBehavior
+        id:chessBoardBehavior
         NumberAnimation {
             id: chessBoardRotation
             easing {
@@ -77,7 +77,6 @@ Rectangle {
 
     Connections {
         target:chessConnector
-        //onDoQmlMove:chessPiecesGrid.makeMove(move)
 
         onCheckNotify:showNotification("Check")
 

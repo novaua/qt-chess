@@ -10,9 +10,10 @@
 namespace Chess
 {
 	typedef std::function<void(const EventBase &)> GameActionListener;
-	typedef std::function<void(const Move&)> BoardChangesListener;
-	typedef std::vector<HistoryMove> GameHistory;
+	typedef std::function<void(int index, const Piece &piece)> BoardChangesListener;
 	typedef std::list<BoardChangesListener> BoardChangesListeners;
+
+	typedef std::vector<HistoryMove> GameHistory;
 
 	class Game
 	{
@@ -58,5 +59,7 @@ namespace Chess
 	private:
 		void AssureMove(BoardPosition from, BoardPosition to);
 		bool CanMoveFrom(BoardPosition from);
+
+		void NotifyBoardChangesListeners(std::vector<BoardPosition> indexes);
 	};
 }

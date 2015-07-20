@@ -8,32 +8,26 @@ const char * EmptyFlag = " ";
 
 void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
 {
-	board.clear();
+    auto newBoard = board.empty();
 	for (auto i = 0; i < 64; ++i)
 	{
-		board.append(cleanValue);
+        if (newBoard)
+            board.append(cleanValue);
+        else
+            board[i] = cleanValue;
 	}
 }
 
 ChessConnector::ChessConnector()
-	:_moveCount(0),
-	_game(std::make_unique<Game>())
+    :_game(std::make_unique<Game>())
 {
 	_game->RegisterBoardChanged(
-		[&](const Move &move)
+        [&](int index, const Piece &piece)
 	{
-		_board[move.From] = QString::fromStdString(_game->GetPieceAt(move.From).ToString());
-		_board[move.To] = QString::fromStdString(_game->GetPieceAt(move.To).ToString());
-		emit ChessBoardChanged();
-	});
+        emit boardChanged(index, QString::fromStdString(piece.ToString()));
+    });
 
-	ClearBoard(_board);
 	ClearBoard(_possibleMoves);
-}
-
-QString ChessConnector::GetFigureAt(int position)
-{
-	return _board.at(position);
 }
 
 int ChessConnector::MoveCount()
@@ -41,33 +35,30 @@ int ChessConnector::MoveCount()
 	return _game->GetMoveCount();
 }
 
-void ChessConnector::figureSelected(int position)
+int ChessConnector::IsWhiteMove()
+{
+    return _game->IsWhiteMove()?1:0;
+}
+
+void ChessConnector::figureSelected(int index)
 {
 	//find possible moves for the position and notify IU
-	auto pmString = _possibleMoves[position];
-	auto pmInt = pmString == EmptyFlag
+    auto pmString = _possibleMoves[index];
+
+    auto selected = pmString == EmptyFlag
 		? -1
 		: pmString.toInt();
+
 	ClearBoard(_possibleMoves);
-	if (pmInt != -1)
+    if (selected != -1)
 	{
-		try
-		{
-			// or make move
-			_game->DoMove((BoardPosition)pmInt, (BoardPosition)position);
-			emit MoveCountChanged();
-		}
-		catch (ChessException &ex)
-		{
-			qDebug() << "Exception caught moving [" << pmInt << ", " << position << "]:" << ex.what();
-			//okay do nothing
-		}
+        makeMove(BoardPosition(selected), BoardPosition(index));
 	}
 	else
 	{
-		for (auto move : _game->GetAllowedMoves(position))
+        for (auto move : _game->GetAllowedMoves(index))
 		{
-			_possibleMoves[move.To] = QString::number(position);
+            _possibleMoves[move.To] = QString::number(index);
 		}
 	}
 
@@ -85,32 +76,43 @@ void ChessConnector::setPossibleMoves(const QStringList &moves)
 	emit PossibleMovesChanged();
 }
 
-QStringList &ChessConnector::ChessBoard()
+void ChessConnector::makeMove(int from, int to)
 {
-	return _board;
-}
-
-void ChessConnector::setChessBoard(const QStringList &board)
-{
-	_board = board;
-	emit ChessBoardChanged();
-}
-
-void ChessConnector::makeMove(int index, const QString &figure)
-{
-	qDebug() << "Make move " << index << " " << figure;
+    try
+    {
+        _game->DoMove((BoardPosition)from, (BoardPosition)to);
+        emit MoveCountChanged();
+        emit IsWhiteMoveChanged();
+    }
+    catch (ChessException &ex)
+    {
+        qDebug() << "Exception caught moving [" << from << ", " << to << "]:" << ex.what();
+    }
 }
 
 void ChessConnector::startNewGame()
 {
-	qDebug() << "Starting new game!";
-	if (_game->GetMoveCount() != 0) {
-		_game->Restart();
-	}
+    qDebug() << "Cpp Starting new game!";
+    _game->Restart();
+    qDebug() << "Cpp Game restarted!";
+}
 
-	for (auto i = 0u; i < 64u; ++i){
-		_board[i] = QString::fromStdString(_game->GetPieceAt(i).ToString());
-	}
+void ChessConnector::saveGame()
+{
 
-	emit ChessBoardChanged();
+}
+
+void ChessConnector::loadGame()
+{
+
+}
+
+void ChessConnector::moveNext()
+{
+
+}
+
+void ChessConnector::movePrev()
+{
+
 }
