@@ -23,6 +23,8 @@ namespace Chess
 	{
 		EPieceTypes Type;
 		EPieceColors Color;
+
 		bool operator == (const Piece &o)const;
+		const std::string &ToString() const;
 	};
 }

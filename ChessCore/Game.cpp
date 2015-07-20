@@ -110,7 +110,9 @@ namespace Chess
 	{
 		AssureMove(from, to);
 
-		auto historyMove = _board->DoMove({ from, to }, false);
+		auto isCapturing = _board->At(to).Color != CEMPTY;
+		auto historyMove = _board->DoMove({ from, to, isCapturing }, false);
+
 		historyMove.Id = GetMoveCount();
 
 		NotifyBoardChanged(_boardChangesListeners, { from, to });
@@ -164,12 +166,29 @@ namespace Chess
 		auto fromPiece = _board->At(from);
 		auto toPiece = _board->At(to);
 
-		if (fromPiece.Color == LIGHT && !IsWhiteMove()
-			|| fromPiece.Color == DARK && IsWhiteMove()
-			|| fromPiece.Color == CEMPTY
-			|| fromPiece.Color == toPiece.Color)
+		if (!CanMoveFrom(from) || fromPiece.Color == toPiece.Color)
 		{
 			throw ChessException("Invalid move!");
 		}
+	}
+
+	bool Game::CanMoveFrom(BoardPosition from)
+	{
+		auto fromPiece = _board->At(from);
+		return !(fromPiece.Color == LIGHT && !IsWhiteMove()
+			|| fromPiece.Color == DARK && IsWhiteMove()
+			|| fromPiece.Color == CEMPTY);
+	}
+
+	Piece Game::GetPieceAt(int index)
+	{
+		return _board->At((BoardPosition)index);
+	}
+
+	std::vector<Move> Game::GetAllowedMoves(int index)
+	{
+		return (0 < index && index < 64 && CanMoveFrom(BoardPosition(index)))
+			? GetPossibleMoves(index)
+			: std::vector<Move>();
 	}
 }

@@ -3,13 +3,15 @@
 
 #include <QObject>
 #include <QStringList>
-//#include "../../ChessCore/Game.h"
+#include <functional>
+
+#include "Game.h"
 
 class ChessConnector: public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(int MoveCount READ MoveCount WRITE setMoveCount NOTIFY MoveCountChanged)
+    Q_PROPERTY(int MoveCount READ MoveCount NOTIFY MoveCountChanged)
     Q_PROPERTY(QStringList PossibleMoves READ PossibleMoves WRITE setPossibleMoves NOTIFY PossibleMovesChanged)
 
     Q_PROPERTY(QStringList ChessBoard READ ChessBoard WRITE setChessBoard NOTIFY ChessBoardChanged)
@@ -31,7 +33,7 @@ public:
     void setChessBoard(const QStringList &board);
 
 signals:
-    void boardChanged(int position, const QString &newValue);
+    //void boardChanged(int position, const QString &newValue);
 
     void MoveCountChanged();
     void PossibleMovesChanged();
@@ -49,7 +51,11 @@ public slots:
 private:
     QStringList _board;
     QStringList _possibleMoves;
+
     int _moveCount;
+
+    int _selectedPosition;
+    std::unique_ptr<Chess::Game> _game;
 };
 
 #endif // CHESSCONNECTOR_H

@@ -26,7 +26,6 @@ Grid{
         property int selectedIndex: -1
         signal chessfigureSelected(int index)
 
-        //model:chessFiguresModel
         model:chessConnector.ChessBoard
 
         delegate: Item{
@@ -105,6 +104,9 @@ Grid{
                 onClicked: {
                     changeGlow(index)
                     chessPiecesRptr.chessfigureSelected(index)
+
+                    //connect using signal
+                    chessConnector.figureSelected(index);
                 }
             }
         }
