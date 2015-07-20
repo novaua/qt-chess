@@ -12,23 +12,23 @@ namespace Chess {
 
 	void Board::Initialize()
 	{
-		auto baseOffset = 0;
 		_color = {};
-		for (auto i = 0; i < 64; ++i)
+
+		for (auto i = 0; i < 16; ++i)
 		{
-			if (i < 16)
-			{
-				_color.push_back(LIGHT);
-			}
-			else if (i < 16 + 32)
-			{
-				_color.push_back({ CEMPTY });
-			}
-			else
-			{
-				_color.push_back(DARK);
-			}
+			_color.push_back(LIGHT);
 		}
+
+		for (auto i = 0; i < 32; ++i)
+		{
+			_color.push_back(CEMPTY);
+		}
+
+		for (auto i = 0; i < 16; ++i)
+		{
+			_color.push_back(DARK);
+		}
+
 		_piece =
 		{
 			ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK,

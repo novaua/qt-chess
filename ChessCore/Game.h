@@ -1,4 +1,8 @@
 #pragma once
+#include <memory>
+#include <stack>
+#include <functional>
+
 #include "Board.h"
 #include "Events.h"
 #include "Move.h"
@@ -6,9 +10,10 @@
 namespace Chess
 {
 	typedef std::function<void(const EventBase &)> GameActionListener;
-	typedef std::function<void(const Move&)> BoardChangesListener;
-	typedef std::vector<HistoryMove> GameHistory;
+	typedef std::function<void(int index, const Piece &piece)> BoardChangesListener;
 	typedef std::list<BoardChangesListener> BoardChangesListeners;
+
+	typedef std::vector<HistoryMove> GameHistory;
 
 	class Game
 	{
@@ -32,10 +37,13 @@ namespace Chess
 		void RegisterBoardChanged(const BoardChangesListener &listener);
 
 		std::vector<Move> GetPossibleMoves(int index);
-		const GameHistory &GetGameRecord() const;
+		std::vector<Move> GetAllowedMoves(int index);
+
+		Piece GetPieceAt(int index);
 
 		void Restart(bool whiteFirst = true);
 
+		const GameHistory &GetGameRecord() const;
 		void Play(const GameHistory &gameHistory);
 
 		void Save(const std::string &path);
@@ -50,5 +58,8 @@ namespace Chess
 		~Game();
 	private:
 		void AssureMove(BoardPosition from, BoardPosition to);
+		bool CanMoveFrom(BoardPosition from);
+
+		void NotifyBoardChangesListeners(std::vector<BoardPosition> indexes);
 	};
 }

@@ -45,11 +45,19 @@ namespace Chess
 		_captured.empty();
 
 		_board.reset(new Board());
+
+		std::vector<BoardPosition> range(64);
+		for (int i = 0; i < 64; ++i)
+		{
+			range[i] = BoardPosition(i);
+		}
+
+		NotifyBoardChangesListeners(range);
 	}
 
 	void Game::Play(const GameHistory &gameHistory)
 	{
-		for each (auto historyMove in _loadedHistory)
+		for each (auto historyMove in gameHistory)
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(AutoPlayMoveWaitSeconds));
 			auto move = historyMove.ToMove();
@@ -95,13 +103,16 @@ namespace Chess
 		}
 	}
 
-	void NotifyBoardChanged(const BoardChangesListeners & boardChangesListeners, const Move &move)
+	void Game::NotifyBoardChangesListeners(std::vector<BoardPosition> indexes)
 	{
-		for (auto listener : boardChangesListeners)
+		for (auto listener : _boardChangesListeners)
 		{
 			if (listener)
 			{
-				listener(move);
+				for each (auto index in indexes)
+				{
+					listener(index, _board->At(index));
+				}
 			}
 		}
 	}
@@ -110,10 +121,12 @@ namespace Chess
 	{
 		AssureMove(from, to);
 
-		auto historyMove = _board->DoMove({ from, to }, false);
+		auto isCapturing = _board->At(to).Color != CEMPTY;
+		auto historyMove = _board->DoMove({ from, to, isCapturing }, false);
+
 		historyMove.Id = GetMoveCount();
 
-		NotifyBoardChanged(_boardChangesListeners, { from, to });
+		NotifyBoardChangesListeners({ from, to });
 		if (historyMove.IsCapturingMove())
 		{
 			_captured.push(historyMove.To.Piece);
@@ -145,7 +158,7 @@ namespace Chess
 		}
 
 		_history.pop_back();
-		NotifyBoardChanged(_boardChangesListeners, undoMove);
+		NotifyBoardChangesListeners({ undoMove.From, undoMove.To });
 	}
 
 	bool Game::IsWhiteMove()
@@ -162,12 +175,31 @@ namespace Chess
 	void Game::AssureMove(BoardPosition from, BoardPosition to)
 	{
 		auto fromPiece = _board->At(from);
+		auto toPiece = _board->At(to);
 
-		if (fromPiece.Color == LIGHT && !IsWhiteMove()
-			|| fromPiece.Color == DARK && IsWhiteMove()
-			|| fromPiece.Color == CEMPTY)
+		if (!CanMoveFrom(from) || fromPiece.Color == toPiece.Color)
 		{
 			throw ChessException("Invalid move!");
 		}
+	}
+
+	bool Game::CanMoveFrom(BoardPosition from)
+	{
+		auto fromPiece = _board->At(from);
+		return !(fromPiece.Color == LIGHT && !IsWhiteMove()
+			|| fromPiece.Color == DARK && IsWhiteMove()
+			|| fromPiece.Color == CEMPTY);
+	}
+
+	Piece Game::GetPieceAt(int index)
+	{
+		return _board->At((BoardPosition)index);
+	}
+
+	std::vector<Move> Game::GetAllowedMoves(int index)
+	{
+		return (0 < index && index < 64 && CanMoveFrom(BoardPosition(index)))
+			? GetPossibleMoves(index)
+			: std::vector<Move>();
 	}
 }
