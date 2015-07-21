@@ -4,7 +4,7 @@
 
 using namespace Chess;
 
-HistoryPlayer::HistoryPlayer(Game * game)
+HistoryPlayer::HistoryPlayer(const GameAptr &game)
 	:_game(game)
 {
 }
@@ -38,6 +38,7 @@ void HistoryPlayer::MoveBack()
 {
 	if (!CanMove(false))
 		return;
+	--_pointer;
 	_game->UndoMove();
 }
 

@@ -31,12 +31,12 @@ Grid {
             property int rowIndex: Math.floor(index/8)
             property int columnIndex: index%8
             color: ((Math.floor(index / 8) % 2) === 0)
-                       ? (index % 2  === 1 ? darkChessBoxColor : brightChessBoxColor)
-                       : (index % 2  === 0 ? darkChessBoxColor : brightChessBoxColor)
+                       ? (index % 2  === 1 ? darkChessBoxColor : lightChessBoxColor)
+                       : (index % 2  === 0 ? darkChessBoxColor : lightChessBoxColor)
             Text {
                 anchors.fill: parent
                 id: name
-                text: index
+                text: "" //index
                 font.bold: true
                 font.pointSize: 14
                 rotation: 180 + chessBoard.angle

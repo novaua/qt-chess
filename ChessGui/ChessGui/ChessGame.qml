@@ -1,169 +1,168 @@
 import QtQuick 2.3
+import QtQuick.Controls 1.3
 
-Rectangle {
-    id: screen
-    state:"screen_1"
+ApplicationWindow {
 
-    SystemPalette { id: activePalette }
+    property string lightChessBoxColor: "#ecf0f1"
+    property string darkChessBoxColor:"darkslategray"
+    property string markersOfChessBoxColor:"#34495e"
+    property string chessFigureGlow: "blue"
 
-    Item {
-        width: parent.width
-        anchors { top: parent.top; bottom: toolBar.top }
+    title: qsTr("Chess ++")
+    color: activePalette.window
+
+    width: 768
+    height: 1054
+    visible: true
+
+    Rectangle {
+        id: screen
+        state:"screen_1"
+        anchors.fill: parent
 
         Image {
             id: background
+
             anchors.fill: parent
             source: "qrc:///pics/ChessBackground.jpg"
             fillMode: Image.PreserveAspectCrop
         }
-    }
 
-    Item {
-        width: parent.width
-        anchors { top: parent.top; bottom: toolBar.top }
-
-        Rectangle {
-            width: 70;
-            height: screen.height - 30
-            anchors.top: parent.top
-            anchors.left: parent.left
-            id: movesHistory
-
-            Text {
-                text:"History!"
-            }
-        }
-
-        ChessBoard {
+        SystemPalette { id: activePalette }
+        Column{
             anchors.fill: parent
-            id: chessBoard
-        }
-    }
-
-    Rectangle {
-        id: toolBar
-        width: parent.width; height: 30
-        color: activePalette.window
-        anchors.bottom: screen.bottom
-
-        Row {
-            id: controlButtons
-            anchors { left: parent.left; verticalCenter: parent.verticalCenter }
-            spacing: 10
-
-            Button {
-                id: buttonStart
-
-                text: "Start"
-                onClicked: {
-                    screen.state = "screen_2"
-                    console.log("New Game ")
-                    chessConnector.startNewGame()
-                    console.log("New Game started!")
-                }
+            ChessBoard {
+                width: parent.width
+                height:parent.height - 30
+                id: chessBoard
             }
 
-            Button {
-                id: buttonLoad
-                text: "Load"
-                onClicked: {
-                    if (chessConnector.loadGame())
-                    {
-                        chessConnector.startNewGame()
-                        screen.state = "screen_3"
+            Rectangle {
+                id: toolBar
+                width: parent.width;
+                height: 30
+                color: activePalette.window
+
+                Row {
+                    id: controlButtons
+                    anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                    spacing: 10
+
+                    Button {
+                        id: buttonStart
+
+                        text: "Start"
+                        onClicked: {
+                            screen.state = "screen_2"
+                            console.log("New Game ")
+                            chessConnector.startNewGame()
+                            console.log("New Game started!")
+                        }
                     }
 
-                    console.log("Load pressed!")
+                    Button {
+                        id: buttonLoad
+                        text: "Load"
+                        onClicked: {
+                            if (chessConnector.loadGame())
+                            {
+                                chessConnector.startNewGame()
+                                screen.state = "screen_3"
+                            }
+
+                            console.log("Load pressed!")
+                        }
+                    }
+
+                    Button {
+                        id: buttonStop
+                        text: "Stop"
+                        onClicked:
+                        {
+                            chessConnector.endGame();
+                            screen.state = "screen_1"
+                            console.log("Game ended!")
+                        }
+                    }
+
+                    Button {
+                        id: buttonSave
+
+                        text: "Save"
+                        onClicked:{
+                            chessConnector.saveGame()
+                            console.log("Saved!")
+                        }
+                    }
+
+                    Button {
+                        id: buttonNext
+
+                        text: "Next"
+                        onClicked: {
+                            chessConnector.moveNext()
+                            console.log("Advanced")
+                        }
+                    }
+
+                    Button {
+                        id: buttonPrev
+
+                        text: "Prev"
+                        onClicked: {
+                            chessConnector.movePrev()
+                            console.log("Moved back")
+                        }
+                    }
                 }
-            }
 
-            Button {
-                id: buttonStop
-                text: "Stop"
-                onClicked:
-                {
-                    chessConnector.endGame();
-                    screen.state = "screen_1"
-                    console.log("Game ended!")
-                }
-            }
+                Row {
+                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                    Text {
 
-            Button {
-                id: buttonSave
+                        id: statusNote
+                        width: 50
+                        text: chessConnector.MoveCount
+                    }
 
-                text: "Save"
-                onClicked:{
-                    chessConnector.saveGame()
-                    console.log("Saved!")
-                }
-            }
-
-            Button {
-                id: buttonNext
-
-                text: "Next"
-                onClicked: {
-                    chessConnector.moveNext()
-                    console.log("Advanced!")
-                }
-            }
-
-            Button {
-                id: buttonPrev
-
-                text: "Prev"
-                onClicked: {
-                    chessConnector.movePrev()
-                    console.log("Moved back!")
+                    Text {
+                        id: statusNote1
+                        width: 50
+                        text: chessConnector.IsWhiteMove ? "white":"black"
+                    }
                 }
             }
         }
 
-        Row {
-            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-            Text {
+        states: [
+            State {
+                name: "screen_1"
+                PropertyChanges { target: buttonStart; visible: true}
+                PropertyChanges { target: buttonLoad; visible: true}
+                PropertyChanges { target: buttonStop; visible: false}
+                PropertyChanges { target: buttonSave; visible: false}
+                PropertyChanges { target: buttonNext; visible: false}
+                PropertyChanges { target: buttonPrev; visible: false}
+            },
+            State {
+                name: "screen_2"
+                PropertyChanges { target: buttonStart; visible: false}
+                PropertyChanges { target: buttonLoad; visible: false}
+                PropertyChanges { target: buttonStop; visible: true}
+                PropertyChanges { target: buttonSave; visible: true}
+                PropertyChanges { target: buttonNext; visible: false}
+                PropertyChanges { target: buttonPrev; visible: false}
+            },
 
-                id: statusNote
-                width: 50
-                text: chessConnector.MoveCount
+            State {
+                name: "screen_3"
+                PropertyChanges { target: buttonStart; visible: true}
+                PropertyChanges { target: buttonLoad; visible: true}
+                PropertyChanges { target: buttonStop; visible: false}
+                PropertyChanges { target: buttonSave; visible: false}
+                PropertyChanges { target: buttonNext; visible: true}
+                PropertyChanges { target: buttonPrev; visible: true}
             }
-
-            Text {
-                id: statusNote1
-                width: 50
-                text: chessConnector.IsWhiteMove ? "white":"black"
-            }
-        }
+        ]
     }
-
-    states: [
-        State {
-            name: "screen_1"
-            PropertyChanges { target: buttonStart; visible: true}
-            PropertyChanges { target: buttonLoad; visible: true}
-            PropertyChanges { target: buttonStop; visible: false}
-            PropertyChanges { target: buttonSave; visible: false}
-            PropertyChanges { target: buttonNext; visible: false}
-            PropertyChanges { target: buttonPrev; visible: false}
-        },
-        State {
-            name: "screen_2"
-            PropertyChanges { target: buttonStart; visible: false}
-            PropertyChanges { target: buttonLoad; visible: false}
-            PropertyChanges { target: buttonStop; visible: true}
-            PropertyChanges { target: buttonSave; visible: true}
-            PropertyChanges { target: buttonNext; visible: false}
-            PropertyChanges { target: buttonPrev; visible: false}
-        },
-
-        State {
-            name: "screen_3"
-            PropertyChanges { target: buttonStart; visible: true}
-            PropertyChanges { target: buttonLoad; visible: true}
-            PropertyChanges { target: buttonStop; visible: false}
-            PropertyChanges { target: buttonSave; visible: false}
-            PropertyChanges { target: buttonNext; visible: true}
-            PropertyChanges { target: buttonPrev; visible: true}
-        }
-    ]
 }

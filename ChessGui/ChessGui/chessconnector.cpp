@@ -22,7 +22,7 @@ void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
 }
 
 ChessConnector::ChessConnector()
-	:_game(std::make_unique<Game>())
+    :_game(GameAptr(new Game()))
 {
 	_game->RegisterBoardChanged(
 		[&](int index, const Piece &piece)
@@ -45,6 +45,10 @@ int ChessConnector::IsWhiteMove()
 
 void ChessConnector::figureSelected(int index)
 {
+	if (IsOnPlayerMode()){
+		return;
+	}
+
 	//find possible moves for the position and notify IU
 	auto pmString = _possibleMoves[index];
 
@@ -101,6 +105,7 @@ void ChessConnector::makeMove(int from, int to)
 void ChessConnector::startNewGame()
 {
 	_game->Restart();
+	EmitMoveCountUpdates();
 	qDebug() << "Cpp Game restarted!";
 }
 
@@ -129,6 +134,7 @@ bool fileExists(QString path) {
 void ChessConnector::saveGame()
 {
 	_game->Save(getSaveGameFilePath().toStdString());
+	emit savedOk();
 }
 
 bool ChessConnector::loadGame()
@@ -159,11 +165,13 @@ bool ChessConnector::loadGame()
 void ChessConnector::moveNext()
 {
 	_player->MoveNext();
+	EmitMoveCountUpdates();
 }
 
 void ChessConnector::movePrev()
 {
 	_player->MoveBack();
+	EmitMoveCountUpdates();
 }
 
 int ChessConnector::IsOnPlayerMode()
@@ -176,4 +184,5 @@ void ChessConnector::endGame()
 	_game->EndGame();
 	_player.reset();
 	EmitMoveCountUpdates();
+	emit IsOnPlayerModeChanged();
 }

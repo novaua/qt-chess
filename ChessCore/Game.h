@@ -2,6 +2,7 @@
 #include <memory>
 #include <stack>
 #include <functional>
+#include <mutex>
 
 #include "Board.h"
 #include "Events.h"
@@ -13,13 +14,13 @@ namespace Chess
 	typedef std::function<void(const EventBase &)> GameActionListener;
 	typedef std::function<void(int index, const Piece &piece)> BoardChangesListener;
 	typedef std::list<BoardChangesListener> BoardChangesListeners;
+	typedef std::list<GameActionListener> GameActionListeners;
 
-	class Game
+	class Game : public std::enable_shared_from_this < Game >
 	{
-		const int AutoPlayMoveWaitSeconds = 3;
 		const char *SaveGameHeader = "com.chess.0.1";
 
-		std::list<GameActionListener> _gameActionsListeners;
+		GameActionListeners _gameActionsListeners;
 		BoardChangesListeners _boardChangesListeners;
 
 		std::unique_ptr<Board> _board;
@@ -28,6 +29,7 @@ namespace Chess
 		bool _whiteFirst;
 
 		std::vector<HistoryMove> _loadedHistory;
+		std::mutex _lock;
 
 	public:
 		Game();
@@ -53,7 +55,7 @@ namespace Chess
 		void UndoMove();
 
 		bool IsWhiteMove();
-		int GetMoveCount() const;
+		int GetMoveCount();
 
 		~Game();
 	private:
@@ -62,4 +64,6 @@ namespace Chess
 
 		void NotifyBoardChangesListeners(std::vector<BoardPosition> indexes);
 	};
+
+	typedef std::shared_ptr<Game> GameAptr;
 }
