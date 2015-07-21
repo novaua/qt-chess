@@ -16,5 +16,7 @@ int main(int argc, char *argv[])
 
     engine.load(QUrl(QStringLiteral("qrc:/ChessGame.qml")));
 
-    return app.exec();
+    auto exitCode = app.exec();
+    delete chessConnectorPtr;
+    return exitCode;
 }

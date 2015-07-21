@@ -4,11 +4,12 @@
 namespace Chess
 {
 	class Game;
+	typedef std::shared_ptr<Game> GameAptr;
 
 	class HistoryPlayer
 	{
 	public:
-		HistoryPlayer(Game *game);
+		HistoryPlayer(const GameAptr &game);
 
 		void Play(const GameHistory &gameHistory);
 
@@ -20,7 +21,7 @@ namespace Chess
 		~HistoryPlayer();
 
 	private:
-		Game *_game;
+		GameAptr _game;
 		GameHistory _history;
 		int _pointer;
 	};

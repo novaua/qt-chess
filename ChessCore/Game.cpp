@@ -40,12 +40,16 @@ namespace Chess
 
 	void Game::Restart(bool whiteFirst)
 	{
-		_whiteFirst = whiteFirst;
-		_history.empty();
-		_captured.empty();
+		{
+			std::lock_guard<std::mutex> lg(_lock);
 
-		_board.reset(new Board());
-		_board->Initialize();
+			_whiteFirst = whiteFirst;
+			_history = {};
+			_captured = {};
+
+			//_board.reset(new Board());
+			_board->Initialize();
+		};
 
 		std::vector<BoardPosition> range(64);
 		for (int i = 0; i < 64; ++i)
@@ -58,22 +62,27 @@ namespace Chess
 
 	void Game::EndGame()
 	{
-		_history.empty();
-		_captured.empty();
-		_board.reset(new Board());
+		{
+			std::lock_guard<std::mutex> lg(_lock);
+			_history = {};
+			_captured = {};
+			_board.reset(new Board());
+
+			_loadedHistory = {};
+		}
+
 		std::vector<BoardPosition> range(64);
 		for (int i = 0; i < 64; ++i)
 		{
 			range[i] = BoardPosition(i);
 		}
 
-		_loadedHistory.empty();
 		NotifyBoardChangesListeners(range);
 	}
 
 	HistoryPlayerAptr Game::MakePlayer()
 	{
-		auto player = std::make_shared<HistoryPlayer>(this);
+		auto player = std::make_shared<HistoryPlayer>(shared_from_this());
 		player->Play(_loadedHistory);
 		assert(_loadedHistory.size()>0 && "Expected loaded history upon play!");
 		return player;
@@ -182,8 +191,9 @@ namespace Chess
 		return _whiteFirst ? isEven : !isEven;
 	}
 
-	int Game::GetMoveCount() const
+	int Game::GetMoveCount()
 	{
+		std::lock_guard<std::mutex> lg(_lock);
 		return _history.size();
 	}
 

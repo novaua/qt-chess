@@ -186,3 +186,8 @@ void ChessConnector::endGame()
 	EmitMoveCountUpdates();
 	emit IsOnPlayerModeChanged();
 }
+
+ChessConnector::~ChessConnector()
+{
+    qDebug() << "Game Exited.";
+}

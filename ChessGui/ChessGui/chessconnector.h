@@ -17,6 +17,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
 public:
 	ChessConnector();
+	~ChessConnector();
 
 	int MoveCount();
 	int IsWhiteMove();
