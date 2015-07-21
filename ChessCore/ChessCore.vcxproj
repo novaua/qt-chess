@@ -75,6 +75,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Queue.hpp" />
     <ClInclude Include="Board.h" />
     <ClInclude Include="ChessException.h" />
     <ClInclude Include="Events.h" />

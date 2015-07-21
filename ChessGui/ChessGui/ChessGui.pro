@@ -38,4 +38,5 @@ HEADERS += \
     ../../ChessCore/stdafx.h \
     ../../ChessCore/targetver.h \
     chessconnector.h \
-    ../../ChessCore/HistoryPlayer.h
+    ../../ChessCore/HistoryPlayer.h \
+    ../../ChessCore/Queue.hpp

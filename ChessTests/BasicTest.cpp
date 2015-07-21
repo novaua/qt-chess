@@ -5,6 +5,7 @@
 #include "Move.h"
 #include "Game.h"
 #include "Serializer.h"
+#include "Queue.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -127,31 +128,33 @@ namespace ChessTests
 
 		TEST_METHOD(BasicGame_Works_Test)
 		{
-			auto game = std::make_unique<Game>();
-			game->Restart();
-			Assert::IsTrue(game->IsWhiteMove());
-			Assert::AreEqual(0, game->GetMoveCount());
-
 			std::vector <BoardPosition> observedMoves;
-			game->RegisterBoardChanged([&observedMoves](int index, const Piece &piece)
 			{
-				observedMoves.push_back(BoardPosition(index));
-			});
+				auto game = std::make_unique<Game>();
+				game->Restart();
+				Assert::IsTrue(game->IsWhiteMove());
+				Assert::AreEqual(0, game->GetMoveCount());
 
-			game->DoMove(e2, e4);
+				game->RegisterBoardChanged([&observedMoves](int index, const Piece &piece)
+				{
+					observedMoves.push_back(BoardPosition(index));
+				});
+
+				game->DoMove(e2, e4);
+
+				Assert::IsFalse(game->IsWhiteMove());
+				game->DoMove(e7, e5);
+
+				Assert::IsTrue(game->IsWhiteMove());
+
+				auto gameRecord = game->GetGameRecord();
+				Assert::AreEqual(2u, gameRecord.size());
+			}
 
 			Assert::AreEqual<int>(observedMoves[0], e2);
 			Assert::AreEqual<int>(observedMoves[1], e4);
 
-			Assert::IsFalse(game->IsWhiteMove());
-			game->DoMove(e7, e5);
-
-			Assert::IsTrue(game->IsWhiteMove());
-
 			Assert::AreEqual(4u, observedMoves.size());
-
-			auto gameRecord = game->GetGameRecord();
-			Assert::AreEqual(2u, gameRecord.size());
 		}
 
 		TEST_METHOD(LoadSave_Works_Test)
@@ -172,6 +175,54 @@ namespace ChessTests
 
 			auto player = game->MakePlayer();
 			Assert::IsTrue((bool)player);
+		}
+
+		TEST_METHOD(ProducerConsumer_Test)
+		{
+			Queue<std::pair<bool, std::function<void()>>> blockingQueue;
+			std::atomic<int> resived = 0;
+			std::thread worker(
+				[&]() {
+				while (true)
+				{
+					auto value = blockingQueue.pop();
+					if (value.first)
+						break;
+
+					value.second();
+					resived++;
+				}
+			});
+
+			auto aFuture = std::async(std::launch::async, [&]()
+			{
+				for (int i = 0; i < 34; ++i)
+				{
+					blockingQueue.push(std::make_pair(false,
+						[&i]()
+					{
+						std::cout << "Hello from " << i << std::endl;
+					}));
+				}
+
+				return 1;
+			});
+
+			for (int i = 0; i < 10; ++i)
+			{
+				blockingQueue.push(std::make_pair(false,
+					[&i](){
+					std::cout << "Hello from " << i << std::endl;
+				}));
+			}
+
+
+			aFuture.get();
+			blockingQueue.push(std::make_pair(true, []{}));
+
+			worker.join();
+
+			Assert::AreEqual(44, (int)resived);
 		}
 	};
 }

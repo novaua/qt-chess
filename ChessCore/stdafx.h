@@ -13,12 +13,14 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <numeric>
 #include <cassert>
 #include <ostream>
 #include <filesystem>
 #include <stack>
 #include <list>
+#include <queue>
 
 #include <mutex>
 #include <thread>
-#include <numeric>
+#include <atomic>
