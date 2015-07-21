@@ -30,6 +30,8 @@ namespace Chess
 		Move ToMove() const;
 	};
 
+	typedef std::vector<HistoryMove> GameHistory;
+
 	struct MoveGeneration
 	{
 		static std::vector<Move> GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side);

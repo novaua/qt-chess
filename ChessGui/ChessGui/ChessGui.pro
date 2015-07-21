@@ -10,7 +10,8 @@ SOURCES += main.cpp \
     ../../ChessCore/Move.cpp \
     ../../ChessCore/Piece.cpp \
     ../../ChessCore/stdafx.cpp \
-    chessconnector.cpp
+    chessconnector.cpp \
+    ../../ChessCore/HistoryPlayer.cpp
 
 RESOURCES += qml.qrc
 
@@ -36,4 +37,5 @@ HEADERS += \
     ../../ChessCore/Serializer.h \
     ../../ChessCore/stdafx.h \
     ../../ChessCore/targetver.h \
-    chessconnector.h
+    chessconnector.h \
+    ../../ChessCore/HistoryPlayer.h

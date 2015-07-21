@@ -45,6 +45,7 @@ namespace Chess
 		_captured.empty();
 
 		_board.reset(new Board());
+		_board->Initialize();
 
 		std::vector<BoardPosition> range(64);
 		for (int i = 0; i < 64; ++i)
@@ -55,14 +56,27 @@ namespace Chess
 		NotifyBoardChangesListeners(range);
 	}
 
-	void Game::Play(const GameHistory &gameHistory)
+	void Game::EndGame()
 	{
-		for each (auto historyMove in gameHistory)
+		_history.empty();
+		_captured.empty();
+		_board.reset(new Board());
+		std::vector<BoardPosition> range(64);
+		for (int i = 0; i < 64; ++i)
 		{
-			std::this_thread::sleep_for(std::chrono::seconds(AutoPlayMoveWaitSeconds));
-			auto move = historyMove.ToMove();
-			DoMove(move.From, move.To);
+			range[i] = BoardPosition(i);
 		}
+
+		_loadedHistory.empty();
+		NotifyBoardChangesListeners(range);
+	}
+
+	HistoryPlayerAptr Game::MakePlayer()
+	{
+		auto player = std::make_shared<HistoryPlayer>(this);
+		player->Play(_loadedHistory);
+		assert(_loadedHistory.size()>0 && "Expected loaded history upon play!");
+		return player;
 	}
 
 	void Game::Save(const std::string &path)
@@ -70,7 +84,8 @@ namespace Chess
 		auto moveCount = GetMoveCount();
 		std::ofstream outFileStream(path, std::ios::out | std::ios::binary);
 
-		outFileStream.write(SaveGameHeader, sizeof(SaveGameHeader));
+		outFileStream.write(SaveGameHeader, strlen(SaveGameHeader)*sizeof(char));
+
 		BinarySerializer::Serialize(moveCount, outFileStream);
 
 		for (auto move : _history)
@@ -81,7 +96,7 @@ namespace Chess
 
 	void ValidateHeader(std::ifstream &fs, const std::string &header)
 	{
-		std::vector<char> buffer(header.size() * sizeof(char) + 1, '\0');
+		std::vector<char> buffer(header.size() * sizeof(char), '\0');
 		fs.read(&buffer[0], header.size() * sizeof(char));
 
 		std::string fileHeader(buffer.begin(), buffer.end());

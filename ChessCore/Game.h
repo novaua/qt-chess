@@ -6,14 +6,13 @@
 #include "Board.h"
 #include "Events.h"
 #include "Move.h"
+#include "HistoryPlayer.h"
 
 namespace Chess
 {
 	typedef std::function<void(const EventBase &)> GameActionListener;
 	typedef std::function<void(int index, const Piece &piece)> BoardChangesListener;
 	typedef std::list<BoardChangesListener> BoardChangesListeners;
-
-	typedef std::vector<HistoryMove> GameHistory;
 
 	class Game
 	{
@@ -42,9 +41,10 @@ namespace Chess
 		Piece GetPieceAt(int index);
 
 		void Restart(bool whiteFirst = true);
+		void EndGame();
 
 		const GameHistory &GetGameRecord() const;
-		void Play(const GameHistory &gameHistory);
+		HistoryPlayerAptr MakePlayer();
 
 		void Save(const std::string &path);
 		void Load(const std::string &path);

@@ -7,7 +7,11 @@ namespace Chess {
 
 	Board::Board()
 	{
-		Initialize();
+		for (auto i = 0; i < 64; ++i)
+		{
+			_color.push_back(CEMPTY);
+			_piece.push_back(EMPTY);
+		}
 	}
 
 	void Board::Initialize()

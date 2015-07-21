@@ -2,30 +2,33 @@
 #include "chessconnector.h"
 #include <QDebug>
 #include "ChessException.h"
+#include <QDir>
 
 using namespace Chess;
+
 const char * EmptyFlag = " ";
+const char * DefaltSaveGameFile = "chess.save";
 
 void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
 {
-    auto newBoard = board.empty();
+	auto newBoard = board.empty();
 	for (auto i = 0; i < 64; ++i)
 	{
-        if (newBoard)
-            board.append(cleanValue);
-        else
-            board[i] = cleanValue;
+		if (newBoard)
+			board.append(cleanValue);
+		else
+			board[i] = cleanValue;
 	}
 }
 
 ChessConnector::ChessConnector()
-    :_game(std::make_unique<Game>())
+	:_game(std::make_unique<Game>())
 {
 	_game->RegisterBoardChanged(
-        [&](int index, const Piece &piece)
+		[&](int index, const Piece &piece)
 	{
-        emit boardChanged(index, QString::fromStdString(piece.ToString()));
-    });
+		emit boardChanged(index, QString::fromStdString(piece.ToString()));
+	});
 
 	ClearBoard(_possibleMoves);
 }
@@ -37,28 +40,28 @@ int ChessConnector::MoveCount()
 
 int ChessConnector::IsWhiteMove()
 {
-    return _game->IsWhiteMove()?1:0;
+	return _game->IsWhiteMove() ? 1 : 0;
 }
 
 void ChessConnector::figureSelected(int index)
 {
 	//find possible moves for the position and notify IU
-    auto pmString = _possibleMoves[index];
+	auto pmString = _possibleMoves[index];
 
-    auto selected = pmString == EmptyFlag
+	auto selected = pmString == EmptyFlag
 		? -1
 		: pmString.toInt();
 
 	ClearBoard(_possibleMoves);
-    if (selected != -1)
+	if (selected != -1)
 	{
-        makeMove(BoardPosition(selected), BoardPosition(index));
+		makeMove(BoardPosition(selected), BoardPosition(index));
 	}
 	else
 	{
-        for (auto move : _game->GetAllowedMoves(index))
+		for (auto move : _game->GetAllowedMoves(index))
 		{
-            _possibleMoves[move.To] = QString::number(index);
+			_possibleMoves[move.To] = QString::number(index);
 		}
 	}
 
@@ -76,43 +79,101 @@ void ChessConnector::setPossibleMoves(const QStringList &moves)
 	emit PossibleMovesChanged();
 }
 
+void ChessConnector::EmitMoveCountUpdates()
+{
+	emit MoveCountChanged();
+	emit IsWhiteMoveChanged();
+}
+
 void ChessConnector::makeMove(int from, int to)
 {
-    try
-    {
-        _game->DoMove((BoardPosition)from, (BoardPosition)to);
-        emit MoveCountChanged();
-        emit IsWhiteMoveChanged();
-    }
-    catch (ChessException &ex)
-    {
-        qDebug() << "Exception caught moving [" << from << ", " << to << "]:" << ex.what();
-    }
+	try
+	{
+		_game->DoMove((BoardPosition)from, (BoardPosition)to);
+		EmitMoveCountUpdates();
+	}
+	catch (ChessException &ex)
+	{
+		qDebug() << "Exception caught moving [" << from << ", " << to << "]:" << ex.what();
+	}
 }
 
 void ChessConnector::startNewGame()
 {
-    qDebug() << "Cpp Starting new game!";
-    _game->Restart();
-    qDebug() << "Cpp Game restarted!";
+	_game->Restart();
+	qDebug() << "Cpp Game restarted!";
+}
+
+QString pathAppend(const QString& path1, const QString& path2)
+{
+	return QDir::cleanPath(path1 + QDir::separator() + path2);
+}
+
+QString getSaveGameFilePath()
+{
+	auto path = pathAppend(QDir::currentPath(), DefaltSaveGameFile);
+	return path;
+}
+
+bool fileExists(QString path) {
+	QFileInfo checkFile(path);
+
+	if (checkFile.exists() && checkFile.isFile()) {
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 void ChessConnector::saveGame()
 {
-
+	_game->Save(getSaveGameFilePath().toStdString());
 }
 
-void ChessConnector::loadGame()
+bool ChessConnector::loadGame()
 {
+	auto success = false;
+	try {
+		if (fileExists(getSaveGameFilePath()))
+		{
+			_game->Load(getSaveGameFilePath().toStdString());
+			_player = _game->MakePlayer();
+			emit IsOnPlayerModeChanged();
+			success = true;
+		}
+	}
+	catch (ChessException &ex)
+	{
+		qDebug() << "Exception caught while loading game " << ex.what();
+	}
 
+	if (!success)
+	{
+		emit noSavedGame();
+	}
+
+	return success;
 }
 
 void ChessConnector::moveNext()
 {
-
+	_player->MoveNext();
 }
 
 void ChessConnector::movePrev()
 {
+	_player->MoveBack();
+}
 
+int ChessConnector::IsOnPlayerMode()
+{
+	return _player ? 1 : 0;
+}
+
+void ChessConnector::endGame()
+{
+	_game->EndGame();
+	_player.reset();
+	EmitMoveCountUpdates();
 }

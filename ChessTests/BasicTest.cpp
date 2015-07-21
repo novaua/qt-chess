@@ -150,5 +150,21 @@ namespace ChessTests
 			auto gameRecord = game->GetGameRecord();
 			Assert::AreEqual(2u, gameRecord.size());
 		}
+
+		TEST_METHOD(LoadSave_Works_Test)
+		{
+			auto game = std::make_unique<Game>();
+			game->DoMove(e2, e4);
+			game->DoMove(e7, e5);
+
+			auto tempPath = tr2::sys::path(getenv("TEMP"));
+			tempPath /= "tempFile";
+
+			game->Save(tempPath);
+			game->Load(tempPath);
+
+			auto player = game->MakePlayer();
+			Assert::IsTrue((bool)player);
+		}
 	};
 }

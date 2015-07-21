@@ -53,7 +53,7 @@ Rectangle {
 
             Button {
                 id: buttonStart
-                //anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+
                 text: "Start"
                 onClicked: {
                     screen.state = "screen_2"
@@ -67,7 +67,12 @@ Rectangle {
                 id: buttonLoad
                 text: "Load"
                 onClicked: {
-                    screen.state = "screen_3"
+                    if (chessConnector.loadGame())
+                    {
+                        chessConnector.startNewGame()
+                        screen.state = "screen_3"
+                    }
+
                     console.log("Load pressed!")
                 }
             }
@@ -77,8 +82,9 @@ Rectangle {
                 text: "Stop"
                 onClicked:
                 {
+                    chessConnector.endGame();
                     screen.state = "screen_1"
-                    console.log("This doesn't do anything yet...")
+                    console.log("Game ended!")
                 }
             }
 
@@ -86,21 +92,30 @@ Rectangle {
                 id: buttonSave
 
                 text: "Save"
-                onClicked: console.log("This doesn't do anything yet...")
+                onClicked:{
+                    chessConnector.saveGame()
+                    console.log("Saved!")
+                }
             }
 
             Button {
                 id: buttonNext
 
                 text: "Next"
-                onClicked: console.log("This doesn't do anything yet...")
+                onClicked: {
+                    chessConnector.moveNext()
+                    console.log("Advanced!")
+                }
             }
 
             Button {
                 id: buttonPrev
 
                 text: "Prev"
-                onClicked: console.log("This doesn't do anything yet...")
+                onClicked: {
+                    chessConnector.movePrev()
+                    console.log("Moved back!")
+                }
             }
         }
 

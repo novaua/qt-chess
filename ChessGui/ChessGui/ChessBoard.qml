@@ -81,6 +81,8 @@ Rectangle {
         onCheckNotify:showNotification("Check")
 
         onCheckMateNotify:showNotification("CheckMate")
+
+        onNoSavedGame:showNotification("Saved Game was not found!")
     }
 
     NavigationLayer{
