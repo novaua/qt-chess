@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>main.qml</file>
         <file>pics/ChessBackground.jpg</file>
         <file>Button.qml</file>
         <file>ChessBoard.qml</file>

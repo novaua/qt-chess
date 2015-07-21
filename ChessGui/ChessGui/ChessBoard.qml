@@ -2,17 +2,6 @@ import QtQuick 2.3
 
 Rectangle {
     id: chessBoard
-    //colors
-    property string brightChessBoxColor: "#ecf0f1"
-    property string darkChessBoxColor:"#2c3e50"
-    property string markersOfChessBoxColor:"#34495e"
-    property string mainWindowColor: "white"
-    property string darkFigureColor: "black"
-    property string brightFigureColor: "white"
-    property string markerBackColor: "#95a5a6"
-    property string backRecBackColor: "#bdc3c7"
-    property string backRecBorderColor: "#2c3e50"
-    property string chessFigureGlow: "blue"
 
     property int angle:0;
     rotation:angle;
@@ -81,6 +70,9 @@ Rectangle {
         onCheckNotify:showNotification("Check")
 
         onCheckMateNotify:showNotification("CheckMate")
+
+        onNoSavedGame:showNotification("The saved Game was not found!")
+        onSavedOk:showNotification("Game saved")
     }
 
     NavigationLayer{

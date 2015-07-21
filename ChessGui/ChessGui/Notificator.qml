@@ -5,7 +5,7 @@ Rectangle{
     height: parent.height<parent.width?0.125*parent.height:0.125*parent.width
     width:  4*height
     radius: 0.125*height
-    border.color: brightChessBoxColor
+    border.color: lightChessBoxColor
     opacity:0
     color: darkChessBoxColor
 
@@ -37,7 +37,7 @@ Rectangle{
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         fontSizeMode: Text.Fit
-        color: brightChessBoxColor
+        color: lightChessBoxColor
         minimumPixelSize: 2
         font.pixelSize: 50
     }

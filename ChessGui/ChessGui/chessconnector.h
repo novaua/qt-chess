@@ -8,52 +8,60 @@
 #include "Game.h"
 #include "model.h"
 
-class ChessConnector: public QObject
+class ChessConnector : public QObject
 {
-    Q_OBJECT
-    Q_PROPERTY(int MoveCount READ MoveCount NOTIFY MoveCountChanged)
-    Q_PROPERTY(QStringList PossibleMoves READ PossibleMoves WRITE setPossibleMoves NOTIFY PossibleMovesChanged)
-    Q_PROPERTY(int IsWhiteMove READ IsWhiteMove NOTIFY IsWhiteMoveChanged)
-
+	Q_OBJECT
+		Q_PROPERTY(int MoveCount READ MoveCount NOTIFY MoveCountChanged)
+		Q_PROPERTY(QStringList PossibleMoves READ PossibleMoves WRITE setPossibleMoves NOTIFY PossibleMovesChanged)
+		Q_PROPERTY(int IsWhiteMove READ IsWhiteMove NOTIFY IsWhiteMoveChanged)
+		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
 public:
-    ChessConnector();
-    //Q_INVOKABLE void startNewGame();
+	ChessConnector();
+	~ChessConnector();
 
-    int MoveCount();
-    int IsWhiteMove();
+	int MoveCount();
+	int IsWhiteMove();
+	int IsOnPlayerMode();
 
-    QStringList &PossibleMoves();
-    void setPossibleMoves(const QStringList &moves);
+	QStringList &PossibleMoves();
+	void setPossibleMoves(const QStringList &moves);
 
 signals:
-    void boardChanged(int position, const QString &newValue);
+	void boardChanged(int position, const QString &newValue);
 
-    void PossibleMovesChanged();
+	void PossibleMovesChanged();
 
-    void MoveCountChanged();
-    void IsWhiteMoveChanged();
+	void MoveCountChanged();
+	void IsWhiteMoveChanged();
+	void IsOnPlayerModeChanged();
 
-    void checkNotify();
-    void checkMateNotify();
+	void checkNotify();
+	void checkMateNotify();
 
-public slots:
+	void noSavedGame();
+	void savedOk();
 
-    void startNewGame();
-    void figureSelected(int index);
+	public slots:
+	void startNewGame();
+	void endGame();
 
-    void saveGame();
-    void loadGame();
+	void figureSelected(int index);
 
-    void moveNext();
-    void movePrev();
+	void saveGame();
+	bool loadGame();
 
+	void moveNext();
+	void movePrev();
 
 private:
-    void makeMove(int from, int to);
+	void makeMove(int from, int to);
+	void EmitMoveCountUpdates();
 
 private:
-    QStringList _possibleMoves;
-    std::unique_ptr<Chess::Game> _game;
+	QStringList _possibleMoves;
+
+	Chess::GameAptr _game;
+	Chess::HistoryPlayerAptr _player;
 };
 
 #endif // CHESSCONNECTOR_H

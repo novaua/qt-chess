@@ -20,6 +20,7 @@ namespace ChessTests
 		TEST_METHOD(MainInit_IsGoood_Test)
 		{
 			auto boardPtr = new Board();
+			boardPtr->Initialize();
 
 			boardPtr->DoMove({ a2, a4, false });
 			boardPtr->DoMove({ e7, e3, false }, true);
@@ -114,6 +115,8 @@ namespace ChessTests
 		TEST_METHOD(MoveValidation_Works_Test)
 		{
 			auto boardPtr = std::make_unique<Board>();
+			boardPtr->Initialize();
+
 			boardPtr->DoMove({ e2, e4 });
 
 			Assert::ExpectException<ChessException>([&boardPtr]()
@@ -125,7 +128,7 @@ namespace ChessTests
 		TEST_METHOD(BasicGame_Works_Test)
 		{
 			auto game = std::make_unique<Game>();
-
+			game->Restart();
 			Assert::IsTrue(game->IsWhiteMove());
 			Assert::AreEqual(0, game->GetMoveCount());
 
@@ -149,6 +152,26 @@ namespace ChessTests
 
 			auto gameRecord = game->GetGameRecord();
 			Assert::AreEqual(2u, gameRecord.size());
+		}
+
+		TEST_METHOD(LoadSave_Works_Test)
+		{
+			auto game = std::make_unique<Game>();
+			game->Restart();
+
+			game->DoMove(e2, e4);
+			game->DoMove(e7, e5);
+
+			auto tempPath = tr2::sys::path(getenv("TEMP"));
+			tempPath /= "tempFile1";
+
+			game->Save(tempPath);
+			game->Load(tempPath);
+
+			tr2::sys::remove_filename(tr2::sys::path(tempPath));
+
+			auto player = game->MakePlayer();
+			Assert::IsTrue((bool)player);
 		}
 	};
 }
