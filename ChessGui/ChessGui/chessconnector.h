@@ -6,7 +6,6 @@
 #include <functional>
 
 #include "Game.h"
-#include "model.h"
 
 class ChessConnector : public QObject
 {
