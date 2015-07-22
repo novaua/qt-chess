@@ -50,25 +50,6 @@ namespace Chess {
 	{
 	}
 
-	void Board::ValidateMove(const Move &move)
-	{
-		auto color = _color[move.From];
-		auto found = false;
-		for (auto m : MoveGeneration::GenerateMoves(*this, move.From, color))
-		{
-			if (m.From == move.From && m.To == move.To)
-			{
-				found = true;
-				break;
-			}
-		}
-
-		if (!found)
-		{
-			throw ChessException("Invalid move!");
-		}
-	}
-
 	Piece Board::At(BoardPosition position) const
 	{
 		return{ _piece[position], _color[position] };
@@ -80,18 +61,16 @@ namespace Chess {
 		_color[position] = piece.Color;
 	}
 
-	HistoryMove Board::DoMove(const Move &move, bool force)
+	HistoryMove Board::DoMove(const Move &move)
 	{
-		if (!force)
-		{
-			ValidateMove(move);
-		}
-
 		HistoryMove result = {};
-		auto side = _color[move.From];
-		assert(side != CEMPTY);
 
-		if (_color[move.To] != CEMPTY)
+		auto fromPiece = At(move.From);
+		auto toPiece = At(move.To);
+
+		assert(!fromPiece.IsEmpty());
+
+		if (!toPiece.IsEmpty())
 		{
 			assert(move.Capturing);
 		}
@@ -99,11 +78,9 @@ namespace Chess {
 		result.From = { move.From, At(move.From) };
 		result.To = { move.To, At(move.To) };
 
-		_piece[move.To] = _piece[move.From];
-		_color[move.To] = _color[move.From];
+		Place(move.To, fromPiece);
+		Place(move.From, {});
 
-		_piece[move.From] = EMPTY;
-		_color[move.From] = CEMPTY;
 		return result;
 	}
 }

@@ -55,6 +55,7 @@ ApplicationWindow {
                         onClicked: {
                             screen.state = "screen_2"
                             console.log("New Game ")
+                            chessConnector.endGame();
                             chessConnector.startNewGame()
                             console.log("New Game started!")
                         }

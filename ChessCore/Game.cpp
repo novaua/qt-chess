@@ -8,7 +8,7 @@
 namespace Chess
 {
 	Game::Game()
-		: _board(new Board()),
+		:
 		_whiteFirst(true),
 		_boardEventHandler(
 		[this]()
@@ -23,6 +23,15 @@ namespace Chess
 		}
 	})
 	{
+		InitBoard();
+	}
+
+	void Game::InitBoard()
+	{
+		_board.reset(new Board());
+		_history.reset(new MovesHistory());
+
+		_moveValidator = MoveValidator::Create(_board, _history);
 	}
 
 	Game::~Game()
@@ -48,9 +57,9 @@ namespace Chess
 		return moves;
 	}
 
-	const GameHistory &Game::GetGameRecord() const
+	const MovesHistory &Game::GetGameRecord() const
 	{
-		return _history;
+		return *_history;
 	}
 
 	void Game::Restart(bool whiteFirst)
@@ -59,10 +68,9 @@ namespace Chess
 			std::lock_guard<std::mutex> lg(_lock);
 
 			_whiteFirst = whiteFirst;
-			_history = {};
+			_history->clear();
 			_captured = {};
 
-			//_board.reset(new Board());
 			_board->Initialize();
 		};
 
@@ -79,10 +87,9 @@ namespace Chess
 	{
 		{
 			std::lock_guard<std::mutex> lg(_lock);
-			_history = {};
-			_captured = {};
-			_board.reset(new Board());
 
+			InitBoard();
+			_captured = {};
 			_loadedHistory = {};
 		}
 
@@ -112,7 +119,7 @@ namespace Chess
 
 		BinarySerializer::Serialize(moveCount, outFileStream);
 
-		for (auto move : _history)
+		for (auto move : *_history)
 		{
 			BinarySerializer::Serialize(move, outFileStream);
 		}
@@ -167,7 +174,10 @@ namespace Chess
 		AssureMove(from, to);
 
 		auto isCapturing = _board->At(to).Color != CEMPTY;
-		auto historyMove = _board->DoMove({ from, to, isCapturing }, false);
+
+		Move move = { from, to, isCapturing };
+		_moveValidator->Validate(move);
+		auto historyMove = _board->DoMove(move);
 
 		historyMove.Id = GetMoveCount();
 
@@ -177,7 +187,7 @@ namespace Chess
 			_captured.push(historyMove.To.Piece);
 		}
 
-		_history.push_back(historyMove);
+		_history->push_back(historyMove);
 	}
 
 	void Game::UndoMove()
@@ -188,9 +198,9 @@ namespace Chess
 		}
 
 		// undoing move
-		HistoryMove topMove = *(_history.rbegin());
+		HistoryMove topMove = *(_history->rbegin());
 		Move undoMove{ topMove.To.Position, topMove.From.Position };
-		_board->DoMove(undoMove, true);
+		_board->DoMove(undoMove);
 
 		// placing removed item
 		Piece lastPiece = {};
@@ -202,7 +212,7 @@ namespace Chess
 			assert(topMove.To.Piece == lastPiece && "Has to be the same Piece!");
 		}
 
-		_history.pop_back();
+		_history->pop_back();
 		NotifyBoardChangesListeners({ undoMove.From, undoMove.To });
 	}
 
@@ -215,7 +225,7 @@ namespace Chess
 	int Game::GetMoveCount()
 	{
 		std::lock_guard<std::mutex> lg(_lock);
-		return _history.size();
+		return _history->size();
 	}
 
 	void Game::AssureMove(BoardPosition from, BoardPosition to)

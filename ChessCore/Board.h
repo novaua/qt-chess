@@ -28,7 +28,7 @@ namespace Chess {
 		Board();
 		void Initialize();
 
-		const std::vector<EPieceColors>  &color() const
+		const std::vector<EPieceColors> &color() const
 		{
 			return _color;
 		}
@@ -41,9 +41,11 @@ namespace Chess {
 		Piece At(BoardPosition position) const;
 		void Place(BoardPosition position, const Piece & piece);
 
-		HistoryMove DoMove(const Move &move, bool force = false);
-		void ValidateMove(const Move &move);
+		// Does non-empty Piece move without chess basic rules validation
+		HistoryMove DoMove(const Move &move);
 
 		~Board();
 	};
+
+	typedef std::shared_ptr<Board> BoardAptr;
 }

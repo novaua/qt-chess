@@ -11,7 +11,7 @@ namespace Chess
 	public:
 		HistoryPlayer(const GameAptr &game);
 
-		void Play(const GameHistory &gameHistory);
+		void Play(const MovesHistory &gameHistory);
 
 		bool CanMove(bool forward = true);
 
@@ -22,7 +22,7 @@ namespace Chess
 
 	private:
 		GameAptr _game;
-		GameHistory _history;
+		MovesHistory _history;
 		int _pointer;
 	};
 

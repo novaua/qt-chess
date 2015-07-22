@@ -24,6 +24,7 @@ namespace Chess
 		EPieceTypes Type;
 		EPieceColors Color;
 
+		bool IsEmpty();
 		bool operator == (const Piece &o)const;
 		const std::string &ToString() const;
 	};

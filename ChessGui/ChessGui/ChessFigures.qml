@@ -115,7 +115,6 @@ Grid{
     Connections {
         target: chessConnector
         onBoardChanged: {
-            console.log("Setting board [" + position + "]: " + newValue)
             updateChessFiguresModel(position, newValue)
         }
     }

@@ -24,7 +24,9 @@ namespace ChessTests
 			boardPtr->Initialize();
 
 			boardPtr->DoMove({ a2, a4, false });
-			boardPtr->DoMove({ e7, e3, false }, true);
+
+			//boardPtr->DoMove({ e7, e3, false }, true);
+			boardPtr->DoMove({ e7, e3, false });
 
 			int figs[] = { a1, b1, c1, g1, e2, a2, b2, f2 };
 			int movesForFigs[] = { 2, 2, 0, 2, 0, 0, 2, 3 };
@@ -115,13 +117,15 @@ namespace ChessTests
 
 		TEST_METHOD(MoveValidation_Works_Test)
 		{
-			auto boardPtr = std::make_unique<Board>();
+			auto boardPtr = std::make_shared<Board>();
 			boardPtr->Initialize();
+			auto mv = MoveValidator::Create(boardPtr, MovesHistoryAptr(new MovesHistory()));
 
 			boardPtr->DoMove({ e2, e4 });
 
-			Assert::ExpectException<ChessException>([&boardPtr]()
+			Assert::ExpectException<ChessException>([&boardPtr, &mv]()
 			{
+				mv->Validate({ b1, b8 });
 				boardPtr->DoMove({ b1, b8 });
 			});
 		}
@@ -159,7 +163,7 @@ namespace ChessTests
 
 		TEST_METHOD(LoadSave_Works_Test)
 		{
-			auto game = std::make_unique<Game>();
+			auto game = std::make_shared<Game>();
 			game->Restart();
 
 			game->DoMove(e2, e4);
@@ -215,7 +219,6 @@ namespace ChessTests
 					std::cout << "Hello from " << i << std::endl;
 				}));
 			}
-
 
 			aFuture.get();
 			blockingQueue.push(std::make_pair(true, []{}));

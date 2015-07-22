@@ -7,6 +7,10 @@ bool Piece::operator == (const Piece &o) const
 	return o.Type == Type && o.Color == Color;
 }
 
+bool Piece::IsEmpty()
+{
+	return Color == CEMPTY;
+}
 
 const std::string &Piece::ToString() const
 {

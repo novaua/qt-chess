@@ -24,12 +24,14 @@ namespace Chess
 		GameActionListeners _gameActionsListeners;
 		BoardChangesListeners _boardChangesListeners;
 
-		std::unique_ptr<Board> _board;
-		std::vector<HistoryMove> _history;
+		std::shared_ptr<Board> _board;
+		MovesHistoryAptr _history;
 		std::stack<Piece> _captured;
 		bool _whiteFirst;
+		MoveValidatorAptr _moveValidator;
+		//std::vector<IMovesGeneratorAptr> _moveGenerators;
 
-		std::vector<HistoryMove> _loadedHistory;
+		MovesHistory _loadedHistory;
 		std::mutex _lock;
 
 		Queue <std::pair<bool, std::function<void()>>> _boardEventQueue;
@@ -49,7 +51,7 @@ namespace Chess
 		void Restart(bool whiteFirst = true);
 		void EndGame();
 
-		const GameHistory &GetGameRecord() const;
+		const MovesHistory &GetGameRecord() const;
 		HistoryPlayerAptr MakePlayer();
 
 		void Save(const std::string &path);
@@ -65,6 +67,7 @@ namespace Chess
 	private:
 		void AssureMove(BoardPosition from, BoardPosition to);
 		bool CanMoveFrom(BoardPosition from);
+		void InitBoard();
 
 		void NotifyBoardChangesListeners(std::vector<BoardPosition> indexes);
 	};
