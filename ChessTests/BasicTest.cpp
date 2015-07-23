@@ -35,7 +35,7 @@ namespace ChessTests
 			for (auto a : figs)
 			{
 				auto wasCapturing = 0;
-				auto moves = MoveGeneration::GenerateMoves(*boardPtr, (BoardPosition)a, LIGHT);
+				auto moves = MoveGeneration::GenerateMoves(*boardPtr, (BoardPosition)a, LIGHT, {});
 
 				Assert().IsTrue(moves.size() == movesForFigs[count]);
 
@@ -118,13 +118,13 @@ namespace ChessTests
 		{
 			auto boardPtr = std::make_shared<Board>();
 			boardPtr->Initialize();
-			auto mv = MoveValidator::Create(boardPtr, MovesHistoryAptr(new MovesHistory()));
 
+			MoveGeneration::Validate(*boardPtr, Move{ e2, e4 }, LIGHT, {});
 			boardPtr->DoMove({ e2, e4 });
 
-			Assert::ExpectException<ChessException>([&boardPtr, &mv]()
+			Assert::ExpectException<ChessException>([&boardPtr]()
 			{
-				mv->Validate({ b1, b8 });
+				MoveGeneration::Validate(*boardPtr, Move{ b1, b8 }, LIGHT, {});
 				boardPtr->DoMove({ b1, b8 });
 			});
 		}
