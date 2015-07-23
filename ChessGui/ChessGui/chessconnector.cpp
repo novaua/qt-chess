@@ -104,8 +104,8 @@ void ChessConnector::makeMove(int from, int to)
 
 void ChessConnector::startNewGame()
 {
-	_game->Restart();
-	EmitMoveCountUpdates();
+    _game->Restart();
+    EmitMoveCountUpdates();
 	qDebug() << "Cpp Game restarted!";
 }
 
