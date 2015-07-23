@@ -8,7 +8,6 @@
 #include "Events.h"
 #include "Move.h"
 #include "HistoryPlayer.h"
-#include "Queue.hpp"
 
 namespace Chess
 {
@@ -33,9 +32,6 @@ namespace Chess
 
 		MovesHistory _loadedHistory;
 		std::mutex _lock;
-
-		Queue <std::pair<bool, std::function<void()>>> _boardEventQueue;
-		std::thread _boardEventHandler;
 
 	public:
 		Game();

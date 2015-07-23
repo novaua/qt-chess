@@ -16,6 +16,5 @@
 #include <functional>
 #include <stack>
 #include <vector>
-#include <atomic>
-#include <future>
+
 // TODO: reference additional headers your program requires here

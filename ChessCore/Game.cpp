@@ -8,20 +8,7 @@
 namespace Chess
 {
 	Game::Game()
-		:
-		_whiteFirst(true),
-		_boardEventHandler(
-		[this]()
-	{
-		while (true)
-		{
-			auto value = _boardEventQueue.pop();
-			if (value.first)
-				break;
-
-			value.second();
-		}
-	})
+		:_whiteFirst(true)
 	{
 		InitBoard();
 	}
@@ -36,9 +23,6 @@ namespace Chess
 
 	Game::~Game()
 	{
-		//sending completion event
-		_boardEventQueue.push(std::make_pair(true, []{}));
-		_boardEventHandler.join();
 	}
 
 	void Game::RegisterGameActionsListeners(const GameActionListener & listener)
@@ -157,13 +141,7 @@ namespace Chess
 			{
 				for each (auto index in indexes)
 				{
-					auto currentPiece = _board->At(index);
-
-					_boardEventQueue.push(
-						std::make_pair(false, [listener, index, currentPiece]()
-					{
-						listener(index, currentPiece);
-					}));
+					listener(index, _board->At(index));
 				}
 			}
 		}
