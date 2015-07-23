@@ -24,14 +24,14 @@ namespace Chess
 		BoardChangesListeners _boardChangesListeners;
 
 		std::shared_ptr<Board> _board;
-		MovesHistoryAptr _history;
+		MovesHistory _history;
 		std::stack<Piece> _captured;
+		std::vector<Move> _lastAskedAllowedMovesList;
 		bool _whiteFirst;
-		MoveValidatorAptr _moveValidator;
-		//std::vector<IMovesGeneratorAptr> _moveGenerators;
 
 		MovesHistory _loadedHistory;
 		std::mutex _lock;
+		std::mutex _lastAskedLock;
 
 	public:
 		Game();
@@ -40,7 +40,7 @@ namespace Chess
 		void RegisterBoardChanged(const BoardChangesListener &listener);
 
 		std::vector<Move> GetPossibleMoves(int index);
-		std::vector<Move> GetAllowedMoves(int index);
+		std::vector<Move> &GetAllowedMoves(int index);
 
 		Piece GetPieceAt(int index);
 

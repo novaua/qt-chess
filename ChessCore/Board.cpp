@@ -78,8 +78,16 @@ namespace Chess {
 		result.From = { move.From, At(move.From) };
 		result.To = { move.To, At(move.To) };
 
-		Place(move.To, fromPiece);
 		Place(move.From, {});
+		if (move.MoveType == CMENPASSANT)
+		{
+			Place(move.EnPassantStepBackTo, fromPiece);
+			Place(move.To, {});
+		}
+		else
+		{
+			Place(move.To, fromPiece);
+		}
 
 		return result;
 	}

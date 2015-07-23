@@ -73,7 +73,7 @@ namespace {
 	};
 }
 
-std::vector<Move> MoveGeneration::GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side)
+std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side)
 {
 	std::vector<Move> moves;
 	auto p = board.piece()[pieceOffset];
@@ -145,153 +145,81 @@ std::vector<Move> MoveGeneration::GenerateMoves(const Board &board, BoardPositio
 	return moves;
 }
 
-MovesGeneratorFactory::MovesGeneratorFactory(const GameStateAptr & state)
-	:_state(state)
+bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, EPieceColors side)
 {
-}
+	auto result = false;
+	auto myBoard = board;
+	auto me = board.At(move.From);
+	auto oppositeSide = side == DARK ? LIGHT : DARK;
 
-IMovesGeneratorAptr MovesGeneratorFactory::CreateMovesGenerator(const std::string &type)
-{
-	if (type == SituativeMovesGeneratorTypeName)
+	//placing additional fake pawn to find all moves even for PAWNS
+	if (me.Type == PAWN && board.color()[move.To] == CEMPTY)
 	{
-		return IMovesGeneratorAptr(new SituativeMovesGenerator(_state));
+		myBoard.Place(move.To, { PAWN, oppositeSide });
 	}
 
-	return IMovesGeneratorAptr(new BasicRulesMovesGenerator(_state->Board));
-}
-
-
-BasicRulesMovesGenerator::BasicRulesMovesGenerator(const BoardAptr & board)
-	:_board(board)
-{
-}
-
-std::vector<Move> BasicRulesMovesGenerator::FindAllMoves(BoardPosition pieceOffset)
-{
-	std::vector<Move> moves;
-
-	const Board &board = *_board;
-	auto peace = board.At(pieceOffset);
-	auto p = peace.Type;
-	auto side = peace.Color;
-
-	if (p != PAWN) { /* piece or pawn */
-		for (auto j = 0; j < offsets[p]; ++j) { /* for all knight or ray directions */
-			for (int n = pieceOffset;;) { /* starting with from square */
-
-				n = mailbox[mailbox64[n] + offset[p][j]]; /* next square along the ray j */
-
-				if (n == -1)
-					break; /* outside board */
-
-				if (board.color()[n] != CEMPTY) {
-					if (board.color()[n] != side)
-						moves.push_back({ pieceOffset, (BoardPosition)n, true }); /* capture from i to n */
-					break;
-				}
-
-				moves.push_back({ pieceOffset, (BoardPosition)n, false }); /* quiet move from i to n */
-				if (!slide[p]) break; /* next direction */
-			}
-		}
-	}
-	else
+	for each(auto locMove in GenerateBasicMoves(myBoard, move.From, side))
 	{
-		// pawn moves
-		auto forwardMovesCount = 0;
-		auto colorDirection = board.At(pieceOffset).Color == DARK ? -1 : 1;
-		for (auto j = 0; j < offsets[p]; ++j)
+		if (locMove.To == move.To)
 		{
-			for (int n = pieceOffset;;)
-			{
-				n = mailbox[mailbox64[n] + colorDirection * offset[p][j]];
-				if (n == -1)
-				{
-					break;
-				}
-
-				if (pawn_capturing[j])
-				{
-					if (board.color()[n] != CEMPTY) {
-						if (board.color()[n] != side)
-						{
-							moves.push_back({ pieceOffset, (BoardPosition)n, true }); /* capture from i to n */
-						}
-					}
-
-					break;
-				}
-
-				if (board.color()[n] == CEMPTY)
-				{
-					moves.push_back({ pieceOffset, (BoardPosition)n, false }); /* quiet move from i to n */
-					++forwardMovesCount;
-				}
-				else
-				{
-					break;
-				}
-
-				if (forwardMovesCount == 2)
-				{
-					break;
-				}
-			}
+			result = true;
+			break;
 		}
 	}
+
+	return result;
+}
+
+std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, const MovesHistory &history)
+{
+	if (history.empty())
+	{
+		return{};
+	}
+
+	std::vector<Move> result;
+
+	auto oppositeSide = side == DARK ? LIGHT : DARK;
+	auto oppositeMoveDirection = oppositeSide == DARK ? -1 : 1;
+	auto imThePiece = board.At(pieceOffset);
+
+	// check if the last opposite side move was made by Peasant
+	auto lastMove = *history.crbegin();
+	if (lastMove.From.Piece.Type == PAWN && lastMove.From.Piece.Color == oppositeSide
+		&& lastMove.To.Position - lastMove.From.Position == 16 * oppositeMoveDirection)
+	{
+		auto peaceOneRankMove = lastMove.From.Position + 8 * oppositeMoveDirection;
+		assert(0 <= peaceOneRankMove && peaceOneRankMove < 64 && "Out of the board!");
+
+		// check if the previous rank field is under attack
+		if (IsValidCapturingMove(board, { pieceOffset, (BoardPosition)peaceOneRankMove }, side))
+		{
+			result.push_back({ pieceOffset, lastMove.To.Position, true, CMENPASSANT, (BoardPosition)peaceOneRankMove });
+		}
+	}
+
+	return result;
+}
+
+std::vector<Move> MoveGeneration::GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, const MovesHistory &history)
+{
+	auto moves = MoveGeneration::GenerateBasicMoves(board, pieceOffset, side);
+
+	auto adMoves = MoveGeneration::GenerateAdvancedMoves(board, pieceOffset, side, history);
+	std::copy(adMoves.begin(), adMoves.end(), std::back_inserter(moves));
 
 	return moves;
 }
 
-BasicRulesMovesGenerator::~BasicRulesMovesGenerator()
-{
-}
-
-SituativeMovesGenerator::SituativeMovesGenerator(const GameStateAptr  &state)
-	:_state(state)
-{
-}
-
-std::vector<Move> SituativeMovesGenerator::FindAllMoves(BoardPosition boardPosition)
-{
-	std::vector<Move> result;
-	// ToDo:
-	return result;
-}
-
-SituativeMovesGenerator::~SituativeMovesGenerator()
-{
-}
-
-MoveValidator::MoveValidator(const BoardAptr &board, const std::vector<IMovesGeneratorAptr> &movesGenerators)
-	:_board(board),
-	_movesGenerators(movesGenerators.begin(), movesGenerators.end())
-{}
-
-MoveValidatorAptr MoveValidator::Create(const BoardAptr &board, const MovesHistoryAptr &history)
-{
-	auto gameState = GameStateAptr(new GameState{ board, history });
-	MovesGeneratorFactory mgf(gameState);
-	std::vector<IMovesGeneratorAptr> movesGenerators = { mgf.CreateMovesGenerator(BasicMovesGeneratorTypeName), mgf.CreateMovesGenerator(SituativeMovesGeneratorTypeName) };
-	return MoveValidatorAptr(new MoveValidator(board, movesGenerators));
-}
-
-bool MoveValidator::Validate(const Move &move)
+bool MoveGeneration::Validate(const Board &board, Move &move, EPieceColors side, const MovesHistory &history)
 {
 	auto found = false;
-	for (auto moveGenerator : _movesGenerators)
+	for (auto mv : MoveGeneration::GenerateMoves(board, move.From, side, history))
 	{
-		for (auto mv : moveGenerator->FindAllMoves(move.From))
+		if (mv.From == move.From && mv.To == move.To)
 		{
-			if (mv.From == move.From && mv.To == move.To)
-			{
-				found = true;
-				break;
-			}
-		}
-
-		if (found)
-		{
+			found = true;
+			move = mv;
 			break;
 		}
 	}
