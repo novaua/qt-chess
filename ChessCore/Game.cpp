@@ -174,15 +174,21 @@ namespace Chess
 			MoveGeneration::Validate(*_board, move, side, _history);
 		}
 
+		Move complementalMove;
+		std::vector<BoardPosition> changedPositions = { from, to };
+		if (MoveGeneration::AddComplementalMove(*_board, move, complementalMove))
+		{
+			// these are inline generated so not added to history
+			_board->DoMove(complementalMove);
+			changedPositions.push_back(complementalMove.From);
+			changedPositions.push_back(complementalMove.To);
+		}
+
 		auto historyMove = _board->DoMove(move);
 
 		historyMove.Id = GetMoveCount();
 
-		NotifyBoardChangesListeners({ from, to });
-		if (move.MoveType == CMENPASSANT)
-		{
-			NotifyBoardChangesListeners({ move.EnPassantStepBackTo });
-		}
+		NotifyBoardChangesListeners(changedPositions);
 
 		if (historyMove.IsCapturingMove())
 		{

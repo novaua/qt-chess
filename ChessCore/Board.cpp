@@ -48,6 +48,10 @@ namespace Chess {
 
 	Board::~Board()
 	{
+		if (BoardChanged)
+		{
+			BoardChanged = {};
+		}
 	}
 
 	Piece Board::At(BoardPosition position) const
@@ -57,8 +61,12 @@ namespace Chess {
 
 	void Board::Place(BoardPosition position, const Piece & piece)
 	{
-		_piece[position] = piece.Type;
-		_color[position] = piece.Color;
+		if (_piece[position] != piece.Type || _color[position] != piece.Color)
+		{
+			_piece[position] = piece.Type;
+			_color[position] = piece.Color;
+			OnBoardChanged(position, piece);
+		}
 	}
 
 	HistoryMove Board::DoMove(const Move &move)
@@ -79,16 +87,16 @@ namespace Chess {
 		result.To = { move.To, At(move.To) };
 
 		Place(move.From, {});
-		if (move.MoveType == CMENPASSANT)
-		{
-			Place(move.EnPassantStepBackTo, fromPiece);
-			Place(move.To, {});
-		}
-		else
-		{
-			Place(move.To, fromPiece);
-		}
+		Place(move.To, fromPiece);
 
 		return result;
+	}
+
+	void Board::OnBoardChanged(BoardPosition pos, Piece newValue)
+	{
+		if (BoardChanged)
+		{
+			BoardChanged(pos, newValue);
+		}
 	}
 }

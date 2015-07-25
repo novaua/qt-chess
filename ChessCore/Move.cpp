@@ -152,7 +152,7 @@ bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, EPieceC
 	auto me = board.At(move.From);
 	auto oppositeSide = side == DARK ? LIGHT : DARK;
 
-	//placing additional fake pawn to find all moves even for PAWNS
+	//placing additional fake pawn to find all moves for this PAWN
 	if (me.Type == PAWN && board.color()[move.To] == CEMPTY)
 	{
 		myBoard.Place(move.To, { PAWN, oppositeSide });
@@ -185,7 +185,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 
 	// check if the last opposite side move was made by Peasant
 	auto lastMove = *history.crbegin();
-	if (lastMove.From.Piece.Type == PAWN && lastMove.From.Piece.Color == oppositeSide
+	if (imThePiece.Type == PAWN &&lastMove.From.Piece.Type == PAWN && lastMove.From.Piece.Color == oppositeSide
 		&& lastMove.To.Position - lastMove.From.Position == 16 * oppositeMoveDirection)
 	{
 		auto peaceOneRankMove = lastMove.From.Position + 8 * oppositeMoveDirection;
@@ -194,7 +194,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 		// check if the previous rank field is under attack
 		if (IsValidCapturingMove(board, { pieceOffset, (BoardPosition)peaceOneRankMove }, side))
 		{
-			result.push_back({ pieceOffset, lastMove.To.Position, true, CMENPASSANT, (BoardPosition)peaceOneRankMove });
+			result.push_back({ pieceOffset, (BoardPosition)peaceOneRankMove, true });
 		}
 	}
 
@@ -230,4 +230,44 @@ bool MoveGeneration::Validate(const Board &board, Move &move, EPieceColors side,
 	}
 
 	return found;
+}
+
+bool MoveGeneration::AddComplementalMove(const Board &board, const Move &move, Move &complemental)
+{
+	auto pieceMovesFrom = board.At(move.From);
+	auto pieceMoveTo = board.At(move.To);
+	auto otherSideMoveDirection = pieceMovesFrom.Color == LIGHT ? -1 : 1;
+
+	if (move.Capturing && pieceMovesFrom.Type == PAWN && pieceMoveTo.Color == CEMPTY)
+	{
+		//It's expected that the move was validated before. Here we just translate it to physical moves.
+		// En Passant detected
+		auto pawnRemovePosition = (BoardPosition)((int)move.To + otherSideMoveDirection * 8);
+		auto otherSiedePawn = board.At(pawnRemovePosition);
+
+		assert(otherSiedePawn.Type == PAWN && otherSiedePawn.Color != pieceMovesFrom.Color && "Other side Pawn is expected here!");
+
+		//returning the other side pawn one step back
+		complemental = { pawnRemovePosition, move.To, false };
+		return true;
+	}
+
+	auto dt = move.From - move.To;
+	auto dtByModule = dt < 0 ? dt * -1 : dt;
+
+	if (!move.Capturing && pieceMovesFrom.Type == KING && dtByModule == 2)
+	{
+		// Castling
+		static int  rookMovesTable[] = { -4, 3, 3, -2 };
+		int ptr = (dt < 0) ? 0 : 2;
+
+		auto rookPos = (BoardPosition)(move.From + rookMovesTable[ptr++]);
+		auto rook = board.At(rookPos);
+		assert(rook.Type == ROOK && rook.Color == pieceMovesFrom.Color && "Rook and King are expected of the same side");
+
+		complemental = { rookPos, (BoardPosition)(rookPos + rookMovesTable[ptr]) };
+		return true;
+	}
+
+	return false;
 }

@@ -25,7 +25,11 @@ namespace Chess {
 		std::vector<EPieceTypes> _piece;  /* PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, or EMPTY */
 	public:
 
+		std::function<void(BoardPosition pos, Piece newValue)> BoardChanged;
+
 		Board();
+		~Board();
+
 		void Initialize();
 
 		const std::vector<EPieceColors> &color() const
@@ -44,7 +48,8 @@ namespace Chess {
 		// Does non-empty Piece move without chess basic rules validation
 		HistoryMove DoMove(const Move &move);
 
-		~Board();
+	private:
+		void OnBoardChanged(BoardPosition pos, Piece newValue);
 	};
 
 	typedef std::shared_ptr<Board> BoardAptr;

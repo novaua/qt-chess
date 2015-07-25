@@ -20,10 +20,6 @@ namespace Chess
 		BoardPosition To;
 
 		bool Capturing;
-
-		ComplexMoveType MoveType;
-
-		BoardPosition EnPassantStepBackTo;
 	};
 
 	struct PositionPiece
@@ -67,5 +63,8 @@ namespace Chess
 		static bool IsValidCapturingMove(const Board &board, Move move, EPieceColors side);
 
 		static bool Validate(const Board &board, Move &move, EPieceColors side, const MovesHistory &history);
+
+		//Translates En Passant and Castling moves to two physical move
+		static bool AddComplementalMove(const Board &board, const Move &move, Move &complemental);
 	};
 }
