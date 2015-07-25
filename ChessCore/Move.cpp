@@ -197,6 +197,43 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 			result.push_back({ pieceOffset, (BoardPosition)peaceOneRankMove, true });
 		}
 	}
+	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history))
+	{
+		static const int rookOffsets[] = { -4, 3 };
+		static const int stepsDirection[] = { -1, 1 };
+
+		static const std::function<bool(int, int)> lessCheck[] =
+		{
+			{ [](int l, int r) {return r < l; } },
+			{ std::less<int>() }
+		};
+
+		for (int i = 0; i < 2; ++i)
+		{
+			auto boardOpened = true;
+			for (int p = stepsDirection[i]; lessCheck[i](p, rookOffsets[i]); p += stepsDirection[i])
+			{
+				auto emptyOffset = pieceOffset + p;
+				if (board.color()[emptyOffset] != CEMPTY)
+				{
+					boardOpened = false;
+				}
+				else
+				{
+					// ToDo: Check if the position is under attack
+				}
+			}
+
+			if (boardOpened)
+			{
+				auto rook = board.At(BoardPosition(pieceOffset + rookOffsets[i]));
+				if (!IsEverMoved(rook, history))
+				{
+					result.push_back({ pieceOffset, BoardPosition(pieceOffset + 2 * stepsDirection[i]) });
+				}
+			}
+		}
+	}
 
 	return result;
 }
@@ -267,6 +304,19 @@ bool MoveGeneration::AddComplementalMove(const Board &board, const Move &move, M
 
 		complemental = { rookPos, (BoardPosition)(rookPos + rookMovesTable[ptr]) };
 		return true;
+	}
+
+	return false;
+}
+
+bool MoveGeneration::IsEverMoved(const Piece &piece, const MovesHistory &history)
+{
+	for each (auto move in history)
+	{
+		if (move.From.Piece == piece)
+		{
+			return true;
+		}
 	}
 
 	return false;
