@@ -59,9 +59,12 @@ namespace Chess
 
 		static std::vector<Move> GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, const MovesHistory &history);
 
+		static std::vector<Move> GenerateAllMoves(const Board &board, EPieceColors side, const MovesHistory &history);
+
 		static bool IsValidCapturingMove(const Board &board, Move move, EPieceColors side);
 
 		static bool Validate(const Board &board, Move &move, EPieceColors side, const MovesHistory &history);
+
 		static bool IsEverMoved(const Piece &piece, const MovesHistory &history);
 
 		//Translates En Passant and Castling moves to two physical move

@@ -18,6 +18,7 @@ namespace Chess {
 
 	struct Move;
 	struct HistoryMove;
+	struct PositionPiece;
 
 	class Board
 	{
@@ -44,6 +45,8 @@ namespace Chess {
 
 		Piece At(BoardPosition position) const;
 		void Place(BoardPosition position, const Piece & piece);
+
+		void ForEachPiece(const std::function<void(const PositionPiece &)> &action, EPieceColors color) const;
 
 		// Does non-empty Piece move without chess basic rules validation
 		HistoryMove DoMove(const Move &move);

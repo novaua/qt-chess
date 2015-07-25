@@ -150,7 +150,6 @@ namespace Chess
 		AssureMove(from, to);
 
 		auto side = _board->At(from).Color;
-
 		Move move = { from, to };
 		std::vector<Move> lastAsked;
 		{
@@ -178,7 +177,8 @@ namespace Chess
 		std::vector<BoardPosition> changedPositions = { from, to };
 		if (MoveGeneration::AddComplementalMove(*_board, move, complementalMove))
 		{
-			// these are inline generated so not added to history
+			// This is an inline generated move so not added to history
+			// applies for Castling and En Passant
 			_board->DoMove(complementalMove);
 			changedPositions.push_back(complementalMove.From);
 			changedPositions.push_back(complementalMove.To);

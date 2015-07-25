@@ -99,4 +99,17 @@ namespace Chess {
 			BoardChanged(pos, newValue);
 		}
 	}
+
+	void Board::ForEachPiece(const std::function<void(const PositionPiece &piece)> &action, EPieceColors color) const
+	{
+		auto id = 0;
+		for(int clr : _color)
+		{
+			if (clr == color)
+			{
+				action({ BoardPosition(id), At(BoardPosition(id)) });
+				++id;
+			}
+		}
+	}
 }

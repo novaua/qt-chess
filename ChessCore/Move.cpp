@@ -197,7 +197,8 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 			result.push_back({ pieceOffset, (BoardPosition)peaceOneRankMove, true });
 		}
 	}
-	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history))
+	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history)
+		/* ToDo: &&!IsInCheck(imThePiece) */)
 	{
 		static const int rookOffsets[] = { -4, 3 };
 		static const int stepsDirection[] = { -1, 1 };
@@ -208,6 +209,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 			{ std::less<int>() }
 		};
 
+		std::set<BoardPosition> allMovesToSet;
 		for (int i = 0; i < 2; ++i)
 		{
 			auto boardOpened = true;
@@ -218,10 +220,6 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 				{
 					boardOpened = false;
 				}
-				else
-				{
-					// ToDo: Check if the position is under attack
-				}
 			}
 
 			if (boardOpened)
@@ -229,7 +227,30 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 				auto rook = board.At(BoardPosition(pieceOffset + rookOffsets[i]));
 				if (!IsEverMoved(rook, history))
 				{
-					result.push_back({ pieceOffset, BoardPosition(pieceOffset + 2 * stepsDirection[i]) });
+					if (allMovesToSet.empty())
+					{
+						// ToDo: This does not include pawn moves
+						for each(auto mv in GenerateAllMoves(board, oppositeSide, history))
+						{
+							allMovesToSet.insert(mv.To);
+						}
+					}
+
+					auto kingPathIsUnderAttack = false;
+					int notUnderAtack[] = { pieceOffset + stepsDirection[i], pieceOffset + 2 * stepsDirection[i] };
+					for each (BoardPosition p in notUnderAtack)
+					{
+						if (allMovesToSet.find(p) != allMovesToSet.end())
+						{
+							kingPathIsUnderAttack = true;
+							break;
+						}
+					}
+
+					if (!kingPathIsUnderAttack)
+					{
+						result.push_back({ pieceOffset, BoardPosition(pieceOffset + 2 * stepsDirection[i]) });
+					}
 				}
 			}
 		}
@@ -320,4 +341,18 @@ bool MoveGeneration::IsEverMoved(const Piece &piece, const MovesHistory &history
 	}
 
 	return false;
+}
+
+std::vector<Move> MoveGeneration::GenerateAllMoves(const Board &board, EPieceColors side, const MovesHistory &history)
+{
+	std::vector<Move> moves;
+	board.ForEachPiece([&](const PositionPiece &positionPiece)
+	{
+		auto localMoves = MoveGeneration::GenerateBasicMoves(board, positionPiece.Position, side);
+		moves.insert(moves.end(),
+			std::make_move_iterator(localMoves.begin()),
+			std::make_move_iterator(localMoves.end()));
+	}, side);
+
+	return moves;
 }
