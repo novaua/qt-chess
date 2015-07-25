@@ -296,7 +296,7 @@ bool MoveGeneration::AddComplementalMove(const Board &board, const Move &move, M
 	{
 		// Castling
 		static int  rookMovesTable[] = { -4, 3, 3, -2 };
-		int ptr = (dt < 0) ? 0 : 2;
+		int ptr = (dt < 0) ? 2 : 0;
 
 		auto rookPos = (BoardPosition)(move.From + rookMovesTable[ptr++]);
 		auto rook = board.At(rookPos);

@@ -149,7 +149,7 @@ namespace Chess
 	{
 		AssureMove(from, to);
 
-		auto side = _board->At(to).Color;
+		auto side = _board->At(from).Color;
 
 		Move move = { from, to };
 		std::vector<Move> lastAsked;
