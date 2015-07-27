@@ -9,7 +9,7 @@ HistoryPlayer::HistoryPlayer(const GameAptr &game)
 {
 }
 
-void HistoryPlayer::Play(const GameHistory &gameHistory)
+void HistoryPlayer::Play(const MovesHistory &gameHistory)
 {
 	_history = gameHistory;
 	_pointer = 0;

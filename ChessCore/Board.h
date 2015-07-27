@@ -18,6 +18,7 @@ namespace Chess {
 
 	struct Move;
 	struct HistoryMove;
+	struct PositionPiece;
 
 	class Board
 	{
@@ -25,10 +26,14 @@ namespace Chess {
 		std::vector<EPieceTypes> _piece;  /* PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, or EMPTY */
 	public:
 
+		std::function<void(BoardPosition pos, Piece newValue)> BoardChanged;
+
 		Board();
+		~Board();
+
 		void Initialize();
 
-		const std::vector<EPieceColors>  &color() const
+		const std::vector<EPieceColors> &color() const
 		{
 			return _color;
 		}
@@ -41,9 +46,14 @@ namespace Chess {
 		Piece At(BoardPosition position) const;
 		void Place(BoardPosition position, const Piece & piece);
 
-		HistoryMove DoMove(const Move &move, bool force = false);
-		void ValidateMove(const Move &move);
+		void ForEachPiece(const std::function<void(const PositionPiece &)> &action, EPieceColors color) const;
 
-		~Board();
+		// Does non-empty Piece move without chess basic rules validation
+		HistoryMove DoMove(const Move &move);
+
+	private:
+		void OnBoardChanged(BoardPosition pos, Piece newValue);
 	};
+
+	typedef std::shared_ptr<Board> BoardAptr;
 }

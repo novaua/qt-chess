@@ -48,24 +48,9 @@ namespace Chess {
 
 	Board::~Board()
 	{
-	}
-
-	void Board::ValidateMove(const Move &move)
-	{
-		auto color = _color[move.From];
-		auto found = false;
-		for (auto m : MoveGeneration::GenerateMoves(*this, move.From, color))
+		if (BoardChanged)
 		{
-			if (m.From == move.From && m.To == move.To)
-			{
-				found = true;
-				break;
-			}
-		}
-
-		if (!found)
-		{
-			throw ChessException("Invalid move!");
+			BoardChanged = {};
 		}
 	}
 
@@ -76,22 +61,24 @@ namespace Chess {
 
 	void Board::Place(BoardPosition position, const Piece & piece)
 	{
-		_piece[position] = piece.Type;
-		_color[position] = piece.Color;
+		if (_piece[position] != piece.Type || _color[position] != piece.Color)
+		{
+			_piece[position] = piece.Type;
+			_color[position] = piece.Color;
+			OnBoardChanged(position, piece);
+		}
 	}
 
-	HistoryMove Board::DoMove(const Move &move, bool force)
+	HistoryMove Board::DoMove(const Move &move)
 	{
-		if (!force)
-		{
-			ValidateMove(move);
-		}
-
 		HistoryMove result = {};
-		auto side = _color[move.From];
-		assert(side != CEMPTY);
 
-		if (_color[move.To] != CEMPTY)
+		auto fromPiece = At(move.From);
+		auto toPiece = At(move.To);
+
+		assert(!fromPiece.IsEmpty());
+
+		if (!toPiece.IsEmpty())
 		{
 			assert(move.Capturing);
 		}
@@ -99,11 +86,30 @@ namespace Chess {
 		result.From = { move.From, At(move.From) };
 		result.To = { move.To, At(move.To) };
 
-		_piece[move.To] = _piece[move.From];
-		_color[move.To] = _color[move.From];
+		Place(move.From, {});
+		Place(move.To, fromPiece);
 
-		_piece[move.From] = EMPTY;
-		_color[move.From] = CEMPTY;
 		return result;
+	}
+
+	void Board::OnBoardChanged(BoardPosition pos, Piece newValue)
+	{
+		if (BoardChanged)
+		{
+			BoardChanged(pos, newValue);
+		}
+	}
+
+	void Board::ForEachPiece(const std::function<void(const PositionPiece &piece)> &action, EPieceColors color) const
+	{
+		auto id = 0;
+		for(int clr : _color)
+		{
+			if (clr == color)
+			{
+				action({ BoardPosition(id), At(BoardPosition(id)) });
+				++id;
+			}
+		}
 	}
 }

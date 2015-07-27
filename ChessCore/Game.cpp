@@ -8,9 +8,15 @@
 namespace Chess
 {
 	Game::Game()
-		: _board(new Board()),
-		_whiteFirst(true)
+		:_whiteFirst(true)
 	{
+		InitBoard();
+	}
+
+	void Game::InitBoard()
+	{
+		_board.reset(new Board());
+		_history = {};
 	}
 
 	Game::~Game()
@@ -29,11 +35,11 @@ namespace Chess
 
 	std::vector<Move> Game::GetPossibleMoves(int index)
 	{
-		auto moves = MoveGeneration::GenerateMoves(*_board, (BoardPosition)index, IsWhiteMove() ? LIGHT : DARK);
+		auto moves = MoveGeneration::GenerateMoves(*_board, (BoardPosition)index, IsWhiteMove() ? LIGHT : DARK, _history);
 		return moves;
 	}
 
-	const GameHistory &Game::GetGameRecord() const
+	const MovesHistory &Game::GetGameRecord() const
 	{
 		return _history;
 	}
@@ -47,7 +53,6 @@ namespace Chess
 			_history = {};
 			_captured = {};
 
-			//_board.reset(new Board());
 			_board->Initialize();
 		};
 
@@ -64,10 +69,9 @@ namespace Chess
 	{
 		{
 			std::lock_guard<std::mutex> lg(_lock);
-			_history = {};
-			_captured = {};
-			_board.reset(new Board());
 
+			InitBoard();
+			_captured = {};
 			_loadedHistory = {};
 		}
 
@@ -145,12 +149,47 @@ namespace Chess
 	{
 		AssureMove(from, to);
 
-		auto isCapturing = _board->At(to).Color != CEMPTY;
-		auto historyMove = _board->DoMove({ from, to, isCapturing }, false);
+		auto side = _board->At(from).Color;
+		Move move = { from, to };
+		std::vector<Move> lastAsked;
+		{
+			std::lock_guard<std::mutex> lg(_lastAskedLock);
+			lastAsked.swap(_lastAskedAllowedMovesList);
+		}
+
+		bool moveSet = false;
+		for each (auto element in lastAsked)
+		{
+			if (element.To == to && element.From == from)
+			{
+				move = element;
+				moveSet = true;
+				break;
+			}
+		}
+
+		if (!moveSet)
+		{
+			MoveGeneration::Validate(*_board, move, side, _history);
+		}
+
+		Move complementalMove;
+		std::vector<BoardPosition> changedPositions = { from, to };
+		if (MoveGeneration::AddComplementalMove(*_board, move, complementalMove))
+		{
+			// This is an inline generated move so not added to history
+			// applies for Castling and En Passant
+			_board->DoMove(complementalMove);
+			changedPositions.push_back(complementalMove.From);
+			changedPositions.push_back(complementalMove.To);
+		}
+
+		auto historyMove = _board->DoMove(move);
 
 		historyMove.Id = GetMoveCount();
 
-		NotifyBoardChangesListeners({ from, to });
+		NotifyBoardChangesListeners(changedPositions);
+
 		if (historyMove.IsCapturingMove())
 		{
 			_captured.push(historyMove.To.Piece);
@@ -167,9 +206,9 @@ namespace Chess
 		}
 
 		// undoing move
-		HistoryMove topMove = *(_history.rbegin());
+		HistoryMove topMove = *_history.rbegin();
 		Move undoMove{ topMove.To.Position, topMove.From.Position };
-		_board->DoMove(undoMove, true);
+		_board->DoMove(undoMove);
 
 		// placing removed item
 		Piece lastPiece = {};
@@ -221,10 +260,16 @@ namespace Chess
 		return _board->At((BoardPosition)index);
 	}
 
-	std::vector<Move> Game::GetAllowedMoves(int index)
+	std::vector<Move> &Game::GetAllowedMoves(int index)
 	{
-		return (0 < index && index < 64 && CanMoveFrom(BoardPosition(index)))
+		auto lastAskedAllowedMovesList =
+			(0 < index && index < 64 && CanMoveFrom(BoardPosition(index)))
 			? GetPossibleMoves(index)
 			: std::vector<Move>();
+		{
+			std::lock_guard<std::mutex> lg(_lastAskedLock);
+			_lastAskedAllowedMovesList.swap(lastAskedAllowedMovesList);
+			return _lastAskedAllowedMovesList;
+		}
 	}
 }

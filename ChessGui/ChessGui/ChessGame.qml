@@ -54,9 +54,14 @@ ApplicationWindow {
                         text: "Start"
                         onClicked: {
                             screen.state = "screen_2"
-                            console.log("New Game ")
+
+                            if (chessConnector.IsOnPlayerMode)
+                            {
+                                chessConnector.endGame();
+                            }
+
                             chessConnector.startNewGame()
-                            console.log("New Game started!")
+                            console.log("New Game ")
                         }
                     }
 

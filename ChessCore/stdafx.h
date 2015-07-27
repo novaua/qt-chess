@@ -18,7 +18,10 @@
 #include <filesystem>
 #include <stack>
 #include <list>
+#include <set>
 
 #include <mutex>
 #include <thread>
 #include <numeric>
+#include <iterator>
+#include <algorithm>
