@@ -11,12 +11,10 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    auto chessConnectorPtr = new ChessConnector() ;
-    engine.rootContext()->setContextProperty("chessConnector", chessConnectorPtr);
+    auto chessConnectorPtr = std::make_unique<ChessConnector>() ;
+    engine.rootContext()->setContextProperty("chessConnector", chessConnectorPtr.get());
 
     engine.load(QUrl(QStringLiteral("qrc:/ChessGame.qml")));
 
-    auto exitCode = app.exec();
-    delete chessConnectorPtr;
-    return exitCode;
+    return app.exec();
 }
