@@ -337,7 +337,7 @@ bool MoveGeneration::IsEverMoved(const PositionPiece &positionPiece, const Moves
 {
 	for each (auto move in history)
 	{
-		if (move.From.Piece == positionPiece.Piece && (move.From.Position == positionPiece.Position))
+		if (move.From.Piece == positionPiece.Piece && move.From.Position == positionPiece.Position)
 		{
 			return true;
 		}
