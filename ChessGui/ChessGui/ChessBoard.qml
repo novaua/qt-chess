@@ -68,7 +68,6 @@ Rectangle {
         target:chessConnector
 
         onCheckNotify:showNotification("Check")
-
         onCheckMateNotify:showNotification("CheckMate")
 
         onNoSavedGame:showNotification("The saved Game was not found!")

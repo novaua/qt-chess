@@ -100,15 +100,13 @@ namespace Chess {
 		}
 	}
 
-	void Board::ForEachPiece(const std::function<void(const PositionPiece &piece)> &action, EPieceColors color) const
+	void Board::ForEachPiece(const std::function<void(BoardPosition)> &action, EPieceColors color) const
 	{
-		auto id = 0;
-		for(int clr : _color)
+		for (int i = 0; i < _color.size(); ++i)
 		{
-			if (clr == color)
+			if (_color[i] == color)
 			{
-				action({ BoardPosition(id), At(BoardPosition(id)) });
-				++id;
+				action((BoardPosition)i);
 			}
 		}
 	}
