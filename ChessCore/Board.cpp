@@ -110,4 +110,17 @@ namespace Chess {
 			}
 		}
 	}
+
+	//position hash code
+	size_t Board::GetHashCode() const
+	{
+		size_t hash = 2147483647;
+		std::hash<int> int_hash_fun;
+		for (int i = 0; i < _color.size(); ++i)
+		{
+			hash ^= int_hash_fun(_color[i] ^ _piece[i]);
+		}
+
+		return hash;
+	}
 }

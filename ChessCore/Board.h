@@ -51,6 +51,9 @@ namespace Chess {
 		// Does non-empty Piece move without chess basic rules validation
 		HistoryMove DoMove(const Move &move);
 
+		//position hash code
+		size_t GetHashCode() const;
+
 	private:
 		void OnBoardChanged(BoardPosition pos, Piece newValue);
 	};

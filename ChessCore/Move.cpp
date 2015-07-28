@@ -73,7 +73,64 @@ namespace {
 	};
 }
 
-std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side)
+void MoveGeneration::GeneratePawnMoves(std::vector<Move> &moves, const Board &board, BoardPosition pieceOffset, EPieceColors side, bool attackingOnly)
+{
+	// pawn moves
+	auto p = board.piece()[pieceOffset];
+	if (p != PAWN)
+	{
+		return;
+	}
+
+	auto colorDirection = board.At(pieceOffset).Color == DARK ? -1 : 1;
+	auto rank = colorDirection > 0 ? (pieceOffset / 8) : 7 - (pieceOffset / 8);
+	auto forwardMaxMoveLength = rank == 1 ? 2 : 1;
+
+	for (auto j = 0; j < offsets[p]; ++j)
+	{
+		for (int n = pieceOffset;;)
+		{
+			n = mailbox[mailbox64[n] + colorDirection * offset[p][j]];
+			if (n == -1)
+			{
+				break;
+			}
+
+			if (pawn_capturing[j])
+			{
+				if (board.color()[n] != CEMPTY) {
+					if (board.color()[n] != side)
+					{
+						moves.push_back({ pieceOffset, (BoardPosition)n, true }); /* capture from i to n */
+					}
+				}
+				else if (attackingOnly)
+				{
+					moves.push_back({ pieceOffset, (BoardPosition)n, false }); /* potential attacking move */
+				}
+
+				break;
+			}
+
+			if (board.color()[n] == CEMPTY && !attackingOnly)
+			{
+				moves.push_back({ pieceOffset, (BoardPosition)n, false }); /* quiet move from i to n */
+				--forwardMaxMoveLength;
+			}
+			else
+			{
+				break;
+			}
+
+			if (forwardMaxMoveLength <= 0)
+			{
+				break;
+			}
+		}
+	}
+}
+
+std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, bool attackingOnly)
 {
 	std::vector<Move> moves;
 	auto p = board.piece()[pieceOffset];
@@ -99,49 +156,7 @@ std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board &board, BoardPo
 	}
 	else
 	{
-		// pawn moves
-		auto colorDirection = board.At(pieceOffset).Color == DARK ? -1 : 1;
-		auto rank = colorDirection > 0 ? (pieceOffset / 8) : 7 - (pieceOffset / 8);
-		auto forwardMaxMoveLength = rank == 1 ? 2 : 1;
-
-		for (auto j = 0; j < offsets[p]; ++j)
-		{
-			for (int n = pieceOffset;;)
-			{
-				n = mailbox[mailbox64[n] + colorDirection * offset[p][j]];
-				if (n == -1)
-				{
-					break;
-				}
-
-				if (pawn_capturing[j])
-				{
-					if (board.color()[n] != CEMPTY) {
-						if (board.color()[n] != side)
-						{
-							moves.push_back({ pieceOffset, (BoardPosition)n, true }); /* capture from i to n */
-						}
-					}
-
-					break;
-				}
-
-				if (board.color()[n] == CEMPTY)
-				{
-					moves.push_back({ pieceOffset, (BoardPosition)n, false }); /* quiet move from i to n */
-					--forwardMaxMoveLength;
-				}
-				else
-				{
-					break;
-				}
-
-				if (forwardMaxMoveLength <= 0)
-				{
-					break;
-				}
-			}
-		}
+		MoveGeneration::GeneratePawnMoves(moves, board, pieceOffset, side, attackingOnly);
 	}
 
 	return moves;
@@ -150,17 +165,9 @@ std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board &board, BoardPo
 bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, EPieceColors side)
 {
 	auto result = false;
-	auto myBoard = board;
-	auto me = board.At(move.From);
 	auto oppositeSide = side == DARK ? LIGHT : DARK;
 
-	//placing additional fake pawn to find all moves for this PAWN
-	if (me.Type == PAWN && board.color()[move.To] == CEMPTY)
-	{
-		myBoard.Place(move.To, { PAWN, oppositeSide });
-	}
-
-	for each(auto locMove in GenerateBasicMoves(myBoard, move.From, side))
+	for each(auto locMove in GenerateBasicMoves(board, move.From, side, true))
 	{
 		if (locMove.To == move.To)
 		{
@@ -185,6 +192,9 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 	auto oppositeMoveDirection = oppositeSide == DARK ? -1 : 1;
 	auto imThePiece = board.At(pieceOffset);
 
+	BoardAttackCache attackCache;
+	GetBoardAttackMap(board, attackCache, oppositeSide);
+
 	// check if the last opposite side move was made by Peasant
 	auto lastMove = *history.crbegin();
 	if (imThePiece.Type == PAWN &&lastMove.From.Piece.Type == PAWN && lastMove.From.Piece.Color == oppositeSide
@@ -199,8 +209,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 			result.push_back({ pieceOffset, (BoardPosition)peaceOneRankMove, true });
 		}
 	}
-	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history)
-		/* ToDo: &&!IsInCheck(imThePiece) */)
+	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history) && !IsInCheck(attackCache, pieceOffset))
 	{
 		static const int rookOffsets[] = { -4, 3 };
 		static const int stepsDirection[] = { -1, 1 };
@@ -371,4 +380,25 @@ std::vector<Move> MoveGeneration::GenerateAllBasicMoves(const Board &board, EPie
 	}), side);
 
 	return moves;
+}
+
+std::pair<size_t, EPieceColors> MoveGeneration::GetBoardAttackMap(const Board &board, BoardAttackCache &outCache, EPieceColors side)
+{
+	auto result = std::make_pair(board.GetHashCode(), side);
+
+	board.ForEachPiece([&](BoardPosition moveFrom)
+	{
+		auto moves = GenerateBasicMoves(board, moveFrom, side, true);
+		for each (auto move in moves)
+		{
+			outCache[move.To].push_back({ move.From, board.At(move.From) });
+		}
+	}, side);
+
+	return result;
+}
+
+bool MoveGeneration::IsInCheck(BoardAttackCache & attackCache, const BoardPosition &position)
+{
+	return !attackCache[position].empty();
 }
