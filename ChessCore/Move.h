@@ -25,7 +25,10 @@ namespace Chess
 	struct PositionPiece
 	{
 		BoardPosition Position;
+
 		Piece Piece;
+
+		size_t GetHashCode() const;
 	};
 
 	struct HistoryMove

@@ -402,3 +402,8 @@ bool MoveGeneration::IsInCheck(BoardAttackCache & attackCache, const BoardPositi
 {
 	return !attackCache[position].empty();
 }
+
+size_t PositionPiece::GetHashCode() const
+{
+	return Position * 14 + Piece.GetHashCode();
+}

@@ -33,3 +33,8 @@ const std::string &Piece::ToString() const
 	auto offset = Color == DARK ? 6 : 0;
 	return translationMap[Type + offset];
 }
+
+size_t Piece::GetHashCode() const
+{
+	return Color == DARK ? EPC_MAX + Type: Type;
+}
