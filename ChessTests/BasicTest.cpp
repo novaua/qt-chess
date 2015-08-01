@@ -180,7 +180,6 @@ namespace ChessTests
 
 		TEST_METHOD(PositionPiecedHash_Test)
 		{
-
 			map<int, PositionPiece> hashPp;
 
 			for (int i = 0; i < 64; ++i)
@@ -228,6 +227,13 @@ namespace ChessTests
 			PositionPiece eE4 = { e4, { EMPTY, CEMPTY } };
 			PositionPiece eE2 = { e2, { EMPTY, CEMPTY } };
 
+			// incremental has allows moves reversion and actually works
+			auto hk1a = hk2 ^ pE4.GetHashCode() ^ eE4.GetHashCode()
+				^ eE2.GetHashCode() ^ pE2.GetHashCode();
+
+
+			// Checking Zobrist Hashing incremental property
+			Assert::AreEqual(hk1, hk1a);
 
 			Assert::AreNotEqual(hk1, hk2);
 			std::cout << "e2e4 hash " << boardPtr->GetHashCode();
