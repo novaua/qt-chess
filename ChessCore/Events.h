@@ -5,11 +5,13 @@ namespace Chess
 	enum EventType
 	{
 		EtEmpty,
+		
+		PawnPromotion,
+		EnPassant,
+		Castling,
+		
 		EtCheck,
 		EtMate,
-		PawnPromotion,
-
-		CannotUndo,
 	};
 
 	class EventBase

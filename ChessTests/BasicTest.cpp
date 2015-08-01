@@ -177,5 +177,66 @@ namespace ChessTests
 			auto player = game->MakePlayer();
 			Assert::IsTrue((bool)player);
 		}
+
+		TEST_METHOD(PositionPiecedHash_Test)
+		{
+
+			map<int, PositionPiece> hashPp;
+
+			for (int i = 0; i < 64; ++i)
+			{
+				for (int j = 0; j < EPC_MAX; ++j)
+				{
+					for (int k = 0; k < 3; ++k)
+					{
+						if (j == 0 && k > 0 || k == 0 && j > 0)
+							continue;
+
+						Piece p = { (EPieceTypes)j, (EPieceColors)k };
+						PositionPiece pp = { (BoardPosition)i, p };
+
+						if (hashPp.find(pp.GetHashCode()) == hashPp.end())
+						{
+							hashPp[pp.GetHashCode()] = { (BoardPosition)i, p };
+						}
+						else
+						{
+							auto fp = hashPp[p.GetHashCode()];
+
+							Assert::AreEqual<int>(p.Type, fp.Piece.Type);
+							Assert::AreEqual<int>(p.Color, fp.Piece.Color);
+							Assert::AreEqual<int>(pp.Position, fp.Position);
+						}
+					}
+				}
+			}
+
+			Assert::AreEqual((2u * 6 + 1) * 64, hashPp.size());
+		}
+
+		TEST_METHOD(BoardHash_Test)
+		{
+			auto boardPtr = std::make_shared<Board>();
+			boardPtr->Initialize();
+			auto hk1 = boardPtr->GetHashCode();
+
+			boardPtr->DoMove({ e2, e4 });
+			auto hk2 = boardPtr->GetHashCode();
+
+			PositionPiece pE2 = { e2, { PAWN, LIGHT } };
+			PositionPiece pE4 = { e4, { PAWN, LIGHT } };
+			PositionPiece eE4 = { e4, { EMPTY, CEMPTY } };
+			PositionPiece eE2 = { e2, { EMPTY, CEMPTY } };
+
+
+			Assert::AreNotEqual(hk1, hk2);
+			std::cout << "e2e4 hash " << boardPtr->GetHashCode();
+
+			boardPtr->DoMove({ e4, e2 });
+
+			auto hk3 = boardPtr->GetHashCode();
+
+			Assert::AreEqual(hk1, hk3);
+		}
 	};
 }

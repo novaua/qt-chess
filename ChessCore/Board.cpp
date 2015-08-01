@@ -110,4 +110,18 @@ namespace Chess {
 			}
 		}
 	}
+
+	//position hash code using Zobrist Hashing
+	size_t Board::GetHashCode() const
+	{
+		size_t hash = 0;
+		std::hash<int> int_hash_fun;
+		for (int i = 0; i < _color.size(); ++i)
+		{
+			PositionPiece pp = { (BoardPosition)i, At((BoardPosition)i) };
+			hash ^= pp.GetHashCode();
+		}
+
+		return hash;
+	}
 }

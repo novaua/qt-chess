@@ -19,6 +19,7 @@
 #include <stack>
 #include <list>
 #include <set>
+#include <map>
 
 #include <mutex>
 #include <thread>

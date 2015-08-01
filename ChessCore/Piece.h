@@ -10,6 +10,7 @@ namespace Chess
 		QUEEN,
 		KING,
 		PAWN,
+		EPC_MAX,
 	};
 
 	enum EPieceColors
@@ -27,5 +28,6 @@ namespace Chess
 		bool IsEmpty();
 		bool operator == (const Piece &o)const;
 		const std::string &ToString() const;
+		size_t GetHashCode() const;
 	};
 }
