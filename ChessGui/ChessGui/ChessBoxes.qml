@@ -36,7 +36,7 @@ Grid {
             Text {
                 anchors.fill: parent
                 id: name
-                text: "" //index
+                text: index
                 font.bold: true
                 font.pointSize: 14
                 rotation: 180 + chessBoard.angle
