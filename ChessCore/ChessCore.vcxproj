@@ -76,6 +76,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Board.h" />
+    <ClInclude Include="BoardPositionsCache.h" />
     <ClInclude Include="ChessException.h" />
     <ClInclude Include="Events.h" />
     <ClInclude Include="Game.h" />
@@ -88,6 +89,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Board.cpp" />
+    <ClCompile Include="BoardPositionsCache.cpp" />
     <ClCompile Include="ChessException.cpp" />
     <ClCompile Include="Event.cpp" />
     <ClCompile Include="Game.cpp" />

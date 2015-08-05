@@ -54,13 +54,13 @@ namespace Chess
 
 	typedef std::shared_ptr<GameState> GameStateAptr;
 
-	// [To] = {From1, FromN}
-	typedef std::map<int, std::vector<PositionPiece>> BoardAttackCache;
-	typedef std::map<size_t, BoardAttackCache> BoardsAttackHashes;
+	// To -> {From1, FromN}
+	typedef std::map<int, std::vector<PositionPiece>> BoardAttackMap;
+	typedef std::shared_ptr<BoardAttackMap> BoardAttackMapAptr;
 
 	struct MoveGeneration
 	{
-		static std::pair<size_t, EPieceColors> GetBoardAttackMap(const Board &board, BoardAttackCache &outCache, EPieceColors side);
+		static void GetBoardAttackMap(const Board &board, BoardAttackMap &outCache, EPieceColors side);
 		static std::vector<Move> GenerateBasicMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, bool attackingOnly = false);
 
 		static std::vector<Move> GenerateAdvancedMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, const MovesHistory &history);
@@ -78,7 +78,7 @@ namespace Chess
 		static bool IsEverMoved(const PositionPiece &positionPiece, const MovesHistory &history);
 		static bool IsEverMoved(const Piece &piece, const MovesHistory &history);
 
-		static bool IsInCheck(BoardAttackCache & attackCache, const BoardPosition &positionPiece);
+		static bool IsInCheck(BoardAttackMap & attackCache, const BoardPosition &positionPiece);
 
 		//Translates En Passant and Castling moves to two physical move
 		static bool AddComplementalMove(const Board &board, const Move &move, Move &complemental);

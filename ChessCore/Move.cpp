@@ -192,7 +192,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 	auto oppositeMoveDirection = oppositeSide == DARK ? -1 : 1;
 	auto imThePiece = board.At(pieceOffset);
 
-	BoardAttackCache attackCache;
+	BoardAttackMap attackCache;
 	GetBoardAttackMap(board, attackCache, oppositeSide);
 
 	// check if the last opposite side move was made by Peasant
@@ -382,10 +382,8 @@ std::vector<Move> MoveGeneration::GenerateAllBasicMoves(const Board &board, EPie
 	return moves;
 }
 
-std::pair<size_t, EPieceColors> MoveGeneration::GetBoardAttackMap(const Board &board, BoardAttackCache &outCache, EPieceColors side)
+void MoveGeneration::GetBoardAttackMap(const Board &board, BoardAttackMap &outCache, EPieceColors side)
 {
-	auto result = std::make_pair(board.GetHashCode(), side);
-
 	board.ForEachPiece([&](BoardPosition moveFrom)
 	{
 		auto moves = GenerateBasicMoves(board, moveFrom, side, true);
@@ -394,11 +392,9 @@ std::pair<size_t, EPieceColors> MoveGeneration::GetBoardAttackMap(const Board &b
 			outCache[move.To].push_back({ move.From, board.At(move.From) });
 		}
 	}, side);
-
-	return result;
 }
 
-bool MoveGeneration::IsInCheck(BoardAttackCache & attackCache, const BoardPosition &position)
+bool MoveGeneration::IsInCheck(BoardAttackMap & attackCache, const BoardPosition &position)
 {
 	return !attackCache[position].empty();
 }
