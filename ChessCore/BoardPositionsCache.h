@@ -1,11 +1,12 @@
 #pragma once
 #include "Move.h"
 #include "Board.h"
+#include "LruCacheMap.hpp"
 
 namespace Chess {
 
 	// BoardHash -> Attack Map auto ptr 
-	typedef std::map<size_t, BoardAttackMapAptr> BoardsAttackHash;
+	typedef LruCacheMap<size_t, BoardAttackMapAptr> BoardsAttackHash;
 
 	class BoardPositionsCache
 	{
@@ -13,6 +14,7 @@ namespace Chess {
 		BoardPositionsCache(const BoardAptr &board);
 
 		void SetBoard(const BoardAptr &board);
+		const BoardAptr &GetBoard() const;
 
 		const BoardAttackMapAptr &GetAttackMap(EPieceColors side);
 

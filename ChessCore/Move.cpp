@@ -209,7 +209,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 			result.push_back({ pieceOffset, (BoardPosition)peaceOneRankMove, true });
 		}
 	}
-	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history) && !IsInCheck(attackCache, pieceOffset))
+	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history) && !IsUnderAttack(attackCache, pieceOffset))
 	{
 		static const int rookOffsets[] = { -4, 3 };
 		static const int stepsDirection[] = { -1, 1 };
@@ -394,7 +394,7 @@ void MoveGeneration::GetBoardAttackMap(const Board &board, BoardAttackMap &outCa
 	}, side);
 }
 
-bool MoveGeneration::IsInCheck(BoardAttackMap & attackCache, const BoardPosition &position)
+bool MoveGeneration::IsUnderAttack(BoardAttackMap & attackCache, const BoardPosition &position)
 {
 	return !attackCache[position].empty();
 }

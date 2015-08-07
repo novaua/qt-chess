@@ -5,6 +5,7 @@
 #include "Move.h"
 #include "Game.h"
 #include "Serializer.h"
+#include "LruCacheMap.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -243,6 +244,31 @@ namespace ChessTests
 			auto hk3 = boardPtr->GetHashCode();
 
 			Assert::AreEqual(hk1, hk3);
+		}
+
+		TEST_METHOD(LruCacheMap_Test)
+		{
+			int Count = 23;
+			int MaxCache = 5;
+			LruCacheMap<int, int> cache(MaxCache);
+
+			for (int i = 0; i < Count; ++i)
+			{
+				cache.AddOrUpdate(i, Count - i);
+				Assert::IsTrue(cache.Contains(i));
+				Assert::AreEqual(Count - i, cache.find(i)->second);
+			}
+
+			for (int i = Count - 1; i >= 0; --i)
+			{
+				if (Count - i <= MaxCache)
+				{
+					Assert::IsTrue(cache.Contains(i));
+				}
+				else {
+					Assert::IsFalse(cache.Contains(i));
+				}
+			}
 		}
 	};
 }

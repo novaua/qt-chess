@@ -78,7 +78,7 @@ namespace Chess
 		static bool IsEverMoved(const PositionPiece &positionPiece, const MovesHistory &history);
 		static bool IsEverMoved(const Piece &piece, const MovesHistory &history);
 
-		static bool IsInCheck(BoardAttackMap & attackCache, const BoardPosition &positionPiece);
+		static bool IsUnderAttack(BoardAttackMap & attackCache, const BoardPosition &positionPiece);
 
 		//Translates En Passant and Castling moves to two physical move
 		static bool AddComplementalMove(const Board &board, const Move &move, Move &complemental);
