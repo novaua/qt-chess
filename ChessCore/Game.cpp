@@ -16,6 +16,16 @@ namespace Chess
 	void Game::InitBoard()
 	{
 		_board.reset(new Board());
+
+		if (!_boardPositionsCache)
+		{
+			_boardPositionsCache = std::make_shared<BoardPositionsCache>(_board);
+		}
+		else
+		{
+			_boardPositionsCache->SetBoard(_board);
+		}
+
 		_history = {};
 	}
 

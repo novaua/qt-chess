@@ -49,7 +49,10 @@ namespace Chess
 	struct GameState
 	{
 		BoardAptr Board;
+
 		MovesHistoryAptr History;
+
+		BoardPositionsCacheAptr Cache;
 	};
 
 	typedef std::shared_ptr<GameState> GameStateAptr;

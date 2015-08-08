@@ -34,7 +34,6 @@ const BoardAttackMapAptr &BoardPositionsCache::GetAttackMap(EPieceColors side)
 	auto bamPtr = std::make_shared<BoardAttackMap>();
 	MoveGeneration::GetBoardAttackMap(*_board, *bamPtr, side);
 
-	//(*currentHash)[boardHash] = bamPtr;
 	currentHash->AddOrUpdate(boardHash, bamPtr);
 
 	return (*currentHash)[boardHash];
