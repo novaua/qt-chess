@@ -23,6 +23,4 @@ namespace Chess {
 		BoardsAttackHash _darkAttackMap;
 		BoardAptr _board;
 	};
-
-	typedef std::shared_ptr<BoardPositionsCache> BoardPositionsCacheAptr;
 }

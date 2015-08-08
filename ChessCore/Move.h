@@ -43,8 +43,12 @@ namespace Chess
 		Move ToMove() const;
 	};
 
+
 	typedef std::vector<HistoryMove> MovesHistory;
 	typedef std::shared_ptr<MovesHistory> MovesHistoryAptr;
+
+	class BoardPositionsCache;
+	typedef std::shared_ptr<BoardPositionsCache> BoardPositionsCacheAptr;
 
 	struct GameState
 	{
@@ -70,7 +74,7 @@ namespace Chess
 
 		static std::vector<Move> GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, const MovesHistory &history);
 
-		static std::vector<Move> GenerateAllBasicMoves(const Board &board, EPieceColors side, const MovesHistory &history);
+		static std::vector<Move> GenerateAllBasicMoves(const Board &board, EPieceColors side);
 
 		static void GeneratePawnMoves(std::vector<Move> &moves, const Board &board, BoardPosition pieceOffset, EPieceColors side, bool attackingOnly = false);
 

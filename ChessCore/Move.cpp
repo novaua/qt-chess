@@ -165,8 +165,6 @@ std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board &board, BoardPo
 bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, EPieceColors side)
 {
 	auto result = false;
-	auto oppositeSide = side == DARK ? LIGHT : DARK;
-
 	for each(auto locMove in GenerateBasicMoves(board, move.From, side, true))
 	{
 		if (locMove.To == move.To)
@@ -242,7 +240,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 					if (allMovesToSet.empty())
 					{
 						// ToDo: This does not include pawn moves
-						for each(auto mv in GenerateAllBasicMoves(board, oppositeSide, history))
+						for each(auto mv in GenerateAllBasicMoves(board, oppositeSide))
 						{
 							allMovesToSet.insert(mv.To);
 						}
@@ -368,7 +366,7 @@ bool MoveGeneration::IsEverMoved(const Piece &piece, const MovesHistory &history
 	return false;
 }
 
-std::vector<Move> MoveGeneration::GenerateAllBasicMoves(const Board &board, EPieceColors side, const MovesHistory &history)
+std::vector<Move> MoveGeneration::GenerateAllBasicMoves(const Board &board, EPieceColors side)
 {
 	std::vector<Move> moves;
 	board.ForEachPiece(std::function<void(BoardPosition)>([&](BoardPosition pos)

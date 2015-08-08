@@ -102,7 +102,7 @@ namespace Chess {
 
 	void Board::ForEachPiece(const std::function<void(BoardPosition)> &action, EPieceColors color) const
 	{
-		for (int i = 0; i < _color.size(); ++i)
+        for (auto i = 0u; i < _color.size(); ++i)
 		{
 			if (_color[i] == color)
 			{
@@ -115,7 +115,7 @@ namespace Chess {
 	size_t Board::GetHashCode() const
 	{
 		size_t hash = 0;
-		for (int i = 0; i < _color.size(); ++i)
+        for (auto i = 0u; i < _color.size(); ++i)
 		{
 			PositionPiece pp = { (BoardPosition)i, At((BoardPosition)i) };
 			hash ^= pp.GetHashCode();
