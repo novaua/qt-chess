@@ -12,7 +12,8 @@ SOURCES += main.cpp \
     ../../ChessCore/stdafx.cpp \
     chessconnector.cpp \
     ../../ChessCore/HistoryPlayer.cpp \
-    ../../ChessCore/BoardPositionsCache.cpp
+    ../../ChessCore/BoardPositionsCache.cpp \
+    ../../ChessCore/Check.cpp
 
 RESOURCES += qml.qrc
 
@@ -41,4 +42,5 @@ HEADERS += \
     chessconnector.h \
     ../../ChessCore/HistoryPlayer.h \
     ../../ChessCore/BoardPositionsCache.h \
-    ../../ChessCore/LruCacheMap.hpp
+    ../../ChessCore/LruCacheMap.hpp \
+    ../../ChessCore/Check.h

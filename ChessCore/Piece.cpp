@@ -38,3 +38,18 @@ size_t Piece::GetHashCode() const
 {
 	return Color == DARK ? EPC_MAX + Type: Type;
 }
+
+namespace Chess
+{
+	EPieceColors OtherSideOf(EPieceColors side)
+	{
+		assert(side != CEMPTY && "Empty Piece is not expected!");
+		return side == LIGHT ? DARK : LIGHT;
+	}
+
+	int GetPiceCount(EPieceTypes type)
+	{
+		static int counts[] = { 0, 2, 2, 2, 1, 1, 8 };
+		return counts[type];
+	}
+}

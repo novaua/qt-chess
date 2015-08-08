@@ -5,9 +5,11 @@ using namespace Chess;
 
 EventBase::EventBase(EventType et)
 	:_type(et)
-{}
+{
 
-EventType EventBase::GetType()
+}
+
+EventType EventBase::GetType() const
 {
 	return _type;
 }

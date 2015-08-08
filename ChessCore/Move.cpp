@@ -177,14 +177,17 @@ bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, EPieceC
 	return result;
 }
 
-std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, const MovesHistory &history)
+std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameState, BoardPosition pieceOffset, EPieceColors side)
 {
-	if (history.empty())
+	if (gameState.History->empty())
 	{
 		return{};
 	}
 
 	std::vector<Move> result;
+
+	const Board &board = *gameState.Board;
+	auto &history = *gameState.History;
 
 	auto oppositeSide = side == DARK ? LIGHT : DARK;
 	auto oppositeMoveDirection = oppositeSide == DARK ? -1 : 1;
@@ -269,20 +272,19 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 	return result;
 }
 
-std::vector<Move> MoveGeneration::GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, const MovesHistory &history)
+std::vector<Move> MoveGeneration::GenerateMoves(const GameState &gameState, BoardPosition pieceOffset, EPieceColors side)
 {
-	auto moves = MoveGeneration::GenerateBasicMoves(board, pieceOffset, side);
+	auto moves = MoveGeneration::GenerateBasicMoves(*gameState.Board, pieceOffset, side);
+	auto adMoves = MoveGeneration::GenerateAdvancedMoves(gameState, pieceOffset, side);
 
-	auto adMoves = MoveGeneration::GenerateAdvancedMoves(board, pieceOffset, side, history);
 	std::copy(adMoves.begin(), adMoves.end(), std::back_inserter(moves));
-
 	return moves;
 }
 
-bool MoveGeneration::Validate(const Board &board, Move &move, EPieceColors side, const MovesHistory &history)
+bool MoveGeneration::Validate(const GameState &gameState, Move &move, EPieceColors side)
 {
 	auto found = false;
-	for (auto mv : MoveGeneration::GenerateMoves(board, move.From, side, history))
+	for (auto mv : MoveGeneration::GenerateMoves(gameState, move.From, side))
 	{
 		if (mv.From == move.From && mv.To == move.To)
 		{
@@ -392,9 +394,29 @@ void MoveGeneration::GetBoardAttackMap(const Board &board, BoardAttackMap &outCa
 	}, side);
 }
 
-bool MoveGeneration::IsUnderAttack(BoardAttackMap & attackCache, const BoardPosition &position)
+bool MoveGeneration::IsUnderAttack(const BoardAttackMap & attackCache, const BoardPosition &position)
 {
-	return !attackCache[position].empty();
+	return attackCache.find(position) != attackCache.end();
+}
+
+std::vector<PositionPiece> MoveGeneration::GetPositionsOf(const Board &board, EPieceTypes type, EPieceColors side)
+{
+	std::vector<PositionPiece> resultList;
+	int maxCount = GetPiceCount(type);
+	for (auto i = 0; i < BpMax; i++)
+	{
+		auto p = board.At(BoardPosition(i));
+		if (p.Type == type && p.Color == side)
+		{
+			resultList.push_back({ BoardPosition(i), p });
+			if (resultList.size() == maxCount)
+			{
+				break;
+			}
+		}
+	}
+
+	return resultList;
 }
 
 size_t PositionPiece::GetHashCode() const

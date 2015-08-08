@@ -37,6 +37,9 @@ signals:
 	void checkNotify();
 	void checkMateNotify();
 
+    void castlingNotify();
+    void pawnPromotionNotify();
+
 	void noSavedGame();
 	void savedOk();
 

@@ -20,6 +20,9 @@ namespace Chess
 		DARK,
 	};
 
+	EPieceColors OtherSideOf(EPieceColors side);
+	int GetPiceCount(EPieceTypes type);
+
 	struct Piece
 	{
 		EPieceTypes Type;

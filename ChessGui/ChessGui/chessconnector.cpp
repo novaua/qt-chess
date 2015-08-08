@@ -30,6 +30,24 @@ ChessConnector::ChessConnector()
 		emit boardChanged(index, QString::fromStdString(piece.ToString()));
 	});
 
+    _game->RegisterGameActionsListeners(
+                [&](const EventBase & event)
+    {
+        if(event.GetType() == EtCheck)
+        {
+            emit checkNotify();
+        } else if (event.GetType() == EtCheckMate)
+        {
+            emit checkMateNotify();
+        } else if (event.GetType() == EtCastling)
+        {
+            emit castlingNotify();
+        } else if (event.GetType() == EtPawnPromotion)
+        {
+            emit pawnPromotionNotify();
+        }
+    });
+
 	ClearBoard(_possibleMoves);
 }
 

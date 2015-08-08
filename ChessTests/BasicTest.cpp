@@ -20,12 +20,14 @@ namespace ChessTests
 
 		TEST_METHOD(MainInit_IsGoood_Test)
 		{
-			auto boardPtr = new Board();
+			auto boardPtr = std::make_shared<Board>();
+			auto historyPtr = std::make_shared<MovesHistory>();
+
+			GameState state = { boardPtr, historyPtr, {} };
+
 			boardPtr->Initialize();
 
 			boardPtr->DoMove({ a2, a4, false });
-
-			//boardPtr->DoMove({ e7, e3, false }, true);
 			boardPtr->DoMove({ e7, e3, false });
 
 			int figs[] = { a1, b1, c1, g1, e2, a2, b2, f2 };
@@ -36,7 +38,7 @@ namespace ChessTests
 			for (auto a : figs)
 			{
 				auto wasCapturing = 0;
-				auto moves = MoveGeneration::GenerateMoves(*boardPtr, (BoardPosition)a, LIGHT, {});
+				auto moves = MoveGeneration::GenerateMoves(state, (BoardPosition)a, LIGHT);
 
 				Assert().IsTrue(moves.size() == movesForFigs[count]);
 
@@ -118,14 +120,18 @@ namespace ChessTests
 		TEST_METHOD(MoveValidation_Works_Test)
 		{
 			auto boardPtr = std::make_shared<Board>();
+			auto historyPtr = std::make_shared<MovesHistory>();
+
+			GameState state = { boardPtr, historyPtr, {} };
+
 			boardPtr->Initialize();
 
-			MoveGeneration::Validate(*boardPtr, Move{ e2, e4 }, LIGHT, {});
+			MoveGeneration::Validate(state, Move{ e2, e4 }, LIGHT);
 			boardPtr->DoMove({ e2, e4 });
 
-			Assert::ExpectException<ChessException>([&boardPtr]()
+			Assert::ExpectException<ChessException>([&]()
 			{
-				MoveGeneration::Validate(*boardPtr, Move{ b1, b8 }, LIGHT, {});
+				MoveGeneration::Validate(state, Move{ b1, b8 }, LIGHT);
 				boardPtr->DoMove({ b1, b8 });
 			});
 		}

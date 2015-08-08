@@ -70,9 +70,9 @@ namespace Chess
 		static void GetBoardAttackMap(const Board &board, BoardAttackMap &outCache, EPieceColors side);
 		static std::vector<Move> GenerateBasicMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, bool attackingOnly = false);
 
-		static std::vector<Move> GenerateAdvancedMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, const MovesHistory &history);
+		static std::vector<Move> GenerateAdvancedMoves(const GameState &gameState, BoardPosition pieceOffset, EPieceColors side);
 
-		static std::vector<Move> GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, const MovesHistory &history);
+		static std::vector<Move> GenerateMoves(const GameState &gameState, BoardPosition pieceOffset, EPieceColors side);
 
 		static std::vector<Move> GenerateAllBasicMoves(const Board &board, EPieceColors side);
 
@@ -80,14 +80,16 @@ namespace Chess
 
 		static bool IsValidCapturingMove(const Board &board, Move move, EPieceColors side);
 
-		static bool Validate(const Board &board, Move &move, EPieceColors side, const MovesHistory &history);
+		static bool Validate(const GameState &gameState, Move &move, EPieceColors side);
 
 		static bool IsEverMoved(const PositionPiece &positionPiece, const MovesHistory &history);
 		static bool IsEverMoved(const Piece &piece, const MovesHistory &history);
 
-		static bool IsUnderAttack(BoardAttackMap & attackCache, const BoardPosition &positionPiece);
+		static bool IsUnderAttack(const BoardAttackMap & attackCache, const BoardPosition &positionPiece);
 
 		//Translates En Passant and Castling moves to two physical move
 		static bool AddComplementalMove(const Board &board, const Move &move, Move &complemental);
+
+		static std::vector<PositionPiece> GetPositionsOf(const Board &board, EPieceTypes type, EPieceColors side);
 	};
 }

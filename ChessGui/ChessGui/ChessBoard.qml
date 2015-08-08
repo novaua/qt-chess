@@ -68,7 +68,10 @@ Rectangle {
         target:chessConnector
 
         onCheckNotify:showNotification("Check")
-        onCheckMateNotify:showNotification("CheckMate")
+        onCheckMateNotify:showNotification("Checkmate")
+
+        onCastlingNotify: showNotification("Castling")
+        onPawnPromotionNotify: showNotification("ToDo: Load the Pawn Promotion dialog!")
 
         onNoSavedGame:showNotification("The saved Game was not found!")
         onSavedOk:showNotification("Game saved")
