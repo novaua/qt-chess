@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Move.h"
 #include "ChessException.h"
+#include "BoardPositionsCache.h"
 
 using namespace Chess;
 
@@ -189,12 +190,11 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameSta
 	const Board &board = *gameState.Board;
 	auto &history = *gameState.History;
 
-	auto oppositeSide = side == DARK ? LIGHT : DARK;
+	auto oppositeSide = OppositeSideOf(side);
 	auto oppositeMoveDirection = oppositeSide == DARK ? -1 : 1;
 	auto imThePiece = board.At(pieceOffset);
 
-	BoardAttackMap attackCache;
-	GetBoardAttackMap(board, attackCache, oppositeSide);
+	auto attackCache = gameState.Cache->GetAttackMap(oppositeSide);
 
 	// check if the last opposite side move was made by Peasant
 	auto lastMove = *history.crbegin();
@@ -210,7 +210,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameSta
 			result.push_back({ pieceOffset, (BoardPosition)peaceOneRankMove, true });
 		}
 	}
-	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history) && !IsUnderAttack(attackCache, pieceOffset))
+	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history) && !IsUnderAttack(*attackCache, pieceOffset))
 	{
 		static const int rookOffsets[] = { -4, 3 };
 		static const int stepsDirection[] = { -1, 1 };
@@ -390,6 +390,18 @@ void MoveGeneration::GetBoardAttackMap(const Board &board, BoardAttackMap &outCa
 		for each (auto move in moves)
 		{
 			outCache[move.To].push_back({ move.From, board.At(move.From) });
+		}
+	}, side);
+}
+
+void MoveGeneration::GetBoardViktimsMap(const Board &board, BoardAttackMap &outCache, EPieceColors side)
+{
+	board.ForEachPiece([&](BoardPosition moveFrom)
+	{
+		auto moves = GenerateBasicMoves(board, moveFrom, side, true);
+		for each (auto move in moves)
+		{
+			outCache[move.From].push_back({ move.To, board.At(move.To) });
 		}
 	}, side);
 }

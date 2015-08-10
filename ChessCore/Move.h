@@ -68,6 +68,8 @@ namespace Chess
 	struct MoveGeneration
 	{
 		static void GetBoardAttackMap(const Board &board, BoardAttackMap &outCache, EPieceColors side);
+		static void GetBoardViktimsMap(const Board &board, BoardAttackMap &outCache, EPieceColors side);
+
 		static std::vector<Move> GenerateBasicMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, bool attackingOnly = false);
 
 		static std::vector<Move> GenerateAdvancedMoves(const GameState &gameState, BoardPosition pieceOffset, EPieceColors side);

@@ -221,9 +221,9 @@ namespace Chess
 		_history->push_back(historyMove);
 
 		GameChecks check(_gameState);
-		if (check.IsInCheck(OtherSideOf(side)))
+		if (check.IsInCheck(OppositeSideOf(side)))
 		{
-			if (check.IsCheckMate(OtherSideOf(side)))
+			if (check.IsCheckMate(OppositeSideOf(side)))
 			{
 				NotifyActionsListeners(EtCheckMate);
 			}
