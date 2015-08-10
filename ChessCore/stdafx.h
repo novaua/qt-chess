@@ -20,6 +20,7 @@
 #include <list>
 #include <set>
 #include <map>
+#include <queue>
 
 #include <mutex>
 #include <thread>

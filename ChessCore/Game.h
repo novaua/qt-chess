@@ -8,6 +8,8 @@
 #include "Events.h"
 #include "Move.h"
 #include "HistoryPlayer.h"
+#include "BoardPositionsCache.h"
+#include "Check.h"
 
 namespace Chess
 {
@@ -24,8 +26,14 @@ namespace Chess
 		BoardChangesListeners _boardChangesListeners;
 
 		std::shared_ptr<Board> _board;
-		MovesHistory _history;
+		BoardPositionsCacheAptr _boardPositionsCache;
+		MovesHistoryAptr _history;
+
+		GameState _gameState;
+
 		std::stack<Piece> _captured;
+
+		//ToDo: this probably adds more complications than profit. Consider to re-factor.
 		std::vector<Move> _lastAskedAllowedMovesList;
 		bool _whiteFirst;
 
@@ -66,6 +74,7 @@ namespace Chess
 		void InitBoard();
 
 		void NotifyBoardChangesListeners(std::vector<BoardPosition> indexes);
+		void NotifyActionsListeners(const EventBase &event);
 	};
 
 	typedef std::shared_ptr<Game> GameAptr;

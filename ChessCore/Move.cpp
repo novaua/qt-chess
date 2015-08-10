@@ -165,8 +165,6 @@ std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board &board, BoardPo
 bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, EPieceColors side)
 {
 	auto result = false;
-	auto oppositeSide = side == DARK ? LIGHT : DARK;
-
 	for each(auto locMove in GenerateBasicMoves(board, move.From, side, true))
 	{
 		if (locMove.To == move.To)
@@ -179,20 +177,23 @@ bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, EPieceC
 	return result;
 }
 
-std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, const MovesHistory &history)
+std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameState, BoardPosition pieceOffset, EPieceColors side)
 {
-	if (history.empty())
+	if (gameState.History->empty())
 	{
 		return{};
 	}
 
 	std::vector<Move> result;
 
+	const Board &board = *gameState.Board;
+	auto &history = *gameState.History;
+
 	auto oppositeSide = side == DARK ? LIGHT : DARK;
 	auto oppositeMoveDirection = oppositeSide == DARK ? -1 : 1;
 	auto imThePiece = board.At(pieceOffset);
 
-	BoardAttackCache attackCache;
+	BoardAttackMap attackCache;
 	GetBoardAttackMap(board, attackCache, oppositeSide);
 
 	// check if the last opposite side move was made by Peasant
@@ -209,7 +210,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 			result.push_back({ pieceOffset, (BoardPosition)peaceOneRankMove, true });
 		}
 	}
-	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history) && !IsInCheck(attackCache, pieceOffset))
+	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history) && !IsUnderAttack(attackCache, pieceOffset))
 	{
 		static const int rookOffsets[] = { -4, 3 };
 		static const int stepsDirection[] = { -1, 1 };
@@ -242,7 +243,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 					if (allMovesToSet.empty())
 					{
 						// ToDo: This does not include pawn moves
-						for each(auto mv in GenerateAllBasicMoves(board, oppositeSide, history))
+						for each(auto mv in GenerateAllBasicMoves(board, oppositeSide))
 						{
 							allMovesToSet.insert(mv.To);
 						}
@@ -271,20 +272,19 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 	return result;
 }
 
-std::vector<Move> MoveGeneration::GenerateMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, const MovesHistory &history)
+std::vector<Move> MoveGeneration::GenerateMoves(const GameState &gameState, BoardPosition pieceOffset, EPieceColors side)
 {
-	auto moves = MoveGeneration::GenerateBasicMoves(board, pieceOffset, side);
+	auto moves = MoveGeneration::GenerateBasicMoves(*gameState.Board, pieceOffset, side);
+	auto adMoves = MoveGeneration::GenerateAdvancedMoves(gameState, pieceOffset, side);
 
-	auto adMoves = MoveGeneration::GenerateAdvancedMoves(board, pieceOffset, side, history);
 	std::copy(adMoves.begin(), adMoves.end(), std::back_inserter(moves));
-
 	return moves;
 }
 
-bool MoveGeneration::Validate(const Board &board, Move &move, EPieceColors side, const MovesHistory &history)
+bool MoveGeneration::Validate(const GameState &gameState, Move &move, EPieceColors side)
 {
 	auto found = false;
-	for (auto mv : MoveGeneration::GenerateMoves(board, move.From, side, history))
+	for (auto mv : MoveGeneration::GenerateMoves(gameState, move.From, side))
 	{
 		if (mv.From == move.From && mv.To == move.To)
 		{
@@ -368,7 +368,7 @@ bool MoveGeneration::IsEverMoved(const Piece &piece, const MovesHistory &history
 	return false;
 }
 
-std::vector<Move> MoveGeneration::GenerateAllBasicMoves(const Board &board, EPieceColors side, const MovesHistory &history)
+std::vector<Move> MoveGeneration::GenerateAllBasicMoves(const Board &board, EPieceColors side)
 {
 	std::vector<Move> moves;
 	board.ForEachPiece(std::function<void(BoardPosition)>([&](BoardPosition pos)
@@ -382,10 +382,8 @@ std::vector<Move> MoveGeneration::GenerateAllBasicMoves(const Board &board, EPie
 	return moves;
 }
 
-std::pair<size_t, EPieceColors> MoveGeneration::GetBoardAttackMap(const Board &board, BoardAttackCache &outCache, EPieceColors side)
+void MoveGeneration::GetBoardAttackMap(const Board &board, BoardAttackMap &outCache, EPieceColors side)
 {
-	auto result = std::make_pair(board.GetHashCode(), side);
-
 	board.ForEachPiece([&](BoardPosition moveFrom)
 	{
 		auto moves = GenerateBasicMoves(board, moveFrom, side, true);
@@ -394,13 +392,31 @@ std::pair<size_t, EPieceColors> MoveGeneration::GetBoardAttackMap(const Board &b
 			outCache[move.To].push_back({ move.From, board.At(move.From) });
 		}
 	}, side);
-
-	return result;
 }
 
-bool MoveGeneration::IsInCheck(BoardAttackCache & attackCache, const BoardPosition &position)
+bool MoveGeneration::IsUnderAttack(const BoardAttackMap & attackCache, const BoardPosition &position)
 {
-	return !attackCache[position].empty();
+	return attackCache.find(position) != attackCache.end();
+}
+
+std::vector<PositionPiece> MoveGeneration::GetPositionsOf(const Board &board, EPieceTypes type, EPieceColors side)
+{
+	std::vector<PositionPiece> resultList;
+	int maxCount = GetPiceCount(type);
+	for (auto i = 0; i < BpMax; i++)
+	{
+		auto p = board.At(BoardPosition(i));
+		if (p.Type == type && p.Color == side)
+		{
+			resultList.push_back({ BoardPosition(i), p });
+			if (resultList.size() == maxCount)
+			{
+				break;
+			}
+		}
+	}
+
+	return resultList;
 }
 
 size_t PositionPiece::GetHashCode() const

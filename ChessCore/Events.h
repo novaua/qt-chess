@@ -6,12 +6,12 @@ namespace Chess
 	{
 		EtEmpty,
 		
-		PawnPromotion,
-		EnPassant,
-		Castling,
+		EtPawnPromotion,
+		EtEnPassant,
+		EtCastling,
 		
 		EtCheck,
-		EtMate,
+		EtCheckMate,
 	};
 
 	class EventBase
@@ -20,6 +20,6 @@ namespace Chess
 
 	public:
 		EventBase(EventType et = EtEmpty);
-		EventType GetType();
+		EventType GetType() const;
 	};
 }
