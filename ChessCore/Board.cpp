@@ -44,6 +44,8 @@ namespace Chess {
 			PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,
 			ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK
 		};
+
+		_previousBoard = std::make_shared<Board>(*this);
 	}
 
 	Board::~Board()
@@ -71,6 +73,8 @@ namespace Chess {
 
 	HistoryMove Board::DoMove(const Move &move)
 	{
+		*_previousBoard = *this;
+
 		HistoryMove result = {};
 
 		auto fromPiece = At(move.From);
@@ -90,6 +94,11 @@ namespace Chess {
 		Place(move.To, fromPiece);
 
 		return result;
+	}
+
+	void Board::UndoLastMove()
+	{
+		*this = *_previousBoard;
 	}
 
 	void Board::OnBoardChanged(BoardPosition pos, Piece newValue)

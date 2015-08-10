@@ -41,7 +41,7 @@ size_t Piece::GetHashCode() const
 
 namespace Chess
 {
-	EPieceColors OtherSideOf(EPieceColors side)
+	EPieceColors OppositeSideOf(EPieceColors side)
 	{
 		assert(side != CEMPTY && "Empty Piece is not expected!");
 		return side == LIGHT ? DARK : LIGHT;

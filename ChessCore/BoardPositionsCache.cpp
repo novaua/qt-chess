@@ -38,3 +38,24 @@ const BoardAttackMapAptr &BoardPositionsCache::GetAttackMap(EPieceColors side)
 
 	return (*currentHash)[boardHash];
 }
+
+const BoardAttackMapAptr &BoardPositionsCache::GetViktimsMap(EPieceColors side)
+{
+	assert(side != CEMPTY && "Non empty side expected only!");
+
+	auto boardHash = _board->GetHashCode();
+	auto currentHash = (side == LIGHT) ? &_lightViktimMap : &_darkViktimMap;
+
+	auto foundPtr = currentHash->find(boardHash);
+	if (foundPtr != currentHash->end())
+	{
+		return foundPtr->second;
+	}
+
+	auto bamPtr = std::make_shared<BoardAttackMap>();
+	MoveGeneration::GetBoardViktimsMap(*_board, *bamPtr, side);
+
+	currentHash->AddOrUpdate(boardHash, bamPtr);
+
+	return (*currentHash)[boardHash];
+}

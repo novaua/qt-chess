@@ -16,64 +16,85 @@ GameChecks::~GameChecks()
 
 PositionPiece GetKingPosition(const BoardAptr &board, EPieceColors side)
 {
-	return MoveGeneration::GetPositionsOf(*board, KING, side) [0];
+	return MoveGeneration::GetPositionsOf(*board, KING, side)[0];
 }
 
 bool GameChecks::IsInCheck(EPieceColors side)
 {
 	auto imTheKing = GetKingPosition(_state.Board, side);
 
-	auto attackMap = _state.Cache->GetAttackMap(OtherSideOf(side));
+	auto attackMap = _state.Cache->GetAttackMap(OppositeSideOf(side));
 	return MoveGeneration::IsUnderAttack(*attackMap, imTheKing.Position);
 }
 
 bool GameChecks::IsCheckMate(EPieceColors side)
 {
 	auto result = false;
-	if (IsInCheck(side)) 
+	if (IsInCheck(side))
 	{
 		auto imTheKing = GetKingPosition(_state.Board, side);
-		auto attackMap = _state.Cache->GetAttackMap(OtherSideOf(side));
-		auto whoAttacksTheKing = attackMap->at(imTheKing.Position);
-		
-		// Can capture the checking piece
-		auto kingAttackMoves = MoveGeneration::GenerateBasicMoves(*_state.Board, imTheKing.Position, side, true);
-		
-		if (!kingAttackMoves.empty())
-		{
-			std::vector<BoardPosition> kingAttackList;
-			for (auto move : kingAttackMoves)
-			{
-				for (auto atacker : whoAttacksTheKing)
-				{
-					if (move.Capturing)
-					{
-						if (move.To == atacker.Position)
-						{
-							kingAttackList.push_back(move.To);
-						}
-					}
-				}
-			}
+		auto attackMap = _state.Cache->GetAttackMap(OppositeSideOf(side));
 
+		auto whoAttacksTheKing = attackMap->at(imTheKing.Position);
+		auto thisSideKillMap = _state.Cache->GetViktimsMap(side);
+
+		// Can capture the checking piece or move away
+		auto kingAttackMoves = MoveGeneration::GenerateBasicMoves(*_state.Board, imTheKing.Position, side);
+		auto kingAttackList = (*thisSideKillMap)[imTheKing.Position];
+
+		if (!kingAttackList.empty())
+		{
 			auto newBoard = std::make_shared<Board>(*_state.Board);
-			
+
 			for (auto moveTo : kingAttackList)
 			{
-				newBoard->DoMove({ imTheKing.Position, moveTo });
+				newBoard->DoMove({ imTheKing.Position, moveTo.Position });
 				_state.Cache->SetBoard(newBoard);
 				if (!IsInCheck(side))
 				{
 					_state.Cache->SetBoard(_state.Board);
-					
-					//King can capture the threatener
+
+					//King can capture the threatener or escape
 					return false;
 				}
+
+				newBoard->UndoLastMove();
 			}
 		}
-		else 
+
+		auto newBoard = std::make_shared<Board>(*_state.Board);
+		// Someone can protect King
+		for (auto attacker : whoAttacksTheKing)
 		{
-			// Distant check
+			for (auto piecePtr = thisSideKillMap->begin(); piecePtr != thisSideKillMap->end(); ++piecePtr)
+			{
+				auto myPiece = _state.Board->At((BoardPosition)piecePtr->first);
+
+				if (myPiece.Type == KING)
+				{
+					continue;
+				}
+
+				for (auto myPieceMovesTo : piecePtr->second)
+				{
+					if (attacker.Piece.Type == KNIGHT && myPieceMovesTo.Position != attacker.Position)
+					{
+						// my piece is unable to capture the Knight
+						continue;
+					}
+
+					newBoard->DoMove({ (BoardPosition)piecePtr->first, myPieceMovesTo.Position });
+					if (!IsInCheck(side))
+					{
+						_state.Cache->SetBoard(_state.Board);
+
+						//Piece can capture the threatener or escape
+						return false;
+					}
+
+					newBoard->UndoLastMove();
+				}
+			}
 		}
 	}
 

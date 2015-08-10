@@ -16,11 +16,18 @@ namespace Chess {
 		void SetBoard(const BoardAptr &board);
 		const BoardAptr &GetBoard() const;
 
+		// Me -> My killers list
 		const BoardAttackMapAptr &GetAttackMap(EPieceColors side);
+
+		// Me -> My victims list
+		const BoardAttackMapAptr &GetViktimsMap(EPieceColors side);
 
 	private:
 		BoardsAttackHash _lightAttackMap;
 		BoardsAttackHash _darkAttackMap;
+
+		BoardsAttackHash _lightViktimMap;
+		BoardsAttackHash _darkViktimMap;
 		BoardAptr _board;
 	};
 }
