@@ -2,7 +2,7 @@
 #include <map>
 #include <queue>
 
-const size_t MaxCacheSize = 2 * 5000u;
+const size_t MaxCacheSize = 5000u;
 template<class K, class V>
 class LruCacheMap
 {
@@ -16,16 +16,6 @@ public:
 	}
 
 	typename std::map<K, V>::iterator end()
-	{
-		return _map.end();
-	}
-
-	typename std::map<K, V>::iterator begin() const
-	{
-		return _map.begin();
-	}
-
-	typename std::map<K, V>::iterator end() const
 	{
 		return _map.end();
 	}
