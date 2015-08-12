@@ -467,5 +467,6 @@ std::vector<PositionPiece> MoveGeneration::GetPositionsOf(const Board &board, EP
 
 size_t PositionPiece::GetHashCode() const
 {
-	return Position * 377 ^ Piece.GetHashCode();
+	static auto randomVector = MakeRandomVector(BpMax);
+	return Piece.IsEmpty() ? 0 : Piece.GetHashCode() ^ randomVector[Position];
 }

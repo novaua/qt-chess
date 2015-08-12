@@ -22,13 +22,14 @@ namespace Chess
 
 	EPieceColors OppositeSideOf(EPieceColors side);
 	int GetPiceCount(EPieceTypes type);
+	std::vector<size_t> MakeRandomVector(int elementsCount);
 
 	struct Piece
 	{
 		EPieceTypes Type;
 		EPieceColors Color;
 
-		bool IsEmpty();
+		bool IsEmpty() const;
 		bool operator == (const Piece &o)const;
 		const std::string &ToString() const;
 		size_t GetHashCode() const;

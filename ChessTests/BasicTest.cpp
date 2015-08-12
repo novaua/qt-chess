@@ -191,12 +191,12 @@ namespace ChessTests
 
 			for (int i = 0; i < 64; ++i)
 			{
-				for (int j = 0; j < EPC_MAX; ++j)
+				for (int j = 1; j < EPC_MAX; ++j)
 				{
-					for (int k = 0; k < 3; ++k)
+					for (int k = 1; k < 3; ++k)
 					{
-						if (j == 0 && k > 0 || k == 0 && j > 0)
-							continue;
+						//if (j == 0 && k > 0 || k == 0 && j > 0)
+						//	continue;
 
 						Piece p = { (EPieceTypes)j, (EPieceColors)k };
 						PositionPiece pp = { (BoardPosition)i, p };
@@ -217,7 +217,7 @@ namespace ChessTests
 				}
 			}
 
-			Assert::AreEqual((2u * 6 + 1) * 64, hashPp.size());
+			Assert::AreEqual((2u * 6) * 64, hashPp.size());
 		}
 
 		TEST_METHOD(BoardHash_Test)
