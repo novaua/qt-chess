@@ -2,6 +2,7 @@
 #include "Move.h"
 #include "ChessException.h"
 #include "BoardPositionsCache.h"
+#include "Check.h"
 
 using namespace Chess;
 
@@ -281,6 +282,39 @@ std::vector<Move> MoveGeneration::GenerateMoves(const GameState &gameState, Boar
 	return moves;
 }
 
+void MoveGeneration::ExcludeCheckMoves(const GameState &gameState, std::vector<Move> &moves, EPieceColors side)
+{
+	auto simBoard = std::make_shared<Board>(*gameState.Board);
+	simBoard->BoardChanged = nullptr;
+
+	//this preparations are quite ugly. Consider to re-factor!
+	GameState simState = gameState;
+	simState.Board = simBoard;
+
+	GameChecks check(simState);
+	std::vector<Move> newMoves;
+	bool checkDetected = false;
+	for each (auto move in moves)
+	{
+		simBoard->DoMove(move);
+		if (!check.IsInCheck(side))
+		{
+			newMoves.push_back(move);
+		}
+		else
+		{
+			checkDetected = true;
+		}
+
+		simBoard->UndoLastMove();
+	}
+
+	if (checkDetected)
+	{
+		newMoves.swap(moves);
+	}
+}
+
 bool MoveGeneration::Validate(const GameState &gameState, Move &move, EPieceColors side)
 {
 	auto found = false;
@@ -414,7 +448,7 @@ bool MoveGeneration::IsUnderAttack(const BoardAttackMap & attackCache, const Boa
 std::vector<PositionPiece> MoveGeneration::GetPositionsOf(const Board &board, EPieceTypes type, EPieceColors side)
 {
 	std::vector<PositionPiece> resultList;
-	int maxCount = GetPiceCount(type);
+	unsigned int maxCount = GetPiceCount(type);
 	for (auto i = 0; i < BpMax; i++)
 	{
 		auto p = board.At(BoardPosition(i));
@@ -433,5 +467,5 @@ std::vector<PositionPiece> MoveGeneration::GetPositionsOf(const Board &board, EP
 
 size_t PositionPiece::GetHashCode() const
 {
-	return Position * 37 + Piece.GetHashCode();
+	return Position * 377 ^ Piece.GetHashCode();
 }

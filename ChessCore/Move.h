@@ -75,6 +75,7 @@ namespace Chess
 		static std::vector<Move> GenerateAdvancedMoves(const GameState &gameState, BoardPosition pieceOffset, EPieceColors side);
 
 		static std::vector<Move> GenerateMoves(const GameState &gameState, BoardPosition pieceOffset, EPieceColors side);
+		static void ExcludeCheckMoves(const GameState &gameState, std::vector<Move> &moves, EPieceColors side);
 
 		static std::vector<Move> GenerateAllBasicMoves(const Board &board, EPieceColors side);
 

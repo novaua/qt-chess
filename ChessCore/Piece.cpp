@@ -36,7 +36,8 @@ const std::string &Piece::ToString() const
 
 size_t Piece::GetHashCode() const
 {
-	return Color == DARK ? EPC_MAX + Type: Type;
+	std::hash<std::string> hks;
+	return hks(ToString());
 }
 
 namespace Chess

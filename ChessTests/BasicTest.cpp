@@ -252,6 +252,30 @@ namespace ChessTests
 			Assert::AreEqual(hk1, hk3);
 		}
 
+		TEST_METHOD(BoardHash_1_Test)
+		{
+			auto boardPtr = std::make_shared<Board>();
+			boardPtr->Initialize();
+			std::vector<size_t> hashCodes;
+			hashCodes.push_back(boardPtr->GetHashCode());
+
+			boardPtr->DoMove({ e2, e4 });
+			hashCodes.push_back(boardPtr->GetHashCode());
+
+			boardPtr->DoMove({ e7, e5 });
+			hashCodes.push_back(boardPtr->GetHashCode());
+
+			boardPtr->DoMove({ f1, b5 });
+			hashCodes.push_back(boardPtr->GetHashCode());
+			std::sort(hashCodes.begin(), hashCodes.end());
+			auto prev = 0u;
+			for each (auto hk in hashCodes)
+			{
+				Assert::AreNotEqual(hk, prev);
+				prev = hk;
+			}
+		}
+
 		TEST_METHOD(LruCacheMap_Test)
 		{
 			int Count = 23;

@@ -47,7 +47,10 @@ namespace Chess
 
 	std::vector<Move> Game::GetPossibleMoves(int index)
 	{
-		auto moves = MoveGeneration::GenerateMoves(_gameState, (BoardPosition)index, IsWhiteMove() ? LIGHT : DARK);
+		auto side = IsWhiteMove() ? LIGHT : DARK;
+
+		auto moves = MoveGeneration::GenerateMoves(_gameState, (BoardPosition)index, side);
+		MoveGeneration::ExcludeCheckMoves(_gameState, moves, side);
 		return moves;
 	}
 
