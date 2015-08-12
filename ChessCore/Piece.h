@@ -20,6 +20,8 @@ namespace Chess
 		DARK,
 	};
 
+	const int UniquePiecesCount = EPC_MAX - 1;
+
 	EPieceColors OppositeSideOf(EPieceColors side);
 	int GetPiceCount(EPieceTypes type);
 	std::vector<size_t> MakeRandomVector(int elementsCount);

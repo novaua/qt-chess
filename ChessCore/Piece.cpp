@@ -12,8 +12,6 @@ bool Piece::IsEmpty() const
 	return Color == CEMPTY;
 }
 
-const int UniquePiecesCount = EPC_MAX - 1;
-
 const std::string &Piece::ToString() const
 {
 	static std::vector<std::string> translationMap = {
@@ -37,12 +35,11 @@ const std::string &Piece::ToString() const
 }
 
 
-
 size_t Piece::GetHashCode() const
 {
-	static std::vector<size_t> hashVector = MakeRandomVector(UniquePiecesCount * 2);
 	auto offset = Color == DARK ? UniquePiecesCount : 0;
-	return Color == CEMPTY ? 0 : hashVector[Type + offset - 1];
+	auto hash = Color == CEMPTY ? 0 : Type + offset;
+	return hash;
 }
 
 namespace Chess
