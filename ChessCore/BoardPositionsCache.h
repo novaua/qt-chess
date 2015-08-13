@@ -11,16 +11,13 @@ namespace Chess {
 	class BoardPositionsCache
 	{
 	public:
-		BoardPositionsCache(const BoardAptr &board);
-
-		void SetBoard(const BoardAptr &board);
-		const BoardAptr &GetBoard() const;
+		BoardPositionsCache();
 
 		// Me -> My killers list
-		const BoardAttackMapAptr &GetAttackMap(EPieceColors side);
+		const BoardAttackMapAptr &GetAttackMap(const BoardAptr &board, EPieceColors side);
 
 		// Me -> My victims list
-		const BoardAttackMapAptr &GetViktimsMap(EPieceColors side);
+		const BoardAttackMapAptr &GetViktimsMap(const BoardAptr &board, EPieceColors side);
 
 	private:
 		BoardsAttackHash _lightAttackMap;
@@ -28,6 +25,5 @@ namespace Chess {
 
 		BoardsAttackHash _lightViktimMap;
 		BoardsAttackHash _darkViktimMap;
-		BoardAptr _board;
 	};
 }

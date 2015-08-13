@@ -54,7 +54,7 @@ namespace Chess {
 
 		void ForEachPiece(const std::function<void(BoardPosition)> &action, EPieceColors color) const;
 
-		// Does non-empty Piece move without chess basic rules validation
+		// Does non-empty Piece move without chess basic rules validation. However it does capturing check.
 		HistoryMove DoMove(const Move &move);
 		void UndoLastMove();
 

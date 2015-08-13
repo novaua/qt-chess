@@ -195,7 +195,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameSta
 	auto oppositeMoveDirection = oppositeSide == DARK ? -1 : 1;
 	auto imThePiece = board.At(pieceOffset);
 
-	auto attackCache = gameState.Cache->GetAttackMap(oppositeSide);
+	auto attackCache = gameState.Cache->GetAttackMap(gameState.Board, oppositeSide);
 
 	// check if the last opposite side move was made by Peasant
 	auto lastMove = *history.crbegin();
