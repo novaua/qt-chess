@@ -7,7 +7,7 @@ bool Piece::operator == (const Piece &o) const
 	return this == &o || o.Type == Type && o.Color == Color;
 }
 
-bool Piece::IsEmpty()
+bool Piece::IsEmpty() const
 {
 	return Color == CEMPTY;
 }
@@ -30,13 +30,16 @@ const std::string &Piece::ToString() const
 		"P",
 	};
 
-	auto offset = Color == DARK ? 6 : 0;
+	auto offset = Color == DARK ? UniquePiecesCount : 0;
 	return translationMap[Type + offset];
 }
 
+
 size_t Piece::GetHashCode() const
 {
-	return Color == DARK ? EPC_MAX + Type: Type;
+	auto offset = Color == DARK ? UniquePiecesCount : 0;
+	auto hash = Color == CEMPTY ? 0 : Type + offset;
+	return hash;
 }
 
 namespace Chess
@@ -51,5 +54,26 @@ namespace Chess
 	{
 		static int counts[] = { 0, 2, 2, 2, 1, 1, 8 };
 		return counts[type];
+	}
+
+	std::vector<size_t> MakeRandomVector(int elementsCount)
+	{
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<size_t> dist(1, std::numeric_limits<size_t>::max());
+		std::vector<size_t> result(elementsCount);
+		std::set<size_t> was;
+		for (int i = 0; i < elementsCount; ++i)
+		{
+			size_t value;
+			do {
+				value = dist(rd);
+			} while (was.find(value) != was.end());
+
+			result[i] = value;
+			was.insert(value);
+		}
+
+		return result;
 	}
 }

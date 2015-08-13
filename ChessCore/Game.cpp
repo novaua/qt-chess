@@ -17,15 +17,7 @@ namespace Chess
 	{
 		_board.reset(new Board());
 
-		if (!_boardPositionsCache)
-		{
-			_boardPositionsCache = std::make_shared<BoardPositionsCache>(_board);
-		}
-		else
-		{
-			_boardPositionsCache->SetBoard(_board);
-		}
-
+		_boardPositionsCache = std::make_shared<BoardPositionsCache>();
 		_history = std::make_shared<MovesHistory>();
 
 		_gameState = { _board, _history, _boardPositionsCache };
@@ -47,7 +39,10 @@ namespace Chess
 
 	std::vector<Move> Game::GetPossibleMoves(int index)
 	{
-		auto moves = MoveGeneration::GenerateMoves(_gameState, (BoardPosition)index, IsWhiteMove() ? LIGHT : DARK);
+		auto side = IsWhiteMove() ? LIGHT : DARK;
+
+		auto moves = MoveGeneration::GenerateMoves(_gameState, (BoardPosition)index, side);
+		MoveGeneration::ExcludeCheckMoves(_gameState, moves, side);
 		return moves;
 	}
 

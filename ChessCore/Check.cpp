@@ -19,12 +19,17 @@ PositionPiece GetKingPosition(const BoardAptr &board, EPieceColors side)
 	return MoveGeneration::GetPositionsOf(*board, KING, side)[0];
 }
 
+bool IsInCheck(BoardPositionsCacheAptr cache, BoardAptr board, EPieceColors side)
+{
+	auto imTheKing = GetKingPosition(board, side);
+
+	auto attackMap = cache->GetAttackMap(board, OppositeSideOf(side));
+	return MoveGeneration::IsUnderAttack(*attackMap, imTheKing.Position);
+}
+
 bool GameChecks::IsInCheck(EPieceColors side)
 {
-	auto imTheKing = GetKingPosition(_state.Board, side);
-
-	auto attackMap = _state.Cache->GetAttackMap(OppositeSideOf(side));
-	return MoveGeneration::IsUnderAttack(*attackMap, imTheKing.Position);
+	return ::IsInCheck(_state.Cache, _state.Board, side);
 }
 
 bool GameChecks::IsCheckMate(EPieceColors side)
@@ -34,10 +39,10 @@ bool GameChecks::IsCheckMate(EPieceColors side)
 	{
 		result = true;
 		auto imTheKing = GetKingPosition(_state.Board, side);
-		auto attackMap = _state.Cache->GetAttackMap(OppositeSideOf(side));
+		auto attackMap = _state.Cache->GetAttackMap(_state.Board, OppositeSideOf(side));
 
 		auto whoAttacksTheKing = attackMap->at(imTheKing.Position);
-		auto thisSideKillMap = _state.Cache->GetViktimsMap(side);
+		auto thisSideKillMap = _state.Cache->GetViktimsMap(_state.Board, side);
 
 		// Can capture the checking piece or move away
 		auto kingAttackList = (*thisSideKillMap)[imTheKing.Position];
@@ -56,11 +61,11 @@ bool GameChecks::IsCheckMate(EPieceColors side)
 						continue;
 					}
 
-					newBoard->DoMove({ (BoardPosition)piecePtr->first, myPieceMovesTo.Position });
-					if (!IsInCheck(side))
-					{
-						_state.Cache->SetBoard(_state.Board);
+					auto capturing = !newBoard->At(myPieceMovesTo.Position).IsEmpty();
 
+					newBoard->DoMove({ (BoardPosition)piecePtr->first, myPieceMovesTo.Position, capturing });
+					if (!::IsInCheck(_state.Cache, newBoard, side))
+					{
 						//Piece can capture the threatener or escape
 						return false;
 					}

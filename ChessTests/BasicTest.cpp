@@ -191,12 +191,12 @@ namespace ChessTests
 
 			for (int i = 0; i < 64; ++i)
 			{
-				for (int j = 0; j < EPC_MAX; ++j)
+				for (int j = 1; j < EPC_MAX; ++j)
 				{
-					for (int k = 0; k < 3; ++k)
+					for (int k = 1; k < 3; ++k)
 					{
-						if (j == 0 && k > 0 || k == 0 && j > 0)
-							continue;
+						//if (j == 0 && k > 0 || k == 0 && j > 0)
+						//	continue;
 
 						Piece p = { (EPieceTypes)j, (EPieceColors)k };
 						PositionPiece pp = { (BoardPosition)i, p };
@@ -217,7 +217,7 @@ namespace ChessTests
 				}
 			}
 
-			Assert::AreEqual((2u * 6 + 1) * 64, hashPp.size());
+			Assert::AreEqual((2u * 6) * 64, hashPp.size());
 		}
 
 		TEST_METHOD(BoardHash_Test)
@@ -250,6 +250,30 @@ namespace ChessTests
 			auto hk3 = boardPtr->GetHashCode();
 
 			Assert::AreEqual(hk1, hk3);
+		}
+
+		TEST_METHOD(BoardHash_1_Test)
+		{
+			auto boardPtr = std::make_shared<Board>();
+			boardPtr->Initialize();
+			std::vector<size_t> hashCodes;
+			hashCodes.push_back(boardPtr->GetHashCode());
+
+			boardPtr->DoMove({ e2, e4 });
+			hashCodes.push_back(boardPtr->GetHashCode());
+
+			boardPtr->DoMove({ e7, e5 });
+			hashCodes.push_back(boardPtr->GetHashCode());
+
+			boardPtr->DoMove({ f1, b5 });
+			hashCodes.push_back(boardPtr->GetHashCode());
+			std::sort(hashCodes.begin(), hashCodes.end());
+			auto prev = 0u;
+			for each (auto hk in hashCodes)
+			{
+				Assert::AreNotEqual(hk, prev);
+				prev = hk;
+			}
 		}
 
 		TEST_METHOD(LruCacheMap_Test)

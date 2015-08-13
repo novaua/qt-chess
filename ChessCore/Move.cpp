@@ -2,6 +2,7 @@
 #include "Move.h"
 #include "ChessException.h"
 #include "BoardPositionsCache.h"
+#include "Check.h"
 
 using namespace Chess;
 
@@ -194,7 +195,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameSta
 	auto oppositeMoveDirection = oppositeSide == DARK ? -1 : 1;
 	auto imThePiece = board.At(pieceOffset);
 
-	auto attackCache = gameState.Cache->GetAttackMap(oppositeSide);
+	auto attackCache = gameState.Cache->GetAttackMap(gameState.Board, oppositeSide);
 
 	// check if the last opposite side move was made by Peasant
 	auto lastMove = *history.crbegin();
@@ -279,6 +280,39 @@ std::vector<Move> MoveGeneration::GenerateMoves(const GameState &gameState, Boar
 
 	std::copy(adMoves.begin(), adMoves.end(), std::back_inserter(moves));
 	return moves;
+}
+
+void MoveGeneration::ExcludeCheckMoves(const GameState &gameState, std::vector<Move> &moves, EPieceColors side)
+{
+	auto simBoard = std::make_shared<Board>(*gameState.Board);
+	simBoard->BoardChanged = nullptr;
+
+	//this preparations are quite ugly. Consider to re-factor!
+	GameState simState = gameState;
+	simState.Board = simBoard;
+
+	GameChecks check(simState);
+	std::vector<Move> newMoves;
+	bool checkDetected = false;
+	for each (auto move in moves)
+	{
+		simBoard->DoMove(move);
+		if (!check.IsInCheck(side))
+		{
+			newMoves.push_back(move);
+		}
+		else
+		{
+			checkDetected = true;
+		}
+
+		simBoard->UndoLastMove();
+	}
+
+	if (checkDetected)
+	{
+		newMoves.swap(moves);
+	}
 }
 
 bool MoveGeneration::Validate(const GameState &gameState, Move &move, EPieceColors side)
@@ -414,7 +448,7 @@ bool MoveGeneration::IsUnderAttack(const BoardAttackMap & attackCache, const Boa
 std::vector<PositionPiece> MoveGeneration::GetPositionsOf(const Board &board, EPieceTypes type, EPieceColors side)
 {
 	std::vector<PositionPiece> resultList;
-	int maxCount = GetPiceCount(type);
+	unsigned int maxCount = GetPiceCount(type);
 	for (auto i = 0; i < BpMax; i++)
 	{
 		auto p = board.At(BoardPosition(i));
@@ -433,5 +467,6 @@ std::vector<PositionPiece> MoveGeneration::GetPositionsOf(const Board &board, EP
 
 size_t PositionPiece::GetHashCode() const
 {
-	return Position * 37 + Piece.GetHashCode();
+	static auto randomVector = MakeRandomVector(BpMax * UniquePiecesCount * 2);
+	return  Piece.IsEmpty() ? 0 : randomVector[Piece.GetHashCode() - 1 + Position * UniquePiecesCount * 2];
 }
