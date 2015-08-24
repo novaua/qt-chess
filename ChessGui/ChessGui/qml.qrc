@@ -12,5 +12,6 @@
         <file>NavigationLayer.qml</file>
         <file>Notificator.qml</file>
         <file>EmptyBoardModel.qml</file>
+        <file>PawnPromotionOptions.qml</file>
     </qresource>
 </RCC>

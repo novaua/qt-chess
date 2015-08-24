@@ -36,6 +36,7 @@ namespace Chess
 		//ToDo: this probably adds more complications than profit. Consider to re-factor.
 		std::vector<Move> _lastAskedAllowedMovesList;
 		bool _whiteFirst;
+		bool _checkMate;
 
 		MovesHistory _loadedHistory;
 		std::mutex _lock;
@@ -50,7 +51,9 @@ namespace Chess
 		std::vector<Move> GetPossibleMoves(int index);
 		std::vector<Move> &GetAllowedMoves(int index);
 
-		Piece GetPieceAt(int index);
+		Piece GetPieceAt(int index) const;
+		// this is for Pawn promotion
+		void PutPieceTo(int index, const Piece &piece);
 
 		void Restart(bool whiteFirst = true);
 		void EndGame();

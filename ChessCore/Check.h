@@ -12,6 +12,9 @@ namespace Chess
 
 		bool IsCheckMate(EPieceColors side);
 
+		// Returns positive position on Pawn Promotion or -1 elsewhere.
+		int IsInPawnPromotion(EPieceColors side);
+
 	private:
 		GameState _state;
 	};
