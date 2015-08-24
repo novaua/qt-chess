@@ -71,7 +71,7 @@ Rectangle {
         onCheckMateNotify:showNotification("Checkmate")
 
         onCastlingNotify: showNotification("Castling")
-        onPawnPromotionNotify: showPawnPromotionOptions(index)
+        onPawnPromotionNotify: showPawnPromotionOptions(index, side)
 
         onNoSavedGame:showNotification("The saved Game was not found!")
         onSavedOk:showNotification("Game saved")
@@ -91,6 +91,7 @@ Rectangle {
         height:   0.4*width
 
         property int index;
+        property int side;
 
         Behavior on opacity  {
             NumberAnimation {
@@ -103,9 +104,10 @@ Rectangle {
         }
     }
 
-    function showPawnPromotionOptions(index)
+    function showPawnPromotionOptions(index, side)
     {
         loader.index=index
+        loader.side=side
         loader.source="PawnPromotionOptions.qml";
         loader.opacity=0.8
     }
