@@ -61,6 +61,12 @@ namespace Chess {
 		return{ _piece[position], _color[position] };
 	}
 
+	Piece Board::At(int position) const
+	{
+		assert(a1 <= position && position < BpMax&& "Invalid position!");
+		return At((BoardPosition)position);
+	}
+
 	void Board::Place(BoardPosition position, const Piece & piece)
 	{
 		if (_piece[position] != piece.Type || _color[position] != piece.Color)
@@ -111,7 +117,7 @@ namespace Chess {
 
 	void Board::ForEachPiece(const std::function<void(BoardPosition)> &action, EPieceColors color) const
 	{
-        for (auto i = 0u; i < _color.size(); ++i)
+		for (auto i = 0u; i < _color.size(); ++i)
 		{
 			if (_color[i] == color)
 			{
@@ -124,7 +130,7 @@ namespace Chess {
 	size_t Board::GetHashCode() const
 	{
 		size_t hash = 0;
-        for (auto i = 0u; i < _color.size(); ++i)
+		for (auto i = 0u; i < _color.size(); ++i)
 		{
 			PositionPiece pp = { (BoardPosition)i, At((BoardPosition)i) };
 			hash ^= pp.GetHashCode();

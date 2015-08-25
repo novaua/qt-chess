@@ -75,16 +75,16 @@ Grid{
                 }
             }
 
-            Text {
+            Image{
                 id:chessPiecesImg
                 anchors.centerIn: chessPiecesItm
                 smooth: true
-                antialiasing: true
-                height: 0.9*parent.height
-                width: height
-                font.pixelSize: 0.9*parent.height
-
-                text : getPieceCodeSymbol(modelData)
+                antialiasing:true
+                height:0.9*parent.height
+                width:height
+                fillMode: Image.PreserveAspectFit
+                source:modelData!=" "?(modelData===modelData.toUpperCase()?
+                                           "pics/black/"+modelData+".png":"pics/white/"+modelData+".png"):""
             }
 
             PropertyAnimation {
@@ -117,42 +117,6 @@ Grid{
         onBoardChanged: {
             updateChessFiguresModel(position, newValue)
         }
-    }
-
-    function getPieceCodeSymbol(pieceChar)
-    {
-        var pieceBaseCode = 9812;
-        var blackOffset = (pieceChar===pieceChar.toUpperCase())
-                ? 6
-                : 0;
-
-        var result = "";
-
-        switch (pieceChar.toUpperCase())
-        {
-        case "K":
-            result =  String.fromCharCode(pieceBaseCode + blackOffset);
-            break;
-        case "Q":
-            result =  String.fromCharCode(pieceBaseCode + blackOffset + 1);
-            break;
-        case "R":
-            result =  String.fromCharCode(pieceBaseCode + blackOffset + 2);
-            break;
-        case "B":
-            result =  String.fromCharCode(pieceBaseCode + blackOffset + 3);
-            break;
-        case "N":
-            result =  String.fromCharCode(pieceBaseCode + blackOffset + 4);
-            break;
-        case "P":
-            result =  String.fromCharCode(pieceBaseCode + blackOffset + 5);
-            break;
-        default:
-            result = "";
-        }
-
-        return result;
     }
 
     function changeGlow(index)

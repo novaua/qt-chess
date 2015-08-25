@@ -78,3 +78,29 @@ bool GameChecks::IsCheckMate(EPieceColors side)
 
 	return result;
 }
+
+int GameChecks::IsInPawnPromotion(EPieceColors side)
+{
+	auto board = _state.Board;
+	std::pair<int, int> checkRange;
+	if (side == LIGHT)
+	{
+		checkRange = std::make_pair(a8, BpMax);
+	}
+	else
+	{
+		checkRange = std::make_pair(a1, a2);
+	}
+
+	// Check this side opposite line
+	for (int i = checkRange.first; i < checkRange.second; ++i)
+	{
+		auto piece = board->At(i);
+		if (piece.Type == PAWN)
+		{
+			return i;
+		}
+	}
+
+	return -1;
+}

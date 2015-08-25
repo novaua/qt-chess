@@ -50,6 +50,8 @@ namespace Chess {
 		}
 
 		Piece At(BoardPosition position) const;
+		Piece At(int position) const;
+
 		void Place(BoardPosition position, const Piece & piece);
 
 		void ForEachPiece(const std::function<void(BoardPosition)> &action, EPieceColors color) const;

@@ -57,6 +57,7 @@ namespace Chess
 			std::lock_guard<std::mutex> lg(_lock);
 
 			_whiteFirst = whiteFirst;
+			_checkMate = false;
 			*_history = {};
 			_captured = {};
 
@@ -216,11 +217,18 @@ namespace Chess
 		_history->push_back(historyMove);
 
 		GameChecks check(_gameState);
-		if (check.IsInCheck(OppositeSideOf(side)))
+
+		int ppIndex = check.IsInPawnPromotion(side);
+		if (ppIndex >= 0)
+		{
+			NotifyActionsListeners(PawnPromotionEvent(EtPawnPromotion, ppIndex, side));
+		}
+		else if (check.IsInCheck(OppositeSideOf(side)))
 		{
 			if (check.IsCheckMate(OppositeSideOf(side)))
 			{
 				NotifyActionsListeners(EtCheckMate);
+				_checkMate = true;
 			}
 			else
 			{
@@ -286,9 +294,14 @@ namespace Chess
 			|| fromPiece.Color == CEMPTY);
 	}
 
-	Piece Game::GetPieceAt(int index)
+	Piece Game::GetPieceAt(int index) const
 	{
-		return _board->At((BoardPosition)index);
+		return _board->At(index);
+	}
+
+	void Game::PutPieceTo(int index, const Piece &piece)
+	{
+		_board->Place((BoardPosition)index, piece);
 	}
 
 	std::vector<Move> &Game::GetAllowedMoves(int index)

@@ -94,7 +94,7 @@
     <ClCompile Include="BoardPositionsCache.cpp" />
     <ClCompile Include="Check.cpp" />
     <ClCompile Include="ChessException.cpp" />
-    <ClCompile Include="Event.cpp" />
+    <ClCompile Include="Events.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="HistoryPlayer.cpp" />
     <ClCompile Include="Move.cpp" />

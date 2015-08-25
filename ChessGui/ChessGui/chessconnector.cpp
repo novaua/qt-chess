@@ -44,7 +44,8 @@ ChessConnector::ChessConnector()
             emit castlingNotify();
         } else if (event.GetType() == EtPawnPromotion)
         {
-            emit pawnPromotionNotify();
+            const PawnPromotionEvent& ppEvent = (PawnPromotionEvent&)event;
+            emit pawnPromotionNotify(ppEvent.GetIndex(), ppEvent.GetColor());
         }
     });
 
@@ -88,6 +89,28 @@ void ChessConnector::figureSelected(int index)
 	}
 
 	emit PossibleMovesChanged();
+}
+
+void ChessConnector::pawnPromote(int index, const QString &piece)
+{
+    auto lowerPiece = piece.toLower();
+    bool isBlack = lowerPiece != piece;
+
+    std::vector<QString> piecesStr = {"q","r","b","n"};
+    int piecesEnum[] = {QUEEN, ROOK, BISHOP, KNIGHT };
+    int resultPieceType = QUEEN;
+    for(auto i=0u; i< piecesStr.size(); ++i)
+    {
+        if (piecesStr[i] == lowerPiece)
+        {
+            resultPieceType =  piecesEnum[i];
+            break;
+        }
+    }
+
+    _game->PutPieceTo(index, {(EPieceTypes)resultPieceType, isBlack?DARK:LIGHT});
+   qDebug() << "Pawn promoted at "<< index << " to "
+            << (isBlack ? "DARK":"LIGHT") <<" ["<<resultPieceType<<"]"<<piece;
 }
 
 QStringList &ChessConnector::PossibleMoves()

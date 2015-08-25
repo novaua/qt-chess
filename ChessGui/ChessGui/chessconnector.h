@@ -38,7 +38,7 @@ signals:
 	void checkMateNotify();
 
     void castlingNotify();
-    void pawnPromotionNotify();
+    void pawnPromotionNotify(int index, int side);
 
 	void noSavedGame();
 	void savedOk();
@@ -48,6 +48,7 @@ signals:
 	void endGame();
 
 	void figureSelected(int index);
+    void pawnPromote(int index, const QString &piece);
 
 	void saveGame();
 	bool loadGame();

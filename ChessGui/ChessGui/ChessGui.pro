@@ -5,7 +5,6 @@ QT += qml quick widgets
 SOURCES += main.cpp \
     ../../ChessCore/Board.cpp \
     ../../ChessCore/ChessException.cpp \
-    ../../ChessCore/Event.cpp \
     ../../ChessCore/Game.cpp \
     ../../ChessCore/Move.cpp \
     ../../ChessCore/Piece.cpp \
@@ -13,7 +12,8 @@ SOURCES += main.cpp \
     chessconnector.cpp \
     ../../ChessCore/HistoryPlayer.cpp \
     ../../ChessCore/BoardPositionsCache.cpp \
-    ../../ChessCore/Check.cpp
+    ../../ChessCore/Check.cpp \
+    ../../ChessCore/Events.cpp
 
 RESOURCES += qml.qrc
 
