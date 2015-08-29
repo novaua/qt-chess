@@ -11,9 +11,14 @@ bool HistoryMove::IsCapturingMove() const
 	return (To.Piece.Type != EMPTY);
 }
 
+bool HistoryMove::IsPawnPromotionMove() const
+{
+	return PromotedTo.Type != CEMPTY;
+}
+
 Move HistoryMove::ToMove() const
 {
-	return{ From.Position, To.Position };
+	return{ From.Position, To.Position, false, PromotedTo };
 }
 
 namespace {
@@ -315,7 +320,7 @@ void MoveGeneration::ExcludeCheckMoves(const GameState &gameState, std::vector<M
 	}
 }
 
-bool MoveGeneration::Validate(const GameState &gameState, Move &move, EPieceColors side)
+void MoveGeneration::Validate(const GameState &gameState, Move &move, EPieceColors side)
 {
 	auto found = false;
 	for (auto mv : MoveGeneration::GenerateMoves(gameState, move.From, side))
@@ -323,7 +328,7 @@ bool MoveGeneration::Validate(const GameState &gameState, Move &move, EPieceColo
 		if (mv.From == move.From && mv.To == move.To)
 		{
 			found = true;
-			move = mv;
+			move.Capturing = mv.Capturing;
 			break;
 		}
 	}
@@ -332,8 +337,12 @@ bool MoveGeneration::Validate(const GameState &gameState, Move &move, EPieceColo
 	{
 		throw ChessException("Invalid move!");
 	}
+}
 
-	return found;
+void MoveGeneration::Validate(const GameState &gameState, const Move &move, EPieceColors side)
+{
+	auto move1 = move;
+	Validate(gameState, move1, side);
 }
 
 bool MoveGeneration::AddComplementalMove(const Board &board, const Move &move, Move &complemental)

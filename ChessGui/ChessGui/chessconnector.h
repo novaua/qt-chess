@@ -37,8 +37,8 @@ signals:
 	void checkNotify();
 	void checkMateNotify();
 
-    void castlingNotify();
-    void pawnPromotionNotify(int index, int side);
+	void castlingNotify();
+	void pawnPromotionNotify(int index, int side);
 
 	void noSavedGame();
 	void savedOk();
@@ -48,7 +48,7 @@ signals:
 	void endGame();
 
 	void figureSelected(int index);
-    void pawnPromote(int index, const QString &piece);
+	void pawnPromote(int index, const QString &piece);
 
 	void saveGame();
 	bool loadGame();
@@ -65,6 +65,7 @@ private:
 
 	Chess::GameAptr _game;
 	Chess::HistoryPlayerAptr _player;
+	Chess::PawnPromotedCallback _onPawnPromotedCallback;
 };
 
 #endif // CHESSCONNECTOR_H

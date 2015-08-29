@@ -164,36 +164,14 @@ namespace Chess
 		}
 	}
 
-	void Game::DoMove(BoardPosition from, BoardPosition to)
+	void Game::DoMove(const Move &move1)
 	{
-		AssureMove(from, to);
-
-		auto side = _board->At(from).Color;
-		Move move = { from, to };
-		std::vector<Move> lastAsked;
-		{
-			std::lock_guard<std::mutex> lg(_lastAskedLock);
-			lastAsked.swap(_lastAskedAllowedMovesList);
-		}
-
-		bool moveSet = false;
-		for each (auto element in lastAsked)
-		{
-			if (element.To == to && element.From == from)
-			{
-				move = element;
-				moveSet = true;
-				break;
-			}
-		}
-
-		if (!moveSet)
-		{
-			MoveGeneration::Validate(_gameState, move, side);
-		}
+		auto move = move1;
+		auto side = _board->At(move.From).Color;
+		MoveGeneration::Validate(_gameState, move, side);
 
 		Move complementalMove;
-		std::vector<BoardPosition> changedPositions = { from, to };
+		std::vector<BoardPosition> changedPositions = { move.From, move.To };
 		if (MoveGeneration::AddComplementalMove(*_board, move, complementalMove))
 		{
 			// This is an inline generated move so not added to history
@@ -215,13 +193,22 @@ namespace Chess
 		}
 
 		_history->push_back(historyMove);
-
 		GameChecks check(_gameState);
 
-		int ppIndex = check.IsInPawnPromotion(side);
+		int ppIndex = move.PromotedTo.IsEmpty() ? check.IsInPawnPromotion(side) : -1;
 		if (ppIndex >= 0)
 		{
-			NotifyActionsListeners(PawnPromotionEvent(EtPawnPromotion, ppIndex, side));
+			auto pawnPromotionEvent = PawnPromotionEvent(EtPawnPromotion, ppIndex, side);
+
+			pawnPromotionEvent.OnPromoted = [this](const PositionPiece & positionPiece)
+			{
+				_history->rbegin()->PromotedTo = positionPiece.Piece;
+
+				_board->Place(positionPiece.Position, positionPiece.Piece);
+				NotifyBoardChangesListeners({ positionPiece.Position });
+			};
+
+			NotifyActionsListeners(pawnPromotionEvent);
 		}
 		else if (check.IsInCheck(OppositeSideOf(side)))
 		{
@@ -235,6 +222,11 @@ namespace Chess
 				NotifyActionsListeners(EtCheck);
 			}
 		}
+	}
+
+	void Game::DoMove(BoardPosition from, BoardPosition to)
+	{
+		DoMove({ from, to });
 	}
 
 	void Game::UndoMove()
@@ -299,21 +291,23 @@ namespace Chess
 		return _board->At(index);
 	}
 
-	void Game::PutPieceTo(int index, const Piece &piece)
+	std::vector<Move> Game::GetAllowedMoves(int index)
 	{
-		_board->Place((BoardPosition)index, piece);
-	}
-
-	std::vector<Move> &Game::GetAllowedMoves(int index)
-	{
-		auto lastAskedAllowedMovesList =
-			(0 < index && index < 64 && CanMoveFrom(BoardPosition(index)))
+		return (0 <= index && index < 64 && CanMoveFrom(BoardPosition(index)))
 			? GetPossibleMoves(index)
 			: std::vector<Move>();
+	}
+
+	void Game::RegisterLogger(const LoggerCallback &loggerCallback)
+	{
+		_logger = loggerCallback;
+	}
+
+	void Game::Log(const std::string &message)
+	{
+		if (_logger)
 		{
-			std::lock_guard<std::mutex> lg(_lastAskedLock);
-			_lastAskedAllowedMovesList.swap(lastAskedAllowedMovesList);
-			return _lastAskedAllowedMovesList;
+			_logger(message);
 		}
 	}
 }

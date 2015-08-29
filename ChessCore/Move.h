@@ -20,6 +20,8 @@ namespace Chess
 		BoardPosition To;
 
 		bool Capturing;
+
+		Piece PromotedTo;
 	};
 
 	struct PositionPiece
@@ -39,10 +41,14 @@ namespace Chess
 
 		PositionPiece To;
 
+		Piece PromotedTo;
+
 		bool IsCapturingMove() const;
+		
+		bool IsPawnPromotionMove() const;
+		
 		Move ToMove() const;
 	};
-
 
 	typedef std::vector<HistoryMove> MovesHistory;
 	typedef std::shared_ptr<MovesHistory> MovesHistoryAptr;
@@ -83,7 +89,8 @@ namespace Chess
 
 		static bool IsValidCapturingMove(const Board &board, Move move, EPieceColors side);
 
-		static bool Validate(const GameState &gameState, Move &move, EPieceColors side);
+		static void Validate(const GameState &gameState, Move &move, EPieceColors side);
+		static void Validate(const GameState &gameState, const Move &move, EPieceColors side);
 
 		static bool IsEverMoved(const PositionPiece &positionPiece, const MovesHistory &history);
 		static bool IsEverMoved(const Piece &piece, const MovesHistory &history);
