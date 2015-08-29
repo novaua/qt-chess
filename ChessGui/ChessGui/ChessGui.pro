@@ -13,7 +13,8 @@ SOURCES += main.cpp \
     ../../ChessCore/HistoryPlayer.cpp \
     ../../ChessCore/BoardPositionsCache.cpp \
     ../../ChessCore/Check.cpp \
-    ../../ChessCore/Events.cpp
+    ../../ChessCore/Events.cpp \
+    networkplayer.cpp
 
 RESOURCES += qml.qrc
 
@@ -43,4 +44,5 @@ HEADERS += \
     ../../ChessCore/HistoryPlayer.h \
     ../../ChessCore/BoardPositionsCache.h \
     ../../ChessCore/LruCacheMap.hpp \
-    ../../ChessCore/Check.h
+    ../../ChessCore/Check.h \
+    networkplayer.h

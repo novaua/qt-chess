@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "Game.h"
+#include "networkplayer.h"
 
 class ChessConnector : public QObject
 {
@@ -66,6 +67,9 @@ private:
 	Chess::GameAptr _game;
 	Chess::HistoryPlayerAptr _player;
 	Chess::PawnPromotedCallback _onPawnPromotedCallback;
+
+    NetworkPlayerAptr _netPlayer;
+
 };
 
 #endif // CHESSCONNECTOR_H
