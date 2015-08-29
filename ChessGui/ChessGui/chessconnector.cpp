@@ -22,7 +22,7 @@ void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
 }
 
 ChessConnector::ChessConnector()
-    :_game(GameAptr(new Game()))
+	:_game(GameAptr(new Game()))
 {
 	_game->RegisterBoardChanged(
 		[&](int index, const Piece &piece)
@@ -30,24 +30,34 @@ ChessConnector::ChessConnector()
 		emit boardChanged(index, QString::fromStdString(piece.ToString()));
 	});
 
-    _game->RegisterGameActionsListeners(
-                [&](const EventBase & event)
-    {
-        if(event.GetType() == EtCheck)
-        {
-            emit checkNotify();
-        } else if (event.GetType() == EtCheckMate)
-        {
-            emit checkMateNotify();
-        } else if (event.GetType() == EtCastling)
-        {
-            emit castlingNotify();
-        } else if (event.GetType() == EtPawnPromotion)
-        {
-            const PawnPromotionEvent& ppEvent = (PawnPromotionEvent&)event;
-            emit pawnPromotionNotify(ppEvent.GetIndex(), ppEvent.GetColor());
-        }
-    });
+	_game->RegisterGameActionsListeners(
+		[&](const EventBase & event)
+	{
+		if (event.GetType() == EtCheck)
+		{
+			emit checkNotify();
+		}
+		else if (event.GetType() == EtCheckMate)
+		{
+			emit checkMateNotify();
+		}
+		else if (event.GetType() == EtCastling)
+		{
+			emit castlingNotify();
+		}
+		else if (event.GetType() == EtPawnPromotion)
+		{
+			const PawnPromotionEvent& ppEvent = (PawnPromotionEvent&)event;
+			_onPawnPromotedCallback = ppEvent.OnPromoted;
+			emit pawnPromotionNotify(ppEvent.GetIndex(), ppEvent.GetColor());
+		}
+	});
+
+	_game->RegisterLogger(
+		[&](const std::string &message)
+	{
+		qDebug() << "[Game] " << message.c_str();
+	});
 
 	ClearBoard(_possibleMoves);
 }
@@ -93,24 +103,11 @@ void ChessConnector::figureSelected(int index)
 
 void ChessConnector::pawnPromote(int index, const QString &piece)
 {
-    auto lowerPiece = piece.toLower();
-    bool isBlack = lowerPiece != piece;
+	auto promotedPiece = Piece::Parse(piece.toStdString());
+	_onPawnPromotedCallback({ (BoardPosition)index, promotedPiece });
 
-    std::vector<QString> piecesStr = {"q","r","b","n"};
-    int piecesEnum[] = {QUEEN, ROOK, BISHOP, KNIGHT };
-    int resultPieceType = QUEEN;
-    for(auto i=0u; i< piecesStr.size(); ++i)
-    {
-        if (piecesStr[i] == lowerPiece)
-        {
-            resultPieceType =  piecesEnum[i];
-            break;
-        }
-    }
-
-    _game->PutPieceTo(index, {(EPieceTypes)resultPieceType, isBlack?DARK:LIGHT});
-   qDebug() << "Pawn promoted at "<< index << " to "
-            << (isBlack ? "DARK":"LIGHT") <<" ["<<resultPieceType<<"]"<<piece;
+	qDebug() << "Pawn promoted at " << index << " to "
+		<< piece;
 }
 
 QStringList &ChessConnector::PossibleMoves()
@@ -145,8 +142,8 @@ void ChessConnector::makeMove(int from, int to)
 
 void ChessConnector::startNewGame()
 {
-    _game->Restart();
-    EmitMoveCountUpdates();
+	_game->Restart();
+	EmitMoveCountUpdates();
 	qDebug() << "Cpp Game restarted!";
 }
 
@@ -230,5 +227,5 @@ void ChessConnector::endGame()
 
 ChessConnector::~ChessConnector()
 {
-    qDebug() << "Game Exited.";
+	qDebug() << "Game Exited.";
 }

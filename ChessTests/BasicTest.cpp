@@ -276,6 +276,19 @@ namespace ChessTests
 			}
 		}
 
+		TEST_METHOD(BoardUndo_Test)
+		{
+			auto boardPtr = std::make_shared<Board>();
+			boardPtr->Initialize();
+			auto initBoardCode = boardPtr->GetHashCode();
+
+			boardPtr->DoMove({ e2, e4 });
+
+			Assert::AreNotEqual(initBoardCode, boardPtr->GetHashCode());
+			boardPtr->UndoLastMove();
+			Assert::AreEqual(initBoardCode, boardPtr->GetHashCode());
+		}
+
 		TEST_METHOD(LruCacheMap_Test)
 		{
 			int Count = 23;

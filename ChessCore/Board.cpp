@@ -83,7 +83,8 @@ namespace Chess {
 
 		HistoryMove result = {};
 
-		auto fromPiece = At(move.From);
+		auto fromPiece = move.PromotedTo.IsEmpty() ? At(move.From) : move.PromotedTo;
+
 		auto toPiece = At(move.To);
 
 		assert(!fromPiece.IsEmpty());
@@ -95,6 +96,7 @@ namespace Chess {
 
 		result.From = { move.From, At(move.From) };
 		result.To = { move.To, At(move.To) };
+		result.PromotedTo = move.PromotedTo;
 
 		Place(move.From, {});
 		Place(move.To, fromPiece);

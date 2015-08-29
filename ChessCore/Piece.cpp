@@ -34,6 +34,26 @@ const std::string &Piece::ToString() const
 	return translationMap[Type + offset];
 }
 
+Piece Piece::Parse(const std::string &strPiece)
+{
+	// this is not absolutely efficient but quite pretty =)
+	if (strPiece != " " && strPiece != "")
+	{
+		for (int t = 0; t < EPC_MAX; ++t)
+		{
+			for (int c = 1; c <= 2; ++c)
+			{
+				Piece p = { (EPieceTypes)t, (EPieceColors)c };
+				if (p.ToString() == strPiece)
+				{
+					return p;
+				}
+			}
+		}
+	}
+
+	return{ EMPTY, CEMPTY };
+}
 
 size_t Piece::GetHashCode() const
 {

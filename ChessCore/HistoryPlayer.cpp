@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "HistoryPlayer.h"
 #include "Game.h"
+#include <sstream>
 
 using namespace Chess;
 
@@ -30,8 +31,7 @@ void HistoryPlayer::MoveNext()
 		return;
 
 	auto move = _history[_pointer++].ToMove();
-	_game->DoMove(move.From, move.To);
-
+	_game->DoMove(move);
 }
 
 void HistoryPlayer::MoveBack()

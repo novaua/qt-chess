@@ -33,7 +33,10 @@ namespace Chess
 
 		bool IsEmpty() const;
 		bool operator == (const Piece &o)const;
+
 		const std::string &ToString() const;
+		static Piece Parse(const std::string &strPiece);
+
 		size_t GetHashCode() const;
 	};
 }
