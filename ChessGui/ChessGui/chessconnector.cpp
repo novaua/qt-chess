@@ -8,8 +8,8 @@
 
 using namespace Chess;
 
-const char * EmptyFlag = " ";
-const char * DefaltSaveGameFile = "chess.save";
+const char *EmptyFlag = " ";
+const char *DefaltSaveGameFile = "chess.save";
 
 void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
 {
@@ -225,7 +225,6 @@ int ChessConnector::IsOnPlayerMode()
 void ChessConnector::endGame()
 {
 	_game->EndGame();
-	_player.reset();
 	EmitMoveCountUpdates();
 	emit IsOnPlayerModeChanged();
 }

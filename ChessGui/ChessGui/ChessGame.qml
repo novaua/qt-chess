@@ -7,6 +7,7 @@ ApplicationWindow {
     property string darkChessBoxColor:"darkslategray"
     property string markersOfChessBoxColor:"#34495e"
     property string chessFigureGlow: "blue"
+    property bool gameIsInProgress : false
 
     title: qsTr("Chess ++")
     color: activePalette.window
@@ -62,6 +63,7 @@ ApplicationWindow {
                             }
 
                             chessConnector.startNewGame()
+                            gameIsInProgress = true
                             console.log("New Game ")
                         }
                     }
@@ -74,6 +76,7 @@ ApplicationWindow {
                             {
                                 chessConnector.startNewGame()
                                 screen.state = "screen_3"
+                                gameIsInProgress = true;
                             }
 
                             console.log("Load pressed!")
@@ -85,8 +88,10 @@ ApplicationWindow {
                         text: "Stop"
                         onClicked:
                         {
-                            chessConnector.endGame();
+                            gameIsInProgress = false
                             screen.state = "screen_1"
+
+                            chessConnector.endGame();
                             console.log("Game ended!")
                         }
                     }
