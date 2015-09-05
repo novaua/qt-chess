@@ -3,6 +3,7 @@
 #include "ChessException.h"
 #include "BoardPositionsCache.h"
 #include "Check.h"
+//#include <strstream>
 
 using namespace Chess;
 
@@ -478,4 +479,66 @@ size_t PositionPiece::GetHashCode() const
 {
 	static auto randomVector = MakeRandomVector(BpMax * UniquePiecesCount * 2);
 	return  Piece.IsEmpty() ? 0 : randomVector[Piece.GetHashCode() - 1 + Position * UniquePiecesCount * 2];
+}
+
+const std::string MoveBegin("Move(");
+const std::string MoveDelim(",");
+
+std::string Move::ToString()const
+{
+	auto delim = MoveDelim;
+
+	//from, to, capturing, piece
+	std::strstream str;
+	str << MoveBegin << From << delim << To << delim << (Capturing ? "true" : "false") << delim << PromotedTo.ToString() << ")";
+	return str.str();
+}
+
+Move Move::Parse(const std::string &strMove)
+{
+	Move result = {};
+	auto parsePtr = 0U;
+	if (strMove.substr(0, MoveBegin.size()) == MoveBegin)
+	{
+		int member = 0;
+		parsePtr += MoveBegin.size();
+		auto delimPtr = parsePtr;
+
+		while (parsePtr < strMove.size())
+		{
+			while (MoveDelim[0] != strMove[delimPtr]
+				&& strMove[delimPtr] != ')')
+			{
+				++delimPtr;
+			}
+
+			auto tokenSize = delimPtr - parsePtr;
+			std::string token = strMove.substr(parsePtr, tokenSize);
+			parsePtr += tokenSize + 1;
+			++delimPtr;
+
+			if (member == 0)
+			{
+				result.From = (BoardPosition)atoi(token.c_str());
+				member++;
+			}
+			else if (member == 1)
+			{
+				result.To = (BoardPosition)atoi(token.c_str());
+				member++;
+			}
+			else if (member == 2)
+			{
+				result.Capturing = token == "true";
+				member++;
+			}
+			else if (member == 3)
+			{
+				result.PromotedTo = Piece::Parse(token);
+				member++;
+			}
+		}
+	}
+
+	return result;
 }

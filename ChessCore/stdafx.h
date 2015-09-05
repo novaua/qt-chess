@@ -28,3 +28,4 @@
 #include <iterator>
 #include <algorithm>
 #include <random>
+#include <strstream>

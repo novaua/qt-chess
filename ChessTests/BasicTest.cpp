@@ -313,5 +313,24 @@ namespace ChessTests
 				}
 			}
 		}
+
+		TEST_METHOD(MoveToString_Test)
+		{
+			Move moves[] =
+			{ { e2, e4, false, { QUEEN, LIGHT } },
+			{ e2, e4, true, {} } };
+
+			for each (auto move in moves)
+			{
+				auto strMove = move.ToString();
+
+				auto moveR = Move::Parse(strMove);
+
+				Assert::AreEqual<int>(move.From, moveR.From);
+				Assert::AreEqual<int>(move.To, moveR.To);
+				Assert::AreEqual<int>(move.Capturing, moveR.Capturing);
+				Assert::AreEqual<int>(move.PromotedTo.Type, moveR.PromotedTo.Type);
+			}
+		}
 	};
 }
