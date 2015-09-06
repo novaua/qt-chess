@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <ostream>
+#include <functional>
 #include "Piece.h"
 
 namespace Chess {

@@ -1,13 +1,14 @@
 #include "stdafx.h"
-
 #include <QtNetwork>
-#include "networkplayer.h"
 #include <QDebug>
+
+#include "networkplayer.h"
 
 #define GROUP_ADRESS "239.255.43.32"
 #define GROUP_IP    33211
 
 #define TTL 4
+using namespace Chess;
 
 NetworkPlayer::NetworkPlayer(const QString &instanceName)
     :_instanceName(instanceName)

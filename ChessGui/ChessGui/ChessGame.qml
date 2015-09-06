@@ -107,6 +107,16 @@ ApplicationWindow {
                     }
 
                     Button {
+                        id: buttonPrev
+
+                        text: "Prev"
+                        onClicked: {
+                            chessConnector.movePrev()
+                            console.log("Moved back")
+                        }
+                    }
+
+                    Button {
                         id: buttonNext
 
                         text: "Next"
@@ -117,12 +127,12 @@ ApplicationWindow {
                     }
 
                     Button {
-                        id: buttonPrev
+                        id: buttonNetworkGame
+                        text: "Network Player"
 
-                        text: "Prev"
                         onClicked: {
-                            chessConnector.movePrev()
-                            console.log("Moved back")
+                            showNetworkPlayers();
+                            console.log("Show net players.")
                         }
                     }
                 }
@@ -176,4 +186,32 @@ ApplicationWindow {
             }
         ]
     }
+
+    Loader{
+        id:loader
+        anchors.centerIn: parent
+        opacity: 0
+        width: parent.height<parent.width?0.5*parent.height:0.5*parent.width
+        height:   0.4*width
+
+       // property int index;
+       //property int side;
+
+        Behavior on opacity  {
+            NumberAnimation {
+                easing {
+                    type: Easing.InCirc
+                    amplitude: 6.0
+                    period: 30
+                }
+            }
+        }
+    }
+
+    function showNetworkPlayers()
+    {
+        loader.source="NetworkPlayers.qml";
+        loader.opacity=0.8
+    }
+
 }

@@ -15,6 +15,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(QStringList PossibleMoves READ PossibleMoves WRITE setPossibleMoves NOTIFY PossibleMovesChanged)
 		Q_PROPERTY(int IsWhiteMove READ IsWhiteMove NOTIFY IsWhiteMoveChanged)
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
+        Q_PROPERTY(QStringList PlayersName READ PlayersName NOTIFY PlayersNameChanged)
 public:
 	ChessConnector();
 	~ChessConnector();
@@ -26,10 +27,13 @@ public:
 	QStringList &PossibleMoves();
 	void setPossibleMoves(const QStringList &moves);
 
+    QStringList PlayersName();
+
 signals:
 	void boardChanged(int position, const QString &newValue);
 
 	void PossibleMovesChanged();
+    void PlayersNameChanged();
 
 	void MoveCountChanged();
 	void IsWhiteMoveChanged();
@@ -56,6 +60,7 @@ signals:
 
 	void moveNext();
 	void movePrev();
+
 
 private:
 	void makeMove(int from, int to);

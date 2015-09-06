@@ -233,3 +233,13 @@ ChessConnector::~ChessConnector()
 {
 	qDebug() << "Game Exited.";
 }
+
+ QStringList ChessConnector::PlayersName()
+ {
+    //todo
+     QStringList players;
+     players.append("Joe");
+     players.append("Vitaly");
+
+     return players;
+ }
