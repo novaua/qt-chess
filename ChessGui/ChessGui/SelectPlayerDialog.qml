@@ -5,6 +5,8 @@ Rectangle{
     border.color: lightChessBoxColor
     color: darkChessBoxColor
 
+    property variant playerList
+
     Behavior on opacity  {
         NumberAnimation {
             easing {
@@ -21,7 +23,7 @@ Rectangle{
         anchors.top:parent.top
         width: parent.width
         height: parent.height/4
-        text:"Pawn Promotion"
+        text:"Select Network Player"
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         fontSizeMode: Text.Fit
@@ -30,6 +32,24 @@ Rectangle{
         font.pixelSize: 50
     }
 
+    ListModel {
+        id: testModel
+        ListElement { modelData: "Joe"}
+        ListElement { modelData: "Vitaly"}
+    }
+
+    ListView {
+        anchors.fill: parent
+        model: playerList
+        delegate: Component {
+            Column {
+                Text { text: modelData }
+            }
+        }
+
+        spacing: 10
+    }
+/*
     Row{
         id:pawnPromotionRow
         anchors.horizontalCenter: parent.horizontalCenter
@@ -65,7 +85,7 @@ Rectangle{
             }
         }
     }
-
+*/
     Timer {
         id:pawnPromotionTimer
         interval: 1000;

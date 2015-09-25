@@ -8,6 +8,7 @@ ApplicationWindow {
     property string markersOfChessBoxColor:"#34495e"
     property string chessFigureGlow: "blue"
     property bool gameIsInProgress : false
+    property variant win;
 
     title: qsTr("Chess ++")
     color: activePalette.window
@@ -15,6 +16,9 @@ ApplicationWindow {
     width: 768
     height: 1054
     visible: true
+
+    Loader { id: dialogLoader }
+
 
     Rectangle {
         id: screen
@@ -131,7 +135,8 @@ ApplicationWindow {
                         text: "Network Player"
 
                         onClicked: {
-                            showNetworkPlayers();
+
+                            dialogLoader.source = "SelectPlayerDialog.qml"
                             console.log("Show net players.")
                         }
                     }
@@ -186,32 +191,4 @@ ApplicationWindow {
             }
         ]
     }
-
-    Loader{
-        id:loader
-        anchors.centerIn: parent
-        opacity: 0
-        width: parent.height<parent.width?0.5*parent.height:0.5*parent.width
-        height:   0.4*width
-
-       // property int index;
-       //property int side;
-
-        Behavior on opacity  {
-            NumberAnimation {
-                easing {
-                    type: Easing.InCirc
-                    amplitude: 6.0
-                    period: 30
-                }
-            }
-        }
-    }
-
-    function showNetworkPlayers()
-    {
-        loader.source="NetworkPlayers.qml";
-        loader.opacity=0.8
-    }
-
 }
