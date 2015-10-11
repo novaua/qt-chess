@@ -160,7 +160,7 @@ bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, EPieceC
 		myBoard.Place(move.To, { PAWN, oppositeSide });
 	}
 
-	for each(auto locMove in GenerateBasicMoves(myBoard, move.From, side))
+    for(auto locMove : GenerateBasicMoves(myBoard, move.From, side))
 	{
 		if (locMove.To == move.To)
 		{
@@ -233,7 +233,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 					if (allMovesToSet.empty())
 					{
 						// ToDo: This does not include pawn moves
-						for each(auto mv in GenerateAllBasicMoves(board, oppositeSide, history))
+                        for(auto mv : GenerateAllBasicMoves(board, oppositeSide, history))
 						{
 							allMovesToSet.insert(mv.To);
 						}
@@ -241,9 +241,9 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const Board &board, Boar
 
 					auto kingPathIsUnderAttack = false;
 					int notUnderAtack[] = { pieceOffset + stepsDirection[i], pieceOffset + 2 * stepsDirection[i] };
-					for each (BoardPosition p in notUnderAtack)
+                    for(auto p : notUnderAtack)
 					{
-						if (allMovesToSet.find(p) != allMovesToSet.end())
+                        if (allMovesToSet.find(BoardPosition(p)) != allMovesToSet.end())
 						{
 							kingPathIsUnderAttack = true;
 							break;
@@ -335,7 +335,7 @@ bool MoveGeneration::AddComplementalMove(const Board &board, const Move &move, M
 
 bool MoveGeneration::IsEverMoved(const PositionPiece &positionPiece, const MovesHistory &history)
 {
-	for each (auto move in history)
+    for(auto move : history)
 	{
 		if (move.From.Piece == positionPiece.Piece && move.From.Position == positionPiece.Position)
 		{
@@ -348,7 +348,7 @@ bool MoveGeneration::IsEverMoved(const PositionPiece &positionPiece, const Moves
 
 bool MoveGeneration::IsEverMoved(const Piece &piece, const MovesHistory &history)
 {
-	for each (auto move in history)
+    for(auto move : history)
 	{
 		if (move.From.Piece == piece)
 		{

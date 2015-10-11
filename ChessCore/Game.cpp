@@ -137,7 +137,7 @@ namespace Chess
 		{
 			if (listener)
 			{
-				for each (auto index in indexes)
+                for(auto index : indexes)
 				{
 					listener(index, _board->At(index));
 				}
@@ -158,7 +158,7 @@ namespace Chess
 		}
 
 		bool moveSet = false;
-		for each (auto element in lastAsked)
+        for(auto element : lastAsked)
 		{
 			if (element.To == to && element.From == from)
 			{
