@@ -16,7 +16,11 @@ namespace Chess
 	void Game::InitBoard()
 	{
 		_board.reset(new Board());
-		_history = {};
+
+		_boardPositionsCache = std::make_shared<BoardPositionsCache>();
+		_history = std::make_shared<MovesHistory>();
+
+		_gameState = { _board, _history, _boardPositionsCache };
 	}
 
 	Game::~Game()
@@ -35,13 +39,16 @@ namespace Chess
 
 	std::vector<Move> Game::GetPossibleMoves(int index)
 	{
-		auto moves = MoveGeneration::GenerateMoves(*_board, (BoardPosition)index, IsWhiteMove() ? LIGHT : DARK, _history);
+		auto side = IsWhiteMove() ? LIGHT : DARK;
+
+		auto moves = MoveGeneration::GenerateMoves(_gameState, (BoardPosition)index, side);
+		MoveGeneration::ExcludeCheckMoves(_gameState, moves, side);
 		return moves;
 	}
 
 	const MovesHistory &Game::GetGameRecord() const
 	{
-		return _history;
+		return *_history;
 	}
 
 	void Game::Restart(bool whiteFirst)
@@ -50,7 +57,8 @@ namespace Chess
 			std::lock_guard<std::mutex> lg(_lock);
 
 			_whiteFirst = whiteFirst;
-			_history = {};
+			_checkMate = false;
+			*_history = {};
 			_captured = {};
 
 			_board->Initialize();
@@ -101,7 +109,7 @@ namespace Chess
 
 		BinarySerializer::Serialize(moveCount, outFileStream);
 
-		for (auto move : _history)
+		for (auto move : *_history)
 		{
 			BinarySerializer::Serialize(move, outFileStream);
 		}
@@ -145,36 +153,25 @@ namespace Chess
 		}
 	}
 
-	void Game::DoMove(BoardPosition from, BoardPosition to)
+	void Game::NotifyActionsListeners(const EventBase &event)
 	{
-		AssureMove(from, to);
-
-		auto side = _board->At(from).Color;
-		Move move = { from, to };
-		std::vector<Move> lastAsked;
+		for (auto listener : _gameActionsListeners)
 		{
-			std::lock_guard<std::mutex> lg(_lastAskedLock);
-			lastAsked.swap(_lastAskedAllowedMovesList);
-		}
-
-		bool moveSet = false;
-        for(auto element : lastAsked)
-		{
-			if (element.To == to && element.From == from)
+			if (listener)
 			{
-				move = element;
-				moveSet = true;
-				break;
+				listener(event);
 			}
 		}
+	}
 
-		if (!moveSet)
-		{
-			MoveGeneration::Validate(*_board, move, side, _history);
-		}
+	void Game::DoMove(const Move &move1)
+	{
+		auto move = move1;
+		auto side = _board->At(move.From).Color;
+		MoveGeneration::Validate(_gameState, move, side);
 
 		Move complementalMove;
-		std::vector<BoardPosition> changedPositions = { from, to };
+		std::vector<BoardPosition> changedPositions = { move.From, move.To };
 		if (MoveGeneration::AddComplementalMove(*_board, move, complementalMove))
 		{
 			// This is an inline generated move so not added to history
@@ -195,7 +192,41 @@ namespace Chess
 			_captured.push(historyMove.To.Piece);
 		}
 
-		_history.push_back(historyMove);
+		_history->push_back(historyMove);
+		GameChecks check(_gameState);
+
+		int ppIndex = move.PromotedTo.IsEmpty() ? check.IsInPawnPromotion(side) : -1;
+		if (ppIndex >= 0)
+		{
+			auto pawnPromotionEvent = PawnPromotionEvent(EtPawnPromotion, ppIndex, side);
+
+			pawnPromotionEvent.OnPromoted = [this](const PositionPiece & positionPiece)
+			{
+				_history->rbegin()->PromotedTo = positionPiece.Piece;
+
+				_board->Place(positionPiece.Position, positionPiece.Piece);
+				NotifyBoardChangesListeners({ positionPiece.Position });
+			};
+
+			NotifyActionsListeners(pawnPromotionEvent);
+		}
+		else if (check.IsInCheck(OppositeSideOf(side)))
+		{
+			if (check.IsCheckMate(OppositeSideOf(side)))
+			{
+				NotifyActionsListeners(EtCheckMate);
+				_checkMate = true;
+			}
+			else
+			{
+				NotifyActionsListeners(EtCheck);
+			}
+		}
+	}
+
+	void Game::DoMove(BoardPosition from, BoardPosition to)
+	{
+		DoMove({ from, to });
 	}
 
 	void Game::UndoMove()
@@ -206,7 +237,7 @@ namespace Chess
 		}
 
 		// undoing move
-		HistoryMove topMove = *_history.rbegin();
+		HistoryMove topMove = *_history->rbegin();
 		Move undoMove{ topMove.To.Position, topMove.From.Position };
 		_board->DoMove(undoMove);
 
@@ -220,7 +251,7 @@ namespace Chess
 			assert(topMove.To.Piece == lastPiece && "Has to be the same Piece!");
 		}
 
-		_history.pop_back();
+		_history->pop_back();
 		NotifyBoardChangesListeners({ undoMove.From, undoMove.To });
 	}
 
@@ -233,7 +264,7 @@ namespace Chess
 	int Game::GetMoveCount()
 	{
 		std::lock_guard<std::mutex> lg(_lock);
-		return _history.size();
+		return _history->size();
 	}
 
 	void Game::AssureMove(BoardPosition from, BoardPosition to)
@@ -255,21 +286,28 @@ namespace Chess
 			|| fromPiece.Color == CEMPTY);
 	}
 
-	Piece Game::GetPieceAt(int index)
+	Piece Game::GetPieceAt(int index) const
 	{
-		return _board->At((BoardPosition)index);
+		return _board->At(index);
 	}
 
-	std::vector<Move> &Game::GetAllowedMoves(int index)
+	std::vector<Move> Game::GetAllowedMoves(int index)
 	{
-		auto lastAskedAllowedMovesList =
-			(0 < index && index < 64 && CanMoveFrom(BoardPosition(index)))
+		return (0 <= index && index < 64 && CanMoveFrom(BoardPosition(index)))
 			? GetPossibleMoves(index)
 			: std::vector<Move>();
+	}
+
+	void Game::RegisterLogger(const LoggerCallback &loggerCallback)
+	{
+		_logger = loggerCallback;
+	}
+
+	void Game::Log(const std::string &message)
+	{
+		if (_logger)
 		{
-			std::lock_guard<std::mutex> lg(_lastAskedLock);
-			_lastAskedAllowedMovesList.swap(lastAskedAllowedMovesList);
-			return _lastAskedAllowedMovesList;
+			_logger(message);
 		}
 	}
 }

@@ -26,12 +26,15 @@
 #include <stack>
 #include <list>
 #include <set>
+#include <map>
+#include <queue>
 
 #include <mutex>
 #include <thread>
 #include <numeric>
 #include <iterator>
 #include <algorithm>
+#include <random>
 
 #ifndef WIN32
 namespace std {
@@ -43,4 +46,3 @@ namespace std {
     }
 }
 #endif
-

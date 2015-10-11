@@ -68,7 +68,10 @@ Rectangle {
         target:chessConnector
 
         onCheckNotify:showNotification("Check")
-        onCheckMateNotify:showNotification("CheckMate")
+        onCheckMateNotify:showNotification("Checkmate")
+
+        onCastlingNotify: showNotification("Castling")
+        onPawnPromotionNotify: showPawnPromotionOptions(index, side)
 
         onNoSavedGame:showNotification("The saved Game was not found!")
         onSavedOk:showNotification("Game saved")
@@ -78,6 +81,35 @@ Rectangle {
         id:navigationLayerGrid
         objectName:"navigationLayerGrid"
         anchors.centerIn: parent
+    }
+
+    Loader{
+        id:loader
+        anchors.centerIn: parent
+        opacity: 0
+        width: parent.height<parent.width?0.5*parent.height:0.5*parent.width
+        height:   0.4*width
+
+        property int index;
+        property int side;
+
+        Behavior on opacity  {
+            NumberAnimation {
+                easing {
+                    type: Easing.InCirc
+                    amplitude: 6.0
+                    period: 30
+                }
+            }
+        }
+    }
+
+    function showPawnPromotionOptions(index, side)
+    {
+        loader.index=index
+        loader.side=side
+        loader.source="PawnPromotionOptions.qml";
+        loader.opacity=0.8
     }
 
     Notificator
@@ -92,4 +124,3 @@ Rectangle {
         notificator.resources[0].start()
     }
 }
-

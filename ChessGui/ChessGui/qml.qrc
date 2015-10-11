@@ -12,5 +12,18 @@
         <file>NavigationLayer.qml</file>
         <file>Notificator.qml</file>
         <file>EmptyBoardModel.qml</file>
+        <file>PawnPromotionOptions.qml</file>
+        <file>pics/black/B.png</file>
+        <file>pics/black/K.png</file>
+        <file>pics/black/N.png</file>
+        <file>pics/black/P.png</file>
+        <file>pics/black/Q.png</file>
+        <file>pics/black/R.png</file>
+        <file>pics/white/b.png</file>
+        <file>pics/white/k.png</file>
+        <file>pics/white/n.png</file>
+        <file>pics/white/p.png</file>
+        <file>pics/white/q.png</file>
+        <file>pics/white/r.png</file>
     </qresource>
 </RCC>

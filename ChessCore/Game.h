@@ -8,11 +8,15 @@
 #include "Events.h"
 #include "Move.h"
 #include "HistoryPlayer.h"
+#include "BoardPositionsCache.h"
+#include "Check.h"
 
 namespace Chess
 {
 	typedef std::function<void(const EventBase &)> GameActionListener;
 	typedef std::function<void(int index, const Piece &piece)> BoardChangesListener;
+	typedef std::function<void(const std::string &message)> LoggerCallback;
+
 	typedef std::list<BoardChangesListener> BoardChangesListeners;
 	typedef std::list<GameActionListener> GameActionListeners;
 
@@ -24,25 +28,34 @@ namespace Chess
 		BoardChangesListeners _boardChangesListeners;
 
 		std::shared_ptr<Board> _board;
-		MovesHistory _history;
+		BoardPositionsCacheAptr _boardPositionsCache;
+		MovesHistoryAptr _history;
+
+		GameState _gameState;
+
 		std::stack<Piece> _captured;
-		std::vector<Move> _lastAskedAllowedMovesList;
+
 		bool _whiteFirst;
+		bool _checkMate;
 
 		MovesHistory _loadedHistory;
 		std::mutex _lock;
-		std::mutex _lastAskedLock;
+
+		LoggerCallback _logger;
 
 	public:
 		Game();
 
 		void RegisterGameActionsListeners(const GameActionListener & listener);
 		void RegisterBoardChanged(const BoardChangesListener &listener);
+		
+		void RegisterLogger(const LoggerCallback &loggerCallback);
+		void Log(const std::string &message);
 
 		std::vector<Move> GetPossibleMoves(int index);
-		std::vector<Move> &GetAllowedMoves(int index);
+		std::vector<Move> GetAllowedMoves(int index);
 
-		Piece GetPieceAt(int index);
+		Piece GetPieceAt(int index) const;
 
 		void Restart(bool whiteFirst = true);
 		void EndGame();
@@ -54,6 +67,7 @@ namespace Chess
 		void Load(const std::string &path);
 
 		void DoMove(BoardPosition from, BoardPosition to);
+		void DoMove(const Move &move);
 		void UndoMove();
 
 		bool IsWhiteMove();
@@ -66,6 +80,7 @@ namespace Chess
 		void InitBoard();
 
 		void NotifyBoardChangesListeners(std::vector<BoardPosition> indexes);
+		void NotifyActionsListeners(const EventBase &event);
 	};
 
 	typedef std::shared_ptr<Game> GameAptr;

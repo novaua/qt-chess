@@ -48,6 +48,15 @@
     <ClInclude Include="HistoryPlayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BoardPositionsCache.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LruCacheMap.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Check.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -62,9 +71,6 @@
     <ClCompile Include="ChessException.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Event.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Move.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -72,6 +78,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="HistoryPlayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BoardPositionsCache.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Check.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Events.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

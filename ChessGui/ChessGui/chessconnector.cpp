@@ -22,12 +22,41 @@ void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
 }
 
 ChessConnector::ChessConnector()
-    :_game(GameAptr(new Game()))
+	:_game(GameAptr(new Game()))
 {
 	_game->RegisterBoardChanged(
 		[&](int index, const Piece &piece)
 	{
 		emit boardChanged(index, QString::fromStdString(piece.ToString()));
+	});
+
+	_game->RegisterGameActionsListeners(
+		[&](const EventBase & event)
+	{
+		if (event.GetType() == EtCheck)
+		{
+			emit checkNotify();
+		}
+		else if (event.GetType() == EtCheckMate)
+		{
+			emit checkMateNotify();
+		}
+		else if (event.GetType() == EtCastling)
+		{
+			emit castlingNotify();
+		}
+		else if (event.GetType() == EtPawnPromotion)
+		{
+			const PawnPromotionEvent& ppEvent = (PawnPromotionEvent&)event;
+			_onPawnPromotedCallback = ppEvent.OnPromoted;
+			emit pawnPromotionNotify(ppEvent.GetIndex(), ppEvent.GetColor());
+		}
+	});
+
+	_game->RegisterLogger(
+		[&](const std::string &message)
+	{
+		qDebug() << "[Game] " << message.c_str();
 	});
 
 	ClearBoard(_possibleMoves);
@@ -72,6 +101,15 @@ void ChessConnector::figureSelected(int index)
 	emit PossibleMovesChanged();
 }
 
+void ChessConnector::pawnPromote(int index, const QString &piece)
+{
+	auto promotedPiece = Piece::Parse(piece.toStdString());
+	_onPawnPromotedCallback({ (BoardPosition)index, promotedPiece });
+
+	qDebug() << "Pawn promoted at " << index << " to "
+		<< piece;
+}
+
 QStringList &ChessConnector::PossibleMoves()
 {
 	return _possibleMoves;
@@ -104,8 +142,8 @@ void ChessConnector::makeMove(int from, int to)
 
 void ChessConnector::startNewGame()
 {
-    _game->Restart();
-    EmitMoveCountUpdates();
+	_game->Restart();
+	EmitMoveCountUpdates();
 	qDebug() << "Cpp Game restarted!";
 }
 
@@ -189,5 +227,5 @@ void ChessConnector::endGame()
 
 ChessConnector::~ChessConnector()
 {
-    qDebug() << "Game Exited.";
+	qDebug() << "Game Exited.";
 }

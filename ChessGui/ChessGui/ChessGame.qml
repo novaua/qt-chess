@@ -29,6 +29,7 @@ ApplicationWindow {
         }
 
         SystemPalette { id: activePalette }
+
         Column{
             anchors.fill: parent
             ChessBoard {

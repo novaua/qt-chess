@@ -14,16 +14,22 @@ namespace Chess {
 		a6, b6, c6, d6, e6, f6, g6, h6,
 		a7, b7, c7, d7, e7, f7, g7, h7,
 		a8, b8, c8, d8, e8, f8, g8, h8,
+		BpMax
 	};
 
 	struct Move;
 	struct HistoryMove;
 	struct PositionPiece;
 
+	class Board;
+	typedef std::shared_ptr<Board> BoardAptr;
+
 	class Board
 	{
 		std::vector<EPieceColors> _color;  /* EMPTY, LIGHT, DARK */
 		std::vector<EPieceTypes> _piece;  /* PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, or EMPTY */
+		BoardAptr _previousBoard;
+
 	public:
 
 		std::function<void(BoardPosition pos, Piece newValue)> BoardChanged;
@@ -44,16 +50,20 @@ namespace Chess {
 		}
 
 		Piece At(BoardPosition position) const;
+		Piece At(int position) const;
+
 		void Place(BoardPosition position, const Piece & piece);
 
 		void ForEachPiece(const std::function<void(BoardPosition)> &action, EPieceColors color) const;
 
-		// Does non-empty Piece move without chess basic rules validation
+		// Does non-empty Piece move without chess basic rules validation. However it does capturing check.
 		HistoryMove DoMove(const Move &move);
+		void UndoLastMove();
+
+		//position hash code
+		size_t GetHashCode() const;
 
 	private:
 		void OnBoardChanged(BoardPosition pos, Piece newValue);
 	};
-
-	typedef std::shared_ptr<Board> BoardAptr;
 }

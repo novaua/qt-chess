@@ -10,6 +10,7 @@ namespace Chess
 		QUEEN,
 		KING,
 		PAWN,
+		EPC_MAX,
 	};
 
 	enum EPieceColors
@@ -19,13 +20,23 @@ namespace Chess
 		DARK,
 	};
 
+	const int UniquePiecesCount = EPC_MAX - 1;
+
+	EPieceColors OppositeSideOf(EPieceColors side);
+	int GetPiceCount(EPieceTypes type);
+	std::vector<size_t> MakeRandomVector(int elementsCount);
+
 	struct Piece
 	{
 		EPieceTypes Type;
 		EPieceColors Color;
 
-		bool IsEmpty();
+		bool IsEmpty() const;
 		bool operator == (const Piece &o)const;
+
 		const std::string &ToString() const;
+		static Piece Parse(const std::string &strPiece);
+
+		size_t GetHashCode() const;
 	};
 }
