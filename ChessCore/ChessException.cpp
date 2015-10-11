@@ -11,7 +11,7 @@ ChessException::~ChessException()
 {
 }
 
-const char* ChessException::what() const
+const char* ChessException::what() const throw ()
 {
 	return _message.c_str();
 }

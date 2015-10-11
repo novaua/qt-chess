@@ -145,7 +145,7 @@ namespace Chess
 		{
 			if (listener)
 			{
-				for each (auto index in indexes)
+                for(auto index : indexes)
 				{
 					listener(index, _board->At(index));
 				}
