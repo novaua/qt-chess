@@ -22,6 +22,9 @@ namespace Chess
 		bool Capturing;
 
 		Piece PromotedTo;
+
+		std::string ToString()const;
+		static Move Parse(const std::string &strMove);
 	};
 
 	struct PositionPiece
@@ -44,9 +47,9 @@ namespace Chess
 		Piece PromotedTo;
 
 		bool IsCapturingMove() const;
-		
+
 		bool IsPawnPromotionMove() const;
-		
+
 		Move ToMove() const;
 	};
 

@@ -3,6 +3,7 @@
 #include "ChessException.h"
 #include "BoardPositionsCache.h"
 #include "Check.h"
+//#include <strstream>
 
 using namespace Chess;
 
@@ -172,7 +173,7 @@ std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board &board, BoardPo
 bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, EPieceColors side)
 {
 	auto result = false;
-    for(auto locMove : GenerateBasicMoves(board, move.From, side, true))
+	for (auto locMove : GenerateBasicMoves(board, move.From, side, true))
 	{
 		if (locMove.To == move.To)
 		{
@@ -249,7 +250,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameSta
 					if (allMovesToSet.empty())
 					{
 						// ToDo: This does not include pawn moves
-                        for(auto mv : GenerateAllBasicMoves(board, oppositeSide))
+						for (auto mv : GenerateAllBasicMoves(board, oppositeSide))
 						{
 							allMovesToSet.insert(mv.To);
 						}
@@ -257,9 +258,9 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameSta
 
 					auto kingPathIsUnderAttack = false;
 					int notUnderAtack[] = { pieceOffset + stepsDirection[i], pieceOffset + 2 * stepsDirection[i] };
-                    for(auto p : notUnderAtack)
+					for (auto p : notUnderAtack)
 					{
-                        if (allMovesToSet.find(BoardPosition(p)) != allMovesToSet.end())
+						if (allMovesToSet.find(BoardPosition(p)) != allMovesToSet.end())
 						{
 							kingPathIsUnderAttack = true;
 							break;
@@ -300,7 +301,7 @@ void MoveGeneration::ExcludeCheckMoves(const GameState &gameState, std::vector<M
 	std::vector<Move> newMoves;
 	bool checkDetected = false;
 
-    for(auto move : moves)
+	for (auto move : moves)
 	{
 		simBoard->DoMove(move);
 		if (!check.IsInCheck(side))
@@ -388,7 +389,7 @@ bool MoveGeneration::AddComplementalMove(const Board &board, const Move &move, M
 
 bool MoveGeneration::IsEverMoved(const PositionPiece &positionPiece, const MovesHistory &history)
 {
-    for(auto move : history)
+	for (auto move : history)
 	{
 		if (move.From.Piece == positionPiece.Piece && move.From.Position == positionPiece.Position)
 		{
@@ -401,7 +402,7 @@ bool MoveGeneration::IsEverMoved(const PositionPiece &positionPiece, const Moves
 
 bool MoveGeneration::IsEverMoved(const Piece &piece, const MovesHistory &history)
 {
-    for(auto move : history)
+	for (auto move : history)
 	{
 		if (move.From.Piece == piece)
 		{
@@ -431,7 +432,7 @@ void MoveGeneration::GetBoardAttackMap(const Board &board, BoardAttackMap &outCa
 	board.ForEachPiece([&](BoardPosition moveFrom)
 	{
 		auto moves = GenerateBasicMoves(board, moveFrom, side, true);
-        for(auto move : moves)
+		for (auto move : moves)
 		{
 			outCache[move.To].push_back({ move.From, board.At(move.From) });
 		}
@@ -443,7 +444,7 @@ void MoveGeneration::GetBoardViktimsMap(const Board &board, BoardAttackMap &outC
 	board.ForEachPiece([&](BoardPosition moveFrom)
 	{
 		auto moves = GenerateBasicMoves(board, moveFrom, side, true);
-        for(auto move : moves)
+		for (auto move : moves)
 		{
 			outCache[move.From].push_back({ move.To, board.At(move.To) });
 		}
@@ -479,4 +480,66 @@ size_t PositionPiece::GetHashCode() const
 {
 	static auto randomVector = MakeRandomVector(BpMax * UniquePiecesCount * 2);
 	return  Piece.IsEmpty() ? 0 : randomVector[Piece.GetHashCode() - 1 + Position * UniquePiecesCount * 2];
+}
+
+const std::string MoveBegin("Move(");
+const std::string MoveDelim(",");
+
+std::string Move::ToString()const
+{
+	auto delim = MoveDelim;
+
+	//from, to, capturing, piece
+	std::strstream str;
+	str << MoveBegin << From << delim << To << delim << (Capturing ? "true" : "false") << delim << PromotedTo.ToString() << ")";
+	return str.str();
+}
+
+Move Move::Parse(const std::string &strMove)
+{
+	Move result = {};
+	auto parsePtr = 0U;
+	if (strMove.substr(0, MoveBegin.size()) == MoveBegin)
+	{
+		int member = 0;
+		parsePtr += MoveBegin.size();
+		auto delimPtr = parsePtr;
+
+		while (parsePtr < strMove.size())
+		{
+			while (MoveDelim[0] != strMove[delimPtr]
+				&& strMove[delimPtr] != ')')
+			{
+				++delimPtr;
+			}
+
+			auto tokenSize = delimPtr - parsePtr;
+			std::string token = strMove.substr(parsePtr, tokenSize);
+			parsePtr += tokenSize + 1;
+			++delimPtr;
+
+			if (member == 0)
+			{
+				result.From = (BoardPosition)atoi(token.c_str());
+				member++;
+			}
+			else if (member == 1)
+			{
+				result.To = (BoardPosition)atoi(token.c_str());
+				member++;
+			}
+			else if (member == 2)
+			{
+				result.Capturing = token == "true";
+				member++;
+			}
+			else if (member == 3)
+			{
+				result.PromotedTo = Piece::Parse(token);
+				member++;
+			}
+		}
+	}
+
+	return result;
 }

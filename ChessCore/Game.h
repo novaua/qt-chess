@@ -26,10 +26,11 @@ namespace Chess
 
 		GameActionListeners _gameActionsListeners;
 		BoardChangesListeners _boardChangesListeners;
+		BoardPositionsCacheAptr _boardPositionsCacheAptr;
 
-		std::shared_ptr<Board> _board;
-		BoardPositionsCacheAptr _boardPositionsCache;
-		MovesHistoryAptr _history;
+		std::shared_ptr<Board> _boardAptr;
+		MovesHistoryAptr _historyAptr;
+		MovesHistory _loadedHistory;
 
 		GameState _gameState;
 
@@ -38,11 +39,9 @@ namespace Chess
 		bool _whiteFirst;
 		bool _checkMate;
 
-		MovesHistory _loadedHistory;
 		std::mutex _lock;
-
 		LoggerCallback _logger;
-
+		
 	public:
 		Game();
 
@@ -77,7 +76,7 @@ namespace Chess
 	private:
 		void AssureMove(BoardPosition from, BoardPosition to);
 		bool CanMoveFrom(BoardPosition from);
-		void InitBoard();
+		void NotifyFullBoardReinit();
 
 		void NotifyBoardChangesListeners(std::vector<BoardPosition> indexes);
 		void NotifyActionsListeners(const EventBase &event);

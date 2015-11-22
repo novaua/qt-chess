@@ -78,6 +78,7 @@ Grid{
             Image{
                 id:chessPiecesImg
                 anchors.centerIn: chessPiecesItm
+                visible: gameIsInProgress
                 smooth: true
                 antialiasing:true
                 height:0.9*parent.height

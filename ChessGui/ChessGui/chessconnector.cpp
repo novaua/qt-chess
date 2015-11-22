@@ -1,13 +1,15 @@
 #include "stdafx.h"
 #include "chessconnector.h"
-#include <QDebug>
 #include "ChessException.h"
+
 #include <QDir>
+#include <QDebug>
+#include <QHostInfo>
 
 using namespace Chess;
 
-const char * EmptyFlag = " ";
-const char * DefaltSaveGameFile = "chess.save";
+const char *EmptyFlag = " ";
+const char *DefaltSaveGameFile = "chess.save";
 
 void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
 {
@@ -22,7 +24,8 @@ void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
 }
 
 ChessConnector::ChessConnector()
-	:_game(GameAptr(new Game()))
+    :_game(GameAptr(new Game())),
+     _netPlayer(std::make_shared<NetworkPlayer>( "Vitaly-Nb" /*QHostInfo().hostName() */))
 {
 	_game->RegisterBoardChanged(
 		[&](int index, const Piece &piece)
@@ -60,6 +63,8 @@ ChessConnector::ChessConnector()
 	});
 
 	ClearBoard(_possibleMoves);
+    _netPlayer->SendAvaliability();
+    _netPlayer->ReceiveMessage();
 }
 
 int ChessConnector::MoveCount()
@@ -220,7 +225,6 @@ int ChessConnector::IsOnPlayerMode()
 void ChessConnector::endGame()
 {
 	_game->EndGame();
-	_player.reset();
 	EmitMoveCountUpdates();
 	emit IsOnPlayerModeChanged();
 }
@@ -229,3 +233,13 @@ ChessConnector::~ChessConnector()
 {
 	qDebug() << "Game Exited.";
 }
+
+ QStringList ChessConnector::PlayersName()
+ {
+    //todo
+     QStringList players;
+     players.append("Joe");
+     players.append("Vitaly");
+
+     return players;
+ }

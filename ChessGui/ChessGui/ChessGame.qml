@@ -7,6 +7,8 @@ ApplicationWindow {
     property string darkChessBoxColor:"darkslategray"
     property string markersOfChessBoxColor:"#34495e"
     property string chessFigureGlow: "blue"
+    property bool gameIsInProgress : false
+    property variant win;
 
     title: qsTr("Chess ++")
     color: activePalette.window
@@ -14,6 +16,9 @@ ApplicationWindow {
     width: 768
     height: 1054
     visible: true
+
+    Loader { id: dialogLoader }
+
 
     Rectangle {
         id: screen
@@ -62,6 +67,7 @@ ApplicationWindow {
                             }
 
                             chessConnector.startNewGame()
+                            gameIsInProgress = true
                             console.log("New Game ")
                         }
                     }
@@ -74,6 +80,7 @@ ApplicationWindow {
                             {
                                 chessConnector.startNewGame()
                                 screen.state = "screen_3"
+                                gameIsInProgress = true;
                             }
 
                             console.log("Load pressed!")
@@ -85,8 +92,10 @@ ApplicationWindow {
                         text: "Stop"
                         onClicked:
                         {
-                            chessConnector.endGame();
+                            gameIsInProgress = false
                             screen.state = "screen_1"
+
+                            chessConnector.endGame();
                             console.log("Game ended!")
                         }
                     }
@@ -102,6 +111,16 @@ ApplicationWindow {
                     }
 
                     Button {
+                        id: buttonPrev
+
+                        text: "Prev"
+                        onClicked: {
+                            chessConnector.movePrev()
+                            console.log("Moved back")
+                        }
+                    }
+
+                    Button {
                         id: buttonNext
 
                         text: "Next"
@@ -112,12 +131,13 @@ ApplicationWindow {
                     }
 
                     Button {
-                        id: buttonPrev
+                        id: buttonNetworkGame
+                        text: "Network Player"
 
-                        text: "Prev"
                         onClicked: {
-                            chessConnector.movePrev()
-                            console.log("Moved back")
+
+                            dialogLoader.source = "SelectPlayerDialog.qml"
+                            console.log("Show net players.")
                         }
                     }
                 }

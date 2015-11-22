@@ -25,5 +25,7 @@
         <file>pics/white/p.png</file>
         <file>pics/white/q.png</file>
         <file>pics/white/r.png</file>
+        <file>NetworkPlayers.qml</file>
+        <file>SelectPlayerDialog.qml</file>
     </qresource>
 </RCC>
