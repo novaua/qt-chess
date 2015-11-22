@@ -7,6 +7,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChessCore", "ChessCore\Ches
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChessTests", "ChessTests\ChessTests.vcxproj", "{A0582624-353E-402D-BCE3-4F7D10CF5D82}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChessGui", "ChessGui\ChessGui\ChessGui.vcxproj", "{201796C3-7648-3805-B57C-909780369FC2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{113A444B-2F1C-4B33-9905-41A466FFEF7F} = {113A444B-2F1C-4B33-9905-41A466FFEF7F}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -21,6 +26,10 @@ Global
 		{A0582624-353E-402D-BCE3-4F7D10CF5D82}.Debug|Win32.Build.0 = Debug|Win32
 		{A0582624-353E-402D-BCE3-4F7D10CF5D82}.Release|Win32.ActiveCfg = Release|Win32
 		{A0582624-353E-402D-BCE3-4F7D10CF5D82}.Release|Win32.Build.0 = Release|Win32
+		{201796C3-7648-3805-B57C-909780369FC2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{201796C3-7648-3805-B57C-909780369FC2}.Debug|Win32.Build.0 = Debug|Win32
+		{201796C3-7648-3805-B57C-909780369FC2}.Release|Win32.ActiveCfg = Release|Win32
+		{201796C3-7648-3805-B57C-909780369FC2}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
