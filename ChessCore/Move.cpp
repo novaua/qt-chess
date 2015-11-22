@@ -173,7 +173,7 @@ std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board &board, BoardPo
 bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, EPieceColors side)
 {
 	auto result = false;
-	for each(auto locMove in GenerateBasicMoves(board, move.From, side, true))
+	for (auto locMove : GenerateBasicMoves(board, move.From, side, true))
 	{
 		if (locMove.To == move.To)
 		{
@@ -250,7 +250,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameSta
 					if (allMovesToSet.empty())
 					{
 						// ToDo: This does not include pawn moves
-						for each(auto mv in GenerateAllBasicMoves(board, oppositeSide))
+						for (auto mv : GenerateAllBasicMoves(board, oppositeSide))
 						{
 							allMovesToSet.insert(mv.To);
 						}
@@ -258,9 +258,9 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameSta
 
 					auto kingPathIsUnderAttack = false;
 					int notUnderAtack[] = { pieceOffset + stepsDirection[i], pieceOffset + 2 * stepsDirection[i] };
-					for each (BoardPosition p in notUnderAtack)
+					for (auto p : notUnderAtack)
 					{
-						if (allMovesToSet.find(p) != allMovesToSet.end())
+						if (allMovesToSet.find(BoardPosition(p)) != allMovesToSet.end())
 						{
 							kingPathIsUnderAttack = true;
 							break;
@@ -300,7 +300,8 @@ void MoveGeneration::ExcludeCheckMoves(const GameState &gameState, std::vector<M
 	GameChecks check(simState);
 	std::vector<Move> newMoves;
 	bool checkDetected = false;
-	for each (auto move in moves)
+
+	for (auto move : moves)
 	{
 		simBoard->DoMove(move);
 		if (!check.IsInCheck(side))
@@ -388,7 +389,7 @@ bool MoveGeneration::AddComplementalMove(const Board &board, const Move &move, M
 
 bool MoveGeneration::IsEverMoved(const PositionPiece &positionPiece, const MovesHistory &history)
 {
-	for each (auto move in history)
+	for (auto move : history)
 	{
 		if (move.From.Piece == positionPiece.Piece && move.From.Position == positionPiece.Position)
 		{
@@ -401,7 +402,7 @@ bool MoveGeneration::IsEverMoved(const PositionPiece &positionPiece, const Moves
 
 bool MoveGeneration::IsEverMoved(const Piece &piece, const MovesHistory &history)
 {
-	for each (auto move in history)
+	for (auto move : history)
 	{
 		if (move.From.Piece == piece)
 		{
@@ -431,7 +432,7 @@ void MoveGeneration::GetBoardAttackMap(const Board &board, BoardAttackMap &outCa
 	board.ForEachPiece([&](BoardPosition moveFrom)
 	{
 		auto moves = GenerateBasicMoves(board, moveFrom, side, true);
-		for each (auto move in moves)
+		for (auto move : moves)
 		{
 			outCache[move.To].push_back({ move.From, board.At(move.From) });
 		}
@@ -443,7 +444,7 @@ void MoveGeneration::GetBoardViktimsMap(const Board &board, BoardAttackMap &outC
 	board.ForEachPiece([&](BoardPosition moveFrom)
 	{
 		auto moves = GenerateBasicMoves(board, moveFrom, side, true);
-		for each (auto move in moves)
+		for (auto move : moves)
 		{
 			outCache[move.From].push_back({ move.To, board.At(move.To) });
 		}

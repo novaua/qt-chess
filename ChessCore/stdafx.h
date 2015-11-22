@@ -5,7 +5,9 @@
 
 #pragma once
 
+#ifdef WIN32
 #include "targetver.h"
+#endif
 
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 
@@ -15,7 +17,12 @@
 #include <functional>
 #include <cassert>
 #include <ostream>
+#include <fstream>
+
+#ifdef WIN32
 #include <filesystem>
+#endif
+
 #include <stack>
 #include <list>
 #include <set>
@@ -29,3 +36,14 @@
 #include <algorithm>
 #include <random>
 #include <strstream>
+
+#ifndef WIN32
+namespace std {
+    template <typename T>
+    std::unique_ptr<T> make_unique()
+    {
+        std::unique_ptr<T> result(new T());
+        return result;
+    }
+}
+#endif

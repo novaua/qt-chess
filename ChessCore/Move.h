@@ -23,7 +23,7 @@ namespace Chess
 
 		Piece PromotedTo;
 
-		std::string ToString()const ;
+		std::string ToString()const;
 		static Move Parse(const std::string &strMove);
 	};
 
@@ -47,9 +47,9 @@ namespace Chess
 		Piece PromotedTo;
 
 		bool IsCapturingMove() const;
-		
+
 		bool IsPawnPromotionMove() const;
-		
+
 		Move ToMove() const;
 	};
 
