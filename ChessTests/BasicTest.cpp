@@ -334,5 +334,17 @@ namespace ChessTests
 				Assert::AreEqual<int>(move.PromotedTo.Type, moveR.PromotedTo.Type);
 			}
 		}
+
+		TEST_METHOD(BoardPosition_Test)
+		{
+			std::stringstream ss;
+			auto e2 = BoardPosition::e2;
+			auto e4 = BoardPosition::e4;
+
+			ss << e2 << e4;
+			auto str = ss.str();
+			Assert::AreEqual<int>(4, str.size());
+			Assert::AreEqual<std::string>("e2e4", str);
+		}
 	};
 }

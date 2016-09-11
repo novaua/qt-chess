@@ -18,6 +18,8 @@ namespace Chess {
 		BpMax
 	};
 
+	std::ostream& operator<<(std::ostream& out, BoardPosition value);
+
 	struct Move;
 	struct HistoryMove;
 	struct PositionPiece;

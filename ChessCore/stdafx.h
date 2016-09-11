@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <random>
 #include <sstream>
+#include <sstream>
 
 #ifndef WIN32
 namespace std {

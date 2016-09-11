@@ -7,7 +7,7 @@ namespace Chess {
 
 	Board::Board()
 	{
-        Initialize();
+		Initialize();
 	}
 
 	void Board::Initialize()
@@ -135,5 +135,27 @@ namespace Chess {
 		}
 
 		return hash;
+	}
+
+	std::ostream& operator<<(std::ostream& out, BoardPosition value)
+	{
+		static std::map<int, std::string> strings;
+
+		if (strings.size() == 0)
+		{
+			auto a = 'a';
+			for (auto i = 0; i < 8; ++i)
+			{
+				for (auto j = 0; j < 8; ++j)
+				{
+					char litera = a + j;
+					std::stringstream ss;
+					ss << litera << i + 1;
+					strings[i * 8 + j] = ss.str();
+				}
+			}
+		}
+
+		return out << strings[value];
 	}
 }
