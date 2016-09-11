@@ -158,4 +158,30 @@ namespace Chess {
 
 		return out << strings[value];
 	}
+
+	std::vector<BoardPosition> BoardPositionFromString(const std::string &pos)
+	{
+		static std::map<std::string, int> strings;
+		if (strings.empty())
+		{
+			for (int i = 0; i < BpMax; ++i)
+			{
+				std::stringstream ss;
+				ss << static_cast<BoardPosition>(i);
+				strings[ss.str()] = i;
+			}
+		}
+
+		std::vector<BoardPosition> result;
+		for (auto i = 0; i < pos.size(); i += 2)
+		{
+			auto candiate = pos.substr(i, 2);
+			if (strings.find(candiate) != strings.end())
+			{
+				result.push_back(static_cast<BoardPosition>(strings[candiate]));
+			}
+		}
+
+		return result;
+	}
 }

@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "Serializer.h"
 #include "LruCacheMap.hpp"
+#include "IcuConnector.h"
 
 namespace fs = std::filesystem;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -345,6 +346,37 @@ namespace ChessTests
 			auto str = ss.str();
 			Assert::AreEqual<int>(4, str.size());
 			Assert::AreEqual<std::string>("e2e4", str);
+
+			auto positions = BoardPositionFromString(str);
+			Assert::AreEqual<int>(e2, positions[0]);
+			Assert::AreEqual<int>(e4, positions[1]);
+		}
+
+		TEST_METHOD(IcuConnector_Test)
+		{
+			std::stringstream in;
+			std::ostringstream out;
+
+			IcuConnector ic(in, out);
+
+			ic.Init();
+
+			Assert::AreEqual<string>(out.str(), "icu\n");
+			out.clear();
+
+			in << "readyok" << endl;
+			Assert::IsTrue(ic.IsReady());
+			in.clear();
+			out.clear();
+
+			in << "bestmove e2e4 ponder e7e5" << endl;
+			auto result = ic.Go();
+
+			Assert::AreEqual<int>(result.first.From, e2);
+			Assert::AreEqual<int>(result.first.To, e4);
+
+			Assert::AreEqual<int>(result.second.From, e7);
+			Assert::AreEqual<int>(result.second.To, e5);
 		}
 	};
 }

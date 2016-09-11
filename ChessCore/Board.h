@@ -19,6 +19,7 @@ namespace Chess {
 	};
 
 	std::ostream& operator<<(std::ostream& out, BoardPosition value);
+	std::vector<BoardPosition> BoardPositionFromString(const std::string &pos);
 
 	struct Move;
 	struct HistoryMove;

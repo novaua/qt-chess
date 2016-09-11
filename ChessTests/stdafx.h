@@ -19,5 +19,7 @@
 #include <map>
 #include <queue>
 #include <strstream>
+#include <ostream>
+#include <istream>
 
 // TODO: reference additional headers your program requires here

@@ -496,7 +496,9 @@ std::string Move::ToString()const
 	return str.str();
 }
 
-Move Move::Parse(const std::string& strMove)
+Move Move::Empty;
+
+Move Move::Parse(const std::string &strMove)
 {
 	Move result = {};
 	size_t parsePtr = 0U;
@@ -546,4 +548,9 @@ Move Move::Parse(const std::string& strMove)
 	}
 
 	return result;
+}
+
+Move Chess::FromBoardPositions(const std::vector<BoardPosition> &positions)
+{
+	return{ positions[0], positions[1] };
 }

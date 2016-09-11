@@ -25,7 +25,10 @@ namespace Chess
 
 		std::string ToString()const;
 		static Move Parse(const std::string &strMove);
+		static Move Empty;
 	};
+
+	Move FromBoardPositions(const std::vector<BoardPosition> &positions);
 
 	struct PositionPiece
 	{
