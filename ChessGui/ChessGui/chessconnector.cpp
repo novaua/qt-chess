@@ -24,10 +24,10 @@ void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
 }
 
 ChessConnector::ChessConnector()
-    :_game(GameAptr(new Game())),
-     _netPlayer(std::make_shared<NetworkPlayer>( "Vitaly-Nb" /*QHostInfo().hostName() */))
+    :_game(GameAptr(new Game()))
+    //,_netPlayer(std::make_shared<NetworkPlayer>( "Vitaly-Nb" /*QHostInfo().hostName() */))
 {
-	_game->RegisterBoardChanged(
+    _game->RegisterBoardChanged(
 		[&](int index, const Piece &piece)
 	{
 		emit boardChanged(index, QString::fromStdString(piece.ToString()));
@@ -63,8 +63,9 @@ ChessConnector::ChessConnector()
 	});
 
 	ClearBoard(_possibleMoves);
-    _netPlayer->SendAvaliability();
-    _netPlayer->ReceiveMessage();
+
+    //_netPlayer->SendAvaliability();
+    //_netPlayer->ReceiveMessage();
 }
 
 int ChessConnector::MoveCount()

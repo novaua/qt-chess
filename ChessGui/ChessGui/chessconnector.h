@@ -75,7 +75,7 @@ private:
 	Chess::HistoryPlayerAptr _player;
 	Chess::PawnPromotedCallback _onPawnPromotedCallback;
 
-    NetworkPlayerAptr _netPlayer;
+    //NetworkPlayerAptr _netPlayer;
 
 };
 

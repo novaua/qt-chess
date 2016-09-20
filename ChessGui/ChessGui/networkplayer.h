@@ -17,8 +17,8 @@ enum MessageType
 
 struct INnfoMessage
 {
-      int Id;
-      char Name[256];
+    int Id;
+    char Name[256];
 };
 
 struct StartNewGameRequest
@@ -81,17 +81,18 @@ struct MoveResponse
 };
 
 class QUdpSocket;
-class NetworkPlayer: public QObject
+
+class NetworkPlayer : public QObject
 {
- Q_OBJECT
+    Q_OBJECT
 public:
-  NetworkPlayer(const QString &instanceName);
+    NetworkPlayer(const QString &instanceName);
 
 public:
-  void SendAvaliability();
-  void ReceiveMessages();
+    void SendAvaliability();
+    void ReceiveMessages();
 
-  void ReceiveMessage();
+    void ReceiveMessage();
 
 private:
 
