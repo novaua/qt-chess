@@ -16,25 +16,25 @@ using namespace std;
 
 namespace ChessTests
 {
-	TEST_CLASS(BasicTests)
-	{
-	public:
+    TEST_CLASS(BasicTests)
+    {
+    public:
 
-		TEST_METHOD(MainInit_IsGoood_Test)
-		{
-			auto boardPtr = std::make_shared<Board>();
-			auto historyPtr = std::make_shared<MovesHistory>();
+        TEST_METHOD(MainInit_IsGoood_Test)
+        {
+            auto boardPtr = std::make_shared<Board>();
+            auto historyPtr = std::make_shared<MovesHistory>();
 
-			GameState state = { boardPtr, historyPtr, {} };
+            GameState state = { boardPtr, historyPtr, {} };
 
-			boardPtr->Initialize();
+            boardPtr->Initialize();
 
-			boardPtr->DoMove({ a2, a4, false });
-			boardPtr->DoMove({ e7, e3, false });
+            boardPtr->DoMove({ a2, a4, false });
+            boardPtr->DoMove({ e7, e3, false });
 
-			int figs[] = { a1, b1, c1, g1, e2, a2, b2, f2 };
-			int movesForFigs[] = { 2, 2, 0, 2, 0, 0, 2, 3 };
-			int isCapturing[] = { 0, 0, 0, 0, 0, 0, 0, 1 };
+            int figs[] = { a1, b1, c1, g1, e2, a2, b2, f2 };
+            int movesForFigs[] = { 2, 2, 0, 2, 0, 0, 2, 3 };
+            int isCapturing[] = { 0, 0, 0, 0, 0, 0, 0, 1 };
 
 			auto count = 0;
 			for (auto a : figs)
@@ -42,57 +42,57 @@ namespace ChessTests
 				auto wasCapturing = 0;
 				auto moves = MoveGeneration::GenerateMoves(state, (BoardPosition)a, PieceColors::Light);
 
-				Assert().IsTrue(moves.size() == movesForFigs[count]);
+                Assert().IsTrue(moves.size() == movesForFigs[count]);
 
-				cout << "Moves for " << a << endl;
-				for (auto move : moves)
-				{
-					cout << "Move to " << move.To << (move.Capturing ? " capturing" : " free") << endl;
-					wasCapturing += move.Capturing ? 1 : 0;
-				}
+                cout << "Moves for " << a << endl;
+                for (auto move : moves)
+                {
+                    cout << "Move to " << move.To << (move.Capturing ? " capturing" : " free") << endl;
+                    wasCapturing += move.Capturing ? 1 : 0;
+                }
 
-				Assert().IsTrue(isCapturing[count] == wasCapturing);
+                Assert().IsTrue(isCapturing[count] == wasCapturing);
 
-				++count;
-			}
-		}
+                ++count;
+            }
+        }
 
-		TEST_METHOD(HistoryMoveSerialization_Works)
-		{
-			HistoryMove hm;
+        TEST_METHOD(HistoryMoveSerialization_Works)
+        {
+            HistoryMove hm;
 
 			hm.From = { a1, Piece{ KING, PieceColors::Light } };
 			hm.To = { a1, Piece{ QUEEN, PieceColors::Light } };
 
-			PositionPiece from = hm.From;
-			Assert().AreEqual<int>(from.Piece.Type, KING);
+            PositionPiece from = hm.From;
+            Assert().AreEqual<int>(from.Piece.Type, KING);
 
-		}
+        }
 
 		TEST_METHOD(MovesSerialization_Works_Test)
 		{
 			auto tempPath = fs::path(std::string(getenv("TEMP")));
 			tempPath /= "tempFile";
 
-			Move moves[] = {
-				{ a1, f5 },
-				{ d3, f4, true },
-				{ c2, c4, true },
-			};
+            Move moves[] = {
+                { a1, f5 },
+                { d3, f4, true },
+                { c2, c4, true },
+            };
 
-			int movesCount = sizeof(moves) / sizeof(*moves);
+            int movesCount = sizeof(moves) / sizeof(*moves);
 
-			{
-				// writing 	
-				std::ofstream outFileStream(tempPath, ios::out | ios::binary);
+            {
+                // writing 	
+                std::ofstream outFileStream(tempPath, ios::out | ios::binary);
 
-				outFileStream.write((char*)&movesCount, sizeof(int));
+                outFileStream.write((char*)&movesCount, sizeof(int));
 
-				for (auto move : moves)
-				{
-					BinarySerializer::Serialize(move, outFileStream);
-				}
-			}
+                for (auto move : moves)
+                {
+                    BinarySerializer::Serialize(move, outFileStream);
+                }
+            }
 
 			std::list<Move> loadedMoves;
 			{
@@ -101,32 +101,32 @@ namespace ChessTests
 				int count = 0;
 				fs.read((char*)&count, sizeof(int));
 
-				for (auto i = 0; i < count; ++i)
-				{
-					loadedMoves.push_back(BinarySerializer::Deserialize<Move>(fs));
-				}
-			}
+                for (auto i = 0; i < count; ++i)
+                {
+                    loadedMoves.push_back(BinarySerializer::Deserialize<Move>(fs));
+                }
+            }
 
 			fs::remove(fs::path(tempPath));
 
-			Assert::AreEqual(movesCount, (int)loadedMoves.size());
-			auto id = 0;
-			for (auto move : loadedMoves)
-			{
-				Assert::AreEqual<int>(moves[id].From, move.From);
-				Assert::AreEqual<int>(moves[id].To, move.To);
-				++id;
-			}
-		}
+            Assert::AreEqual(movesCount, (int)loadedMoves.size());
+            auto id = 0;
+            for (auto move : loadedMoves)
+            {
+                Assert::AreEqual<int>(moves[id].From, move.From);
+                Assert::AreEqual<int>(moves[id].To, move.To);
+                ++id;
+            }
+        }
 
-		TEST_METHOD(MoveValidation_Works_Test)
-		{
-			auto boardPtr = std::make_shared<Board>();
-			auto historyPtr = std::make_shared<MovesHistory>();
+        TEST_METHOD(MoveValidation_Works_Test)
+        {
+            auto boardPtr = std::make_shared<Board>();
+            auto historyPtr = std::make_shared<MovesHistory>();
 
-			GameState state = { boardPtr, historyPtr, {} };
+            GameState state = { boardPtr, historyPtr, {} };
 
-			boardPtr->Initialize();
+            boardPtr->Initialize();
 
 			MoveGeneration::Validate(state, Move{ e2, e4 }, PieceColors::Light);
 			boardPtr->DoMove({ e2, e4 });
@@ -138,28 +138,28 @@ namespace ChessTests
 				});
 		}
 
-		TEST_METHOD(BasicGame_Works_Test)
-		{
-			auto game = std::make_unique<Game>();
-			game->Restart();
-			Assert::IsTrue(game->IsWhiteMove());
-			Assert::AreEqual(0, game->GetMoveCount());
+        TEST_METHOD(BasicGame_Works_Test)
+        {
+            auto game = std::make_unique<Game>();
+            game->Restart();
+            Assert::IsTrue(game->IsWhiteMove());
+            Assert::AreEqual(0, game->GetMoveCount());
 
-			std::vector <BoardPosition> observedMoves;
-			game->RegisterBoardChanged([&observedMoves](int index, const Piece& piece)
-				{
-					observedMoves.push_back(BoardPosition(index));
-				});
+            std::vector <BoardPosition> observedMoves;
+            game->RegisterBoardChanged([&observedMoves](int index, const Piece &piece)
+            {
+                observedMoves.push_back(BoardPosition(index));
+            });
 
-			game->DoMove(e2, e4);
+            game->DoMove(e2, e4);
 
-			Assert::AreEqual<int>(observedMoves[0], e2);
-			Assert::AreEqual<int>(observedMoves[1], e4);
+            Assert::AreEqual<int>(observedMoves[0], e2);
+            Assert::AreEqual<int>(observedMoves[1], e4);
 
-			Assert::IsFalse(game->IsWhiteMove());
-			game->DoMove(e7, e5);
+            Assert::IsFalse(game->IsWhiteMove());
+            game->DoMove(e7, e5);
 
-			Assert::IsTrue(game->IsWhiteMove());
+            Assert::IsTrue(game->IsWhiteMove());
 
 			Assert::AreEqual<size_t>(4u, observedMoves.size());
 
@@ -167,13 +167,13 @@ namespace ChessTests
 			Assert::AreEqual<size_t>(2u, gameRecord.size());
 		}
 
-		TEST_METHOD(LoadSave_Works_Test)
-		{
-			auto game = std::make_shared<Game>();
-			game->Restart();
+        TEST_METHOD(LoadSave_Works_Test)
+        {
+            auto game = std::make_shared<Game>();
+            game->Restart();
 
-			game->DoMove(e2, e4);
-			game->DoMove(e7, e5);
+            game->DoMove(e2, e4);
+            game->DoMove(e7, e5);
 
 			auto tempPath = fs::path(std::string(getenv("TEMP")));
 			tempPath /= "tempFile1";
@@ -183,33 +183,33 @@ namespace ChessTests
 
 			fs::remove(fs::path(tempPath));
 
-			auto player = game->MakePlayer();
-			Assert::IsTrue((bool)player);
-		}
+            auto player = game->MakePlayer();
+            Assert::IsTrue((bool)player);
+        }
 
-		TEST_METHOD(PositionPiecedHash_Test)
-		{
-			map<int, PositionPiece> hashPp;
+        TEST_METHOD(PositionPiecedHash_Test)
+        {
+            map<int, PositionPiece> hashPp;
 
-			for (int i = 0; i < 64; ++i)
-			{
-				for (int j = 1; j < EPC_MAX; ++j)
-				{
-					for (int k = 1; k < 3; ++k)
-					{
-						//if (j == 0 && k > 0 || k == 0 && j > 0)
-						//	continue;
+            for (int i = 0; i < 64; ++i)
+            {
+                for (int j = 1; j < EPC_MAX; ++j)
+                {
+                    for (int k = 1; k < 3; ++k)
+                    {
+                        //if (j == 0 && k > 0 || k == 0 && j > 0)
+                        //	continue;
 
 						Piece p = { (PieceTypes)j, (PieceColors)k };
 						PositionPiece pp = { (BoardPosition)i, p };
 
-						if (hashPp.find(pp.GetHashCode()) == hashPp.end())
-						{
-							hashPp[pp.GetHashCode()] = { (BoardPosition)i, p };
-						}
-						else
-						{
-							auto fp = hashPp[p.GetHashCode()];
+                        if (hashPp.find(pp.GetHashCode()) == hashPp.end())
+                        {
+                            hashPp[pp.GetHashCode()] = { (BoardPosition)i, p };
+                        }
+                        else
+                        {
+                            auto fp = hashPp[p.GetHashCode()];
 
 							Assert::AreEqual<int>(p.Type, fp.Piece.Type);
 							Assert::AreEqual<int>((int)p.Color, (int)fp.Piece.Color);
@@ -222,50 +222,50 @@ namespace ChessTests
 			Assert::AreEqual<size_t >((2u * 6) * 64, hashPp.size());
 		}
 
-		TEST_METHOD(BoardHash_Test)
-		{
-			auto boardPtr = std::make_shared<Board>();
-			boardPtr->Initialize();
-			auto hk1 = boardPtr->GetHashCode();
+        TEST_METHOD(BoardHash_Test)
+        {
+            auto boardPtr = std::make_shared<Board>();
+            boardPtr->Initialize();
+            auto hk1 = boardPtr->GetHashCode();
 
-			boardPtr->DoMove({ e2, e4 });
-			auto hk2 = boardPtr->GetHashCode();
+            boardPtr->DoMove({ e2, e4 });
+            auto hk2 = boardPtr->GetHashCode();
 
 			PositionPiece pE2 = { e2, { PAWN, PieceColors::Light } };
 			PositionPiece pE4 = { e4, { PAWN, PieceColors::Light } };
 			PositionPiece eE4 = { e4, { EMPTY, PieceColors::Empty } };
 			PositionPiece eE2 = { e2, { EMPTY, PieceColors::Empty } };
 
-			// incremental has allows moves reversion and actually works
-			auto hk1a = hk2 ^ pE4.GetHashCode() ^ eE4.GetHashCode()
-				^ eE2.GetHashCode() ^ pE2.GetHashCode();
+            // incremental allows moves reversion and actually works
+            auto hk1a = hk2 ^ pE4.GetHashCode() ^ eE4.GetHashCode()
+                ^ eE2.GetHashCode() ^ pE2.GetHashCode();
 
 
-			// Checking Zobrist Hashing incremental property
-			Assert::AreEqual(hk1, hk1a);
+            // Checking Zobrist Hashing incremental property
+            Assert::AreEqual(hk1, hk1a);
 
-			Assert::AreNotEqual(hk1, hk2);
-			std::cout << "e2e4 hash " << boardPtr->GetHashCode();
+            Assert::AreNotEqual(hk1, hk2);
+            std::cout << "e2e4 hash " << boardPtr->GetHashCode();
 
-			boardPtr->DoMove({ e4, e2 });
+            boardPtr->DoMove({ e4, e2 });
 
-			auto hk3 = boardPtr->GetHashCode();
+            auto hk3 = boardPtr->GetHashCode();
 
-			Assert::AreEqual(hk1, hk3);
-		}
+            Assert::AreEqual(hk1, hk3);
+        }
 
-		TEST_METHOD(BoardHash_1_Test)
-		{
-			auto boardPtr = std::make_shared<Board>();
-			boardPtr->Initialize();
-			std::vector<size_t> hashCodes;
-			hashCodes.push_back(boardPtr->GetHashCode());
+        TEST_METHOD(BoardHash_1_Test)
+        {
+            auto boardPtr = std::make_shared<Board>();
+            boardPtr->Initialize();
+            std::vector<size_t> hashCodes;
+            hashCodes.push_back(boardPtr->GetHashCode());
 
-			boardPtr->DoMove({ e2, e4 });
-			hashCodes.push_back(boardPtr->GetHashCode());
+            boardPtr->DoMove({ e2, e4 });
+            hashCodes.push_back(boardPtr->GetHashCode());
 
-			boardPtr->DoMove({ e7, e5 });
-			hashCodes.push_back(boardPtr->GetHashCode());
+            boardPtr->DoMove({ e7, e5 });
+            hashCodes.push_back(boardPtr->GetHashCode());
 
 			boardPtr->DoMove({ f1, b5 });
 			hashCodes.push_back(boardPtr->GetHashCode());
@@ -279,43 +279,43 @@ namespace ChessTests
 			}
 		}
 
-		TEST_METHOD(BoardUndo_Test)
-		{
-			auto boardPtr = std::make_shared<Board>();
-			boardPtr->Initialize();
-			auto initBoardCode = boardPtr->GetHashCode();
+        TEST_METHOD(BoardUndo_Test)
+        {
+            auto boardPtr = std::make_shared<Board>();
+            boardPtr->Initialize();
+            auto initBoardCode = boardPtr->GetHashCode();
 
-			boardPtr->DoMove({ e2, e4 });
+            boardPtr->DoMove({ e2, e4 });
 
-			Assert::AreNotEqual(initBoardCode, boardPtr->GetHashCode());
-			boardPtr->UndoLastMove();
-			Assert::AreEqual(initBoardCode, boardPtr->GetHashCode());
-		}
+            Assert::AreNotEqual(initBoardCode, boardPtr->GetHashCode());
+            boardPtr->UndoLastMove();
+            Assert::AreEqual(initBoardCode, boardPtr->GetHashCode());
+        }
 
-		TEST_METHOD(LruCacheMap_Test)
-		{
-			int Count = 23;
-			int MaxCache = 5;
-			LruCacheMap<int, int> cache(MaxCache);
+        TEST_METHOD(LruCacheMap_Test)
+        {
+            int Count = 23;
+            int MaxCache = 5;
+            LruCacheMap<int, int> cache(MaxCache);
 
-			for (int i = 0; i < Count; ++i)
-			{
-				cache.AddOrUpdate(i, Count - i);
-				Assert::IsTrue(cache.Contains(i));
-				Assert::AreEqual(Count - i, cache.find(i)->second);
-			}
+            for (int i = 0; i < Count; ++i)
+            {
+                cache.AddOrUpdate(i, Count - i);
+                Assert::IsTrue(cache.Contains(i));
+                Assert::AreEqual(Count - i, cache.find(i)->second);
+            }
 
-			for (int i = Count - 1; i >= 0; --i)
-			{
-				if (Count - i <= MaxCache)
-				{
-					Assert::IsTrue(cache.Contains(i));
-				}
-				else {
-					Assert::IsFalse(cache.Contains(i));
-				}
-			}
-		}
+            for (int i = Count - 1; i >= 0; --i)
+            {
+                if (Count - i <= MaxCache)
+                {
+                    Assert::IsTrue(cache.Contains(i));
+                }
+                else {
+                    Assert::IsFalse(cache.Contains(i));
+                }
+            }
+        }
 
 		TEST_METHOD(MoveToString_Test)
 		{
@@ -327,56 +327,56 @@ namespace ChessTests
 			{
 				auto strMove = move.ToString();
 
-				auto moveR = Move::Parse(strMove);
+                auto moveR = Move::Parse(strMove);
 
-				Assert::AreEqual<int>(move.From, moveR.From);
-				Assert::AreEqual<int>(move.To, moveR.To);
-				Assert::AreEqual<int>(move.Capturing, moveR.Capturing);
-				Assert::AreEqual<int>(move.PromotedTo.Type, moveR.PromotedTo.Type);
-			}
-		}
+                Assert::AreEqual<int>(move.From, moveR.From);
+                Assert::AreEqual<int>(move.To, moveR.To);
+                Assert::AreEqual<int>(move.Capturing, moveR.Capturing);
+                Assert::AreEqual<int>(move.PromotedTo.Type, moveR.PromotedTo.Type);
+            }
+        }
 
-		TEST_METHOD(BoardPosition_Test)
-		{
-			std::stringstream ss;
-			auto e2 = BoardPosition::e2;
-			auto e4 = BoardPosition::e4;
+        TEST_METHOD(BoardPosition_Test)
+        {
+            std::stringstream ss;
+            auto e2 = BoardPosition::e2;
+            auto e4 = BoardPosition::e4;
 
-			ss << e2 << e4;
-			auto str = ss.str();
-			Assert::AreEqual<int>(4, str.size());
-			Assert::AreEqual<std::string>("e2e4", str);
+            ss << e2 << e4;
+            auto str = ss.str();
+            Assert::AreEqual<int>(4, str.size());
+            Assert::AreEqual<std::string>("e2e4", str);
 
-			auto positions = BoardPositionFromString(str);
-			Assert::AreEqual<int>(e2, positions[0]);
-			Assert::AreEqual<int>(e4, positions[1]);
-		}
+            auto positions = BoardPositionFromString(str);
+            Assert::AreEqual<int>(e2, positions[0]);
+            Assert::AreEqual<int>(e4, positions[1]);
+        }
 
-		TEST_METHOD(IcuConnector_Test)
-		{
-			std::stringstream in;
-			std::ostringstream out;
+        TEST_METHOD(IcuConnector_Test)
+        {
+            std::stringstream in;
+            std::ostringstream out;
 
-			IcuConnector ic(in, out);
+            IcuConnector ic(in, out);
 
-			ic.Init();
+            ic.Init();
 
-			Assert::AreEqual<string>(out.str(), "icu\n");
-			out.clear();
+            Assert::AreEqual<string>(out.str(), "icu\n");
+            out.clear();
 
-			in << "readyok" << endl;
-			Assert::IsTrue(ic.IsReady());
-			in.clear();
-			out.clear();
+            in << "readyok" << endl;
+            Assert::IsTrue(ic.IsReady());
+            in.clear();
+            out.clear();
 
-			in << "bestmove e2e4 ponder e7e5" << endl;
-			auto result = ic.Go();
+            in << "bestmove e2e4 ponder e7e5" << endl;
+            auto result = ic.Go();
 
-			Assert::AreEqual<int>(result.first.From, e2);
-			Assert::AreEqual<int>(result.first.To, e4);
+            Assert::AreEqual<int>(result.first.From, e2);
+            Assert::AreEqual<int>(result.first.To, e4);
 
-			Assert::AreEqual<int>(result.second.From, e7);
-			Assert::AreEqual<int>(result.second.To, e5);
-		}
-	};
+            Assert::AreEqual<int>(result.second.From, e7);
+            Assert::AreEqual<int>(result.second.To, e5);
+        }
+    };
 }

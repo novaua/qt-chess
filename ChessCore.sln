@@ -12,6 +12,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChessGui", "ChessGui\ChessG
 		{113A444B-2F1C-4B33-9905-41A466FFEF7F} = {113A444B-2F1C-4B33-9905-41A466FFEF7F}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dependencies", "dependencies", "{D934335A-4EFC-4E62-82CF-88E8E0F3D97F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pstreams", "dependencies\pstreams\win32\pstreams\pstreams.vcxproj", "{38B8C3B3-B0DA-42A5-916E-3B3D3048E055}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
