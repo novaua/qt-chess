@@ -6,7 +6,7 @@
 #include "Game.h"
 #include "Serializer.h"
 #include "LruCacheMap.hpp"
-#include "IcuConnector.h"
+#include "UciConnector.h"
 
 namespace fs = std::filesystem;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -352,12 +352,12 @@ namespace ChessTests
             Assert::AreEqual<int>(e4, positions[1]);
         }
 
-        TEST_METHOD(IcuConnector_Test)
+        TEST_METHOD(UciConnector_Test)
         {
             std::stringstream in;
             std::ostringstream out;
 
-            IcuConnector ic(in, out);
+            UciConnector ic(in, out);
 
             ic.Init();
 

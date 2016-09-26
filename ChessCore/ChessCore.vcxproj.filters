@@ -57,10 +57,10 @@
     <ClInclude Include="Check.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="IcuConnector.h">
+    <ClInclude Include="Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Utils.h">
+    <ClInclude Include="UciConnector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -95,10 +95,10 @@
     <ClCompile Include="Events.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="IcuConnector.cpp">
+    <ClCompile Include="Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Utils.cpp">
+    <ClCompile Include="UciConnector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
