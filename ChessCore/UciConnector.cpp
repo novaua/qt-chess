@@ -5,6 +5,8 @@
 using namespace Chess;
 using namespace std;
 
+#define MAX_SUPPRESSED_LINES    10
+
 UciConnector::UciConnector(std::istream &istr, std::ostream &ostr)
     :_istr(istr), _ostr(ostr)
 {
@@ -53,29 +55,21 @@ void Chess::UciConnector::StartPosition()
     _ostr << "position startpos" << endl;
 }
 
-void ClearStream(std::istream &istr) {
-    while (istr.peek() != EOF)
-    {
-        std::string line;
-        if (std::getline(istr, line))
-        {
-            std::cout << "cls: " << line << std::endl;
-        }
-    }
-}
-
 bool Chess::UciConnector::IsReady()
 {
-    ClearStream(_istr);
+    std::string line;
+    auto result = false;
 
     _ostr << "isready" << endl;
-    std::string line;
 
-    if (getline(_istr, line)) {
-        return (begins_with(line, std::string("readyok")));
+    for (int i = 0; !result && i < MAX_SUPPRESSED_LINES; ++i)
+    {
+        if (getline(_istr, line)) {
+            result = match_command("readyok", line);
+        }
     }
 
-    return false;
+    return result;
 }
 
 void Chess::UciConnector::PositionMoves(Move move)
@@ -85,15 +79,14 @@ void Chess::UciConnector::PositionMoves(Move move)
 
 std::pair<Move, Move> UciConnector::Go()
 {
-    std::pair<Move, Move> resut;
-    auto bm = std::string("bestmove");
-    while (true)
+    _ostr << "go" << endl;
+
+    std::pair<Move, Move> resut = std::make_pair(Move::Empty, Move::Empty);
+    for (int i = 0; i < MAX_SUPPRESSED_LINES; ++i)
     {
         std::string line;
-        getline(_istr, line);
-        if (line.size() > bm.size())
-        {
-            if (line.substr(0, bm.size()) == bm)
+        if (getline(_istr, line)) {
+            if (match_command("bestmove", line))
             {
                 auto v = split(line, ' ');
                 auto bestMove = BoardPositionFromString(v[1]);
