@@ -76,9 +76,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\ChessCore\Piece.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <CustomBuild Include="chessconnector.h">
       <Filter>Header Files</Filter>
     </CustomBuild>

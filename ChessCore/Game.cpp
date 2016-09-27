@@ -83,7 +83,7 @@ namespace Chess
 	{
 		auto player = std::make_shared<HistoryPlayer>(shared_from_this());
 		player->Play(_loadedHistory);
-		assert(_loadedHistory.size() > 0 && "Expected loaded history upon play!");
+		assert(_loadedHistory.size() > 0 && "Expected loaded history upon a play!");
 		return player;
 	}
 
