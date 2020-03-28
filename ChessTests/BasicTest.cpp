@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "Serializer.h"
 #include "LruCacheMap.hpp"
+#include <filesystem>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -69,7 +70,7 @@ namespace ChessTests
 
 		TEST_METHOD(MovesSerialization_Works_Test)
 		{
-			auto tempPath = tr2::sys::path(getenv("TEMP"));
+			auto tempPath = experimental::filesystem::path(getenv("TEMP"));
 			tempPath /= "tempFile";
 
 			Move moves[] = {
@@ -105,7 +106,7 @@ namespace ChessTests
 				}
 			}
 
-			tr2::sys::remove_filename(tr2::sys::path(tempPath));
+			std::experimental::filesystem::remove(std::experimental::filesystem::path(tempPath));
 
 			Assert::AreEqual(movesCount, (int)loadedMoves.size());
 			auto id = 0;
@@ -173,13 +174,13 @@ namespace ChessTests
 			game->DoMove(e2, e4);
 			game->DoMove(e7, e5);
 
-			auto tempPath = tr2::sys::path(getenv("TEMP"));
+			auto tempPath = std::experimental::filesystem::path(getenv("TEMP"));
 			tempPath /= "tempFile1";
 
-			game->Save(tempPath);
-			game->Load(tempPath);
+			game->Save(tempPath.generic_u8string());
+			game->Load(tempPath.generic_u8string());
 
-			tr2::sys::remove_filename(tr2::sys::path(tempPath));
+            std::experimental::filesystem::remove(std::experimental::filesystem::path(tempPath));
 
 			auto player = game->MakePlayer();
 			Assert::IsTrue((bool)player);

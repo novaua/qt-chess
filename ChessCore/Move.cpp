@@ -491,7 +491,7 @@ std::string Move::ToString()const
 
 	//from, to, capturing, piece
 	std::strstream str;
-	str << MoveBegin << From << delim << To << delim << (Capturing ? "true" : "false") << delim << PromotedTo.ToString() << ")";
+    str << MoveBegin << From << delim << To << delim << (Capturing ? "true" : "false") << delim << PromotedTo.ToString() << ")" << '\0';
 	return str.str();
 }
 
