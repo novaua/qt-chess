@@ -14,7 +14,7 @@ bool HistoryMove::IsCapturingMove() const
 
 bool HistoryMove::IsPawnPromotionMove() const
 {
-	return PromotedTo.Type != CEMPTY;
+	return PromotedTo.Type != EMPTY;
 }
 
 Move HistoryMove::ToMove() const
@@ -484,21 +484,22 @@ size_t PositionPiece::GetHashCode() const
 
 const std::string MoveBegin("Move(");
 const std::string MoveDelim(",");
+const std::string MoveEnd(")");
 
 std::string Move::ToString()const
 {
 	auto delim = MoveDelim;
 
 	//from, to, capturing, piece
-	std::strstream str;
-    str << MoveBegin << From << delim << To << delim << (Capturing ? "true" : "false") << delim << PromotedTo.ToString() << ")" << '\0';
+	std::stringstream str;
+	str << MoveBegin << From << delim << To << delim << (Capturing ? "true" : "false") << delim << PromotedTo.ToString() << MoveEnd << '\0';
 	return str.str();
 }
 
-Move Move::Parse(const std::string &strMove)
+Move Move::Parse(const std::string& strMove)
 {
 	Move result = {};
-	auto parsePtr = 0U;
+	size_t parsePtr = 0U;
 	if (strMove.substr(0, MoveBegin.size()) == MoveBegin)
 	{
 		int member = 0;
@@ -507,8 +508,7 @@ Move Move::Parse(const std::string &strMove)
 
 		while (parsePtr < strMove.size())
 		{
-			while (MoveDelim[0] != strMove[delimPtr]
-				&& strMove[delimPtr] != ')')
+			while (MoveDelim[0] != strMove[delimPtr] && strMove[delimPtr] != '\0' && strMove[delimPtr] != MoveEnd[0])
 			{
 				++delimPtr;
 			}
@@ -516,7 +516,6 @@ Move Move::Parse(const std::string &strMove)
 			auto tokenSize = delimPtr - parsePtr;
 			std::string token = strMove.substr(parsePtr, tokenSize);
 			parsePtr += tokenSize + 1;
-			++delimPtr;
 
 			if (member == 0)
 			{
@@ -538,6 +537,11 @@ Move Move::Parse(const std::string &strMove)
 				result.PromotedTo = Piece::Parse(token);
 				member++;
 			}
+
+			if (strMove[delimPtr] == MoveEnd[0])
+				break;
+
+			++delimPtr;
 		}
 	}
 
