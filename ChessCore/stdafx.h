@@ -35,7 +35,7 @@
 #include <iterator>
 #include <algorithm>
 #include <random>
-#include <strstream>
+#include <sstream>
 
 #ifndef WIN32
 namespace std {

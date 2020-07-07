@@ -6,8 +6,8 @@
 #include "Game.h"
 #include "Serializer.h"
 #include "LruCacheMap.hpp"
-#include <filesystem>
 
+namespace fs = std::filesystem;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 using namespace Chess;
@@ -70,7 +70,7 @@ namespace ChessTests
 
 		TEST_METHOD(MovesSerialization_Works_Test)
 		{
-			auto tempPath = experimental::filesystem::path(getenv("TEMP"));
+			auto tempPath = fs::path(std::string(getenv("TEMP")));
 			tempPath /= "tempFile";
 
 			Move moves[] = {
@@ -98,7 +98,7 @@ namespace ChessTests
 				// reading 	
 				std::ifstream fs(tempPath, ios::in | ios::binary);
 				int count = 0;
-				fs.read((char *)&count, sizeof(int));
+				fs.read((char*)&count, sizeof(int));
 
 				for (auto i = 0; i < count; ++i)
 				{
@@ -106,7 +106,7 @@ namespace ChessTests
 				}
 			}
 
-			std::experimental::filesystem::remove(std::experimental::filesystem::path(tempPath));
+			fs::remove(fs::path(tempPath));
 
 			Assert::AreEqual(movesCount, (int)loadedMoves.size());
 			auto id = 0;
@@ -131,10 +131,10 @@ namespace ChessTests
 			boardPtr->DoMove({ e2, e4 });
 
 			Assert::ExpectException<ChessException>([&]()
-			{
-				MoveGeneration::Validate(state, Move{ b1, b8 }, LIGHT);
-				boardPtr->DoMove({ b1, b8 });
-			});
+				{
+					MoveGeneration::Validate(state, Move{ b1, b8 }, LIGHT);
+					boardPtr->DoMove({ b1, b8 });
+				});
 		}
 
 		TEST_METHOD(BasicGame_Works_Test)
@@ -145,10 +145,10 @@ namespace ChessTests
 			Assert::AreEqual(0, game->GetMoveCount());
 
 			std::vector <BoardPosition> observedMoves;
-			game->RegisterBoardChanged([&observedMoves](int index, const Piece &piece)
-			{
-				observedMoves.push_back(BoardPosition(index));
-			});
+			game->RegisterBoardChanged([&observedMoves](int index, const Piece& piece)
+				{
+					observedMoves.push_back(BoardPosition(index));
+				});
 
 			game->DoMove(e2, e4);
 
@@ -160,10 +160,10 @@ namespace ChessTests
 
 			Assert::IsTrue(game->IsWhiteMove());
 
-			Assert::AreEqual(4u, observedMoves.size());
+			Assert::AreEqual<size_t>(4u, observedMoves.size());
 
 			auto gameRecord = game->GetGameRecord();
-			Assert::AreEqual(2u, gameRecord.size());
+			Assert::AreEqual<size_t>(2u, gameRecord.size());
 		}
 
 		TEST_METHOD(LoadSave_Works_Test)
@@ -174,13 +174,13 @@ namespace ChessTests
 			game->DoMove(e2, e4);
 			game->DoMove(e7, e5);
 
-			auto tempPath = std::experimental::filesystem::path(getenv("TEMP"));
+			auto tempPath = fs::path(std::string(getenv("TEMP")));
 			tempPath /= "tempFile1";
 
-			game->Save(tempPath.generic_u8string());
-			game->Load(tempPath.generic_u8string());
+			game->Save(tempPath.generic_string());
+			game->Load(tempPath.generic_string());
 
-            std::experimental::filesystem::remove(std::experimental::filesystem::path(tempPath));
+			fs::remove(fs::path(tempPath));
 
 			auto player = game->MakePlayer();
 			Assert::IsTrue((bool)player);
@@ -218,7 +218,7 @@ namespace ChessTests
 				}
 			}
 
-			Assert::AreEqual((2u * 6) * 64, hashPp.size());
+			Assert::AreEqual<size_t >((2u * 6) * 64, hashPp.size());
 		}
 
 		TEST_METHOD(BoardHash_Test)
@@ -272,7 +272,7 @@ namespace ChessTests
 			auto prev = 0u;
 			for each (auto hk in hashCodes)
 			{
-				Assert::AreNotEqual(hk, prev);
+				Assert::AreNotEqual< size_t >(hk, prev);
 				prev = hk;
 			}
 		}
