@@ -11,6 +11,7 @@
 *.idb
 *.ilk
 
+
 # Packages #
 ############
 # it's better to unpack these files and commit the raw source
@@ -46,7 +47,8 @@ Thumbs.db
 **/bin
 **/obj
 **/packages
-**/Debug
+**/*Debug
+**/Release
 **/GeneratedFiles
 
 #other
@@ -54,3 +56,9 @@ Thumbs.db
 *.user
 *.sdf
 *.opensdf
+*.save
+
+#VS
+*.*pch
+*.db
+*testlog*

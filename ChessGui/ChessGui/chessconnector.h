@@ -45,8 +45,10 @@ signals:
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
 
+
 	void noSavedGame();
 	void savedOk();
+    void noMoreMovesNotify();
 
 	public slots:
 	void startNewGame();
