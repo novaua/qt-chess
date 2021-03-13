@@ -6,6 +6,7 @@ Rectangle {
     property int angle:0;
     rotation:angle;
     color: "transparent"
+    visible: gameIsInProgress
 
     Behavior on rotation {
         id:chessBoardBehavior
@@ -73,8 +74,9 @@ Rectangle {
         onCastlingNotify: showNotification("Castling")
         onPawnPromotionNotify: showPawnPromotionOptions(index, side)
 
-        onNoSavedGame:showNotification("The saved Game was not found!")
+        onNoSavedGame:showNotification("No saved Games!")
         onSavedOk:showNotification("Game saved")
+        onNoMoreMovesNotify:showNotification("No more moves!")
     }
 
     NavigationLayer{

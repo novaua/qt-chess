@@ -268,9 +268,10 @@ namespace ChessTests
 
 			boardPtr->DoMove({ f1, b5 });
 			hashCodes.push_back(boardPtr->GetHashCode());
+
 			std::sort(hashCodes.begin(), hashCodes.end());
-			auto prev = 0u;
-			for each (auto hk in hashCodes)
+			size_t prev = 0u;
+			for (auto hk : hashCodes)
 			{
 				Assert::AreNotEqual< size_t >(hk, prev);
 				prev = hk;
@@ -321,7 +322,7 @@ namespace ChessTests
 			{ { e2, e4, false, { QUEEN, LIGHT } },
 			{ e2, e4, true, {} } };
 
-			for each (auto move in moves)
+			for(const auto &move: moves)
 			{
 				auto strMove = move.ToString();
 

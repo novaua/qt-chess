@@ -9,7 +9,7 @@
 using namespace Chess;
 
 const char *EmptyFlag = " ";
-const char *DefaltSaveGameFile = "chess.save";
+const char *DefaultSaveGameFile = "chess.save";
 
 void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
 {
@@ -103,7 +103,7 @@ void ChessConnector::figureSelected(int index)
 		}
 	}
 
-	emit PossibleMovesChanged();
+    emit PossibleMovesChanged();
 }
 
 void ChessConnector::pawnPromote(int index, const QString &piece)
@@ -149,6 +149,7 @@ void ChessConnector::startNewGame()
 {
 	_game->Restart();
 	EmitMoveCountUpdates();
+
 	qDebug() << "Cpp Game restarted!";
 }
 
@@ -159,7 +160,7 @@ QString pathAppend(const QString& path1, const QString& path2)
 
 QString getSaveGameFilePath()
 {
-	auto path = pathAppend(QDir::currentPath(), DefaltSaveGameFile);
+    auto path = pathAppend(QDir::currentPath(), DefaultSaveGameFile);
 	return path;
 }
 
@@ -207,12 +208,21 @@ bool ChessConnector::loadGame()
 
 void ChessConnector::moveNext()
 {
+    if (!_player->CanMove(true)){
+        emit noMoreMovesNotify();
+    }
+
 	_player->MoveNext();
 	EmitMoveCountUpdates();
 }
 
 void ChessConnector::movePrev()
 {
+
+    if (!_player->CanMove(false)){
+        emit noMoreMovesNotify();
+    }
+
 	_player->MoveBack();
 	EmitMoveCountUpdates();
 }
@@ -227,6 +237,8 @@ void ChessConnector::endGame()
 	_game->EndGame();
 	EmitMoveCountUpdates();
 	emit IsOnPlayerModeChanged();
+    ClearBoard(_possibleMoves);
+    emit PossibleMovesChanged();
 }
 
 ChessConnector::~ChessConnector()
