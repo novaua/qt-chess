@@ -1,7 +1,7 @@
 #pragma once
 namespace Chess
 {
-	enum EPieceTypes
+	enum PieceTypes
 	{
 		EMPTY,
 		KNIGHT,
@@ -13,23 +13,23 @@ namespace Chess
 		EPC_MAX,
 	};
 
-	enum EPieceColors
+	enum class PieceColors
 	{
-		CEMPTY,
-		LIGHT,
-		DARK,
+		Empty,
+		Light,
+		Dark,
 	};
 
 	const int UniquePiecesCount = EPC_MAX - 1;
 
-	EPieceColors OppositeSideOf(EPieceColors side);
-	int GetPiceCount(EPieceTypes type);
+	PieceColors OppositeSideOf(PieceColors side);
+	int GetPiceCount(PieceTypes type);
 	std::vector<size_t> MakeRandomVector(int elementsCount);
 
 	struct Piece
 	{
-		EPieceTypes Type;
-		EPieceColors Color;
+		PieceTypes Type;
+		PieceColors Color;
 
 		bool IsEmpty() const;
 		bool operator == (const Piece &o)const;

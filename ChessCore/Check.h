@@ -8,12 +8,12 @@ namespace Chess
 		GameChecks(const GameState &state);
 		~GameChecks();
 
-		bool IsInCheck(EPieceColors side);
+		bool IsInCheck(PieceColors side);
 
-		bool IsCheckMate(EPieceColors side);
+		bool IsCheckMate(PieceColors side);
 
 		// Returns positive position on Pawn Promotion or -1 elsewhere.
-		int IsInPawnPromotion(EPieceColors side);
+		int IsInPawnPromotion(PieceColors side);
 
 	private:
 		GameState _state;

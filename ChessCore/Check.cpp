@@ -14,12 +14,12 @@ GameChecks::~GameChecks()
 {
 }
 
-PositionPiece GetKingPosition(const BoardAptr &board, EPieceColors side)
+PositionPiece GetKingPosition(const BoardAptr &board, PieceColors side)
 {
 	return MoveGeneration::GetPositionsOf(*board, KING, side)[0];
 }
 
-bool IsInCheck(BoardPositionsCacheAptr cache, BoardAptr board, EPieceColors side)
+bool IsInCheck(BoardPositionsCacheAptr cache, BoardAptr board, PieceColors side)
 {
 	auto imTheKing = GetKingPosition(board, side);
 
@@ -27,12 +27,12 @@ bool IsInCheck(BoardPositionsCacheAptr cache, BoardAptr board, EPieceColors side
 	return MoveGeneration::IsUnderAttack(*attackMap, imTheKing.Position);
 }
 
-bool GameChecks::IsInCheck(EPieceColors side)
+bool GameChecks::IsInCheck(PieceColors side)
 {
 	return ::IsInCheck(_state.Cache, _state.Board, side);
 }
 
-bool GameChecks::IsCheckMate(EPieceColors side)
+bool GameChecks::IsCheckMate(PieceColors side)
 {
 	auto result = false;
 	if (IsInCheck(side))
@@ -79,11 +79,11 @@ bool GameChecks::IsCheckMate(EPieceColors side)
 	return result;
 }
 
-int GameChecks::IsInPawnPromotion(EPieceColors side)
+int GameChecks::IsInPawnPromotion(PieceColors side)
 {
 	auto board = _state.Board;
 	std::pair<int, int> checkRange;
-	if (side == LIGHT)
+	if (side == PieceColors::Light)
 	{
 		checkRange = std::make_pair(a8, BpMax);
 	}

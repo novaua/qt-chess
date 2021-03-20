@@ -27,8 +27,8 @@ namespace Chess {
 
 	class Board
 	{
-		std::vector<EPieceColors> _color;  /* EMPTY, LIGHT, DARK */
-		std::vector<EPieceTypes> _piece;  /* PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, or EMPTY */
+		std::vector<PieceColors> _color;  /* Empty, Light, Dark */
+		std::vector<PieceTypes> _piece;  /* PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, or Empty */
 		BoardAptr _previousBoard;
 
 	public:
@@ -40,12 +40,12 @@ namespace Chess {
 
 		void Initialize();
 
-		const std::vector<EPieceColors> &color() const
+		const std::vector<PieceColors> &color() const
 		{
 			return _color;
 		}
 
-		const std::vector<EPieceTypes> &piece() const
+		const std::vector<PieceTypes> &piece() const
 		{
 			return _piece;
 		}
@@ -55,7 +55,7 @@ namespace Chess {
 
 		void Place(BoardPosition position, const Piece & piece);
 
-		void ForEachPiece(const std::function<void(BoardPosition)> &action, EPieceColors color) const;
+		void ForEachPiece(const std::function<void(BoardPosition)> &action, PieceColors color) const;
 
 		// Does non-empty Piece move without chess basic rules validation. However it does capturing check.
 		HistoryMove DoMove(const Move &move);

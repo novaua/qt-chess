@@ -46,7 +46,7 @@ namespace Chess
 
 	std::vector<Move> Game::GetPossibleMoves(int index)
 	{
-		auto side = IsWhiteMove() ? LIGHT : DARK;
+		auto side = IsWhiteMove() ? PieceColors::Light : PieceColors::Dark;
 
 		auto moves = MoveGeneration::GenerateMoves(_gameState, (BoardPosition)index, side);
 		MoveGeneration::ExcludeCheckMoves(_gameState, moves, side);
@@ -185,7 +185,7 @@ namespace Chess
 		int ppIndex = move.PromotedTo.IsEmpty() ? check.IsInPawnPromotion(side) : -1;
 		if (ppIndex >= 0)
 		{
-			auto pawnPromotionEvent = PawnPromotionEvent(EtPawnPromotion, ppIndex, side);
+			auto pawnPromotionEvent = PawnPromotionEvent(EtPawnPromotion, ppIndex, (int)side);
 
 			pawnPromotionEvent.OnPromoted = [this](const PositionPiece & positionPiece)
 			{
@@ -251,7 +251,7 @@ namespace Chess
 	int Game::GetMoveCount()
 	{
 		std::lock_guard<std::mutex> lg(_lock);
-		return _historyAptr->size();
+		return (int)_historyAptr->size();
 	}
 
 	void Game::AssureMove(BoardPosition from, BoardPosition to)
@@ -268,9 +268,9 @@ namespace Chess
 	bool Game::CanMoveFrom(BoardPosition from)
 	{
 		auto fromPiece = _boardAptr->At(from);
-		return !(fromPiece.Color == LIGHT && !IsWhiteMove()
-			|| fromPiece.Color == DARK && IsWhiteMove()
-			|| fromPiece.Color == CEMPTY);
+		return !(fromPiece.Color == PieceColors::Light && !IsWhiteMove()
+			|| fromPiece.Color == PieceColors::Dark && IsWhiteMove()
+			|| fromPiece.Color == PieceColors::Empty);
 	}
 
 	Piece Game::GetPieceAt(int index) const

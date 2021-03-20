@@ -7,12 +7,12 @@ BoardPositionsCache::BoardPositionsCache()
 {
 }
 
-const BoardAttackMapAptr &BoardPositionsCache::GetAttackMap(const BoardAptr &board, EPieceColors side)
+const BoardAttackMapAptr &BoardPositionsCache::GetAttackMap(const BoardAptr &board, PieceColors side)
 {
-	assert(side != CEMPTY && "Non empty side expected only!");
+	assert(side != PieceColors::Empty && "Non empty side expected only!");
 
 	auto boardHash = board->GetHashCode();
-	auto currentHash = (side == LIGHT) ? &_lightAttackMap : &_darkAttackMap;
+	auto currentHash = (side == PieceColors::Light) ? &_lightAttackMap : &_darkAttackMap;
 
 	auto foundPtr = currentHash->find(boardHash);
 	if (foundPtr != currentHash->end())
@@ -28,12 +28,12 @@ const BoardAttackMapAptr &BoardPositionsCache::GetAttackMap(const BoardAptr &boa
 	return (*currentHash)[boardHash];
 }
 
-const BoardAttackMapAptr &BoardPositionsCache::GetViktimsMap(const BoardAptr &board, EPieceColors side)
+const BoardAttackMapAptr &BoardPositionsCache::GetViktimsMap(const BoardAptr &board, PieceColors side)
 {
-	assert(side != CEMPTY && "Non empty side expected only!");
+	assert(side != PieceColors::Empty && "Non empty side expected only!");
 
 	auto boardHash = board->GetHashCode();
-	auto currentHash = (side == LIGHT) ? &_lightViktimMap : &_darkViktimMap;
+	auto currentHash = (side == PieceColors::Light) ? &_lightViktimMap : &_darkViktimMap;
 
 	auto foundPtr = currentHash->find(boardHash);
 	if (foundPtr != currentHash->end())

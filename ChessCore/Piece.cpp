@@ -9,7 +9,7 @@ bool Piece::operator == (const Piece &o) const
 
 bool Piece::IsEmpty() const
 {
-	return Color == CEMPTY;
+	return Color == PieceColors::Empty;
 }
 
 const std::string &Piece::ToString() const
@@ -30,7 +30,7 @@ const std::string &Piece::ToString() const
 		"P",
 	};
 
-	auto offset = Color == DARK ? UniquePiecesCount : 0;
+	auto offset = Color == PieceColors::Dark ? UniquePiecesCount : 0;
 	return translationMap[Type + offset];
 }
 
@@ -43,7 +43,7 @@ Piece Piece::Parse(const std::string &strPiece)
 		{
 			for (int c = 1; c <= 2; ++c)
 			{
-				Piece p = { (EPieceTypes)t, (EPieceColors)c };
+				Piece p = { (PieceTypes)t, (PieceColors)c };
 				if (p.ToString() == strPiece)
 				{
 					return p;
@@ -52,25 +52,25 @@ Piece Piece::Parse(const std::string &strPiece)
 		}
 	}
 
-	return{ EMPTY, CEMPTY };
+	return{ EMPTY, PieceColors::Empty };
 }
 
 size_t Piece::GetHashCode() const
 {
-	auto offset = Color == DARK ? UniquePiecesCount : 0;
-	auto hash = Color == CEMPTY ? 0 : Type + offset;
+	auto offset = Color == PieceColors::Dark ? UniquePiecesCount : 0;
+	auto hash = Color == PieceColors::Empty ? 0 : Type + offset;
 	return hash;
 }
 
 namespace Chess
 {
-	EPieceColors OppositeSideOf(EPieceColors side)
+	PieceColors OppositeSideOf(PieceColors side)
 	{
-		assert(side != CEMPTY && "Empty Piece is not expected!");
-		return side == LIGHT ? DARK : LIGHT;
+		assert(side != PieceColors::Empty && "Empty Piece is not expected!");
+		return side == PieceColors::Light ? PieceColors::Dark : PieceColors::Light;
 	}
 
-	int GetPiceCount(EPieceTypes type)
+	int GetPiceCount(PieceTypes type)
 	{
 		static int counts[] = { 0, 2, 2, 2, 1, 1, 8 };
 		return counts[type];

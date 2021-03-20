@@ -14,10 +14,10 @@ namespace Chess {
 		BoardPositionsCache();
 
 		// Me -> My killers list
-		const BoardAttackMapAptr &GetAttackMap(const BoardAptr &board, EPieceColors side);
+		const BoardAttackMapAptr &GetAttackMap(const BoardAptr &board, PieceColors side);
 
 		// Me -> My victims list
-		const BoardAttackMapAptr &GetViktimsMap(const BoardAptr &board, EPieceColors side);
+		const BoardAttackMapAptr &GetViktimsMap(const BoardAptr &board, PieceColors side);
 
 	private:
 		BoardsAttackHash _lightAttackMap;
