@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "HistoryPlayer.h"
 #include "Game.h"
-#include <sstream>
 
 using namespace Chess;
 

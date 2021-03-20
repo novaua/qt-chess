@@ -39,7 +39,7 @@ namespace ChessTests
 			for (auto a : figs)
 			{
 				auto wasCapturing = 0;
-				auto moves = MoveGeneration::GenerateMoves(state, (BoardPosition)a, LIGHT);
+				auto moves = MoveGeneration::GenerateMoves(state, (BoardPosition)a, PieceColors::Light);
 
 				Assert().IsTrue(moves.size() == movesForFigs[count]);
 
@@ -60,8 +60,8 @@ namespace ChessTests
 		{
 			HistoryMove hm;
 
-			hm.From = { a1, Piece{ KING, LIGHT } };
-			hm.To = { a1, Piece{ QUEEN, LIGHT } };
+			hm.From = { a1, Piece{ KING, PieceColors::Light } };
+			hm.To = { a1, Piece{ QUEEN, PieceColors::Light } };
 
 			PositionPiece from = hm.From;
 			Assert().AreEqual<int>(from.Piece.Type, KING);
@@ -127,12 +127,12 @@ namespace ChessTests
 
 			boardPtr->Initialize();
 
-			MoveGeneration::Validate(state, Move{ e2, e4 }, LIGHT);
+			MoveGeneration::Validate(state, Move{ e2, e4 }, PieceColors::Light);
 			boardPtr->DoMove({ e2, e4 });
 
 			Assert::ExpectException<ChessException>([&]()
 				{
-					MoveGeneration::Validate(state, Move{ b1, b8 }, LIGHT);
+					MoveGeneration::Validate(state, Move{ b1, b8 }, PieceColors::Light);
 					boardPtr->DoMove({ b1, b8 });
 				});
 		}
@@ -199,7 +199,7 @@ namespace ChessTests
 						//if (j == 0 && k > 0 || k == 0 && j > 0)
 						//	continue;
 
-						Piece p = { (EPieceTypes)j, (EPieceColors)k };
+						Piece p = { (PieceTypes)j, (PieceColors)k };
 						PositionPiece pp = { (BoardPosition)i, p };
 
 						if (hashPp.find(pp.GetHashCode()) == hashPp.end())
@@ -211,7 +211,7 @@ namespace ChessTests
 							auto fp = hashPp[p.GetHashCode()];
 
 							Assert::AreEqual<int>(p.Type, fp.Piece.Type);
-							Assert::AreEqual<int>(p.Color, fp.Piece.Color);
+							Assert::AreEqual<int>((int)p.Color, (int)fp.Piece.Color);
 							Assert::AreEqual<int>(pp.Position, fp.Position);
 						}
 					}
@@ -230,10 +230,10 @@ namespace ChessTests
 			boardPtr->DoMove({ e2, e4 });
 			auto hk2 = boardPtr->GetHashCode();
 
-			PositionPiece pE2 = { e2, { PAWN, LIGHT } };
-			PositionPiece pE4 = { e4, { PAWN, LIGHT } };
-			PositionPiece eE4 = { e4, { EMPTY, CEMPTY } };
-			PositionPiece eE2 = { e2, { EMPTY, CEMPTY } };
+			PositionPiece pE2 = { e2, { PAWN, PieceColors::Light } };
+			PositionPiece pE4 = { e4, { PAWN, PieceColors::Light } };
+			PositionPiece eE4 = { e4, { EMPTY, PieceColors::Empty } };
+			PositionPiece eE2 = { e2, { EMPTY, PieceColors::Empty } };
 
 			// incremental has allows moves reversion and actually works
 			auto hk1a = hk2 ^ pE4.GetHashCode() ^ eE4.GetHashCode()
@@ -319,7 +319,7 @@ namespace ChessTests
 		TEST_METHOD(MoveToString_Test)
 		{
 			Move moves[] =
-			{ { e2, e4, false, { QUEEN, LIGHT } },
+			{ { e2, e4, false, { QUEEN, PieceColors::Light } },
 			{ e2, e4, true, {} } };
 
 			for(const auto &move: moves)

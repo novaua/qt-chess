@@ -16,17 +16,17 @@ namespace Chess {
 
 		for (auto i = 0; i < 16; ++i)
 		{
-			_color.push_back(LIGHT);
+			_color.push_back(PieceColors::Light);
 		}
 
 		for (auto i = 0; i < 32; ++i)
 		{
-			_color.push_back(CEMPTY);
+			_color.push_back(PieceColors::Empty);
 		}
 
 		for (auto i = 0; i < 16; ++i)
 		{
-			_color.push_back(DARK);
+			_color.push_back(PieceColors::Dark);
 		}
 
 		_piece =
@@ -113,7 +113,7 @@ namespace Chess {
 		}
 	}
 
-	void Board::ForEachPiece(const std::function<void(BoardPosition)> &action, EPieceColors color) const
+	void Board::ForEachPiece(const std::function<void(BoardPosition)> &action, PieceColors color) const
 	{
 		for (auto i = 0u; i < _color.size(); ++i)
 		{

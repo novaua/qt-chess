@@ -76,24 +76,24 @@ namespace Chess
 
 	struct MoveGeneration
 	{
-		static void GetBoardAttackMap(const Board &board, BoardAttackMap &outCache, EPieceColors side);
-		static void GetBoardViktimsMap(const Board &board, BoardAttackMap &outCache, EPieceColors side);
+		static void GetBoardAttackMap(const Board &board, BoardAttackMap &outCache, PieceColors side);
+		static void GetBoardViktimsMap(const Board &board, BoardAttackMap &outCache, PieceColors side);
 
-		static std::vector<Move> GenerateBasicMoves(const Board &board, BoardPosition pieceOffset, EPieceColors side, bool attackingOnly = false);
+		static std::vector<Move> GenerateBasicMoves(const Board &board, BoardPosition pieceOffset, PieceColors side, bool attackingOnly = false);
 
-		static std::vector<Move> GenerateAdvancedMoves(const GameState &gameState, BoardPosition pieceOffset, EPieceColors side);
+		static std::vector<Move> GenerateAdvancedMoves(const GameState &gameState, BoardPosition pieceOffset, PieceColors side);
 
-		static std::vector<Move> GenerateMoves(const GameState &gameState, BoardPosition pieceOffset, EPieceColors side);
-		static void ExcludeCheckMoves(const GameState &gameState, std::vector<Move> &moves, EPieceColors side);
+		static std::vector<Move> GenerateMoves(const GameState &gameState, BoardPosition pieceOffset, PieceColors side);
+		static void ExcludeCheckMoves(const GameState &gameState, std::vector<Move> &moves, PieceColors side);
 
-		static std::vector<Move> GenerateAllBasicMoves(const Board &board, EPieceColors side);
+		static std::vector<Move> GenerateAllBasicMoves(const Board &board, PieceColors side);
 
-		static void GeneratePawnMoves(std::vector<Move> &moves, const Board &board, BoardPosition pieceOffset, EPieceColors side, bool attackingOnly = false);
+		static void GeneratePawnMoves(std::vector<Move> &moves, const Board &board, BoardPosition pieceOffset, PieceColors side, bool attackingOnly = false);
 
-		static bool IsValidCapturingMove(const Board &board, Move move, EPieceColors side);
+		static bool IsValidCapturingMove(const Board &board, Move move, PieceColors side);
 
-		static void Validate(const GameState &gameState, Move &move, EPieceColors side);
-		static void Validate(const GameState &gameState, const Move &move, EPieceColors side);
+		static void Validate(const GameState &gameState, Move &move, PieceColors side);
+		static void Validate(const GameState &gameState, const Move &move, PieceColors side);
 
 		static bool IsEverMoved(const PositionPiece &positionPiece, const MovesHistory &history);
 		static bool IsEverMoved(const Piece &piece, const MovesHistory &history);
@@ -103,6 +103,6 @@ namespace Chess
 		//Translates En Passant and Castling moves to two physical move
 		static bool AddComplementalMove(const Board &board, const Move &move, Move &complemental);
 
-		static std::vector<PositionPiece> GetPositionsOf(const Board &board, EPieceTypes type, EPieceColors side);
+		static std::vector<PositionPiece> GetPositionsOf(const Board &board, PieceTypes type, PieceColors side);
 	};
 }
