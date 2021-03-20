@@ -124,6 +124,54 @@ namespace Chess {
 		}
 	}
 
+	std::ostream& operator<<(std::ostream& out, BoardPosition value)
+	{
+		static std::map<int, std::string> intToStringMap;
+
+		if (intToStringMap.size() == 0)
+		{
+			auto a = 'a';
+			for (auto i = 0; i < 8; ++i)
+			{
+				for (auto j = 0; j < 8; ++j)
+				{
+					char litera = a + j;
+					std::stringstream ss;
+					ss << litera << i + 1;
+					intToStringMap[i * 8 + j] = ss.str();
+				}
+			}
+		}
+
+		return out << intToStringMap[value];
+	}
+
+	std::vector<BoardPosition> BoardPositionFromString(const std::string& pos)
+	{
+		static std::map<std::string, int> strings;
+		if (strings.empty())
+		{
+			for (int i = 0; i < BpMax; ++i)
+			{
+				std::stringstream ss;
+				ss << static_cast<BoardPosition>(i);
+				strings[ss.str()] = i;
+			}
+		}
+
+		std::vector<BoardPosition> result;
+		for (auto i = 0; i < pos.size(); i += 2)
+		{
+			auto candiate = pos.substr(i, 2);
+			if (strings.find(candiate) != strings.end())
+			{
+				result.push_back(static_cast<BoardPosition>(strings[candiate]));
+			}
+		}
+
+		return result;
+	}
+
 	//position hash code using Zobrist Hashing
 	size_t Board::GetHashCode() const
 	{

@@ -322,7 +322,7 @@ namespace ChessTests
 			{ { e2, e4, false, { QUEEN, PieceColors::Light } },
 			{ e2, e4, true, {} } };
 
-			for(const auto &move: moves)
+			for (const auto& move : moves)
 			{
 				auto strMove = move.ToString();
 
@@ -333,6 +333,22 @@ namespace ChessTests
 				Assert::AreEqual<int>(move.Capturing, moveR.Capturing);
 				Assert::AreEqual<int>(move.PromotedTo.Type, moveR.PromotedTo.Type);
 			}
+		}
+
+		TEST_METHOD(BoardPosition_Test)
+		{
+			std::stringstream ss;
+			auto e2 = BoardPosition::e2;
+			auto e4 = BoardPosition::e4;
+
+			ss << e2 << e4;
+			auto str = ss.str();
+			Assert::AreEqual<int>(4, str.size());
+			Assert::AreEqual<std::string>("e2e4", str);
+
+			auto positions = BoardPositionFromString(str);
+			Assert::AreEqual<int>(e2, positions[0]);
+			Assert::AreEqual<int>(e4, positions[1]);
 		}
 	};
 }
