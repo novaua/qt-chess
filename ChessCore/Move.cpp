@@ -519,12 +519,12 @@ Move Move::Parse(const std::string& strMove)
 
 			if (member == 0)
 			{
-				result.From = (BoardPosition)atoi(token.c_str());
+				result.From = BoardPositionFromString(token).at(0);
 				member++;
 			}
 			else if (member == 1)
 			{
-				result.To = (BoardPosition)atoi(token.c_str());
+				result.To = BoardPositionFromString(token).at(0);
 				member++;
 			}
 			else if (member == 2)
