@@ -11,5 +11,7 @@
 #include "framework.h"
 
 #include <iostream>
+#include <regex>
+#include <boost/algorithm/string.hpp>
 
 #endif //PCH_H

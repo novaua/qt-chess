@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <boost/process.hpp>
+
 namespace bp = boost::process;
 
 struct Command {
@@ -16,6 +17,8 @@ class UciConnector
 	bp::child _uciEngine;
 	bp::opstream in;
 	bp::ipstream out;
+
+	std::map<std::string, std::string> _opt;
 public:
 
 	UciConnector();
@@ -25,8 +28,11 @@ public:
 	bool IsInitialized();
 
 	bool CheckReady();
+	bool NewGame();
 
-	Command ProcessCommand(const Command& comm);
+	std::string GetOption(const std::string& op);
+
+	std::string ProcessCommand(const Command& comm);
 
 	~UciConnector();
 };

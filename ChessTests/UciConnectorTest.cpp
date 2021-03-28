@@ -26,6 +26,7 @@ namespace ConnectorTests
 			conn->Init();
 
 			Assert::IsTrue(conn->IsInitialized());
+			Assert::IsTrue(conn->GetOption("id").find("St") != string::npos);
 		}
 	};
 }
