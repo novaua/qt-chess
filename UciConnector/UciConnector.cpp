@@ -27,22 +27,18 @@ UciConnector::UciConnector() {
 
 void UciConnector::Init() {
 	_uciEngine = bp::child(bp::search_path(UciEngineProgramm), bp::std_out > out, bp::std_in < in);
-
 	in << UciInitCommand << std::endl;
 
 	std::string line;
 	while (_uciEngine.running() && std::getline(out, line) && line.find(UciOkCommand) == std::string::npos)
 	{
-		//std::cout << "id " << line << std::endl << std::flush;
 		line = boost::algorithm::trim_copy(line);
 
 		std::cmatch what;
 		if (std::regex_match(line.c_str(), what, IdNameRegex)) {
-			//std::cout << "id " << what[1] << std::endl << std::flush;
 			_opt["id"] = what[1];
 		}
 		else if (std::regex_match(line.c_str(), what, OptionNameRegex)) {
-			//std::cout << "option " << what[1] << " | " << what[2] << std::endl << std::flush;
 			_opt[what[1]] = what[2];
 		}
 	}
@@ -53,6 +49,7 @@ void UciConnector::Init() {
 std::string UciConnector::ProcessCommand(const Command& comm) {
 
 	in << comm.Request << std::endl;
+
 	if (comm.Response.empty()) {
 		return "";
 	}
