@@ -12,6 +12,8 @@
 
 #include <iostream>
 #include <regex>
+#include <exception>
 #include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
 
 #endif //PCH_H

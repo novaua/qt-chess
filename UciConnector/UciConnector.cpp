@@ -85,6 +85,29 @@ UciConnector::~UciConnector() {
 	}
 }
 
+
 std::string UciConnector::GetOption(const std::string& op) {
 	return _opt[op];
+}
+
+void UciConnector::SetOption(const std::string& op, const std::string& value)
+{
+	if (_opt.find(op) == _opt.end())
+	{
+		throw std::invalid_argument("Unknown option: '" + op + "'");
+	}
+
+	auto setOptCommand = (boost::format("setoption name %1% value %2%") % op % value).str();
+	ProcessCommand({ setOptCommand,"" });
+}
+
+std::vector<std::string> UciConnector::GetOptions()
+{
+	std::vector<std::string> res;
+	for (auto const& x : _opt)
+	{
+		res.push_back(x.first);
+	}
+
+	return res;
 }

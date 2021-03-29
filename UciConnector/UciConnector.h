@@ -31,6 +31,8 @@ public:
 	bool NewGame();
 
 	std::string GetOption(const std::string& op);
+	void SetOption(const std::string& op, const std::string& value);
+	std::vector<std::string> GetOptions();
 
 	std::string ProcessCommand(const Command& comm);
 

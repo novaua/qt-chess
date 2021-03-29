@@ -28,5 +28,14 @@ namespace ConnectorTests
 			Assert::IsTrue(conn->IsInitialized());
 			Assert::IsTrue(conn->GetOption("id").find("St") != string::npos);
 		}
+
+		TEST_METHOD(MainInit_Options_Test)
+		{
+			auto conn = new UciConnector();
+
+			conn->Init();
+
+			Assert::IsTrue(conn->GetOptions().size() > 1);
+		}
 	};
 }
