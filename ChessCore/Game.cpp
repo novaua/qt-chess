@@ -34,12 +34,12 @@ namespace Chess
 	{
 	}
 
-	void Game::RegisterGameActionsListeners(const GameActionListener & listener)
+	void Game::RegisterGameActionsListeners(const GameActionListener& listener)
 	{
 		_gameActionsListeners.push_back(listener);
 	}
 
-	void Game::RegisterBoardChanged(const BoardChangesListener &listener)
+	void Game::RegisterBoardChanged(const BoardChangesListener& listener)
 	{
 		_boardChangesListeners.push_back(listener);
 	}
@@ -53,7 +53,7 @@ namespace Chess
 		return moves;
 	}
 
-	const MovesHistory &Game::GetGameRecord() const
+	const MovesHistory& Game::GetGameRecord() const
 	{
 		return *_historyAptr;
 	}
@@ -87,12 +87,12 @@ namespace Chess
 		return player;
 	}
 
-	void Game::Save(const std::string &path)
+	void Game::Save(const std::string& path)
 	{
 		auto moveCount = GetMoveCount();
 		std::ofstream outFileStream(path, std::ios::out | std::ios::binary);
 
-		outFileStream.write(SaveGameHeader, strlen(SaveGameHeader)*sizeof(char));
+		outFileStream.write(SaveGameHeader, strlen(SaveGameHeader) * sizeof(char));
 
 		BinarySerializer::Serialize(moveCount, outFileStream);
 
@@ -102,7 +102,7 @@ namespace Chess
 		}
 	}
 
-	void ValidateHeader(std::ifstream &fs, const std::string &header)
+	void ValidateHeader(std::ifstream& fs, const std::string& header)
 	{
 		std::vector<char> buffer(header.size() * sizeof(char), '\0');
 		fs.read(&buffer[0], header.size() * sizeof(char));
@@ -114,7 +114,7 @@ namespace Chess
 		}
 	}
 
-	void Game::Load(const std::string &path)
+	void Game::Load(const std::string& path)
 	{
 		std::ifstream fs(path, std::ios::in | std::ios::binary);
 		ValidateHeader(fs, SaveGameHeader);
@@ -140,7 +140,7 @@ namespace Chess
 		}
 	}
 
-	void Game::NotifyActionsListeners(const EventBase &event)
+	void Game::NotifyActionsListeners(const EventBase& event)
 	{
 		for (auto listener : _gameActionsListeners)
 		{
@@ -151,7 +151,7 @@ namespace Chess
 		}
 	}
 
-	void Game::DoMove(const Move &move1)
+	void Game::DoMove(const Move& move1)
 	{
 		auto move = move1;
 		auto side = _boardAptr->At(move.From).Color;
@@ -187,7 +187,7 @@ namespace Chess
 		{
 			auto pawnPromotionEvent = PawnPromotionEvent(EtPawnPromotion, ppIndex, (int)side);
 
-			pawnPromotionEvent.OnPromoted = [this](const PositionPiece & positionPiece)
+			pawnPromotionEvent.OnPromoted = [this](const PositionPiece& positionPiece)
 			{
 				_historyAptr->rbegin()->PromotedTo = positionPiece.Piece;
 
@@ -285,16 +285,56 @@ namespace Chess
 			: std::vector<Move>();
 	}
 
-	void Game::RegisterLogger(const LoggerCallback &loggerCallback)
+	void Game::RegisterLogger(const LoggerCallback& loggerCallback)
 	{
 		_logger = loggerCallback;
 	}
 
-	void Game::Log(const std::string &message)
+	void Game::Log(const std::string& message)
 	{
 		if (_logger)
 		{
 			_logger(message);
 		}
+	}
+
+	std::string Game::MakeFen()
+	{
+		std::string fen;
+		int emptyCount = 0;
+
+		for (int i = 0; i < 64; ++i) {
+			auto piece = GetPieceAt(i);
+
+			if (piece.IsEmpty()) {
+				emptyCount += 1;
+			}
+			else if (0 < emptyCount)
+			{
+				fen += std::to_string(emptyCount);
+				emptyCount = 0;
+			}
+
+			if (!piece.IsEmpty())
+				fen += piece.ToString();
+
+			if (0 < i && i < 63 && (i + 1) % 8 == 0) {
+				if (0 < emptyCount)
+				{
+					fen += std::to_string(emptyCount);
+					emptyCount = 0;
+				}
+
+				fen += "/";
+			}
+		}
+
+		fen += IsWhiteMove() ? " w" : " b";
+		fen += " KQkq";	// ToDo: serch history for castling possibility
+		fen += " -";	//Todo: serch for el-pasant possibility
+		fen += " " + std::to_string(GetMoveCount() + 1 / 2);
+		fen += " " + std::to_string(GetMoveCount() + 1);
+
+		return fen;
 	}
 }

@@ -85,7 +85,6 @@ UciConnector::~UciConnector() {
 	}
 }
 
-
 std::string UciConnector::GetOption(const std::string& op) {
 	return _opt[op];
 }
@@ -99,6 +98,8 @@ void UciConnector::SetOption(const std::string& op, const std::string& value)
 
 	auto setOptCommand = (boost::format("setoption name %1% value %2%") % op % value).str();
 	ProcessCommand({ setOptCommand,"" });
+	if (!CheckReady())
+		throw std::logic_error("Setting: '" + op + "' failed!");
 }
 
 std::vector<std::string> UciConnector::GetOptions()

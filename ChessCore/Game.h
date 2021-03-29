@@ -72,6 +72,8 @@ namespace Chess
 		bool IsWhiteMove();
 		int GetMoveCount();
 
+		std::string MakeFen();
+
 		~Game();
 	private:
 		void AssureMove(BoardPosition from, BoardPosition to);

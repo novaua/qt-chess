@@ -3,7 +3,6 @@
 #include "ChessException.h"
 #include "BoardPositionsCache.h"
 #include "Check.h"
-//#include <strstream>
 
 using namespace Chess;
 

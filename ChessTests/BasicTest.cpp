@@ -350,5 +350,15 @@ namespace ChessTests
 			Assert::AreEqual<int>(e2, positions[0]);
 			Assert::AreEqual<int>(e4, positions[1]);
 		}
+
+		TEST_METHOD(GameFenBasic_Test)
+		{
+			string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+			auto game = std::make_unique<Game>();
+			//game->Restart();
+			auto gameFen = game->MakeFen();
+
+			Assert::AreEqual(startFen, gameFen);
+		}
 	};
 }

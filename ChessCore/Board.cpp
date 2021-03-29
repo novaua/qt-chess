@@ -7,7 +7,7 @@ namespace Chess {
 
 	Board::Board()
 	{
-        Initialize();
+		Initialize();
 	}
 
 	void Board::Initialize()
@@ -59,11 +59,11 @@ namespace Chess {
 
 	Piece Board::At(int position) const
 	{
-		assert(a1 <= position && position < BpMax&& "Invalid position!");
+		assert(a1 <= position && position < BpMax && "Invalid position!");
 		return At((BoardPosition)position);
 	}
 
-	void Board::Place(BoardPosition position, const Piece & piece)
+	void Board::Place(BoardPosition position, const Piece& piece)
 	{
 		if (_piece[position] != piece.Type || _color[position] != piece.Color)
 		{
@@ -73,7 +73,7 @@ namespace Chess {
 		}
 	}
 
-	HistoryMove Board::DoMove(const Move &move)
+	HistoryMove Board::DoMove(const Move& move)
 	{
 		*_previousBoard = *this;
 
@@ -113,11 +113,11 @@ namespace Chess {
 		}
 	}
 
-	void Board::ForEachPiece(const std::function<void(BoardPosition)> &action, PieceColors color) const
+	void Board::ForEachPiece(const std::function<void(BoardPosition)>& action, PieceColors colorFilter) const
 	{
 		for (auto i = 0u; i < _color.size(); ++i)
 		{
-			if (_color[i] == color)
+			if (_color[i] == colorFilter)
 			{
 				action((BoardPosition)i);
 			}
@@ -128,7 +128,7 @@ namespace Chess {
 	{
 		static std::map<int, std::string> intToStringMap;
 
-		if (intToStringMap.size() == 0)
+		if (intToStringMap.empty())
 		{
 			auto a = 'a';
 			for (auto i = 0; i < 8; ++i)
@@ -162,10 +162,10 @@ namespace Chess {
 		std::vector<BoardPosition> result;
 		for (auto i = 0; i < pos.size(); i += 2)
 		{
-			auto candiate = pos.substr(i, 2);
-			if (strings.find(candiate) != strings.end())
+			auto candidate = pos.substr(i, 2);
+			if (strings.find(candidate) != strings.end())
 			{
-				result.push_back(static_cast<BoardPosition>(strings[candiate]));
+				result.push_back(static_cast<BoardPosition>(strings[candidate]));
 			}
 		}
 
