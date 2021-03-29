@@ -332,7 +332,8 @@ namespace Chess
 		fen += IsWhiteMove() ? " w" : " b";
 		fen += " KQkq";	// ToDo: serch history for castling possibility
 		fen += " -";	//Todo: serch for el-pasant possibility
-		fen += " " + std::to_string(GetMoveCount() + 1 / 2);
+
+		fen += " " + std::to_string(GetMoveCount() / 2);
 		fen += " " + std::to_string(GetMoveCount() + 1);
 
 		return fen;

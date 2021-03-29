@@ -30,7 +30,7 @@ const std::string &Piece::ToString() const
 		"P",
 	};
 
-	auto offset = Color == PieceColors::Dark ? UniquePiecesCount : 0;
+	auto offset = Color == PieceColors::Light ? UniquePiecesCount : 0;
 	return translationMap[Type + offset];
 }
 
