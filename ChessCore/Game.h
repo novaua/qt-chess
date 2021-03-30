@@ -72,6 +72,9 @@ namespace Chess
 		bool IsWhiteMove();
 		int GetMoveCount();
 
+		bool IsCastilngPossible(PieceColors c);
+		BoardPosition ElPasantPosition();
+
 		std::string MakeFen();
 
 		~Game();

@@ -298,6 +298,43 @@ namespace Chess
 		}
 	}
 
+	bool Game::IsCastilngPossible(PieceColors c)
+	{
+		//white ever moved from a1, e1, h1
+		//black ever moved from a8, e8, h8
+		static BoardPosition whitePos[] = { a1, e1, h1 };
+		static BoardPosition darkPos[] = { a8, e8, h8 };
+
+		auto* checkPos = (c == PieceColors::Light ? whitePos : darkPos);
+		for (int i = (c == PieceColors::Light ? 0 : 1); _historyAptr->size(); i += 2) {
+			auto move = (*_historyAptr)[i];
+			auto res = std::find(checkPos, checkPos + 3, move.From.Position);
+			if (res != checkPos + 3)
+				return false;
+		}
+
+		return true;
+	}
+
+	BoardPosition Game::ElPasantPosition()
+	{
+		if (GetMoveCount() == 0)
+			return BpMax;
+
+		auto lastMove = *_historyAptr->rbegin();
+		if (lastMove.To.Piece.Type == PAWN)
+		{
+			int dt = lastMove.To.Position - lastMove.From.Position;
+			if (dt == 2)
+				return BoardPosition(lastMove.From.Position + 1);
+
+			if (dt == -2)
+				return BoardPosition(lastMove.From.Position - 1);
+		}
+
+		return BpMax;
+	}
+
 	std::string Game::MakeFen()
 	{
 		std::string fen;
