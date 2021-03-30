@@ -6,13 +6,6 @@
 
 namespace Chess
 {
-	enum ComplexMoveType
-	{
-		CMEMPTY,
-		CMCASTLING,
-		CMENPASSANT,
-	};
-
 	struct Move
 	{
 		BoardPosition From;

@@ -37,9 +37,9 @@ const std::string &Piece::ToString() const
 Piece Piece::Parse(const std::string &strPiece)
 {
 	// this is not absolutely efficient but quite pretty =)
-	if (strPiece != " " && strPiece != "")
+	if (strPiece != " " && !strPiece.empty())
 	{
-		for (int t = 0; t < EPC_MAX; ++t)
+		for (int t = 1; t < EPC_MAX; ++t)
 		{
 			for (int c = 1; c <= 2; ++c)
 			{
