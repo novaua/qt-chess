@@ -124,10 +124,9 @@ namespace Chess {
 		}
 	}
 
-	std::ostream& operator<<(std::ostream& out, BoardPosition value)
+	std::string BoardPositionToString(BoardPosition value)
 	{
 		static std::map<int, std::string> intToStringMap;
-
 		if (intToStringMap.empty())
 		{
 			auto a = 'a';
@@ -143,7 +142,12 @@ namespace Chess {
 			}
 		}
 
-		return out << intToStringMap[value];
+		return BpMax == value ? "-" : intToStringMap[value];
+	}
+
+	std::ostream& operator<<(std::ostream& out, BoardPosition value)
+	{
+		return out << BoardPositionToString(value);
 	}
 
 	std::vector<BoardPosition> BoardPositionFromString(const std::string& pos)

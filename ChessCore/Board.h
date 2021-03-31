@@ -27,6 +27,7 @@ namespace Chess {
 
 	std::ostream& operator<<(std::ostream& out, BoardPosition value);
 	std::vector<BoardPosition> BoardPositionFromString(const std::string& pos);
+	std::string BoardPositionToString(BoardPosition value);
 
 	class Board
 	{

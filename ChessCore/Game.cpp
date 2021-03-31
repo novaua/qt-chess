@@ -298,7 +298,7 @@ namespace Chess
 		}
 	}
 
-	bool Game::IsCastilngPossible(PieceColors c)
+	bool Game::IsCastlingPossible(PieceColors c)
 	{
 		//white ever moved from a1, e1, h1
 		//black ever moved from a8, e8, h8
@@ -306,7 +306,9 @@ namespace Chess
 		static BoardPosition darkPos[] = { a8, e8, h8 };
 
 		auto* checkPos = (c == PieceColors::Light ? whitePos : darkPos);
-		for (int i = (c == PieceColors::Light ? 0 : 1); _historyAptr->size(); i += 2) {
+
+		for (int i = (c == PieceColors::Light ? 0 : 1); i < _historyAptr->size(); i += 2)
+		{
 			auto move = (*_historyAptr)[i];
 			auto res = std::find(checkPos, checkPos + 3, move.From.Position);
 			if (res != checkPos + 3)
@@ -322,17 +324,31 @@ namespace Chess
 			return BpMax;
 
 		auto lastMove = *_historyAptr->rbegin();
-		if (lastMove.To.Piece.Type == PAWN)
+		if (lastMove.From.Piece.Type == PAWN)
 		{
 			int dt = lastMove.To.Position - lastMove.From.Position;
-			if (dt == 2)
-				return BoardPosition(lastMove.From.Position + 1);
+			if (dt == 2 * 8)
+				return BoardPosition(lastMove.From.Position + 8);
 
-			if (dt == -2)
-				return BoardPosition(lastMove.From.Position - 1);
+			if (dt == -2 * 8)
+				return BoardPosition(lastMove.From.Position - 8);
 		}
 
 		return BpMax;
+	}
+
+	int Game::GetHalfMovesCount() {
+		int i = 0;
+		for (auto p = _historyAptr->crbegin(); p != _historyAptr->crend(); ++p, i++)
+		{
+			auto move = *p;
+
+			if (move.IsCapturingMove() || move.From.Piece.Type == PAWN) {
+				break;
+			}
+		}
+
+		return i;
 	}
 
 	std::string Game::MakeFen()
@@ -340,38 +356,46 @@ namespace Chess
 		std::string fen;
 		int emptyCount = 0;
 
-		for (int i = 0; i < 64; ++i) {
-			auto piece = GetPieceAt(i);
+		for (int line = 7; line >= 0; line--) {
+			for (int col = 0; col < 8; ++col) {
+				auto i = line * 8 + col;
 
-			if (piece.IsEmpty()) {
-				emptyCount += 1;
-			}
-			else if (0 < emptyCount)
-			{
-				fen += std::to_string(emptyCount);
-				emptyCount = 0;
-			}
+				auto piece = GetPieceAt(i);
 
-			if (!piece.IsEmpty())
-				fen += piece.ToString();
-
-			if (0 < i && i < 63 && (i + 1) % 8 == 0) {
-				if (0 < emptyCount)
+				if (piece.IsEmpty()) {
+					emptyCount += 1;
+				}
+				else if (0 < emptyCount)
 				{
 					fen += std::to_string(emptyCount);
 					emptyCount = 0;
 				}
 
-				fen += "/";
+				if (!piece.IsEmpty())
+					fen += piece.ToString();
+			} // for
+
+			if (0 < emptyCount)
+			{
+				fen += std::to_string(emptyCount);
+				emptyCount = 0;
 			}
-		}
+
+			if (line != 0)
+				fen += "/";
+		} // for
 
 		fen += IsWhiteMove() ? " w" : " b";
-		fen += " KQkq";	// ToDo: serch history for castling possibility
-		fen += " -";	//Todo: serch for el-pasant possibility
 
-		fen += " " + std::to_string(GetMoveCount() / 2);
-		fen += " " + std::to_string(GetMoveCount() + 1);
+		// KQkq
+		fen += " ";
+		fen += IsCastlingPossible(PieceColors::Light) ? "KQ" : "-";
+		fen += IsCastlingPossible(PieceColors::Dark) ? "kq" : "-";
+
+		fen += " " + BoardPositionToString(ElPasantPosition());
+
+		fen += " " + std::to_string(GetHalfMovesCount());
+		fen += " " + std::to_string(1 + GetMoveCount() / 2);
 
 		return fen;
 	}

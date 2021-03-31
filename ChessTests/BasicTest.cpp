@@ -366,9 +366,46 @@ namespace ChessTests
 			string startFen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
 			auto game = std::make_unique<Game>();
 			game->DoMove({ e2,e4 });
+
+			// Act
 			auto gameFen = game->MakeFen();
 
+			// Check
 			Assert::AreEqual(startFen, gameFen);
+		}
+
+		TEST_METHOD(GameFenBasic2_Test)
+		{
+			string startFen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2";
+			auto game = std::make_unique<Game>();
+
+			game->DoMove({ e2,e4 });
+			game->DoMove({ d7,d5 });
+
+			// Act
+			auto gameFen = game->MakeFen();
+
+			// Check
+			Assert::AreEqual(startFen, gameFen);
+		}
+
+		TEST_METHOD(ElPasantPosition_Test)
+		{
+			auto game = std::make_unique<Game>();
+
+			Assert::IsTrue(BpMax == game->ElPasantPosition());
+		}
+
+		TEST_METHOD(ElPasantPosition1_Test)
+		{
+			auto game = std::make_unique<Game>();
+			game->DoMove({ e2,e4 });
+
+			Assert::IsTrue(e3 == game->ElPasantPosition());
+
+			game->DoMove({ d7, d5 });
+
+			Assert::IsTrue(d6 == game->ElPasantPosition());
 		}
 	};
 }
