@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "framework.h"
 #include "UciConnector.h"
+#include <chrono>
 
 const std::string UciEngineProgramm = "E:\\Tools\\bin\\stockfish.exe";
 
@@ -13,14 +14,17 @@ const std::string UciNewGameCommand = "ucinewgame";
 
 const std::string ReadyCommand = "isready";
 const std::string ReadyOkCommand = "readyok";
+const std::string BestMoveCommand = "bestmove";
 
 const std::string QuitCommand = "quit";
+
 
 /// <summary>
 /// Options and IDs
 /// </summary>
 const std::regex IdNameRegex("id name (.*)");
 const std::regex OptionNameRegex("option name (.*) type (.*)");
+const std::regex BestMoveRegex("bestmove (.*) ponder (.*)");
 
 UciConnector::UciConnector() {
 }
@@ -111,4 +115,29 @@ std::vector<std::string> UciConnector::GetOptions()
 	}
 
 	return res;
+}
+
+EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req, const std::chrono::seconds& moveTime)
+{
+	std::string moves;
+	for (auto move : req.Moves) {
+		moves += move + " ";
+	}
+
+	ProcessCommand({ (boost::format("position startpos moves %1%") % moves).str() });
+
+	std::stringstream goRequest;
+	goRequest << "go movetime " << std::chrono::milliseconds(moveTime).count();
+
+	Command goCommand = { goRequest.str(), BestMoveCommand };
+
+	auto responseStr = ProcessCommand(goCommand);
+
+	std::cmatch what;
+	if (std::regex_match(responseStr.c_str(), what, BestMoveRegex)) {
+		return { what[1], what[2] };
+	}
+
+	throw std::logic_error("Getting engine move failed! request: '" + goRequest.str() +
+		"' response: '" + responseStr + "'");
 }

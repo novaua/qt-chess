@@ -21,6 +21,12 @@ Move HistoryMove::ToMove() const
 	return{ From.Position, To.Position, false, PromotedTo };
 }
 
+std::string HistoryMove::ToUciString() const {
+	std::stringstream ss;
+	ss << From.Position << To.Position;
+	return ss.str();
+}
+
 namespace {
 	// Standard approach to decide where to move.
 	// This code mainly taken from http://chessprogramming.wikispaces.com/10x12+Board#OffsetMG

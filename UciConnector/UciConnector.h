@@ -1,14 +1,28 @@
 #pragma once
 #include <string>
 #include <boost/process.hpp>
+#include <memory>
+#include <chrono>
 
 namespace bp = boost::process;
 
-struct Command {
-
+struct Command
+{
 	std::string Request;
 
 	std::string Response;
+};
+
+struct StartPosMoveRequest
+{
+	std::vector<std::string> Moves; // e2e4 e7e5 b1c3
+};
+
+struct EngineMoveResponse
+{
+	std::string BestMove;
+
+	std::string Ponder;
 };
 
 class UciConnector
@@ -19,6 +33,11 @@ class UciConnector
 	bp::ipstream out;
 
 	std::map<std::string, std::string> _opt;
+
+protected:
+
+	std::string ProcessCommand(const Command& comm);
+
 public:
 
 	UciConnector();
@@ -34,8 +53,10 @@ public:
 	void SetOption(const std::string& op, const std::string& value);
 	std::vector<std::string> GetOptions();
 
-	std::string ProcessCommand(const Command& comm);
+	EngineMoveResponse GetEngineMove(const StartPosMoveRequest& req, const std::chrono::seconds& moveTime);
 
 	~UciConnector();
 };
+
+typedef std::shared_ptr<UciConnector> UciConnectorAPtr;
 

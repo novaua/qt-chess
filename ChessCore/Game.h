@@ -3,7 +3,6 @@
 #include <stack>
 #include <functional>
 #include <mutex>
-
 #include "Board.h"
 #include "Events.h"
 #include "Move.h"
