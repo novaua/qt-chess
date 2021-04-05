@@ -14,4 +14,6 @@ namespace Chess {
 
 		void DoMove();
 	};
+
+	typedef std::shared_ptr<ChessEnginePlayer> ChessEnginePlayerAptr;
 }

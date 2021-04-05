@@ -549,6 +549,12 @@ Move Move::Parse(const std::string& strMove)
 			++delimPtr;
 		}
 	}
+	else // parse UCI e2e4
+	{
+		auto moves = BoardPositionFromString(strMove);
+		result.From = moves.at(0);
+		result.To = moves.at(1);
+	}
 
 	return result;
 }

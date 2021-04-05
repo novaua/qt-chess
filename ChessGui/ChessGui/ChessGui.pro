@@ -4,6 +4,7 @@ QT += qml quick widgets
 
 SOURCES += main.cpp \
     ../../ChessCore/Board.cpp \
+    ../../ChessCore/ChessEnginePlayer.cpp \
     ../../ChessCore/ChessException.cpp \
     ../../ChessCore/Game.cpp \
     ../../ChessCore/Move.cpp \
@@ -32,6 +33,7 @@ SUBDIRS += \
 
 HEADERS += \
     ../../ChessCore/Board.h \
+    ../../ChessCore/ChessEnginePlayer.h \
     ../../ChessCore/ChessException.h \
     ../../ChessCore/Events.h \
     ../../ChessCore/Game.h \
