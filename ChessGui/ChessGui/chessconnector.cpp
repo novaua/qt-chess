@@ -8,10 +8,10 @@
 
 using namespace Chess;
 
-const char *EmptyFlag = " ";
-const char *DefaultSaveGameFile = "chess.save";
+const char* EmptyFlag = " ";
+const char* DefaultSaveGameFile = "chess.save";
 
-void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
+void ClearBoard(QStringList& board, const QString& cleanValue = EmptyFlag)
 {
 	auto newBoard = board.empty();
 	for (auto i = 0; i < 64; ++i)
@@ -24,47 +24,47 @@ void ClearBoard(QStringList& board, const QString &cleanValue = EmptyFlag)
 }
 
 ChessConnector::ChessConnector()
-    :_game(GameAptr(new Game())),
-     _netPlayer(std::make_shared<NetworkPlayer>( "Vitaly-Nb" /*QHostInfo().hostName() */))
+	:_game(GameAptr(new Game())),
+	_netPlayer(std::make_shared<NetworkPlayer>("Vitaly-Nb" /*QHostInfo().hostName() */))
 {
 	_game->RegisterBoardChanged(
-		[&](int index, const Piece &piece)
-	{
-		emit boardChanged(index, QString::fromStdString(piece.ToString()));
-	});
+		[&](int index, const Piece& piece)
+		{
+			emit boardChanged(index, QString::fromStdString(piece.ToString()));
+		});
 
 	_game->RegisterGameActionsListeners(
-		[&](const EventBase & event)
-	{
-		if (event.GetType() == EtCheck)
+		[&](const EventBase& event)
 		{
-			emit checkNotify();
-		}
-		else if (event.GetType() == EtCheckMate)
-		{
-			emit checkMateNotify();
-		}
-		else if (event.GetType() == EtCastling)
-		{
-			emit castlingNotify();
-		}
-		else if (event.GetType() == EtPawnPromotion)
-		{
-			const PawnPromotionEvent& ppEvent = (PawnPromotionEvent&)event;
-			_onPawnPromotedCallback = ppEvent.OnPromoted;
-			emit pawnPromotionNotify(ppEvent.GetIndex(), ppEvent.GetColor());
-		}
-	});
+			if (event.GetType() == EtCheck)
+			{
+				emit checkNotify();
+			}
+			else if (event.GetType() == EtCheckMate)
+			{
+				emit checkMateNotify();
+			}
+			else if (event.GetType() == EtCastling)
+			{
+				emit castlingNotify();
+			}
+			else if (event.GetType() == EtPawnPromotion)
+			{
+				const PawnPromotionEvent& ppEvent = (PawnPromotionEvent&)event;
+				_onPawnPromotedCallback = ppEvent.OnPromoted;
+				emit pawnPromotionNotify(ppEvent.GetIndex(), ppEvent.GetColor());
+			}
+		});
 
 	_game->RegisterLogger(
-		[&](const std::string &message)
-	{
-		qDebug() << "[Game] " << message.c_str();
-	});
+		[&](const std::string& message)
+		{
+			qDebug() << "[Game] " << message.c_str();
+		});
 
 	ClearBoard(_possibleMoves);
-    _netPlayer->SendAvaliability();
-    _netPlayer->ReceiveMessage();
+	_netPlayer->SendAvaliability();
+	_netPlayer->ReceiveMessage();
 }
 
 int ChessConnector::MoveCount()
@@ -79,7 +79,7 @@ int ChessConnector::IsWhiteMove()
 
 void ChessConnector::figureSelected(int index)
 {
-	if (IsOnPlayerMode()){
+	if (IsOnPlayerMode()) {
 		return;
 	}
 
@@ -103,10 +103,10 @@ void ChessConnector::figureSelected(int index)
 		}
 	}
 
-    emit PossibleMovesChanged();
+	emit PossibleMovesChanged();
 }
 
-void ChessConnector::pawnPromote(int index, const QString &piece)
+void ChessConnector::pawnPromote(int index, const QString& piece)
 {
 	auto promotedPiece = Piece::Parse(piece.toStdString());
 	_onPawnPromotedCallback({ (BoardPosition)index, promotedPiece });
@@ -115,12 +115,12 @@ void ChessConnector::pawnPromote(int index, const QString &piece)
 		<< piece;
 }
 
-QStringList &ChessConnector::PossibleMoves()
+QStringList& ChessConnector::PossibleMoves()
 {
 	return _possibleMoves;
 }
 
-void ChessConnector::setPossibleMoves(const QStringList &moves)
+void ChessConnector::setPossibleMoves(const QStringList& moves)
 {
 	_possibleMoves = moves;
 	emit PossibleMovesChanged();
@@ -139,7 +139,7 @@ void ChessConnector::makeMove(int from, int to)
 		_game->DoMove((BoardPosition)from, (BoardPosition)to);
 		EmitMoveCountUpdates();
 	}
-	catch (ChessException &ex)
+	catch (ChessException& ex)
 	{
 		qDebug() << "Exception caught moving [" << from << ", " << to << "]:" << ex.what();
 	}
@@ -153,6 +153,12 @@ void ChessConnector::startNewGame()
 	qDebug() << "Cpp Game restarted!";
 }
 
+void ChessConnector::startNewGameWithComputer()
+{
+	_game->EndGame();
+	_chessEnginePlayer = std::make_shared<ChessEnginePlayer>(_game);
+}
+
 QString pathAppend(const QString& path1, const QString& path2)
 {
 	return QDir::cleanPath(path1 + QDir::separator() + path2);
@@ -160,7 +166,7 @@ QString pathAppend(const QString& path1, const QString& path2)
 
 QString getSaveGameFilePath()
 {
-    auto path = pathAppend(QDir::currentPath(), DefaultSaveGameFile);
+	auto path = pathAppend(QDir::currentPath(), DefaultSaveGameFile);
 	return path;
 }
 
@@ -193,7 +199,7 @@ bool ChessConnector::loadGame()
 			success = true;
 		}
 	}
-	catch (ChessException &ex)
+	catch (ChessException& ex)
 	{
 		qDebug() << "Exception caught while loading game " << ex.what();
 	}
@@ -208,9 +214,9 @@ bool ChessConnector::loadGame()
 
 void ChessConnector::moveNext()
 {
-    if (!_player->CanMove(true)){
-        emit noMoreMovesNotify();
-    }
+	if (!_player->CanMove(true)) {
+		emit noMoreMovesNotify();
+	}
 
 	_player->MoveNext();
 	EmitMoveCountUpdates();
@@ -219,9 +225,9 @@ void ChessConnector::moveNext()
 void ChessConnector::movePrev()
 {
 
-    if (!_player->CanMove(false)){
-        emit noMoreMovesNotify();
-    }
+	if (!_player->CanMove(false)) {
+		emit noMoreMovesNotify();
+	}
 
 	_player->MoveBack();
 	EmitMoveCountUpdates();
@@ -237,8 +243,8 @@ void ChessConnector::endGame()
 	_game->EndGame();
 	EmitMoveCountUpdates();
 	emit IsOnPlayerModeChanged();
-    ClearBoard(_possibleMoves);
-    emit PossibleMovesChanged();
+	ClearBoard(_possibleMoves);
+	emit PossibleMovesChanged();
 }
 
 ChessConnector::~ChessConnector()
@@ -246,12 +252,18 @@ ChessConnector::~ChessConnector()
 	qDebug() << "Game Exited.";
 }
 
- QStringList ChessConnector::PlayersName()
- {
-    //todo
-     QStringList players;
-     players.append("Joe");
-     players.append("Vitaly");
+QStringList ChessConnector::PlayersName()
+{
+	// ToDo
+	QStringList players;
+	players.append("Joe");
+	players.append("Vitaly");
 
-     return players;
- }
+	return players;
+}
+
+
+void ChessConnector::computerMove()
+{
+	_chessEnginePlayer->DoMove();
+}

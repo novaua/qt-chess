@@ -25,6 +25,10 @@ namespace Chess {
 	class Board;
 	typedef std::shared_ptr<Board> BoardAptr;
 
+	std::ostream& operator<<(std::ostream& out, BoardPosition value);
+	std::vector<BoardPosition> BoardPositionFromString(const std::string& pos);
+	std::string BoardPositionToString(BoardPosition value);
+
 	class Board
 	{
 		std::vector<PieceColors> _color;  /* Empty, Light, Dark */

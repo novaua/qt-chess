@@ -30,18 +30,18 @@ const std::string &Piece::ToString() const
 		"P",
 	};
 
-	auto offset = Color == PieceColors::Dark ? UniquePiecesCount : 0;
+	auto offset = Color == PieceColors::Light ? UniquePiecesCount : 0;
 	return translationMap[Type + offset];
 }
 
 Piece Piece::Parse(const std::string &strPiece)
 {
 	// this is not absolutely efficient but quite pretty =)
-	if (strPiece != " " && strPiece != "")
+	if (strPiece != " " && !strPiece.empty())
 	{
-		for (int t = 0; t < EPC_MAX; ++t)
+		for (int t = KNIGHT; t < EPC_MAX; ++t)
 		{
-			for (int c = 1; c <= 2; ++c)
+			for (int c = (int)PieceColors::Dark; c > (int)PieceColors::Empty; --c)
 			{
 				Piece p = { (PieceTypes)t, (PieceColors)c };
 				if (p.ToString() == strPiece)

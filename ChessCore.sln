@@ -12,6 +12,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChessGui", "ChessGui\ChessG
 		{113A444B-2F1C-4B33-9905-41A466FFEF7F} = {113A444B-2F1C-4B33-9905-41A466FFEF7F}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UciConnector", "UciConnector\UciConnector.vcxproj", "{BB742A5A-2729-45F2-90C1-2FA70DE41600}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -44,6 +46,14 @@ Global
 		{201796C3-7648-3805-B57C-909780369FC2}.Release|Win32.Build.0 = Release|Win32
 		{201796C3-7648-3805-B57C-909780369FC2}.Release|x64.ActiveCfg = Release|x64
 		{201796C3-7648-3805-B57C-909780369FC2}.Release|x64.Build.0 = Release|x64
+		{BB742A5A-2729-45F2-90C1-2FA70DE41600}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BB742A5A-2729-45F2-90C1-2FA70DE41600}.Debug|Win32.Build.0 = Debug|Win32
+		{BB742A5A-2729-45F2-90C1-2FA70DE41600}.Debug|x64.ActiveCfg = Debug|x64
+		{BB742A5A-2729-45F2-90C1-2FA70DE41600}.Debug|x64.Build.0 = Debug|x64
+		{BB742A5A-2729-45F2-90C1-2FA70DE41600}.Release|Win32.ActiveCfg = Release|Win32
+		{BB742A5A-2729-45F2-90C1-2FA70DE41600}.Release|Win32.Build.0 = Release|Win32
+		{BB742A5A-2729-45F2-90C1-2FA70DE41600}.Release|x64.ActiveCfg = Release|x64
+		{BB742A5A-2729-45F2-90C1-2FA70DE41600}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

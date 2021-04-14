@@ -3,7 +3,6 @@
 #include "ChessException.h"
 #include "BoardPositionsCache.h"
 #include "Check.h"
-//#include <strstream>
 
 using namespace Chess;
 
@@ -20,6 +19,12 @@ bool HistoryMove::IsPawnPromotionMove() const
 Move HistoryMove::ToMove() const
 {
 	return{ From.Position, To.Position, false, PromotedTo };
+}
+
+std::string HistoryMove::ToUciString() const {
+	std::stringstream ss;
+	ss << From.Position << To.Position;
+	return ss.str();
 }
 
 namespace {
@@ -519,12 +524,12 @@ Move Move::Parse(const std::string& strMove)
 
 			if (member == 0)
 			{
-				result.From = (BoardPosition)atoi(token.c_str());
+				result.From = BoardPositionFromString(token).at(0);
 				member++;
 			}
 			else if (member == 1)
 			{
-				result.To = (BoardPosition)atoi(token.c_str());
+				result.To = BoardPositionFromString(token).at(0);
 				member++;
 			}
 			else if (member == 2)
@@ -543,6 +548,12 @@ Move Move::Parse(const std::string& strMove)
 
 			++delimPtr;
 		}
+	}
+	else // parse UCI e2e4
+	{
+		auto moves = BoardPositionFromString(strMove);
+		result.From = moves.at(0);
+		result.To = moves.at(1);
 	}
 
 	return result;

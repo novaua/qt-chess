@@ -7,7 +7,7 @@ namespace Chess {
 
 	Board::Board()
 	{
-        Initialize();
+		Initialize();
 	}
 
 	void Board::Initialize()
@@ -59,11 +59,11 @@ namespace Chess {
 
 	Piece Board::At(int position) const
 	{
-		assert(a1 <= position && position < BpMax&& "Invalid position!");
+		assert(a1 <= position && position < BpMax && "Invalid position!");
 		return At((BoardPosition)position);
 	}
 
-	void Board::Place(BoardPosition position, const Piece & piece)
+	void Board::Place(BoardPosition position, const Piece& piece)
 	{
 		if (_piece[position] != piece.Type || _color[position] != piece.Color)
 		{
@@ -73,7 +73,7 @@ namespace Chess {
 		}
 	}
 
-	HistoryMove Board::DoMove(const Move &move)
+	HistoryMove Board::DoMove(const Move& move)
 	{
 		*_previousBoard = *this;
 
@@ -113,15 +113,67 @@ namespace Chess {
 		}
 	}
 
-	void Board::ForEachPiece(const std::function<void(BoardPosition)> &action, PieceColors color) const
+	void Board::ForEachPiece(const std::function<void(BoardPosition)>& action, PieceColors colorFilter) const
 	{
 		for (auto i = 0u; i < _color.size(); ++i)
 		{
-			if (_color[i] == color)
+			if (_color[i] == colorFilter)
 			{
 				action((BoardPosition)i);
 			}
 		}
+	}
+
+	std::string BoardPositionToString(BoardPosition value)
+	{
+		static std::map<int, std::string> intToStringMap;
+		if (intToStringMap.empty())
+		{
+			auto a = 'a';
+			for (auto i = 0; i < 8; ++i)
+			{
+				for (auto j = 0; j < 8; ++j)
+				{
+					char litera = a + j;
+					std::stringstream ss;
+					ss << litera << i + 1;
+					intToStringMap[i * 8 + j] = ss.str();
+				}
+			}
+		}
+
+		return BpMax == value ? "-" : intToStringMap[value];
+	}
+
+	std::ostream& operator<<(std::ostream& out, BoardPosition value)
+	{
+		return out << BoardPositionToString(value);
+	}
+
+	std::vector<BoardPosition> BoardPositionFromString(const std::string& pos)
+	{
+		static std::map<std::string, int> strings;
+		if (strings.empty())
+		{
+			for (int i = 0; i < BpMax; ++i)
+			{
+				std::stringstream ss;
+				ss << static_cast<BoardPosition>(i);
+				strings[ss.str()] = i;
+			}
+		}
+
+		std::vector<BoardPosition> result;
+		for (auto i = 0; i < pos.size(); i += 2)
+		{
+			auto candidate = pos.substr(i, 2);
+			if (strings.find(candidate) != strings.end())
+			{
+				result.push_back(static_cast<BoardPosition>(strings[candidate]));
+			}
+		}
+
+		return result;
 	}
 
 	//position hash code using Zobrist Hashing

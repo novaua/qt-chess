@@ -40,7 +40,8 @@ Rectangle{
         Repeater{
             id:pawnPromotionRptr
             model:pawnPromotionRec.parent!==null
-                  ?((pawnPromotionRec.parent.side) === 2 ? ["Q","R","B","N"]:["q","r","b","n"]):0
+                  ?((pawnPromotionRec.parent.side) === 2 ?["q","r","b","n"]
+                                                         :["Q","R","B","N"]):0
 
             delegate: Image{
                 height: pawnPromotionRow.width<pawnPromotionRow.height*4?pawnPromotionRow.width/4:pawnPromotionRow.height
@@ -49,10 +50,10 @@ Rectangle{
                 smooth: true
                 antialiasing:true
                 fillMode: Image.PreserveAspectFit
-                source:modelData!=" "? (modelData === modelData.toUpperCase()
-                                        ? "pics/black/"+modelData+".png"
-                                        : "pics/white/"+modelData+".png")
-                                     :"";
+                source:modelData!=" "? (modelData === modelData.toLowerCase()
+                                        ? "pics/black/"+modelData.toUpperCase()+".png"
+                                        : "pics/white/"+modelData.toLowerCase()+".png")
+                                     :" ";
                 MouseArea{
                     anchors.fill:parent
                     onClicked: {

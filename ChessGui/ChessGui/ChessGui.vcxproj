@@ -96,7 +96,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>.;..\..\ChessCore;$(QTDIR)\include;release;$(QTDIR)\mkspecs\win32-msvc2013;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtNetwork;$(QTDIR)\include\QtQml;$(QTDIR)\include\QtQuick;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtQuickWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;.;..\..\ChessCore;$(QTDIR)\include;release;$(QTDIR)\mkspecs\win32-msvc2013;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtNetwork;$(QTDIR)\include\QtQml;$(QTDIR)\include\QtQuick;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtQuickWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Zc:strictStrings -w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>release\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -138,7 +138,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>.;..\..\ChessCore;$(QTDIR)\include;release;$(QTDIR)\mkspecs\win32-msvc2013;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtNetwork;$(QTDIR)\include\QtQml;$(QTDIR)\include\QtQuick;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtQuickWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;.;..\..\ChessCore;$(QTDIR)\include;release;$(QTDIR)\mkspecs\win32-msvc2013;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtNetwork;$(QTDIR)\include\QtQml;$(QTDIR)\include\QtQuick;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtQuickWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Zc:strictStrings -w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>release\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -180,7 +180,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>.;..\..\ChessCore;$(QTDIR)\include;debug;$(QTDIR)\mkspecs\win32-msvc2013;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtNetwork;$(QTDIR)\include\QtQml;$(QTDIR)\include\QtQuick;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtQuickWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;.;..\..\ChessCore;$(QTDIR)\include;debug;$(QTDIR)\mkspecs\win32-msvc2013;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtNetwork;$(QTDIR)\include\QtQml;$(QTDIR)\include\QtQuick;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtQuickWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>debug\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -221,7 +221,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>.;..\..\ChessCore;$(QTDIR)\include;debug;$(QTDIR)\mkspecs\win32-msvc2013;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtNetwork;$(QTDIR)\include\QtQml;$(QTDIR)\include\QtQuick;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtQuickWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;.;..\..\ChessCore;$(QTDIR)\include;debug;$(QTDIR)\mkspecs\win32-msvc2013;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtNetwork;$(QTDIR)\include\QtQml;$(QTDIR)\include\QtQuick;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtQuickWidgets;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>debug\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>

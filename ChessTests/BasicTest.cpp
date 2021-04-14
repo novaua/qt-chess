@@ -322,7 +322,7 @@ namespace ChessTests
 			{ { e2, e4, false, { QUEEN, PieceColors::Light } },
 			{ e2, e4, true, {} } };
 
-			for(const auto &move: moves)
+			for (const auto& move : moves)
 			{
 				auto strMove = move.ToString();
 
@@ -333,6 +333,79 @@ namespace ChessTests
 				Assert::AreEqual<int>(move.Capturing, moveR.Capturing);
 				Assert::AreEqual<int>(move.PromotedTo.Type, moveR.PromotedTo.Type);
 			}
+		}
+
+		TEST_METHOD(BoardPosition_Test)
+		{
+			std::stringstream ss;
+			auto e2 = BoardPosition::e2;
+			auto e4 = BoardPosition::e4;
+
+			ss << e2 << e4;
+			auto str = ss.str();
+			Assert::AreEqual<int>(4, str.size());
+			Assert::AreEqual<std::string>("e2e4", str);
+
+			auto positions = BoardPositionFromString(str);
+			Assert::AreEqual<int>(e2, positions[0]);
+			Assert::AreEqual<int>(e4, positions[1]);
+		}
+
+		TEST_METHOD(GameFenBasic_Test)
+		{
+			string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+			auto game = std::make_unique<Game>();
+
+			auto gameFen = game->MakeFen();
+
+			Assert::AreEqual(startFen, gameFen);
+		}
+
+		TEST_METHOD(GameFenBasic1_Test)
+		{
+			string startFen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
+			auto game = std::make_unique<Game>();
+			game->DoMove({ e2,e4 });
+
+			// Act
+			auto gameFen = game->MakeFen();
+
+			// Check
+			Assert::AreEqual(startFen, gameFen);
+		}
+
+		TEST_METHOD(GameFenBasic2_Test)
+		{
+			string startFen = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2";
+			auto game = std::make_unique<Game>();
+
+			game->DoMove({ e2,e4 });
+			game->DoMove({ d7,d5 });
+
+			// Act
+			auto gameFen = game->MakeFen();
+
+			// Check
+			Assert::AreEqual(startFen, gameFen);
+		}
+
+		TEST_METHOD(ElPasantPosition_Test)
+		{
+			auto game = std::make_unique<Game>();
+
+			Assert::IsTrue(BpMax == game->ElPasantPosition());
+		}
+
+		TEST_METHOD(ElPasantPosition1_Test)
+		{
+			auto game = std::make_unique<Game>();
+			game->DoMove({ e2,e4 });
+
+			Assert::IsTrue(e3 == game->ElPasantPosition());
+
+			game->DoMove({ d7, d5 });
+
+			Assert::IsTrue(d6 == game->ElPasantPosition());
 		}
 	};
 }

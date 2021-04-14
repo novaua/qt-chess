@@ -1,5 +1,5 @@
 #pragma once
-#include "Move.h"
+#include "MovesGen.h"
 #include "Board.h"
 #include "LruCacheMap.hpp"
 

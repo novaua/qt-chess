@@ -34,12 +34,12 @@ namespace Chess
 	{
 	}
 
-	void Game::RegisterGameActionsListeners(const GameActionListener & listener)
+	void Game::RegisterGameActionsListeners(const GameActionListener& listener)
 	{
 		_gameActionsListeners.push_back(listener);
 	}
 
-	void Game::RegisterBoardChanged(const BoardChangesListener &listener)
+	void Game::RegisterBoardChanged(const BoardChangesListener& listener)
 	{
 		_boardChangesListeners.push_back(listener);
 	}
@@ -53,7 +53,7 @@ namespace Chess
 		return moves;
 	}
 
-	const MovesHistory &Game::GetGameRecord() const
+	const MovesHistory& Game::GetGameRecord() const
 	{
 		return *_historyAptr;
 	}
@@ -87,12 +87,12 @@ namespace Chess
 		return player;
 	}
 
-	void Game::Save(const std::string &path)
+	void Game::Save(const std::string& path)
 	{
 		auto moveCount = GetMoveCount();
 		std::ofstream outFileStream(path, std::ios::out | std::ios::binary);
 
-		outFileStream.write(SaveGameHeader, strlen(SaveGameHeader)*sizeof(char));
+		outFileStream.write(SaveGameHeader, strlen(SaveGameHeader) * sizeof(char));
 
 		BinarySerializer::Serialize(moveCount, outFileStream);
 
@@ -102,7 +102,7 @@ namespace Chess
 		}
 	}
 
-	void ValidateHeader(std::ifstream &fs, const std::string &header)
+	void ValidateHeader(std::ifstream& fs, const std::string& header)
 	{
 		std::vector<char> buffer(header.size() * sizeof(char), '\0');
 		fs.read(&buffer[0], header.size() * sizeof(char));
@@ -114,7 +114,7 @@ namespace Chess
 		}
 	}
 
-	void Game::Load(const std::string &path)
+	void Game::Load(const std::string& path)
 	{
 		std::ifstream fs(path, std::ios::in | std::ios::binary);
 		ValidateHeader(fs, SaveGameHeader);
@@ -140,7 +140,7 @@ namespace Chess
 		}
 	}
 
-	void Game::NotifyActionsListeners(const EventBase &event)
+	void Game::NotifyActionsListeners(const EventBase& event)
 	{
 		for (auto listener : _gameActionsListeners)
 		{
@@ -151,7 +151,7 @@ namespace Chess
 		}
 	}
 
-	void Game::DoMove(const Move &move1)
+	void Game::DoMove(const Move& move1)
 	{
 		auto move = move1;
 		auto side = _boardAptr->At(move.From).Color;
@@ -187,7 +187,7 @@ namespace Chess
 		{
 			auto pawnPromotionEvent = PawnPromotionEvent(EtPawnPromotion, ppIndex, (int)side);
 
-			pawnPromotionEvent.OnPromoted = [this](const PositionPiece & positionPiece)
+			pawnPromotionEvent.OnPromoted = [this](const PositionPiece& positionPiece)
 			{
 				_historyAptr->rbegin()->PromotedTo = positionPiece.Piece;
 
@@ -285,16 +285,119 @@ namespace Chess
 			: std::vector<Move>();
 	}
 
-	void Game::RegisterLogger(const LoggerCallback &loggerCallback)
+	void Game::RegisterLogger(const LoggerCallback& loggerCallback)
 	{
 		_logger = loggerCallback;
 	}
 
-	void Game::Log(const std::string &message)
+	void Game::Log(const std::string& message)
 	{
 		if (_logger)
 		{
 			_logger(message);
 		}
+	}
+
+	bool Game::IsCastlingPossible(PieceColors c)
+	{
+		//white ever moved from a1, e1, h1
+		//black ever moved from a8, e8, h8
+		static BoardPosition whitePos[] = { a1, e1, h1 };
+		static BoardPosition darkPos[] = { a8, e8, h8 };
+
+		auto* checkPos = (c == PieceColors::Light ? whitePos : darkPos);
+
+		for (int i = (c == PieceColors::Light ? 0 : 1); i < _historyAptr->size(); i += 2)
+		{
+			auto move = (*_historyAptr)[i];
+			auto res = std::find(checkPos, checkPos + 3, move.From.Position);
+			if (res != checkPos + 3)
+				return false;
+		}
+
+		return true;
+	}
+
+	BoardPosition Game::ElPasantPosition()
+	{
+		if (GetMoveCount() == 0)
+			return BpMax;
+
+		auto lastMove = *_historyAptr->rbegin();
+		if (lastMove.From.Piece.Type == PAWN)
+		{
+			int dt = lastMove.To.Position - lastMove.From.Position;
+			if (dt == 2 * 8)
+				return BoardPosition(lastMove.From.Position + 8);
+
+			if (dt == -2 * 8)
+				return BoardPosition(lastMove.From.Position - 8);
+		}
+
+		return BpMax;
+	}
+
+	int Game::GetHalfMovesCount() {
+		int i = 0;
+		for (auto p = _historyAptr->crbegin(); p != _historyAptr->crend(); ++p, i++)
+		{
+			auto move = *p;
+
+			if (move.IsCapturingMove() || move.From.Piece.Type == PAWN) {
+				break;
+			}
+		}
+
+		return i;
+	}
+
+	// Based on: https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
+	std::string Game::MakeFen()
+	{
+		std::string fen;
+		int emptyCount = 0;
+
+		for (int line = 7; line >= 0; line--) {
+			for (int col = 0; col < 8; ++col) {
+				auto i = line * 8 + col;
+
+				auto piece = GetPieceAt(i);
+
+				if (piece.IsEmpty()) {
+					emptyCount += 1;
+				}
+				else if (0 < emptyCount)
+				{
+					fen += std::to_string(emptyCount);
+					emptyCount = 0;
+				}
+
+				if (!piece.IsEmpty())
+					fen += piece.ToString();
+			} // for
+
+			if (0 < emptyCount)
+			{
+				fen += std::to_string(emptyCount);
+				emptyCount = 0;
+			}
+
+			if (line != 0)
+				fen += "/";
+		} // for
+
+		fen += IsWhiteMove() ? " w" : " b";
+
+		// KQkq
+		fen += " ";
+		fen += IsCastlingPossible(PieceColors::Light) ? "KQ" : "-";
+		fen += IsCastlingPossible(PieceColors::Dark) ? "kq" : "-";
+
+		fen += " " + BoardPositionToString(ElPasantPosition());
+
+		fen += " " + std::to_string(GetHalfMovesCount());
+		fen += " " + std::to_string(1 + GetMoveCount() / 2);
+
+		return fen;
 	}
 }

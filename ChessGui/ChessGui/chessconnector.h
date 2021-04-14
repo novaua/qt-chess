@@ -7,6 +7,7 @@
 
 #include "Game.h"
 #include "networkplayer.h"
+#include "ChessEnginePlayer.h"
 
 class ChessConnector : public QObject
 {
@@ -15,7 +16,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(QStringList PossibleMoves READ PossibleMoves WRITE setPossibleMoves NOTIFY PossibleMovesChanged)
 		Q_PROPERTY(int IsWhiteMove READ IsWhiteMove NOTIFY IsWhiteMoveChanged)
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
-        Q_PROPERTY(QStringList PlayersName READ PlayersName NOTIFY PlayersNameChanged)
+		Q_PROPERTY(QStringList PlayersName READ PlayersName NOTIFY PlayersNameChanged)
 public:
 	ChessConnector();
 	~ChessConnector();
@@ -24,16 +25,16 @@ public:
 	int IsWhiteMove();
 	int IsOnPlayerMode();
 
-	QStringList &PossibleMoves();
-	void setPossibleMoves(const QStringList &moves);
+	QStringList& PossibleMoves();
+	void setPossibleMoves(const QStringList& moves);
 
-    QStringList PlayersName();
+	QStringList PlayersName();
 
 signals:
-	void boardChanged(int position, const QString &newValue);
+	void boardChanged(int position, const QString& newValue);
 
 	void PossibleMovesChanged();
-    void PlayersNameChanged();
+	void PlayersNameChanged();
 
 	void MoveCountChanged();
 	void IsWhiteMoveChanged();
@@ -48,14 +49,17 @@ signals:
 
 	void noSavedGame();
 	void savedOk();
-    void noMoreMovesNotify();
+	void noMoreMovesNotify();
 
-	public slots:
+public slots:
 	void startNewGame();
+	void startNewGameWithComputer();
+	void computerMove();
+
 	void endGame();
 
 	void figureSelected(int index);
-	void pawnPromote(int index, const QString &piece);
+	void pawnPromote(int index, const QString& piece);
 
 	void saveGame();
 	bool loadGame();
@@ -73,10 +77,10 @@ private:
 
 	Chess::GameAptr _game;
 	Chess::HistoryPlayerAptr _player;
+	Chess::ChessEnginePlayerAptr _chessEnginePlayer;
 	Chess::PawnPromotedCallback _onPawnPromotedCallback;
 
-    NetworkPlayerAptr _netPlayer;
-
+	NetworkPlayerAptr _netPlayer;
 };
 
 #endif // CHESSCONNECTOR_H

@@ -84,8 +84,9 @@ Grid{
                 height:0.9*parent.height
                 width:height
                 fillMode: Image.PreserveAspectFit
-                source:modelData!=" "?(modelData===modelData.toUpperCase()?
-                                           "pics/black/"+modelData+".png":"pics/white/"+modelData+".png"):""
+                source:modelData!=" "?(modelData===modelData.toLowerCase()?
+                                           "pics/black/"+modelData.toUpperCase()+
+                                           ".png":"pics/white/"+modelData.toLowerCase()+".png"):" "
             }
 
             PropertyAnimation {

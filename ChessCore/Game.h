@@ -3,7 +3,6 @@
 #include <stack>
 #include <functional>
 #include <mutex>
-
 #include "Board.h"
 #include "Events.h"
 #include "Move.h"
@@ -71,6 +70,12 @@ namespace Chess
 
 		bool IsWhiteMove();
 		int GetMoveCount();
+		int GetHalfMovesCount();
+
+		bool IsCastlingPossible(PieceColors c);
+		BoardPosition ElPasantPosition();
+
+		std::string MakeFen();
 
 		~Game();
 	private:

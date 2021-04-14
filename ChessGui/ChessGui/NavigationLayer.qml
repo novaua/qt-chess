@@ -56,7 +56,6 @@ Grid {
                 opacity: 0.5
                 scale:0
                 visible: modelData!==" "?true:false
-
             }
 
             PropertyAnimation {
