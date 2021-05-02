@@ -4,7 +4,6 @@
 #include "pch.h"
 #include "framework.h"
 #include "UciConnector.h"
-#include <chrono>
 
 const std::string UciEngineProgramm = "E:\\Tools\\bin\\stockfish.exe";
 
@@ -30,7 +29,7 @@ UciConnector::UciConnector() {
 }
 
 void UciConnector::Init() {
-	_uciEngine = bp::child(bp::search_path(UciEngineProgramm), bp::std_out > out, bp::std_in < in);
+	_uciEngine = bp::child(bp::search_path(UciEngineProgramm), bp::std_out > out, bp::std_in < in, ::boost::process::windows::hide);
 	in << UciInitCommand << std::endl;
 
 	std::string line;

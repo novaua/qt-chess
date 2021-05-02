@@ -57,7 +57,7 @@ ApplicationWindow {
                     Button {
                         id: buttonStart
 
-                        text: "Start 2 player game"
+                        text: "Start two player game"
                         onClicked: {
                             screen.state = "screen_2"
 
@@ -77,7 +77,7 @@ ApplicationWindow {
 
                         text: "Start single player game"
                         onClicked: {
-                            buttonPrev.text = "Prev"
+                            buttonPrev.text = "Undo"
                             screen.state = "screen_4"
 
                             if (chessConnector.IsOnPlayerMode)
@@ -96,7 +96,7 @@ ApplicationWindow {
                         text: "Computer move"
                         onClicked: {    
                             chessConnector.computerMove()
-                            buttonPrev.text = "Undo"
+                            //buttonPrev.text = "Undo"
                             screen.state = "screen_4"
                             gameIsInProgress = true;
                            
@@ -194,7 +194,7 @@ ApplicationWindow {
 
         states: [
             State {
-                name: "screen_1"
+                name: "screen_1" //Start screen
                 PropertyChanges { target: buttonStart; visible: true}
                 PropertyChanges { target: buttonStartSingle; visible: true}
                 PropertyChanges { target: buttonComputerMove; visible: false}
@@ -203,9 +203,11 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: false}
                 PropertyChanges { target: buttonNext; visible: false}
                 PropertyChanges { target: buttonPrev; visible: false}
+                PropertyChanges { target: buttonNetworkGame; visible: true}
             },
+
             State {
-                name: "screen_2"
+                name: "screen_2" // Two player
                 PropertyChanges { target: buttonStart; visible: false}
                 PropertyChanges { target: buttonStartSingle; visible: false}
                 PropertyChanges { target: buttonComputerMove; visible: false}
@@ -214,22 +216,24 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: true}
                 PropertyChanges { target: buttonNext; visible: false}
                 PropertyChanges { target: buttonPrev; visible: false}
+                PropertyChanges { target: buttonNetworkGame;visible: false}
             },
 
             State {
-                name: "screen_3"
-                PropertyChanges { target: buttonStart; visible: true}
-                PropertyChanges { target: buttonStartSingle; visible: true}
+                name: "screen_3" // loaded game player
+                PropertyChanges { target: buttonStart; visible: false}
+                PropertyChanges { target: buttonStartSingle; visible: false}
                 PropertyChanges { target: buttonComputerMove; visible: false}
                 PropertyChanges { target: buttonLoad; visible: true}
-                PropertyChanges { target: buttonStop; visible: false}
+                PropertyChanges { target: buttonStop; visible: true}
                 PropertyChanges { target: buttonSave; visible: false}
                 PropertyChanges { target: buttonNext; visible: true}
                 PropertyChanges { target: buttonPrev; visible: true}
+                PropertyChanges { target: buttonNetworkGame; visible: false}
             },
-            
+
             State {
-                name: "screen_4"
+                name: "screen_4" // play with computer
                 PropertyChanges { target: buttonStart; visible: false}
                 PropertyChanges { target: buttonStartSingle; visible: false}
                 PropertyChanges { target: buttonComputerMove; visible: true}
@@ -238,6 +242,7 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: true}
                 PropertyChanges { target: buttonNext; visible: false}
                 PropertyChanges { target: buttonPrev; visible: true}
+                PropertyChanges { target: buttonNetworkGame; visible: false}
             }
         ]
     }

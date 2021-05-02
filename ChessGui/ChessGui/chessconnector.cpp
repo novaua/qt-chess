@@ -214,22 +214,38 @@ bool ChessConnector::loadGame()
 
 void ChessConnector::moveNext()
 {
+	assert(_player != 0 && "No history palyer!");
+
 	if (!_player->CanMove(true)) {
 		emit noMoreMovesNotify();
 	}
 
 	_player->MoveNext();
+
+
 	EmitMoveCountUpdates();
 }
 
 void ChessConnector::movePrev()
 {
-
-	if (!_player->CanMove(false)) {
-		emit noMoreMovesNotify();
+	if (_player) {
+		if (!_player->CanMove(false)) {
+			emit noMoreMovesNotify();
+		}
+		else
+		{
+			_player->MoveBack();
+		}
+	}
+	else {
+		if (_game->GetMoveCount() > 0)
+			_game->UndoMove();
+		else
+		{
+			emit noMoreMovesNotify();
+		}
 	}
 
-	_player->MoveBack();
 	EmitMoveCountUpdates();
 }
 
@@ -241,6 +257,9 @@ int ChessConnector::IsOnPlayerMode()
 void ChessConnector::endGame()
 {
 	_game->EndGame();
+	if (_player)
+		_player.reset();
+
 	EmitMoveCountUpdates();
 	emit IsOnPlayerModeChanged();
 	ClearBoard(_possibleMoves);
@@ -266,4 +285,5 @@ QStringList ChessConnector::PlayersName()
 void ChessConnector::computerMove()
 {
 	_chessEnginePlayer->DoMove();
+	EmitMoveCountUpdates();
 }

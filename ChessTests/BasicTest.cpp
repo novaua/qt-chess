@@ -65,7 +65,7 @@ namespace ChessTests
 
 			PositionPiece from = hm.From;
 			Assert().AreEqual<int>(from.Piece.Type, KING);
-
+			Assert().AreEqual<int>(hm.To.Piece.Type, QUEEN);
 		}
 
 		TEST_METHOD(MovesSerialization_Works_Test)
@@ -110,7 +110,7 @@ namespace ChessTests
 
 			Assert::AreEqual(movesCount, (int)loadedMoves.size());
 			auto id = 0;
-			for (auto move : loadedMoves)
+			for (auto &move : loadedMoves)
 			{
 				Assert::AreEqual<int>(moves[id].From, move.From);
 				Assert::AreEqual<int>(moves[id].To, move.To);

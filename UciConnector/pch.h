@@ -13,7 +13,9 @@
 #include <iostream>
 #include <regex>
 #include <exception>
+#include <chrono>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#include <boost/process/windows.hpp>
 
 #endif //PCH_H
