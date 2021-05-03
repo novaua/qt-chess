@@ -118,6 +118,7 @@ Grid{
         target: chessConnector
         onBoardChanged: {
             updateChessFiguresModel(position, newValue)
+            changeGlow(position)
         }
     }
 

@@ -46,7 +46,6 @@ signals:
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
 
-
 	void noSavedGame();
 	void savedOk();
 	void noMoreMovesNotify();
@@ -67,10 +66,9 @@ public slots:
 	void moveNext();
 	void movePrev();
 
-
 private:
-	void makeMove(int from, int to);
 	void EmitMoveCountUpdates();
+	void makeMove(int from, int to);
 
 private:
 	QStringList _possibleMoves;

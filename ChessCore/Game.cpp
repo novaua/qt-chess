@@ -154,11 +154,18 @@ namespace Chess
 	void Game::DoMove(const Move& move1)
 	{
 		auto move = move1;
+		std::vector<BoardPosition> changedPositions = { move.From, move.To };
 		auto side = _boardAptr->At(move.From).Color;
+		if (side == PieceColors::Empty) {
+			NotifyBoardChangesListeners(changedPositions);
+			//  ToDo even bad move
+			return;
+		}
+
 		MoveGeneration::Validate(_gameState, move, side);
 
 		Move complementalMove;
-		std::vector<BoardPosition> changedPositions = { move.From, move.To };
+
 		if (MoveGeneration::AddComplementalMove(*_boardAptr, move, complementalMove))
 		{
 			// This is an inline generated move so not added to history

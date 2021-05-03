@@ -30,7 +30,9 @@ ChessConnector::ChessConnector()
 	_game->RegisterBoardChanged(
 		[&](int index, const Piece& piece)
 		{
+			ClearBoard(_possibleMoves);
 			emit boardChanged(index, QString::fromStdString(piece.ToString()));
+			emit PossibleMovesChanged();
 		});
 
 	_game->RegisterGameActionsListeners(
@@ -90,20 +92,20 @@ void ChessConnector::figureSelected(int index)
 		? -1
 		: pmString.toInt();
 
-	ClearBoard(_possibleMoves);
 	if (selected != -1)
 	{
 		makeMove(BoardPosition(selected), BoardPosition(index));
 	}
 	else
 	{
+		ClearBoard(_possibleMoves);
 		for (auto move : _game->GetAllowedMoves(index))
 		{
 			_possibleMoves[move.To] = QString::number(index);
 		}
-	}
 
-	emit PossibleMovesChanged();
+		emit PossibleMovesChanged();
+	}
 }
 
 void ChessConnector::pawnPromote(int index, const QString& piece)
@@ -136,8 +138,10 @@ void ChessConnector::makeMove(int from, int to)
 {
 	try
 	{
+		//ClearBoard(_possibleMoves);
 		_game->DoMove((BoardPosition)from, (BoardPosition)to);
 		EmitMoveCountUpdates();
+		//emit PossibleMovesChanged();
 	}
 	catch (ChessException& ex)
 	{
