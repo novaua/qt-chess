@@ -1,5 +1,6 @@
-import QtQuick 2.3
-import QtGraphicalEffects 1.0
+import QtQuick
+import Qt5Compat.GraphicalEffects
+import QtQuick.Effects
 
 Grid{
 
@@ -52,6 +53,26 @@ Grid{
                     }
                 }
             }
+/*
+    MultiEffect {
+        id: selectItemGlow
+        source: chessPiecesImg
+        anchors.fill: chessPiecesItm
+        // Enable the shadow effect to create the glow
+        shadowEnabled: false
+        visible: shadowEnabled
+        // Configure the "shadow" to look like a glow
+        shadowColor: chessFigureGlow                // cyan The color of the glow
+        shadowBlur: 1.0 // Full blur strength (actual radius depends on blurMax)
+        //shadowSpread: 1.0 // Ensures the glow is strong near the edges
+        shadowScale: 1.1 // No scaling of the shadow
+        shadowVerticalOffset: 0 // Center the "shadow" vertically
+        shadowHorizontalOffset: 0 // Center the "shadow" horizontally
+
+        // Performance note: blurMax should be set once and not animated
+        blurMax: 32.0 // Maximum pixel radius of the blur
+    }
+*/
 
             Glow{
                 id:selectItemGlow
@@ -74,6 +95,7 @@ Grid{
                     }
                 }
             }
+
 
             Image{
                 id:chessPiecesImg
@@ -126,9 +148,11 @@ Grid{
         index=parseInt(index)
         if(chessPiecesRptr.selectedIndex!==-1)
             chessPiecesRptr.itemAt(chessPiecesRptr.selectedIndex).children[0].opacity=0
+            //chessPiecesRptr.itemAt(chessPiecesRptr.selectedIndex).children[0].shadowEnabled=false
 
         chessPiecesRptr.selectedIndex=index
         chessPiecesRptr.itemAt(index).children[0].opacity=1
+        //chessPiecesRptr.itemAt(index).children[0].shadowEnabled=true
     }
 
     function updateChessFiguresModel(index, value)

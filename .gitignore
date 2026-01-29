@@ -57,8 +57,12 @@ Thumbs.db
 *.sdf
 *.opensdf
 *.save
+*.swp
 
 #VS
 *.*pch
 *.db
 *testlog*
+.vs/*
+vcpkg_installed/*
+

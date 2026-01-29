@@ -10,6 +10,8 @@ SOURCES += main.cpp \
     ../../ChessCore/Move.cpp \
     ../../ChessCore/Piece.cpp \
     ../../ChessCore/stdafx.cpp \
+    ../../UciConnector/UciConnector.cpp \
+    ../../UciConnector/pch.cpp \
     chessconnector.cpp \
     ../../ChessCore/HistoryPlayer.cpp \
     ../../ChessCore/BoardPositionsCache.cpp \
@@ -42,9 +44,16 @@ HEADERS += \
     ../../ChessCore/Serializer.h \
     ../../ChessCore/stdafx.h \
     ../../ChessCore/targetver.h \
+    ../../UciConnector/UciConnector.h \
+    ../../UciConnector/framework.h \
+    ../../UciConnector/pch.h \
     chessconnector.h \
     ../../ChessCore/HistoryPlayer.h \
     ../../ChessCore/BoardPositionsCache.h \
     ../../ChessCore/LruCacheMap.hpp \
     ../../ChessCore/Check.h \
     networkplayer.h
+
+DISTFILES += \
+    ../../UciConnector/UciConnector.vcxproj \
+    ../../UciConnector/UciConnector.vcxproj.filters

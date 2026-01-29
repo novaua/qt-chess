@@ -1,4 +1,4 @@
-import QtQuick 2.3
+import QtQuick
 Row {
     Repeater {
         model: ["A","B","C","D","E","F","G","H"]

@@ -2,9 +2,9 @@
 //
 
 #include "pch.h"
-#include "framework.h"
 #include "UciConnector.h"
 #include <chrono>
+#include <unordered_map>
 
 const std::string UciEngineProgramm = "E:\\Tools\\bin\\stockfish.exe";
 
@@ -26,15 +26,22 @@ const std::regex IdNameRegex("id name (.*)");
 const std::regex OptionNameRegex("option name (.*) type (.*)");
 const std::regex BestMoveRegex("bestmove (.*) ponder (.*)");
 
-UciConnector::UciConnector() {
+UciConnector::UciConnector() :_in(_ctx), _out(_ctx)
+{
 }
 
 void UciConnector::Init() {
-	_uciEngine = bp::child(bp::search_path(UciEngineProgramm), bp::std_out > out, bp::std_in < in);
-	in << UciInitCommand << std::endl;
+	_uciEngine = new bp::process(_ctx, "UciEngineProgramm", { "--version" },
+		bp::process_stdio{ _in, _out, { /* err to default */ } });
+
+	_in.write_some(boost::asio::buffer(UciInitCommand + "\n"));
 
 	std::string line;
-	while (_uciEngine.running() && std::getline(out, line) && line.find(UciOkCommand) == std::string::npos)
+	boost::system::error_code ec;
+	while (_uciEngine->running() &&
+		//std::getline(out, line) && 
+		_out.read_some(boost::asio::buffer(line), ec) &&
+		line.find(UciOkCommand) == std::string::npos)
 	{
 		line = boost::algorithm::trim_copy(line);
 
@@ -51,15 +58,18 @@ void UciConnector::Init() {
 }
 
 std::string UciConnector::ProcessCommand(const Command& comm) {
-
-	in << comm.Request << std::endl;
+	_in.write_some(boost::asio::buffer(comm.Request + "\n"));
 
 	if (comm.Response.empty()) {
 		return "";
 	}
 
 	std::string line;
-	while (_uciEngine.running() && std::getline(out, line) && line.find(comm.Response) == std::string::npos)
+	boost::system::error_code ec;
+	while (_uciEngine->running() &&
+		//std::getline(out, line) 
+		_out.read_some(boost::asio::buffer(line), ec)
+		&& line.find(comm.Response) == std::string::npos)
 	{
 		std::cout << line << std::endl << std::flush;
 	}
@@ -83,10 +93,16 @@ bool UciConnector::NewGame() {
 }
 
 UciConnector::~UciConnector() {
-	in << QuitCommand << std::endl;
-	if (!_uciEngine.wait_for(std::chrono::seconds(3))) {
-		_uciEngine.terminate();
+	//in << QuitCommand << std::endl;
+	_in.write_some(boost::asio::buffer(QuitCommand + "\n"));
+	boost::system::error_code ec;
+	if (!_uciEngine->wait(ec)) {
+		_uciEngine->terminate();
 	}
+
+	_uciEngine->wait();
+	delete _uciEngine;
+	_uciEngine = nullptr;
 }
 
 std::string UciConnector::GetOption(const std::string& op) {

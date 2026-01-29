@@ -59,32 +59,17 @@
     <ClCompile Include="..\..\ChessCore\stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Debug\moc_chessconnector.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="Release\moc_chessconnector.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
-    <ClCompile Include="Debug\moc_networkplayer.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="Release\moc_networkplayer.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\qrc_qml.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\ChessCore\Piece.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <CustomBuild Include="chessconnector.h">
+    <QtMoc Include="chessconnector.h">
       <Filter>Header Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="networkplayer.h">
+    </QtMoc>
+    <QtMoc Include="networkplayer.h">
       <Filter>Header Files</Filter>
-    </CustomBuild>
+    </QtMoc>
     <ClInclude Include="..\..\ChessCore\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -171,9 +156,9 @@
     <None Include="pics\white\q.png">
       <Filter>Resource Files</Filter>
     </None>
-    <CustomBuild Include="qml.qrc">
+    <QtRcc Include="qml.qrc">
       <Filter>Resource Files</Filter>
-    </CustomBuild>
+    </QtRcc>
     <None Include="pics\white\r.png">
       <Filter>Resource Files</Filter>
     </None>

@@ -1,4 +1,5 @@
-import QtQuick 2.0
+import QtQuick
+
 Rectangle{
     id:pawnPromotionRec
     radius: 0.125*height

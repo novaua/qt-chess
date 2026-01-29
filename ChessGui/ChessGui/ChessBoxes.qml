@@ -1,4 +1,4 @@
-import QtQuick 2.3
+import QtQuick
 
 Grid {
     width: parent.height<parent.width?0.95*parent.height:.95*parent.width
