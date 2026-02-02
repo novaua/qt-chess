@@ -2,11 +2,15 @@
 //
 
 #include "pch.h"
-#include "framework.h"
 #include "UciConnector.h"
 #include <chrono>
+#include <unordered_map>
+#include <boost/asio.hpp>
+#include <boost/regex.hpp>
+#include <iostream>
+#include <string>
 
-const std::string UciEngineProgramm = "E:\\Tools\\bin\\stockfish.exe";
+const std::string UciEngineProgramm = "D:\\Tools\\bin\\stockfish.exe";
 
 const std::string UciInitCommand = "uci";
 const std::string UciOkCommand = "uciok";
@@ -18,7 +22,6 @@ const std::string BestMoveCommand = "bestmove";
 
 const std::string QuitCommand = "quit";
 
-
 /// <summary>
 /// Options and IDs
 /// </summary>
@@ -26,18 +29,26 @@ const std::regex IdNameRegex("id name (.*)");
 const std::regex OptionNameRegex("option name (.*) type (.*)");
 const std::regex BestMoveRegex("bestmove (.*) ponder (.*)");
 
-UciConnector::UciConnector() {
+UciConnector::UciConnector() :_in(_ctx), _out(_ctx), _err(_ctx)
+{
 }
 
 void UciConnector::Init() {
-	_uciEngine = bp::child(bp::search_path(UciEngineProgramm), bp::std_out > out, bp::std_in < in);
-	in << UciInitCommand << std::endl;
+	_uciEngine = std::unique_ptr<bp::process>(
+		new bp::process(_ctx, UciEngineProgramm, {}, bp::process_stdio{ _in, _out, _err }));
 
-	std::string line;
-	while (_uciEngine.running() && std::getline(out, line) && line.find(UciOkCommand) == std::string::npos)
+	_in.write_some(boost::asio::buffer(UciInitCommand + "\n"));
+
+	boost::asio::streambuf strBuff;
+	while (_uciEngine->running() &&
+		boost::asio::read_until(_out, strBuff, boost::regex("\r\n")) > 0)
 	{
+		std::string line;
+		std::istream is(&strBuff);
+		std::getline(is, line);
 		line = boost::algorithm::trim_copy(line);
-
+		if (line.find(UciOkCommand) != std::string::npos)
+			break;
 		std::cmatch what;
 		if (std::regex_match(line.c_str(), what, IdNameRegex)) {
 			_opt["id"] = what[1];
@@ -51,20 +62,27 @@ void UciConnector::Init() {
 }
 
 std::string UciConnector::ProcessCommand(const Command& comm) {
-
-	in << comm.Request << std::endl;
+	_in.write_some(boost::asio::buffer(comm.Request + "\n"));
 
 	if (comm.Response.empty()) {
 		return "";
 	}
 
 	std::string line;
-	while (_uciEngine.running() && std::getline(out, line) && line.find(comm.Response) == std::string::npos)
+	boost::system::error_code ec;
+	boost::asio::streambuf strBuff;
+	while (_uciEngine->running() &&
+		boost::asio::read_until(_out, strBuff, boost::regex("\r\n")) > 0)
 	{
+		std::istream is(&strBuff);
+		std::getline(is, line);
+		line = boost::algorithm::trim_copy(line);
+		if (line.find(comm.Response) != std::string::npos)
+			break;
 		std::cout << line << std::endl << std::flush;
 	}
 
-	return boost::algorithm::trim_copy(line);
+	return line;
 }
 
 bool UciConnector::IsInitialized() {
@@ -83,10 +101,14 @@ bool UciConnector::NewGame() {
 }
 
 UciConnector::~UciConnector() {
-	in << QuitCommand << std::endl;
-	if (!_uciEngine.wait_for(std::chrono::seconds(3))) {
-		_uciEngine.terminate();
+	_in.write_some(boost::asio::buffer(QuitCommand + "\n"));
+	boost::system::error_code ec;
+	auto code = _uciEngine->wait(ec);
+	if (code != 0) {
+		_uciEngine->terminate();
 	}
+
+	_uciEngine = nullptr;
 }
 
 std::string UciConnector::GetOption(const std::string& op) {

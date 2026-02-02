@@ -1,8 +1,7 @@
 #pragma once
-#include <string>
+#include <boost/asio/io_context.hpp>
 #include <boost/process.hpp>
-#include <memory>
-#include <chrono>
+#include <map>
 
 namespace bp = boost::process;
 
@@ -28,9 +27,12 @@ struct EngineMoveResponse
 class UciConnector
 {
 	bool _initOk;
-	bp::child _uciEngine;
-	bp::opstream in;
-	bp::ipstream out;
+	std::unique_ptr<bp::process> _uciEngine;
+
+	boost::asio::io_context _ctx;
+	boost::asio::readable_pipe _out;
+	boost::asio::readable_pipe _err;
+	boost::asio::writable_pipe _in;
 
 	std::map<std::string, std::string> _opt;
 

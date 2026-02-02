@@ -134,7 +134,7 @@ namespace Chess {
 			{
 				for (auto j = 0; j < 8; ++j)
 				{
-					char litera = a + j;
+					char litera = a + (char)j;
 					std::stringstream ss;
 					ss << litera << i + 1;
 					intToStringMap[i * 8 + j] = ss.str();
