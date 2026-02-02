@@ -27,10 +27,11 @@ struct EngineMoveResponse
 class UciConnector
 {
 	bool _initOk;
-	bp::process* _uciEngine;
+	std::unique_ptr<bp::process> _uciEngine;
 
 	boost::asio::io_context _ctx;
 	boost::asio::readable_pipe _out;
+	boost::asio::readable_pipe _err;
 	boost::asio::writable_pipe _in;
 
 	std::map<std::string, std::string> _opt;

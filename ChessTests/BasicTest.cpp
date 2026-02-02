@@ -70,7 +70,7 @@ namespace ChessTests
 
 		TEST_METHOD(MovesSerialization_Works_Test)
 		{
-			auto tempPath = fs::path(std::string(getenv("TEMP")));
+			auto tempPath = fs::path(std::string(std::getenv("TEMP")));
 			tempPath /= "tempFile";
 
 			Move moves[] = {
@@ -174,7 +174,7 @@ namespace ChessTests
 			game->DoMove(e2, e4);
 			game->DoMove(e7, e5);
 
-			auto tempPath = fs::path(std::string(getenv("TEMP")));
+			auto tempPath = fs::path(std::string(std::getenv("TEMP")));
 			tempPath /= "tempFile1";
 
 			game->Save(tempPath.generic_string());
@@ -343,7 +343,7 @@ namespace ChessTests
 
 			ss << e2 << e4;
 			auto str = ss.str();
-			Assert::AreEqual<int>(4, str.size());
+			Assert::AreEqual<size_t>(4u, str.size());
 			Assert::AreEqual<std::string>("e2e4", str);
 
 			auto positions = BoardPositionFromString(str);

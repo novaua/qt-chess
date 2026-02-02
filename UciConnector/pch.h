@@ -10,6 +10,10 @@
 // add headers that you want to pre-compile here
 #include "framework.h"
 
+#ifdef WIN32
+#include <SDKDDKVer.h>
+#endif
+
 #include <iostream>
 #include <regex>
 #include <exception>

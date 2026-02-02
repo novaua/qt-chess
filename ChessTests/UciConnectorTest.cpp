@@ -37,7 +37,7 @@ namespace ConnectorTests
 			conn->Init();
 
 			Assert::IsTrue(conn->IsInitialized());
-			Assert::IsTrue(conn->GetOption("id").find("St") != string::npos);
+			Assert::IsTrue(conn->GetOption("id").find("Stockfish") != string::npos);
 		}
 
 		TEST_METHOD(MainInit_Options_Test)

@@ -5,8 +5,12 @@
 #include "UciConnector.h"
 #include <chrono>
 #include <unordered_map>
+#include <boost/asio.hpp>
+#include <boost/regex.hpp>
+#include <iostream>
+#include <string>
 
-const std::string UciEngineProgramm = "E:\\Tools\\bin\\stockfish.exe";
+const std::string UciEngineProgramm = "D:\\Tools\\bin\\stockfish.exe";
 
 const std::string UciInitCommand = "uci";
 const std::string UciOkCommand = "uciok";
@@ -18,7 +22,6 @@ const std::string BestMoveCommand = "bestmove";
 
 const std::string QuitCommand = "quit";
 
-
 /// <summary>
 /// Options and IDs
 /// </summary>
@@ -26,25 +29,26 @@ const std::regex IdNameRegex("id name (.*)");
 const std::regex OptionNameRegex("option name (.*) type (.*)");
 const std::regex BestMoveRegex("bestmove (.*) ponder (.*)");
 
-UciConnector::UciConnector() :_in(_ctx), _out(_ctx)
+UciConnector::UciConnector() :_in(_ctx), _out(_ctx), _err(_ctx)
 {
 }
 
 void UciConnector::Init() {
-	_uciEngine = new bp::process(_ctx, "UciEngineProgramm", { "--version" },
-		bp::process_stdio{ _in, _out, { /* err to default */ } });
+	_uciEngine = std::unique_ptr<bp::process>(
+		new bp::process(_ctx, UciEngineProgramm, {}, bp::process_stdio{ _in, _out, _err }));
 
 	_in.write_some(boost::asio::buffer(UciInitCommand + "\n"));
 
-	std::string line;
-	boost::system::error_code ec;
+	boost::asio::streambuf strBuff;
 	while (_uciEngine->running() &&
-		//std::getline(out, line) && 
-		_out.read_some(boost::asio::buffer(line), ec) &&
-		line.find(UciOkCommand) == std::string::npos)
+		boost::asio::read_until(_out, strBuff, boost::regex("\r\n")) > 0)
 	{
+		std::string line;
+		std::istream is(&strBuff);
+		std::getline(is, line);
 		line = boost::algorithm::trim_copy(line);
-
+		if (line.find(UciOkCommand) != std::string::npos)
+			break;
 		std::cmatch what;
 		if (std::regex_match(line.c_str(), what, IdNameRegex)) {
 			_opt["id"] = what[1];
@@ -66,15 +70,19 @@ std::string UciConnector::ProcessCommand(const Command& comm) {
 
 	std::string line;
 	boost::system::error_code ec;
+	boost::asio::streambuf strBuff;
 	while (_uciEngine->running() &&
-		//std::getline(out, line) 
-		_out.read_some(boost::asio::buffer(line), ec)
-		&& line.find(comm.Response) == std::string::npos)
+		boost::asio::read_until(_out, strBuff, boost::regex("\r\n")) > 0)
 	{
+		std::istream is(&strBuff);
+		std::getline(is, line);
+		line = boost::algorithm::trim_copy(line);
+		if (line.find(comm.Response) != std::string::npos)
+			break;
 		std::cout << line << std::endl << std::flush;
 	}
 
-	return boost::algorithm::trim_copy(line);
+	return line;
 }
 
 bool UciConnector::IsInitialized() {
@@ -93,15 +101,13 @@ bool UciConnector::NewGame() {
 }
 
 UciConnector::~UciConnector() {
-	//in << QuitCommand << std::endl;
 	_in.write_some(boost::asio::buffer(QuitCommand + "\n"));
 	boost::system::error_code ec;
-	if (!_uciEngine->wait(ec)) {
+	auto code = _uciEngine->wait(ec);
+	if (code != 0) {
 		_uciEngine->terminate();
 	}
 
-	_uciEngine->wait();
-	delete _uciEngine;
 	_uciEngine = nullptr;
 }
 
