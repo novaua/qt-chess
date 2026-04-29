@@ -9,8 +9,9 @@
 #include <boost/regex.hpp>
 #include <iostream>
 #include <string>
+#include <boost/process/environment.hpp>
 
-const std::string UciEngineProgramm = "D:\\Tools\\bin\\stockfish.exe";
+const auto UciEngineProgrammExe = L"stockfish.exe";
 
 const std::string UciInitCommand = "uci";
 const std::string UciOkCommand = "uciok";
@@ -34,8 +35,9 @@ UciConnector::UciConnector() :_in(_ctx), _out(_ctx), _err(_ctx)
 }
 
 void UciConnector::Init() {
+	auto stockfishFullPath = bp::environment::find_executable(UciEngineProgrammExe);
 	_uciEngine = std::unique_ptr<bp::process>(
-		new bp::process(_ctx, UciEngineProgramm, {}, bp::process_stdio{ _in, _out, _err }));
+		new bp::process(_ctx, stockfishFullPath, {}, bp::process_stdio{ _in, _out, _err }));
 
 	_in.write_some(boost::asio::buffer(UciInitCommand + "\n"));
 
