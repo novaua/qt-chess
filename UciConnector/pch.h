@@ -17,7 +17,8 @@
 #include <iostream>
 #include <regex>
 #include <exception>
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
+#include <QProcess>
+#include <QStandardPaths>
+#include <QString>
 
 #endif //PCH_H

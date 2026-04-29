@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include <CppUnitTest.h>
+#include <QCoreApplication>
 #include <CppUnitTestAssert.h>
 #include "ChessException.h"
 #include "Move.h"
@@ -13,6 +14,22 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 using namespace Chess;
 using namespace std;
+
+// QProcess requires a QCoreApplication; the VS test runner doesn't create one.
+static int   s_argc = 0;
+static char* s_argv[] = { nullptr };
+static std::unique_ptr<QCoreApplication> s_app;
+
+TEST_MODULE_INITIALIZE(ModuleSetup)
+{
+    if (!QCoreApplication::instance())
+        s_app = std::make_unique<QCoreApplication>(s_argc, s_argv);
+}
+
+TEST_MODULE_CLEANUP(ModuleTeardown)
+{
+    s_app.reset();
+}
 
 namespace ConnectorTests
 {

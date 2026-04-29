@@ -3,165 +3,175 @@
 
 #include "pch.h"
 #include "UciConnector.h"
+#include <QProcess>
+#include <QStandardPaths>
+#include <QString>
 #include <chrono>
-#include <unordered_map>
-#include <boost/asio.hpp>
-#include <boost/regex.hpp>
 #include <iostream>
+#include <stdexcept>
 #include <string>
-#include <boost/process/environment.hpp>
 
-const auto UciEngineProgrammExe = L"stockfish.exe";
+const QString UciEngineProgrammExe = "stockfish.exe";
 
-const std::string UciInitCommand = "uci";
-const std::string UciOkCommand = "uciok";
+const std::string UciInitCommand    = "uci";
+const std::string UciOkCommand      = "uciok";
 const std::string UciNewGameCommand = "ucinewgame";
+const std::string ReadyCommand      = "isready";
+const std::string ReadyOkCommand    = "readyok";
+const std::string BestMoveCommand   = "bestmove";
+const std::string QuitCommand       = "quit";
 
-const std::string ReadyCommand = "isready";
-const std::string ReadyOkCommand = "readyok";
-const std::string BestMoveCommand = "bestmove";
-
-const std::string QuitCommand = "quit";
-
-/// <summary>
-/// Options and IDs
-/// </summary>
-const std::regex IdNameRegex("id name (.*)");
+const std::regex IdNameRegex    ("id name (.*)");
 const std::regex OptionNameRegex("option name (.*) type (.*)");
-const std::regex BestMoveRegex("bestmove (.*) ponder (.*)");
+const std::regex BestMoveRegex  ("bestmove (\\S+) ponder (\\S+)");
 
-UciConnector::UciConnector() :_in(_ctx), _out(_ctx), _err(_ctx)
+// Write one UCI command line to the engine's stdin.
+static void sendLine(QProcess* proc, const std::string& text)
 {
+    std::string msg = text + "\n";
+    proc->write(msg.c_str(), static_cast<qint64>(msg.size()));
+    proc->waitForBytesWritten(3000);
 }
 
-void UciConnector::Init() {
-	auto stockfishFullPath = bp::environment::find_executable(UciEngineProgrammExe);
-	_uciEngine = std::unique_ptr<bp::process>(
-		new bp::process(_ctx, stockfishFullPath, {}, bp::process_stdio{ _in, _out, _err }));
-
-	_in.write_some(boost::asio::buffer(UciInitCommand + "\n"));
-
-	boost::asio::streambuf strBuff;
-	while (_uciEngine->running() &&
-		boost::asio::read_until(_out, strBuff, boost::regex("\r\n")) > 0)
-	{
-		std::string line;
-		std::istream is(&strBuff);
-		std::getline(is, line);
-		line = boost::algorithm::trim_copy(line);
-		if (line.find(UciOkCommand) != std::string::npos)
-			break;
-		std::cmatch what;
-		if (std::regex_match(line.c_str(), what, IdNameRegex)) {
-			_opt["id"] = what[1];
-		}
-		else if (std::regex_match(line.c_str(), what, OptionNameRegex)) {
-			_opt[what[1]] = what[2];
-		}
-	}
-
-	_initOk = CheckReady();
+// Block until one complete line is available, then return it trimmed.
+// Returns empty string on timeout or process exit.
+static std::string readLineBlocking(QProcess* proc, int timeoutMs = 5000)
+{
+    while (!proc->canReadLine()) {
+        if (proc->state() != QProcess::Running) return "";
+        if (!proc->waitForReadyRead(timeoutMs)) return "";
+    }
+    return QString(proc->readLine()).trimmed().toStdString();
 }
 
-std::string UciConnector::ProcessCommand(const Command& comm) {
-	_in.write_some(boost::asio::buffer(comm.Request + "\n"));
-
-	if (comm.Response.empty()) {
-		return "";
-	}
-
-	std::string line;
-	boost::system::error_code ec;
-	boost::asio::streambuf strBuff;
-	while (_uciEngine->running() &&
-		boost::asio::read_until(_out, strBuff, boost::regex("\r\n")) > 0)
-	{
-		std::istream is(&strBuff);
-		std::getline(is, line);
-		line = boost::algorithm::trim_copy(line);
-		if (line.find(comm.Response) != std::string::npos)
-			break;
-		std::cout << line << std::endl << std::flush;
-	}
-
-	return line;
+UciConnector::UciConnector() : _initOk(false)
+{
+    _uciEngine = std::make_unique<QProcess>();
+    _uciEngine->setReadChannel(QProcess::StandardOutput);
 }
 
-bool UciConnector::IsInitialized() {
-	return _initOk;
+void UciConnector::Init()
+{
+    QString sfPath = QStandardPaths::findExecutable(UciEngineProgrammExe);
+    if (sfPath.isEmpty())
+        throw std::runtime_error("UciConnector: stockfish.exe not found on PATH");
+
+    _uciEngine->start(sfPath, QStringList());
+    if (!_uciEngine->waitForStarted(5000))
+        throw std::runtime_error("UciConnector: failed to start stockfish");
+
+    sendLine(_uciEngine.get(), UciInitCommand);
+
+    while (_uciEngine->state() == QProcess::Running) {
+        std::string line = readLineBlocking(_uciEngine.get(), 5000);
+
+        if (line.find(UciOkCommand) != std::string::npos) 
+            break;
+
+        std::cmatch m;
+        if (std::regex_match(line.c_str(), m, IdNameRegex))
+            _opt["id"] = m[1];
+        else if (std::regex_match(line.c_str(), m, OptionNameRegex))
+            _opt[m[1]] = m[2];
+    }
+
+    _initOk = CheckReady();
 }
 
-bool UciConnector::CheckReady() {
-	Command isReady = { ReadyCommand, ReadyOkCommand };
-	auto response = ProcessCommand(isReady);
-	return response == ReadyOkCommand;
+std::string UciConnector::ProcessCommand(const Command& comm)
+{
+    sendLine(_uciEngine.get(), comm.Request);
+    if (comm.Response.empty()) return "";
+
+    std::string line;
+    while (_uciEngine->state() == QProcess::Running) {
+        line = readLineBlocking(_uciEngine.get(), 10000);
+        if (line.empty()) break;
+        if (line.find(comm.Response) != std::string::npos) break;
+        std::cout << line << std::endl << std::flush;
+    }
+    return line;
 }
 
-bool UciConnector::NewGame() {
-	ProcessCommand({ UciNewGameCommand });
-	return CheckReady();
+bool UciConnector::IsInitialized()
+{
+    return _initOk;
 }
 
-UciConnector::~UciConnector() {
-	_in.write_some(boost::asio::buffer(QuitCommand + "\n"));
-	boost::system::error_code ec;
-	auto code = _uciEngine->wait(ec);
-	if (code != 0) {
-		_uciEngine->terminate();
-	}
-
-	_uciEngine = nullptr;
+bool UciConnector::CheckReady()
+{
+    Command isReady = { ReadyCommand, ReadyOkCommand };
+    auto response = ProcessCommand(isReady);
+    return response == ReadyOkCommand;
 }
 
-std::string UciConnector::GetOption(const std::string& op) {
-	return _opt[op];
+bool UciConnector::NewGame()
+{
+    ProcessCommand({ UciNewGameCommand, "" });
+    return CheckReady();
+}
+
+UciConnector::~UciConnector()
+{
+    if (_uciEngine && _uciEngine->state() == QProcess::Running) {
+        sendLine(_uciEngine.get(), QuitCommand);
+        if (!_uciEngine->waitForFinished(3000)) {
+            _uciEngine->kill();
+            _uciEngine->waitForFinished(1000);
+        }
+    }
+}
+
+std::string UciConnector::GetOption(const std::string& op)
+{
+    return _opt[op];
 }
 
 void UciConnector::SetOption(const std::string& op, const std::string& value)
 {
-	if (_opt.find(op) == _opt.end())
-	{
-		throw std::invalid_argument("Unknown option: '" + op + "'");
-	}
+    if (_opt.find(op) == _opt.end())
+        throw std::invalid_argument("Unknown option: '" + op + "'");
 
-	auto setOptCommand = (boost::format("setoption name %1% value %2%") % op % value).str();
-	ProcessCommand({ setOptCommand,"" });
-	if (!CheckReady())
-		throw std::logic_error("Setting: '" + op + "' failed!");
+    std::string cmd = "setoption name " + op + " value " + value;
+    ProcessCommand({ cmd, "" });
+    if (!CheckReady())
+        throw std::logic_error("Setting: '" + op + "' failed!");
 }
 
 std::vector<std::string> UciConnector::GetOptions()
 {
-	std::vector<std::string> res;
-	for (auto const& x : _opt)
-	{
-		res.push_back(x.first);
-	}
-
-	return res;
+    std::vector<std::string> res;
+    for (const auto& x : _opt)
+        res.push_back(x.first);
+    return res;
 }
 
-EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req, const std::chrono::seconds& moveTime)
+EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req,
+                                               const std::chrono::seconds& moveTime)
 {
-	std::string moves;
-	for (auto move : req.Moves) {
-		moves += move + " ";
-	}
+    std::string moves;
+    for (const auto& move : req.Moves)
+        moves += move + " ";
+    ProcessCommand({ "position startpos moves " + moves, "" });
 
-	ProcessCommand({ (boost::format("position startpos moves %1%") % moves).str() });
+    auto moveMs = static_cast<int>(std::chrono::milliseconds(moveTime).count());
+    std::string goCmd = "go movetime " + std::to_string(moveMs);
+    sendLine(_uciEngine.get(), goCmd);
 
-	std::stringstream goRequest;
-	goRequest << "go movetime " << std::chrono::milliseconds(moveTime).count();
+    // Per-line timeout: moveTime + 10s buffer.
+    // Stockfish emits many "info depth" lines before "bestmove", each within the
+    // search window, so the budget must be at least as large as the search time.
+    int budget = moveMs + 10000;
+    std::string resp;
+    while (_uciEngine->state() == QProcess::Running) {
+        resp = readLineBlocking(_uciEngine.get(), budget);
+        if (resp.empty()) break;
+        if (resp.find(BestMoveCommand) != std::string::npos) break;
+    }
 
-	Command goCommand = { goRequest.str(), BestMoveCommand };
+    std::cmatch m;
+    if (std::regex_match(resp.c_str(), m, BestMoveRegex))
+        return { m[1], m[2] };
 
-	auto responseStr = ProcessCommand(goCommand);
-
-	std::cmatch what;
-	if (std::regex_match(responseStr.c_str(), what, BestMoveRegex)) {
-		return { what[1], what[2] };
-	}
-
-	throw std::logic_error("Getting engine move failed! request: '" + goRequest.str() +
-		"' response: '" + responseStr + "'");
+    throw std::logic_error("Engine move failed, response: '" + resp + "'");
 }
