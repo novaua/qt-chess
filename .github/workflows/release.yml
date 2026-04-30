@@ -29,33 +29,27 @@ jobs:
         with:
           vcpkgJsonGlob: 'vcpkg.json'
 
-      - name: Install Boost via vcpkg
-        shell: pwsh
-        run: vcpkg install --triplet x64-windows
-
       - name: Setup MSVC (x64)
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
 
-      - name: Build with qmake + nmake
+      - name: Configure (CMake + Ninja)
         shell: pwsh
         run: |
-          cd ChessGui\ChessGui
-          $vcpkgInc = "$env:VCPKG_ROOT\installed\x64-windows\include"
-          $vcpkgLib = "$env:VCPKG_ROOT\installed\x64-windows\lib"
-          qmake ChessGui.pro `
-            "CONFIG+=release" `
-            "QMAKE_CXXFLAGS+=/std:c++17" `
-            "INCLUDEPATH+=$vcpkgInc" `
-            "LIBS+=-L$vcpkgLib"
-          nmake release
+          cmake -B build -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      - name: Build
+        run: cmake --build build --config Release
 
       - name: Collect deployment files
         shell: pwsh
         run: |
           New-Item -Path deploy -ItemType Directory -Force
-          Copy-Item ChessGui\ChessGui\release\ChessGui.exe deploy\
+          Copy-Item build\ChessGui.exe deploy\
           windeployqt --release --qmldir ChessGui\ChessGui deploy\ChessGui.exe
           # Copy vcpkg runtime DLLs (boost_regex, boost_filesystem, etc.)
           $vcpkgBin = "$env:VCPKG_ROOT\installed\x64-windows\bin"
