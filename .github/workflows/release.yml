@@ -23,7 +23,6 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           arch: win64_msvc2019_64
-          modules: qtquickcontrols2
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
