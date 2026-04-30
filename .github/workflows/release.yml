@@ -1,0 +1,101 @@
+name: Build Installer
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    tags: ['v*']
+
+env:
+  QT_VERSION: '6.7.*'
+  VCPKG_DEFAULT_TRIPLET: x64-windows
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: win64_msvc2019_64
+          modules: qtquickcontrols2
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: 'vcpkg.json'
+
+      - name: Install Boost via vcpkg
+        shell: pwsh
+        run: vcpkg install --triplet x64-windows
+
+      - name: Setup MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build with qmake + nmake
+        shell: pwsh
+        run: |
+          cd ChessGui\ChessGui
+          $vcpkgInc = "$env:VCPKG_ROOT\installed\x64-windows\include"
+          $vcpkgLib = "$env:VCPKG_ROOT\installed\x64-windows\lib"
+          qmake ChessGui.pro `
+            "CONFIG+=release" `
+            "QMAKE_CXXFLAGS+=/std:c++17" `
+            "INCLUDEPATH+=$vcpkgInc" `
+            "LIBS+=-L$vcpkgLib"
+          nmake release
+
+      - name: Collect deployment files
+        shell: pwsh
+        run: |
+          New-Item -Path deploy -ItemType Directory -Force
+          Copy-Item ChessGui\ChessGui\release\ChessGui.exe deploy\
+          windeployqt --release --qmldir ChessGui\ChessGui deploy\ChessGui.exe
+          # Copy vcpkg runtime DLLs (boost_regex, boost_filesystem, etc.)
+          $vcpkgBin = "$env:VCPKG_ROOT\installed\x64-windows\bin"
+          if (Test-Path $vcpkgBin) {
+            Get-ChildItem $vcpkgBin -Filter "*.dll" | Copy-Item -Destination deploy\
+          }
+
+      - name: Compute version string
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $v = "${{ github.ref_name }}" -replace '^v', ''
+          } else {
+            $v = "pr-${{ github.event.pull_request.number }}"
+          }
+          "value=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Build Inno Setup installer
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\ChessSetup.iss
+
+      # PR: upload installer as a downloadable artifact (14-day retention)
+      - name: Upload installer artifact (PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChessSetup-${{ steps.version.outputs.value }}
+          path: installer/Output/ChessSetup-*.exe
+          retention-days: 14
+
+      # Tag: publish as a GitHub Release
+      - name: Create GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Chess++ ${{ github.ref_name }}"
+          files: installer/Output/ChessSetup-*.exe
+          generate_release_notes: true
