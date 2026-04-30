@@ -7,7 +7,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Widgets QuickWidgets Network)
-find_package(Boost REQUIRED COMPONENTS regex filesystem system)
 
 set(SOURCES
     ChessCore/Board.cpp
@@ -35,7 +34,6 @@ target_include_directories(ChessGui PRIVATE
     ChessCore
     UciConnector
     ChessGui/ChessGui
-    ${Boost_INCLUDE_DIRS}
 )
 
 target_link_libraries(ChessGui PRIVATE
@@ -46,7 +44,4 @@ target_link_libraries(ChessGui PRIVATE
     Qt6::Widgets
     Qt6::QuickWidgets
     Qt6::Network
-    Boost::regex
-    Boost::filesystem
-    Boost::system
 )
