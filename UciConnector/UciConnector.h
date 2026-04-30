@@ -1,64 +1,50 @@
 #pragma once
-#include <boost/asio/io_context.hpp>
-#include <boost/process.hpp>
+#include <string>
+#include <memory>
+#include <chrono>
 #include <map>
+#include <vector>
 
-namespace bp = boost::process;
+class QProcess;
 
 struct Command
 {
 	std::string Request;
-
 	std::string Response;
 };
 
 struct StartPosMoveRequest
 {
-	std::vector<std::string> Moves; // e2e4 e7e5 b1c3
+	std::vector<std::string> Moves;
 };
 
 struct EngineMoveResponse
 {
 	std::string BestMove;
-
 	std::string Ponder;
 };
 
 class UciConnector
 {
-	bool _initOk;
-	std::unique_ptr<bp::process> _uciEngine;
-
-	boost::asio::io_context _ctx;
-	boost::asio::readable_pipe _out;
-	boost::asio::readable_pipe _err;
-	boost::asio::writable_pipe _in;
-
+	bool _initOk = false;
+	std::unique_ptr<QProcess> _uciEngine;
 	std::map<std::string, std::string> _opt;
 
 protected:
-
 	std::string ProcessCommand(const Command& comm);
 
 public:
-
 	UciConnector();
-
 	void Init();
-
 	bool IsInitialized();
-
 	bool CheckReady();
 	bool NewGame();
-
 	std::string GetOption(const std::string& op);
 	void SetOption(const std::string& op, const std::string& value);
 	std::vector<std::string> GetOptions();
-
-	EngineMoveResponse GetEngineMove(const StartPosMoveRequest& req, const std::chrono::seconds& moveTime);
-
+	EngineMoveResponse GetEngineMove(const StartPosMoveRequest& req,
+	                                 const std::chrono::seconds& moveTime);
 	~UciConnector();
 };
 
 typedef std::shared_ptr<UciConnector> UciConnectorAPtr;
-

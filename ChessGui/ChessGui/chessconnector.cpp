@@ -23,8 +23,9 @@ void ClearBoard(QStringList& board, const QString& cleanValue = EmptyFlag)
 	}
 }
 
-ChessConnector::ChessConnector()
-	:_game(GameAptr(new Game())),
+ChessConnector::ChessConnector(QObject* parent)
+	: QObject(parent),
+	_game(GameAptr(new Game())),
 	_netPlayer(std::make_shared<NetworkPlayer>("Vitaly-Nb" /*QHostInfo().hostName() */))
 {
 	_game->RegisterBoardChanged(

@@ -11,8 +11,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    auto chessConnectorPtr = std::make_unique<ChessConnector>() ;
-    engine.rootContext()->setContextProperty("chessConnector", chessConnectorPtr.get());
+    engine.rootContext()->setContextProperty("chessConnector", new ChessConnector(&engine));
 
     engine.load(QUrl(QStringLiteral("qrc:/ChessGame.qml")));
 

@@ -57,7 +57,7 @@
     <PlatformToolSet>v145</PlatformToolSet>
     <OutputDirectory>debug\</OutputDirectory>
     <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
-    <CharacterSet>NotSet</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
     <ConfigurationType>Application</ConfigurationType>
     <IntermediateDirectory>debug\</IntermediateDirectory>
     <PrimaryOutput>ChessGui</PrimaryOutput>
@@ -530,6 +530,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\ChessCore\ChessCore.vcxproj">
       <Project>{113a444b-2f1c-4b33-9905-41a466ffef7f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\UciConnector\UciConnector.vcxproj">
+      <Project>{bb742a5a-2729-45f2-90c1-2fa70de41600}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
