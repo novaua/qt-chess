@@ -4,7 +4,6 @@
 #include <QQmlApplicationEngine>
 #include "chessconnector.h"
 #include <QQmlContext>
-
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);

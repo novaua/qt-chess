@@ -1,41 +1,32 @@
 import QtQuick
+import QtQuick.Window
+import QtQuick.Controls as Controls
 
-Rectangle {
-    id: container
+Controls.Button {
+    id: self
 
-    property string text: "Button"
-
-    signal clicked
-
-    width: buttonLabel.width + 20; height: buttonLabel.height + 5
-    border { width: 1; color: Qt.darker(activePalette.button) }
-    antialiasing: true
-    radius: 8
-
-    // color the button with a gradient
-    gradient: Gradient {
-        GradientStop {
-            position: 0.0
-            color: {
-                if (mouseArea.pressed)
-                    return activePalette.dark
-                else
-                    return activePalette.light
-            }
-        }
-        GradientStop { position: 1.0; color: activePalette.button }
+    // Window.window.color is a C++ Q_PROPERTY (colorChanged signal), so bindings
+    // update reliably when the ApplicationWindow background switches dark/light.
+    readonly property bool isDarkMode: {
+        if (!Window.window) return false
+        var c = Window.window.color
+        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) <= 0.5
     }
 
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        onClicked: container.clicked();
+    contentItem: Text {
+        text: self.text
+        color: self.isDarkMode ? "#ffffff" : "#000000"
+        font: self.font
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
     }
 
-    Text {
-        id: buttonLabel
-        anchors.centerIn: container
-        color: activePalette.buttonText
-        text: container.text
+    background: Rectangle {
+        implicitHeight: 24
+        color: self.down
+            ? (self.isDarkMode ? "#282828" : "#c0c0c0")
+            : (self.isDarkMode ? "#3c3c3c" : "#e0e0e0")
+        border.color: self.isDarkMode ? "#555555" : "#bbbbbb"
+        radius: 4
     }
 }
