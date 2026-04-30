@@ -1,34 +1,58 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls as QQC
 
 ApplicationWindow {
+    id: root
 
     property string lightChessBoxColor: "#ecf0f1"
     property string darkChessBoxColor:"darkslategray"
     property string markersOfChessBoxColor:"#34495e"
     property string chessFigureGlow: "blue"
-    property bool gameIsInProgress : false
-    property variant win;
+    property bool gameIsInProgress: false
+    property bool isDarkMode: false
+    property variant win
 
-    SystemPalette { id: activePalette; colorGroup: SystemPalette.Active }
+    Component.onCompleted: {
+        isDarkMode = (Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
+    }
 
-    // activePalette.window reliably tracks dark/light mode; activePalette.button does not on Windows 11
-    readonly property bool isDarkMode: (0.299 * activePalette.window.r
-                                      + 0.587 * activePalette.window.g
-                                      + 0.114 * activePalette.window.b) <= 0.5
+    // Inline component: has direct access to root.isDarkMode so colors are always correct
+    component GameButton: QQC.Button {
+        id: self
+        contentItem: Text {
+            text: self.text
+            color: root.isDarkMode ? "#ffffff" : "#000000"
+            font: self.font
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
+        background: Rectangle {
+            implicitHeight: 24
+            color: self.down
+                ? (root.isDarkMode ? "#282828" : "#c0c0c0")
+                : (root.isDarkMode ? "#3c3c3c" : "#e0e0e0")
+            border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
+            radius: 4
+        }
+    }
 
     title: qsTr("Chess ++")
-    color: activePalette.window
+    color: isDarkMode ? "#1e1e1e" : "#f0f0f0"
 
-    palette.window:          activePalette.window
-    palette.windowText:      activePalette.windowText
-    palette.button:          isDarkMode ? "#3c3c3c" : "#d6d6d6"
-    palette.buttonText:      isDarkMode ? "#eeeeee" : "#111111"
-    palette.light:           isDarkMode ? "#505050" : "#f0f0f0"
-    palette.dark:            isDarkMode ? "#282828" : "#888888"
-    palette.mid:             activePalette.mid
-    palette.highlight:       activePalette.highlight
-    palette.highlightedText: activePalette.highlightedText
+    palette: Palette {
+        window:          root.isDarkMode ? "#1e1e1e" : "#f0f0f0"
+        windowText:      root.isDarkMode ? "#ffffff" : "#000000"
+        button:          root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
+        buttonText:      root.isDarkMode ? "#ffffff" : "#000000"
+        base:            root.isDarkMode ? "#2d2d2d" : "#ffffff"
+        text:            root.isDarkMode ? "#ffffff" : "#000000"
+        mid:             root.isDarkMode ? "#555555" : "#a0a0a0"
+        light:           root.isDarkMode ? "#505050" : "#f8f8f8"
+        dark:            root.isDarkMode ? "#282828" : "#c0c0c0"
+        highlight:       "#0078d4"
+        highlightedText: "#ffffff"
+    }
 
     width: 768
     height: 1054
@@ -36,130 +60,112 @@ ApplicationWindow {
 
     Loader { id: dialogLoader }
 
-
     Rectangle {
         id: screen
-        state:"screen_1"
+        state: "screen_1"
         anchors.fill: parent
 
         Image {
             id: background
-
             anchors.fill: parent
             source: "qrc:///pics/ChessBackground.jpg"
             fillMode: Image.PreserveAspectCrop
         }
 
-        Column{
+        Column {
             anchors.fill: parent
+
             ChessBoard {
                 width: parent.width
-                height:parent.height - 30
+                height: parent.height - 30
                 id: chessBoard
             }
 
             Rectangle {
                 id: toolBar
-                width: parent.width;
+                width: parent.width
                 height: 30
-                color: activePalette.window
+                color: root.isDarkMode ? "#1e1e1e" : "#f0f0f0"
 
                 Row {
                     id: controlButtons
-                    anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
                     spacing: 10
 
-                    Button {
+                    GameButton {
                         id: buttonStart
-
                         text: "Start 2 player game"
                         onClicked: {
                             screen.state = "screen_2"
-
                             if (chessConnector.IsOnPlayerMode)
-                            {
-                                chessConnector.endGame();
-                            }
-
+                                chessConnector.endGame()
                             chessConnector.startNewGame()
                             gameIsInProgress = true
                             console.log("New Game ")
                         }
                     }
 
-                    Button {
+                    GameButton {
                         id: buttonStartSingle
-
                         text: "Start single player game"
                         onClicked: {
                             buttonPrev.text = "Prev"
                             screen.state = "screen_4"
-
                             if (chessConnector.IsOnPlayerMode)
-                            {
-                                chessConnector.endGame();
-                            }
-
+                                chessConnector.endGame()
                             chessConnector.startNewGameWithComputer()
                             gameIsInProgress = true
                             console.log("New Game with computer")
                         }
                     }
 
-                    Button {
+                    GameButton {
                         id: buttonComputerMove
                         text: "Computer move"
-                        onClicked: {    
+                        onClicked: {
                             chessConnector.computerMove()
                             buttonPrev.text = "Undo"
                             screen.state = "screen_4"
-                            gameIsInProgress = true;
-                           
+                            gameIsInProgress = true
                             console.log("Computer move pressed!")
                         }
                     }
 
-                    Button {
+                    GameButton {
                         id: buttonLoad
                         text: "Load"
                         onClicked: {
-                            if (chessConnector.loadGame())
-                            {
+                            if (chessConnector.loadGame()) {
                                 chessConnector.startNewGame()
                                 screen.state = "screen_3"
-                                gameIsInProgress = true;
+                                gameIsInProgress = true
                             }
-
                             console.log("Load pressed!")
                         }
                     }
 
-                    Button {
+                    GameButton {
                         id: buttonStop
                         text: "Stop"
-                        onClicked:
-                        {
+                        onClicked: {
                             gameIsInProgress = false
                             screen.state = "screen_1"
-
-                            chessConnector.endGame();
+                            chessConnector.endGame()
                             console.log("Game ended!")
                         }
                     }
 
-                    Button {
+                    GameButton {
                         id: buttonSave
-
                         text: "Save"
-                        onClicked:{
+                        onClicked: {
                             chessConnector.saveGame()
                             console.log("Saved!")
                         }
                     }
 
-                    Button {
+                    GameButton {
                         id: buttonPrev
-
                         text: "Prev"
                         onClicked: {
                             chessConnector.movePrev()
@@ -167,9 +173,8 @@ ApplicationWindow {
                         }
                     }
 
-                    Button {
+                    GameButton {
                         id: buttonNext
-
                         text: "Next"
                         onClicked: {
                             chessConnector.moveNext()
@@ -177,12 +182,10 @@ ApplicationWindow {
                         }
                     }
 
-                    Button {
+                    GameButton {
                         id: buttonNetworkGame
                         text: "Network Player"
-
                         onClicked: {
-
                             dialogLoader.source = "SelectPlayerDialog.qml"
                             console.log("Show net players.")
                         }
@@ -190,18 +193,25 @@ ApplicationWindow {
                 }
 
                 Row {
-                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                    Text {
+                    anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                    spacing: 8
 
+                    Text {
                         id: statusNote
-                        width: 50
+                        color: root.isDarkMode ? "#ffffff" : "#000000"
                         text: chessConnector.MoveCount
                     }
 
                     Text {
                         id: statusNote1
-                        width: 50
-                        text: chessConnector.IsWhiteMove ? "white":"black"
+                        color: root.isDarkMode ? "#ffffff" : "#000000"
+                        text: chessConnector.IsWhiteMove ? "white" : "black"
+                    }
+
+                    GameButton {
+                        id: themeToggle
+                        text: root.isDarkMode ? "🌙 Dark" : "☀️ Light"
+                        onClicked: root.isDarkMode = !root.isDarkMode
                     }
                 }
             }
@@ -210,49 +220,51 @@ ApplicationWindow {
         states: [
             State {
                 name: "screen_1"
-                PropertyChanges { target: buttonStart; visible: true}
-                PropertyChanges { target: buttonStartSingle; visible: true}
-                PropertyChanges { target: buttonComputerMove; visible: false}
-                PropertyChanges { target: buttonLoad; visible: true}
-                PropertyChanges { target: buttonStop; visible: false}
-                PropertyChanges { target: buttonSave; visible: false}
-                PropertyChanges { target: buttonNext; visible: false}
-                PropertyChanges { target: buttonPrev; visible: false}
+                PropertyChanges { target: buttonStart; visible: true }
+                PropertyChanges { target: buttonStartSingle; visible: true }
+                PropertyChanges { target: buttonComputerMove; visible: false }
+                PropertyChanges { target: buttonLoad; visible: true }
+                PropertyChanges { target: buttonStop; visible: false }
+                PropertyChanges { target: buttonSave; visible: false }
+                PropertyChanges { target: buttonNext; visible: false }
+                PropertyChanges { target: buttonPrev; visible: false }
+                PropertyChanges { target: themeToggle; visible: true }
             },
             State {
                 name: "screen_2"
-                PropertyChanges { target: buttonStart; visible: false}
-                PropertyChanges { target: buttonStartSingle; visible: false}
-                PropertyChanges { target: buttonComputerMove; visible: false}
-                PropertyChanges { target: buttonLoad; visible: false}
-                PropertyChanges { target: buttonStop; visible: true}
-                PropertyChanges { target: buttonSave; visible: true}
-                PropertyChanges { target: buttonNext; visible: false}
-                PropertyChanges { target: buttonPrev; visible: false}
+                PropertyChanges { target: buttonStart; visible: false }
+                PropertyChanges { target: buttonStartSingle; visible: false }
+                PropertyChanges { target: buttonComputerMove; visible: false }
+                PropertyChanges { target: buttonLoad; visible: false }
+                PropertyChanges { target: buttonStop; visible: true }
+                PropertyChanges { target: buttonSave; visible: true }
+                PropertyChanges { target: buttonNext; visible: false }
+                PropertyChanges { target: buttonPrev; visible: false }
+                PropertyChanges { target: themeToggle; visible: false }
             },
-
             State {
                 name: "screen_3"
-                PropertyChanges { target: buttonStart; visible: true}
-                PropertyChanges { target: buttonStartSingle; visible: true}
-                PropertyChanges { target: buttonComputerMove; visible: false}
-                PropertyChanges { target: buttonLoad; visible: true}
-                PropertyChanges { target: buttonStop; visible: false}
-                PropertyChanges { target: buttonSave; visible: false}
-                PropertyChanges { target: buttonNext; visible: true}
-                PropertyChanges { target: buttonPrev; visible: true}
+                PropertyChanges { target: buttonStart; visible: true }
+                PropertyChanges { target: buttonStartSingle; visible: true }
+                PropertyChanges { target: buttonComputerMove; visible: false }
+                PropertyChanges { target: buttonLoad; visible: true }
+                PropertyChanges { target: buttonStop; visible: false }
+                PropertyChanges { target: buttonSave; visible: false }
+                PropertyChanges { target: buttonNext; visible: true }
+                PropertyChanges { target: buttonPrev; visible: true }
+                PropertyChanges { target: themeToggle; visible: false }
             },
-            
             State {
                 name: "screen_4"
-                PropertyChanges { target: buttonStart; visible: false}
-                PropertyChanges { target: buttonStartSingle; visible: false}
-                PropertyChanges { target: buttonComputerMove; visible: true}
-                PropertyChanges { target: buttonLoad; visible: false}
-                PropertyChanges { target: buttonStop; visible: true}
-                PropertyChanges { target: buttonSave; visible: true}
-                PropertyChanges { target: buttonNext; visible: false}
-                PropertyChanges { target: buttonPrev; visible: true}
+                PropertyChanges { target: buttonStart; visible: false }
+                PropertyChanges { target: buttonStartSingle; visible: false }
+                PropertyChanges { target: buttonComputerMove; visible: true }
+                PropertyChanges { target: buttonLoad; visible: false }
+                PropertyChanges { target: buttonStop; visible: true }
+                PropertyChanges { target: buttonSave; visible: true }
+                PropertyChanges { target: buttonNext; visible: false }
+                PropertyChanges { target: buttonPrev; visible: true }
+                PropertyChanges { target: themeToggle; visible: false }
             }
         ]
     }

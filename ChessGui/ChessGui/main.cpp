@@ -4,11 +4,8 @@
 #include <QQmlApplicationEngine>
 #include "chessconnector.h"
 #include <QQmlContext>
-#include <QQuickStyle>
-
 int main(int argc, char *argv[])
 {
-    QQuickStyle::setStyle("Fusion");
     QApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
