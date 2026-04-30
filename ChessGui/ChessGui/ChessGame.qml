@@ -17,8 +17,7 @@ ApplicationWindow {
         isDarkMode = (Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
     }
 
-    // Inline component: has direct access to root.isDarkMode so colors are always correct
-    component GameButton: QQC.Button {
+    component Button: QQC.Button {
         id: self
         contentItem: Text {
             text: self.text
@@ -92,7 +91,7 @@ ApplicationWindow {
                     anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
                     spacing: 10
 
-                    GameButton {
+                    Button {
                         id: buttonStart
                         text: "Start 2 player game"
                         onClicked: {
@@ -105,7 +104,7 @@ ApplicationWindow {
                         }
                     }
 
-                    GameButton {
+                    Button {
                         id: buttonStartSingle
                         text: "Start single player game"
                         onClicked: {
@@ -119,7 +118,7 @@ ApplicationWindow {
                         }
                     }
 
-                    GameButton {
+                    Button {
                         id: buttonComputerMove
                         text: "Computer move"
                         onClicked: {
@@ -131,7 +130,7 @@ ApplicationWindow {
                         }
                     }
 
-                    GameButton {
+                    Button {
                         id: buttonLoad
                         text: "Load"
                         onClicked: {
@@ -144,7 +143,7 @@ ApplicationWindow {
                         }
                     }
 
-                    GameButton {
+                    Button {
                         id: buttonStop
                         text: "Stop"
                         onClicked: {
@@ -155,7 +154,7 @@ ApplicationWindow {
                         }
                     }
 
-                    GameButton {
+                    Button {
                         id: buttonSave
                         text: "Save"
                         onClicked: {
@@ -164,7 +163,7 @@ ApplicationWindow {
                         }
                     }
 
-                    GameButton {
+                    Button {
                         id: buttonPrev
                         text: "Prev"
                         onClicked: {
@@ -173,7 +172,7 @@ ApplicationWindow {
                         }
                     }
 
-                    GameButton {
+                    Button {
                         id: buttonNext
                         text: "Next"
                         onClicked: {
@@ -182,7 +181,7 @@ ApplicationWindow {
                         }
                     }
 
-                    GameButton {
+                    Button {
                         id: buttonNetworkGame
                         text: "Network Player"
                         onClicked: {
@@ -208,7 +207,7 @@ ApplicationWindow {
                         text: chessConnector.IsWhiteMove ? "white" : "black"
                     }
 
-                    GameButton {
+                    Button {
                         id: themeToggle
                         text: root.isDarkMode ? "🌙 Dark" : "☀️ Light"
                         onClicked: root.isDarkMode = !root.isDarkMode
@@ -229,6 +228,8 @@ ApplicationWindow {
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: false }
                 PropertyChanges { target: themeToggle; visible: true }
+                PropertyChanges { target: statusNote; visible: false }
+                PropertyChanges { target: statusNote1; visible: false }
             },
             State {
                 name: "screen_2"
@@ -241,6 +242,8 @@ ApplicationWindow {
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: false }
                 PropertyChanges { target: themeToggle; visible: false }
+                PropertyChanges { target: statusNote; visible: true }
+                PropertyChanges { target: statusNote1; visible: true }
             },
             State {
                 name: "screen_3"
@@ -253,6 +256,8 @@ ApplicationWindow {
                 PropertyChanges { target: buttonNext; visible: true }
                 PropertyChanges { target: buttonPrev; visible: true }
                 PropertyChanges { target: themeToggle; visible: false }
+                PropertyChanges { target: statusNote; visible: true }
+                PropertyChanges { target: statusNote1; visible: true }
             },
             State {
                 name: "screen_4"
@@ -265,6 +270,8 @@ ApplicationWindow {
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: true }
                 PropertyChanges { target: themeToggle; visible: false }
+                PropertyChanges { target: statusNote; visible: true }
+                PropertyChanges { target: statusNote1; visible: true }
             }
         ]
     }
