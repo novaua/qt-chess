@@ -60,7 +60,7 @@
     <ClInclude Include="MovesGen.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ChessEnginePlayer.h">
+    <ClInclude Include="..\ChessGui\ChessGui\ChessEnginePlayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -93,9 +93,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Events.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ChessEnginePlayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
