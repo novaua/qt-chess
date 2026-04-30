@@ -38,8 +38,10 @@ static void sendLine(QProcess* proc, const std::string& text)
 static std::string readLineBlocking(QProcess* proc, int timeoutMs = 5000)
 {
     while (!proc->canReadLine()) {
-        if (proc->state() != QProcess::Running) return "";
-        if (!proc->waitForReadyRead(timeoutMs)) return "";
+        if (proc->state() != QProcess::Running)
+            return "";
+        if (!proc->waitForReadyRead(timeoutMs))
+            return "";
     }
     return QString(proc->readLine()).trimmed().toStdString();
 }
@@ -158,7 +160,7 @@ EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req,
     std::string goCmd = "go movetime " + std::to_string(moveMs);
     sendLine(_uciEngine.get(), goCmd);
 
-    // Per-line timeout: moveTime + 10s buffer.
+	// Per-line timeout: moveTime + 10s buffer.
     // Stockfish emits many "info depth" lines before "bestmove", each within the
     // search window, so the budget must be at least as large as the search time.
     int budget = moveMs + 10000;

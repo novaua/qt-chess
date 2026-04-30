@@ -18,7 +18,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
 		Q_PROPERTY(QStringList PlayersName READ PlayersName NOTIFY PlayersNameChanged)
 public:
-	ChessConnector();
+	explicit ChessConnector(QObject* parent= nullptr);
 	~ChessConnector();
 
 	int MoveCount();
