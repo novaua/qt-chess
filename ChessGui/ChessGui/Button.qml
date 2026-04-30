@@ -3,6 +3,8 @@ import QtQuick
 Rectangle {
     id: container
 
+    SystemPalette { id: activePalette }
+
     property string text: "Button"
 
     signal clicked
@@ -35,7 +37,11 @@ Rectangle {
     Text {
         id: buttonLabel
         anchors.centerIn: container
-        color: activePalette.buttonText
+        color: {
+            var c = activePalette.button
+            var luminance = 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
+            return luminance > 0.5 ? "#111111" : "#eeeeee"
+        }
         text: container.text
     }
 }

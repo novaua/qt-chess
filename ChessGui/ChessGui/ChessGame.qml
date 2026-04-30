@@ -13,6 +13,11 @@ ApplicationWindow {
     title: qsTr("Chess ++")
     color: activePalette.window
 
+    palette.button: "#d6d6d6"
+    palette.buttonText: "#111111"
+    palette.light: "#f0f0f0"
+    palette.dark: "#888888"
+
     width: 768
     height: 1054
     visible: true
