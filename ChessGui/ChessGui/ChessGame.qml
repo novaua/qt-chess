@@ -10,13 +10,25 @@ ApplicationWindow {
     property bool gameIsInProgress : false
     property variant win;
 
+    SystemPalette { id: activePalette; colorGroup: SystemPalette.Active }
+
+    // activePalette.window reliably tracks dark/light mode; activePalette.button does not on Windows 11
+    readonly property bool isDarkMode: (0.299 * activePalette.window.r
+                                      + 0.587 * activePalette.window.g
+                                      + 0.114 * activePalette.window.b) <= 0.5
+
     title: qsTr("Chess ++")
     color: activePalette.window
 
-    palette.button: "#d6d6d6"
-    palette.buttonText: "#111111"
-    palette.light: "#f0f0f0"
-    palette.dark: "#888888"
+    palette.window:          activePalette.window
+    palette.windowText:      activePalette.windowText
+    palette.button:          isDarkMode ? "#3c3c3c" : "#d6d6d6"
+    palette.buttonText:      isDarkMode ? "#eeeeee" : "#111111"
+    palette.light:           isDarkMode ? "#505050" : "#f0f0f0"
+    palette.dark:            isDarkMode ? "#282828" : "#888888"
+    palette.mid:             activePalette.mid
+    palette.highlight:       activePalette.highlight
+    palette.highlightedText: activePalette.highlightedText
 
     width: 768
     height: 1054
@@ -37,8 +49,6 @@ ApplicationWindow {
             source: "qrc:///pics/ChessBackground.jpg"
             fillMode: Image.PreserveAspectCrop
         }
-
-        SystemPalette { id: activePalette }
 
         Column{
             anchors.fill: parent
