@@ -18,7 +18,7 @@ OutputDir=Output
 OutputBaseFilename=ChessSetup-{#MyAppVersion}
 Compression=lzma2/ultra64
 SolidCompression=yes
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 
 [Languages]
@@ -65,6 +65,6 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-  if (CurStep = ssDone) and IsTaskSelected('stockfish') then
+  if (CurStep = ssDone) and WizardIsTaskSelected('stockfish') then
     DownloadStockfish();
 end;
