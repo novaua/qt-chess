@@ -70,8 +70,8 @@ begin
       try
         DownloadPage.Download;
       except
-        MsgBox('Stockfish download failed:' + #13#10 + GetExceptionMessage + #13#10 +
-               #13#10 + 'The app will still be installed. You can place stockfish.exe' + #13#10 +
+        MsgBox('Stockfish download failed:' + #13#10 + GetExceptionMessage + #13#10 + #13#10 +
+               'The app will still be installed. You can place stockfish.exe' + #13#10 +
                'manually in: ' + ExpandConstant('{app}\engines\'),
                mbError, MB_OK);
       end;
