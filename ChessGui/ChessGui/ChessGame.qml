@@ -4,7 +4,6 @@ import QtQuick.Controls as QQC
 
 ApplicationWindow {
     id: root
-    icon.source: "qrc:/pics/chess_icon.svg"
 
     property string lightChessBoxColor: "#ecf0f1"
     property string darkChessBoxColor:"darkslategray"
