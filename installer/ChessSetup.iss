@@ -39,40 +39,74 @@ Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: 
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-procedure DownloadStockfish();
+// Download URL: GitHub's /releases/latest/download/ redirect always points
+// to the current release — no API call needed to resolve the tag.
+const
+  StockfishUrl = 'https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip';
+  StockfishZip = 'stockfish.zip';
+
 var
+  DownloadPage: TDownloadWizardPage;
+
+procedure InitializeWizard;
+begin
+  DownloadPage := CreateDownloadPage(
+    'Downloading Stockfish Chess Engine',
+    'Fetching the latest Stockfish engine from GitHub...',
+    nil);
+end;
+
+// Queue the Stockfish download when the user clicks Next on the Ready page.
+// Uses Inno Setup''s built-in WinHTTP download (no PowerShell, native progress bar).
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if (CurPageID = wpReady) and WizardIsTaskSelected('stockfish') then
+  begin
+    DownloadPage.Clear;
+    DownloadPage.Add(StockfishUrl, StockfishZip, '');
+    DownloadPage.Show;
+    try
+      try
+        DownloadPage.Download;
+      except
+        MsgBox('Stockfish download failed:' + #13#10 + GetExceptionMessage +
+               #13#10#13#10 +
+               'The app will still be installed. You can place stockfish.exe' + #13#10 +
+               'manually in: ' + ExpandConstant('{app}\engines\'),
+               mbError, MB_OK);
+      end;
+    finally
+      DownloadPage.Hide;
+    end;
+  end;
+end;
+
+// Extract the already-downloaded zip into {app}\engines\ using PowerShell.
+// Only the extraction runs here — no network access, no hanging risk.
+procedure ExtractStockfish();
+var
+  EnginesDir, ZipFile, ScriptFile, LogFile: String;
   ResultCode: Integer;
-  EnginesDir, ScriptFile, LogFile: String;
   LogContent: AnsiString;
 begin
-  EnginesDir  := ExpandConstant('{app}\engines');
-  ScriptFile  := ExpandConstant('{tmp}\sf_download.ps1');
-  LogFile     := ExpandConstant('{tmp}\sf_download.log');
+  ZipFile    := ExpandConstant('{tmp}\' + StockfishZip);
+  EnginesDir := ExpandConstant('{app}\engines');
+  ScriptFile := ExpandConstant('{tmp}\sf_extract.ps1');
+  LogFile    := ExpandConstant('{tmp}\sf_extract.log');
 
+  if not FileExists(ZipFile) then Exit;
   ForceDirectories(EnginesDir);
 
-  // Write the PowerShell script to a temp file to avoid all quote-escaping
-  // issues that arise when passing -Command "..." on the command line.
   SaveStringToFile(ScriptFile,
-    '$log    = "' + LogFile + '"' + #13#10 +
-    '$tmpDir = "' + ExtractFilePath(ScriptFile) + '"' + #13#10 +
-    '$zipFile = "$tmpDir\sf.zip"' + #13#10 +
-    '$sfDir   = "$tmpDir\sf"' + #13#10 +
-    '$ProgressPreference = ''SilentlyContinue''' + #13#10 +
-    '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12' + #13#10 +
+    '$log     = "' + LogFile + '"' + #13#10 +
+    '$zipFile = "' + ZipFile + '"' + #13#10 +
+    '$sfDir   = "' + ExpandConstant('{tmp}') + '\sf"' + #13#10 +
     'function Log($m) { $m | Out-File $log -Append -Encoding ASCII }' + #13#10 +
     'try {' + #13#10 +
-    '  "=== Stockfish download started $(Get-Date) ===" | Out-File $log -Encoding ASCII' + #13#10 +
-    '  Log "Working dir: $tmpDir"' + #13#10 +
-    '  $rel = (Invoke-RestMethod "https://api.github.com/repos/official-stockfish/Stockfish/releases/latest" -TimeoutSec 30).tag_name' + #13#10 +
-    '  Log "Release tag: $rel"' + #13#10 +
-    '  $zip = "stockfish-windows-x86-64-avx2.zip"' + #13#10 +
-    '  $url = "https://github.com/official-stockfish/Stockfish/releases/download/$rel/$zip"' + #13#10 +
-    '  Log "Downloading: $url"' + #13#10 +
-    '  (New-Object System.Net.WebClient).DownloadFile($url, $zipFile)' + #13#10 +
-    '  Log "Download OK. Extracting..."' + #13#10 +
+    '  "=== Extracting $(Get-Date) ===" | Out-File $log -Encoding ASCII' + #13#10 +
     '  Expand-Archive $zipFile -DestinationPath $sfDir -Force' + #13#10 +
-    '  Log "Extraction OK. Searching for stockfish*.exe..."' + #13#10 +
+    '  Log "Extraction OK"' + #13#10 +
     '  $exe = Get-ChildItem $sfDir -Recurse -Filter "stockfish*.exe" | Select-Object -First 1' + #13#10 +
     '  if (-not $exe) { throw "No stockfish*.exe found inside the zip" }' + #13#10 +
     '  Log "Found: $($exe.FullName)"' + #13#10 +
@@ -92,16 +126,12 @@ begin
 
   if ResultCode <> 0 then
   begin
-    LogContent := '(log file not found)';
+    LogContent := '(no log)';
     LoadStringFromFile(LogFile, LogContent);
-    MsgBox(
-      'Stockfish could not be downloaded automatically (exit code: ' +
-        IntToStr(ResultCode) + ').' + #13#10 +
-      'You can get it from https://stockfishchess.org and place it in:' + #13#10 +
-      EnginesDir + #13#10#13#10 +
-      '--- Download log ---' + #13#10 +
-      LogContent,
-      mbError, MB_OK);
+    MsgBox('Stockfish could not be extracted (exit code: ' + IntToStr(ResultCode) + ').' + #13#10 +
+           'Place stockfish.exe manually in: ' + EnginesDir + #13#10#13#10 +
+           '--- Log ---' + #13#10 + LogContent,
+           mbError, MB_OK);
   end;
 end;
 
@@ -109,10 +139,9 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if (CurStep = ssPostInstall) and WizardIsTaskSelected('stockfish') then
   begin
-    WizardForm.StatusLabel.Caption := 'Downloading Stockfish chess engine...';
-    WizardForm.FilenameLabel.Caption := 'https://github.com/official-stockfish/Stockfish';
-    DownloadStockfish();
-    WizardForm.StatusLabel.Caption := 'Done.';
+    WizardForm.StatusLabel.Caption := 'Installing Stockfish chess engine...';
     WizardForm.FilenameLabel.Caption := '';
+    ExtractStockfish();
+    WizardForm.StatusLabel.Caption := 'Done.';
   end;
 end;
