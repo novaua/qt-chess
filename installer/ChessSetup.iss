@@ -47,12 +47,14 @@ begin
   EnginesDir := ExpandConstant('{app}\engines');
   ForceDirectories(EnginesDir);
   Script :=
+    '$ErrorActionPreference = "Stop"; ' +
     '$rel = (Invoke-RestMethod "https://api.github.com/repos/official-stockfish/Stockfish/releases/latest").tag_name; ' +
-    '$url = "https://github.com/official-stockfish/Stockfish/releases/download/$rel/stockfish-windows-x86-64.zip"; ' +
+    '$zip = "stockfish-windows-x86-64-avx2.zip"; ' +
+    '$url = "https://github.com/official-stockfish/Stockfish/releases/download/$rel/$zip"; ' +
     'Invoke-WebRequest $url -OutFile "$env:TEMP\sf.zip"; ' +
     'Expand-Archive "$env:TEMP\sf.zip" -DestinationPath "$env:TEMP\sf" -Force; ' +
-    '$exe = Get-ChildItem "$env:TEMP\sf" -Recurse -Filter "stockfish*.exe" | Select-Object -First 1; ' +
-    'Copy-Item $exe.FullName "' + EnginesDir + '\stockfish.exe"';
+    '$exe = "$env:TEMP\sf\stockfish-windows-x86-64-avx2\stockfish\stockfish-windows-x86-64-avx2.exe"; ' +
+    'Copy-Item $exe "' + EnginesDir + '\stockfish.exe"';
   if not Exec('powershell.exe',
       '-NoProfile -ExecutionPolicy Bypass -Command "' + Script + '"',
       '', SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
