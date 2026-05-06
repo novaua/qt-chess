@@ -7,8 +7,7 @@ on:
     tags: ['v*']
 
 env:
-  QT_VERSION: '6.7.*'
-  VCPKG_DEFAULT_TRIPLET: x64-windows
+  QT_VERSION: '6.10.2'
 
 jobs:
   build-installer:
@@ -22,7 +21,7 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           version: ${{ env.QT_VERSION }}
-          arch: win64_msvc2019_64
+          arch: win64_msvc2022_64
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
@@ -34,28 +33,54 @@ jobs:
         with:
           arch: x64
 
-      - name: Configure (CMake + Ninja)
+      # Qt VS Tools supplies the MSBuild targets that process moc/rcc and set
+      # Qt include/link paths from the <QtModules> property in the .vcxproj.
+      # The VSIX is a ZIP; we extract it, locate qt.targets, and hand the
+      # directory to MSBuild via /p:QtMsBuild. The Qt installation is
+      # registered in the HKCU registry under the version name that matches
+      # <QtInstall>6.10.2_msvc2022_64</QtInstall> in ChessGui.vcxproj.
+      - name: Install Qt VS Tools MSBuild integration
+        id: qtvstools
         shell: pwsh
         run: |
-          cmake -B build -G Ninja `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" `
-            -DVCPKG_TARGET_TRIPLET=x64-windows
+          $rel = Invoke-RestMethod 'https://api.github.com/repos/qt-labs/vstools/releases/latest'
+          $asset = $rel.assets | Where-Object { $_.name -like '*msvc2022*.vsix' } | Select-Object -First 1
+          if (-not $asset) { throw "Qt VS Tools msvc2022 VSIX not found in latest release" }
+          Write-Host "Downloading: $($asset.name)"
+          Invoke-WebRequest $asset.browser_download_url -OutFile qt-vstools.vsix -UseBasicParsing
 
-      - name: Build
-        run: cmake --build build --config Release
+          Expand-Archive qt-vstools.vsix -DestinationPath qt-vstools -Force
+          $targets = Get-ChildItem qt-vstools -Recurse -Filter 'qt.targets' | Select-Object -First 1
+          if (-not $targets) { throw "qt.targets not found inside VSIX" }
+          $msbuildDir = $targets.DirectoryName
+          Write-Host "Qt MSBuild dir: $msbuildDir"
+          "msbuild_dir=$msbuildDir" | Out-File $env:GITHUB_OUTPUT -Append
+
+          # Qt6_DIR = .../Qt/6.10.2/msvc2022_64/lib/cmake/Qt6
+          # Two levels up gives the msvc2022_64 root that Qt VS Tools expects.
+          $qtInstallDir = (Get-Item $env:Qt6_DIR).Parent.Parent.FullName
+          Write-Host "Qt install dir: $qtInstallDir"
+
+          # Register the Qt version so Qt VS Tools MSBuild targets can resolve it.
+          $regBase = 'HKCU:\Software\Digia\Variants\Qt'
+          New-Item -Path "$regBase\6.10.2_msvc2022_64" -Force | Out-Null
+          Set-ItemProperty "$regBase\6.10.2_msvc2022_64" -Name InstallPath -Value $qtInstallDir
+
+      - name: Build (MSBuild Release|x64)
+        shell: pwsh
+        run: |
+          msbuild ChessCore.sln `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:QtMsBuild="${{ steps.qtvstools.outputs.msbuild_dir }}" `
+            /m /v:minimal
 
       - name: Collect deployment files
         shell: pwsh
         run: |
           New-Item -Path deploy -ItemType Directory -Force
-          Copy-Item build\ChessGui.exe deploy\
+          Copy-Item x64\Release\ChessGui.exe deploy\
           windeployqt --release --qmldir ChessGui\ChessGui deploy\ChessGui.exe
-          # Copy vcpkg runtime DLLs (boost_regex, boost_filesystem, etc.)
-          $vcpkgBin = "$env:VCPKG_ROOT\installed\x64-windows\bin"
-          if (Test-Path $vcpkgBin) {
-            Get-ChildItem $vcpkgBin -Filter "*.dll" | Copy-Item -Destination deploy\
-          }
 
       - name: Compute version string
         id: version
@@ -75,7 +100,7 @@ jobs:
         run: |
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\ChessSetup.iss
 
-      # PR: upload installer as a downloadable artifact (14-day retention)
+      # PR builds: upload installer as a downloadable artifact (14-day retention)
       - name: Upload installer artifact (PR)
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
@@ -84,7 +109,7 @@ jobs:
           path: installer/Output/ChessSetup-*.exe
           retention-days: 14
 
-      # Tag: publish as a GitHub Release
+      # Tag pushes: publish a GitHub Release
       - name: Create GitHub Release
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2

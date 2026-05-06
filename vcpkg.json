@@ -1,5 +1,11 @@
 {
   "name": "qt-chess",
   "version": "0.1.0",
-  "dependencies": []
+  "dependencies": [
+    "boost-algorithm",
+    "boost-asio",
+    "boost-format",
+    "boost-process",
+    "boost-regex"
+  ]
 }
