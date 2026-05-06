@@ -64,8 +64,7 @@ begin
   if (Pct >= LastProgressPct + 1) or
      (GetTickCount - LastProgressTick >= 10000) then
   begin
-    Log(Format('Stockfish download: %d%%  (%d KB / %d KB)',
-      [Pct, Integer(Progress div 1024), Integer(ProgressMax div 1024)]));
+    Log(Format('Stockfish download: %d%%  (%d KB / %d KB)', [Pct, Integer(Progress div 1024), Integer(ProgressMax div 1024)]));
     LastProgressPct  := Pct;
     LastProgressTick := GetTickCount;
   end;
