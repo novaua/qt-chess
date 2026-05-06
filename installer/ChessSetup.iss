@@ -1,5 +1,8 @@
 #define MyAppName "Chess++"
 #define MyAppVersion GetEnv("APP_VERSION")
+#if MyAppVersion == ""
+  #define MyAppVersion "1.0.0-local"
+#endif
 #define MyAppPublisher "Vitaly German"
 #define MyAppExeName "ChessGui.exe"
 
