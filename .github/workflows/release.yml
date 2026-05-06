@@ -73,7 +73,9 @@ jobs:
         run: |
           New-Item -Path deploy -ItemType Directory -Force
           Copy-Item x64\Release\ChessGui.exe deploy\
-          windeployqt --release --qmldir ChessGui\ChessGui deploy\ChessGui.exe
+          windeployqt --release --verbose 2 --qmldir ChessGui\ChessGui deploy\ChessGui.exe
+          Write-Host "=== deploy folder contents ==="
+          Get-ChildItem deploy -Recurse | Select-Object FullName
 
       - name: Compute version string
         id: version
