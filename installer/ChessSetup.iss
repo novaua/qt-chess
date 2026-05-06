@@ -45,6 +45,9 @@ const
   StockfishUrl = 'https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip';
   StockfishZip = 'stockfish.zip';
 
+function GetTickCount: Cardinal;
+  external 'GetTickCount@kernel32.dll stdcall';
+
 var
   DownloadPage: TDownloadWizardPage;
   LastProgressPct:  Integer;
