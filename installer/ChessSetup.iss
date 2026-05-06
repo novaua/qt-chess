@@ -105,6 +105,12 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-  if (CurStep = ssDone) and WizardIsTaskSelected('stockfish') then
+  if (CurStep = ssPostInstall) and WizardIsTaskSelected('stockfish') then
+  begin
+    WizardForm.StatusLabel.Caption := 'Downloading Stockfish chess engine...';
+    WizardForm.FilenameLabel.Caption := 'https://github.com/official-stockfish/Stockfish';
     DownloadStockfish();
+    WizardForm.StatusLabel.Caption := 'Done.';
+    WizardForm.FilenameLabel.Caption := '';
+  end;
 end;
