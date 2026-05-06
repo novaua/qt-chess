@@ -71,6 +71,7 @@ jobs:
           msbuild ChessCore.sln `
             /p:Configuration=Release `
             /p:Platform=x64 `
+            /p:PlatformToolset=v143 `
             /p:QtMsBuild="${{ steps.qtvstools.outputs.msbuild_dir }}" `
             /m /v:minimal
 
