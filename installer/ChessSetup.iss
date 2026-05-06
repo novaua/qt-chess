@@ -42,7 +42,8 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: no
 procedure DownloadStockfish();
 var
   ResultCode: Integer;
-  EnginesDir, ScriptFile, LogFile, LogContent: String;
+  EnginesDir, ScriptFile, LogFile: String;
+  LogContent: AnsiString;
 begin
   EnginesDir  := ExpandConstant('{app}\engines');
   ScriptFile  := ExpandConstant('{tmp}\sf_download.ps1');
