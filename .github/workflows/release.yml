@@ -69,6 +69,24 @@ jobs:
             Set-ItemProperty "$regBase\6.10.2_msvc2022_64" -Name "(default)"    -Value $qtInstallDir
           }
 
+      - name: Diagnose Qt VS Tools targets
+        shell: pwsh
+        run: |
+          $f = "${{ steps.qtvstools.outputs.msbuild_dir }}\qt_vars.targets"
+          Write-Host "=== qt_vars.targets lines 120-160 ==="
+          Get-Content $f | Select-Object -Skip 119 -First 41
+          Write-Host "=== Registry state ==="
+          foreach ($base in @('HKCU:\Software\Digia\Variants\Qt',
+                               'HKLM:\Software\Digia\Variants\Qt',
+                               'HKCU:\Software\Qt\Qt')) {
+            if (Test-Path $base) {
+              Get-ChildItem $base | ForEach-Object {
+                Write-Host "$($_.Name)"
+                Get-ItemProperty $_.PSPath | Format-List
+              }
+            } else { Write-Host "$base  NOT FOUND" }
+          }
+
       - name: Build (MSBuild Release|x64)
         shell: pwsh
         run: |
