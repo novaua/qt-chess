@@ -39,46 +39,90 @@ Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: 
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-// Stable URL — GitHub's /releases/latest/download/ always redirects to
-// the current release, so no API call is needed to resolve the tag.
+// Download URL: GitHub's /releases/latest/download/ redirect always points
+// to the current release — no API call needed to resolve the tag.
 const
   StockfishUrl = 'https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip';
   StockfishZip = 'stockfish.zip';
 
-// Download using curl.exe, which ships with every Windows 10 1803+ / Windows 11
-// install at {sys}\curl.exe. curl handles TLS natively, follows redirects,
-// and produces no Inno Setup-internal log spam.
-function DownloadWithCurl(const Url, DestFile: String): Boolean;
+function GetTickCount: Cardinal;
+  external 'GetTickCount@kernel32.dll stdcall';
+
 var
-  Curl: String;
-  ResultCode: Integer;
+  DownloadPage: TDownloadWizardPage;
+  LastProgressPct:  Integer;
+  LastProgressTick: Cardinal;
+
+// Called by the download engine on every received chunk.
+// Logs to the setup log only when >= 1% progress or >= 10 s have elapsed.
+function OnStockfishProgress(const Url, Filename: String; Progress, ProgressMax: Int64): Boolean;
+var
+  Pct: Integer;
 begin
-  Curl := ExpandConstant('{sys}\curl.exe');
-  Result := FileExists(Curl);
-  if not Result then
+  Result := True;
+  if ProgressMax <= 0 then Exit;
+
+  Pct := Integer((Progress * 100) div ProgressMax);
+
+  if (Pct >= LastProgressPct + 1) or
+     (GetTickCount - LastProgressTick >= 10000) then
   begin
-    Log('Stockfish: curl.exe not found in System32');
-    Exit;
+    Log(Format('Stockfish download: %d%%  (%d KB / %d KB)', [Pct, Integer(Progress div 1024), Integer(ProgressMax div 1024)]));
+    LastProgressPct  := Pct;
+    LastProgressTick := GetTickCount;
   end;
-  Log('Stockfish: downloading ' + Url);
-  Result := Exec(Curl, '-L -s --retry 2 -o "' + DestFile + '" "' + Url + '"',
-                 '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
-            and (ResultCode = 0);
-  if Result then
-    Log('Stockfish: download complete')
-  else
-    Log(Format('Stockfish: curl failed (exit code %d)', [ResultCode]));
 end;
 
-// Extract zip and copy stockfish.exe using PowerShell (local only, no network).
-procedure ExtractStockfish(const ZipFile, EnginesDir: String);
+procedure InitializeWizard;
+begin
+  LastProgressPct  := -1;
+  LastProgressTick := 0;
+  DownloadPage := CreateDownloadPage(
+    'Downloading Stockfish Chess Engine',
+    'Fetching the latest Stockfish engine from GitHub...',
+    @OnStockfishProgress);
+end;
+
+// Queue the Stockfish download when the user clicks Next on the Ready page.
+// Uses Inno Setup''s built-in WinHTTP download (no PowerShell, native progress bar).
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if (CurPageID = wpReady) and WizardIsTaskSelected('stockfish') then
+  begin
+    DownloadPage.Clear;
+    DownloadPage.Add(StockfishUrl, StockfishZip, '');
+    DownloadPage.Show;
+    try
+      try
+        DownloadPage.Download;
+      except
+        MsgBox('Stockfish download failed:' + #13#10 + GetExceptionMessage + #13#10 + #13#10 +
+               'The app will still be installed. You can place stockfish.exe' + #13#10 +
+               'manually in: ' + ExpandConstant('{app}\engines\'),
+               mbError, MB_OK);
+      end;
+    finally
+      DownloadPage.Hide;
+    end;
+  end;
+end;
+
+// Extract the already-downloaded zip into {app}\engines\ using PowerShell.
+// Only the extraction runs here — no network access, no hanging risk.
+procedure ExtractStockfish();
 var
-  ScriptFile, LogFile: String;
+  EnginesDir, ZipFile, ScriptFile, LogFile: String;
   ResultCode: Integer;
   LogContent: AnsiString;
 begin
+  ZipFile    := ExpandConstant('{tmp}\' + StockfishZip);
+  EnginesDir := ExpandConstant('{app}\engines');
   ScriptFile := ExpandConstant('{tmp}\sf_extract.ps1');
   LogFile    := ExpandConstant('{tmp}\sf_extract.log');
+
+  if not FileExists(ZipFile) then Exit;
+  ForceDirectories(EnginesDir);
 
   SaveStringToFile(ScriptFile,
     '$log     = "' + LogFile + '"' + #13#10 +
@@ -90,7 +134,7 @@ begin
     '  Expand-Archive $zipFile -DestinationPath $sfDir -Force' + #13#10 +
     '  Log "Extraction OK"' + #13#10 +
     '  $exe = Get-ChildItem $sfDir -Recurse -Filter "stockfish*.exe" | Select-Object -First 1' + #13#10 +
-    '  if (-not $exe) { throw "No stockfish*.exe found in zip" }' + #13#10 +
+    '  if (-not $exe) { throw "No stockfish*.exe found inside the zip" }' + #13#10 +
     '  Log "Found: $($exe.FullName)"' + #13#10 +
     '  Copy-Item $exe.FullName "' + EnginesDir + '\stockfish.exe" -Force' + #13#10 +
     '  Log "=== Done ==="' + #13#10 +
@@ -111,36 +155,19 @@ begin
     LogContent := '(no log)';
     LoadStringFromFile(LogFile, LogContent);
     MsgBox('Stockfish could not be extracted (exit code: ' + IntToStr(ResultCode) + ').' + #13#10 +
-           'Place stockfish.exe manually in: ' + EnginesDir + #13#10 + #13#10 +
+           'Place stockfish.exe manually in: ' + EnginesDir + #13#10#13#10 +
            '--- Log ---' + #13#10 + LogContent,
            mbError, MB_OK);
   end;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
-var
-  ZipFile, EnginesDir: String;
 begin
   if (CurStep = ssPostInstall) and WizardIsTaskSelected('stockfish') then
   begin
-    ZipFile    := ExpandConstant('{tmp}\' + StockfishZip);
-    EnginesDir := ExpandConstant('{app}\engines');
-    ForceDirectories(EnginesDir);
-
-    WizardForm.StatusLabel.Caption := 'Downloading Stockfish chess engine...';
-    WizardForm.FilenameLabel.Caption := StockfishUrl;
-
-    if DownloadWithCurl(StockfishUrl, ZipFile) then
-    begin
-      WizardForm.StatusLabel.Caption := 'Installing Stockfish chess engine...';
-      WizardForm.FilenameLabel.Caption := '';
-      ExtractStockfish(ZipFile, EnginesDir);
-    end else
-      MsgBox('Stockfish could not be downloaded (curl.exe required, included with Windows 10 1803+).' + #13#10 +
-             'You can place stockfish.exe manually in: ' + EnginesDir,
-             mbError, MB_OK);
-
-    WizardForm.StatusLabel.Caption := 'Done.';
+    WizardForm.StatusLabel.Caption := 'Installing Stockfish chess engine...';
     WizardForm.FilenameLabel.Caption := '';
+    ExtractStockfish();
+    WizardForm.StatusLabel.Caption := 'Done.';
   end;
 end;
