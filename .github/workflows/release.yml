@@ -43,11 +43,10 @@ jobs:
         id: qtvstools
         shell: pwsh
         run: |
-          $rel = Invoke-RestMethod 'https://api.github.com/repos/qt-labs/vstools/releases/latest'
-          $asset = $rel.assets | Where-Object { $_.name -like '*msvc2022*.vsix' } | Select-Object -First 1
-          if (-not $asset) { throw "Qt VS Tools msvc2022 VSIX not found in latest release" }
-          Write-Host "Downloading: $($asset.name)"
-          Invoke-WebRequest $asset.browser_download_url -OutFile qt-vstools.vsix -UseBasicParsing
+          # VS Marketplace always serves the latest published Qt VS Tools version.
+          $vsixUrl = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/TheQtCompany/vsextensions/QtVisualStudioTools2022/latest/vspackage'
+          Write-Host "Downloading Qt VS Tools from VS Marketplace"
+          Invoke-WebRequest $vsixUrl -OutFile qt-vstools.vsix -UseBasicParsing
 
           Expand-Archive qt-vstools.vsix -DestinationPath qt-vstools -Force
           $targets = Get-ChildItem qt-vstools -Recurse -Filter 'qt.targets' | Select-Object -First 1
