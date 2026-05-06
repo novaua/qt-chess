@@ -58,16 +58,17 @@ begin
     '$tmpDir = "' + ExtractFilePath(ScriptFile) + '"' + #13#10 +
     '$zipFile = "$tmpDir\sf.zip"' + #13#10 +
     '$sfDir   = "$tmpDir\sf"' + #13#10 +
+    '$ProgressPreference = ''SilentlyContinue''' + #13#10 +
     'function Log($m) { $m | Out-File $log -Append -Encoding ASCII }' + #13#10 +
     'try {' + #13#10 +
     '  "=== Stockfish download started $(Get-Date) ===" | Out-File $log -Encoding ASCII' + #13#10 +
     '  Log "Working dir: $tmpDir"' + #13#10 +
-    '  $rel = (Invoke-RestMethod "https://api.github.com/repos/official-stockfish/Stockfish/releases/latest").tag_name' + #13#10 +
+    '  $rel = (Invoke-RestMethod "https://api.github.com/repos/official-stockfish/Stockfish/releases/latest" -TimeoutSec 30).tag_name' + #13#10 +
     '  Log "Release tag: $rel"' + #13#10 +
     '  $zip = "stockfish-windows-x86-64-avx2.zip"' + #13#10 +
     '  $url = "https://github.com/official-stockfish/Stockfish/releases/download/$rel/$zip"' + #13#10 +
     '  Log "Downloading: $url"' + #13#10 +
-    '  Invoke-WebRequest $url -OutFile $zipFile -UseBasicParsing' + #13#10 +
+    '  Invoke-WebRequest $url -OutFile $zipFile -UseBasicParsing -TimeoutSec 300' + #13#10 +
     '  Log "Download OK. Extracting..."' + #13#10 +
     '  Expand-Archive $zipFile -DestinationPath $sfDir -Force' + #13#10 +
     '  Log "Extraction OK. Searching for stockfish*.exe..."' + #13#10 +
