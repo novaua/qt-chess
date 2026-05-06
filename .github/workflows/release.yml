@@ -60,10 +60,18 @@ jobs:
           $qtInstallDir = (Get-Item $env:Qt6_DIR).Parent.Parent.FullName
           Write-Host "Qt install dir: $qtInstallDir"
 
-          # Register the Qt version so Qt VS Tools MSBuild targets can resolve it.
-          $regBase = 'HKCU:\Software\Digia\Variants\Qt'
-          New-Item -Path "$regBase\6.10.2_msvc2022_64" -Force | Out-Null
-          Set-ItemProperty "$regBase\6.10.2_msvc2022_64" -Name InstallPath -Value $qtInstallDir
+          # Export QTDIR so Qt VS Tools MSBuild targets can find Qt without registry.
+          "QTDIR=$qtInstallDir" | Out-File $env:GITHUB_ENV -Append
+
+          # Register the Qt version in the registry under every path Qt VS Tools
+          # 3.x is known to check, with both common value-name spellings.
+          foreach ($regBase in @('HKCU:\Software\Digia\Variants\Qt',
+                                  'HKLM:\Software\Digia\Variants\Qt',
+                                  'HKCU:\Software\Qt\Qt')) {
+            New-Item -Path "$regBase\6.10.2_msvc2022_64" -Force | Out-Null
+            Set-ItemProperty "$regBase\6.10.2_msvc2022_64" -Name InstallPath -Value $qtInstallDir
+            Set-ItemProperty "$regBase\6.10.2_msvc2022_64" -Name ""           -Value $qtInstallDir
+          }
 
       - name: Build (MSBuild Release|x64)
         shell: pwsh
@@ -73,6 +81,7 @@ jobs:
             /p:Platform=x64 `
             /p:PlatformToolset=v143 `
             /p:QtMsBuild="${{ steps.qtvstools.outputs.msbuild_dir }}" `
+            /p:DefaultQtVersion=6.10.2_msvc2022_64 `
             /m /v:minimal
 
       - name: Collect deployment files
