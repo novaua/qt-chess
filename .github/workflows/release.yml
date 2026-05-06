@@ -55,37 +55,7 @@ jobs:
           $qmake = (Get-Command qmake.exe).Source
           $qtInstallDir = Split-Path -Parent (Split-Path -Parent $qmake)
           Write-Host "Qt install dir: $qtInstallDir  (qmake: $qmake)"
-
-          # Export QTDIR so Qt VS Tools MSBuild targets can find Qt without registry.
-          "QTDIR=$qtInstallDir" | Out-File $env:GITHUB_ENV -Append
-
-          # Register the Qt version in the registry under every path Qt VS Tools
-          # 3.x is known to check.
-          foreach ($regBase in @('HKCU:\Software\Digia\Variants\Qt',
-                                  'HKLM:\Software\Digia\Variants\Qt',
-                                  'HKCU:\Software\Qt\Qt')) {
-            New-Item -Path "$regBase\6.10.2_msvc2022_64" -Force | Out-Null
-            Set-ItemProperty "$regBase\6.10.2_msvc2022_64" -Name InstallPath    -Value $qtInstallDir
-            Set-ItemProperty "$regBase\6.10.2_msvc2022_64" -Name "(default)"    -Value $qtInstallDir
-          }
-
-      - name: Diagnose Qt VS Tools targets
-        shell: pwsh
-        run: |
-          $f = "${{ steps.qtvstools.outputs.msbuild_dir }}\qt_vars.targets"
-          Write-Host "=== qt_vars.targets lines 120-160 ==="
-          Get-Content $f | Select-Object -Skip 119 -First 41
-          Write-Host "=== Registry state ==="
-          foreach ($base in @('HKCU:\Software\Digia\Variants\Qt',
-                               'HKLM:\Software\Digia\Variants\Qt',
-                               'HKCU:\Software\Qt\Qt')) {
-            if (Test-Path $base) {
-              Get-ChildItem $base | ForEach-Object {
-                Write-Host "$($_.Name)"
-                Get-ItemProperty $_.PSPath | Format-List
-              }
-            } else { Write-Host "$base  NOT FOUND" }
-          }
+          "qt_install_dir=$qtInstallDir" | Out-File $env:GITHUB_OUTPUT -Append
 
       - name: Build (MSBuild Release|x64)
         shell: pwsh
@@ -95,6 +65,7 @@ jobs:
             /p:Platform=x64 `
             /p:PlatformToolset=v143 `
             /p:QtMsBuild="${{ steps.qtvstools.outputs.msbuild_dir }}" `
+            /p:QtInstall="${{ steps.qtvstools.outputs.qt_install_dir }}" `
             /m /v:minimal
 
       - name: Collect deployment files
