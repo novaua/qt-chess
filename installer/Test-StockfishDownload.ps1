@@ -10,6 +10,7 @@ param(
 )
 
 $ProgressPreference = 'SilentlyContinue'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $tmpDir  = Join-Path $env:TEMP "sf_test_$(Get-Random)"
 $zipFile = "$tmpDir\sf.zip"
 $sfDir   = "$tmpDir\sf"
@@ -36,7 +37,7 @@ try {
     $url = "https://github.com/official-stockfish/Stockfish/releases/download/$rel/$zip"
     Log "Downloading : $url"
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-WebRequest $url -OutFile $zipFile -UseBasicParsing -TimeoutSec 300
+    (New-Object System.Net.WebClient).DownloadFile($url, $zipFile)
     $sw.Stop()
     $sizeMB = [math]::Round((Get-Item $zipFile).Length / 1MB, 1)
     Log "Download OK : $sizeMB MB in $($sw.Elapsed.TotalSeconds.ToString('0.0'))s"

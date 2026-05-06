@@ -59,6 +59,7 @@ begin
     '$zipFile = "$tmpDir\sf.zip"' + #13#10 +
     '$sfDir   = "$tmpDir\sf"' + #13#10 +
     '$ProgressPreference = ''SilentlyContinue''' + #13#10 +
+    '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12' + #13#10 +
     'function Log($m) { $m | Out-File $log -Append -Encoding ASCII }' + #13#10 +
     'try {' + #13#10 +
     '  "=== Stockfish download started $(Get-Date) ===" | Out-File $log -Encoding ASCII' + #13#10 +
@@ -68,7 +69,7 @@ begin
     '  $zip = "stockfish-windows-x86-64-avx2.zip"' + #13#10 +
     '  $url = "https://github.com/official-stockfish/Stockfish/releases/download/$rel/$zip"' + #13#10 +
     '  Log "Downloading: $url"' + #13#10 +
-    '  Invoke-WebRequest $url -OutFile $zipFile -UseBasicParsing -TimeoutSec 300' + #13#10 +
+    '  (New-Object System.Net.WebClient).DownloadFile($url, $zipFile)' + #13#10 +
     '  Log "Download OK. Extracting..."' + #13#10 +
     '  Expand-Archive $zipFile -DestinationPath $sfDir -Force' + #13#10 +
     '  Log "Extraction OK. Searching for stockfish*.exe..."' + #13#10 +
