@@ -42,27 +42,59 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: no
 procedure DownloadStockfish();
 var
   ResultCode: Integer;
-  EnginesDir, Script: String;
+  EnginesDir, ScriptFile, LogFile, LogContent: String;
 begin
-  EnginesDir := ExpandConstant('{app}\engines');
+  EnginesDir  := ExpandConstant('{app}\engines');
+  ScriptFile  := ExpandConstant('{tmp}\sf_download.ps1');
+  LogFile     := ExpandConstant('{tmp}\sf_download.log');
+
   ForceDirectories(EnginesDir);
-  Script :=
-    '$ErrorActionPreference = "Stop"; ' +
-    '$rel = (Invoke-RestMethod "https://api.github.com/repos/official-stockfish/Stockfish/releases/latest").tag_name; ' +
-    '$zip = "stockfish-windows-x86-64-avx2.zip"; ' +
-    '$url = "https://github.com/official-stockfish/Stockfish/releases/download/$rel/$zip"; ' +
-    'Invoke-WebRequest $url -OutFile "$env:TEMP\sf.zip"; ' +
-    'Expand-Archive "$env:TEMP\sf.zip" -DestinationPath "$env:TEMP\sf" -Force; ' +
-    '$exe = "$env:TEMP\sf\stockfish-windows-x86-64-avx2\stockfish\stockfish-windows-x86-64-avx2.exe"; ' +
-    'Copy-Item $exe "' + EnginesDir + '\stockfish.exe"';
+
+  // Write the PowerShell script to a temp file to avoid all quote-escaping
+  // issues that arise when passing -Command "..." on the command line.
+  SaveStringToFile(ScriptFile,
+    '$log = "' + LogFile + '"' + #13#10 +
+    'try {' + #13#10 +
+    '  "=== Stockfish download started $(Get-Date) ===" | Out-File $log' + #13#10 +
+    '  $rel = (Invoke-RestMethod "https://api.github.com/repos/official-stockfish/Stockfish/releases/latest").tag_name' + #13#10 +
+    '  "Release tag: $rel" | Out-File $log -Append' + #13#10 +
+    '  $zip = "stockfish-windows-x86-64-avx2.zip"' + #13#10 +
+    '  $url = "https://github.com/official-stockfish/Stockfish/releases/download/$rel/$zip"' + #13#10 +
+    '  "Downloading: $url" | Out-File $log -Append' + #13#10 +
+    '  Invoke-WebRequest $url -OutFile "$env:TEMP\sf.zip" -UseBasicParsing' + #13#10 +
+    '  "Download OK. Extracting..." | Out-File $log -Append' + #13#10 +
+    '  Expand-Archive "$env:TEMP\sf.zip" -DestinationPath "$env:TEMP\sf" -Force' + #13#10 +
+    '  "Extraction OK. Searching for stockfish*.exe..." | Out-File $log -Append' + #13#10 +
+    '  $exe = Get-ChildItem "$env:TEMP\sf" -Recurse -Filter "stockfish*.exe" | Select-Object -First 1' + #13#10 +
+    '  if (-not $exe) { throw "No stockfish*.exe found inside the zip" }' + #13#10 +
+    '  "Found: $($exe.FullName)" | Out-File $log -Append' + #13#10 +
+    '  Copy-Item $exe.FullName "' + EnginesDir + '\stockfish.exe" -Force' + #13#10 +
+    '  "=== Done ===" | Out-File $log -Append' + #13#10 +
+    '} catch {' + #13#10 +
+    '  "ERROR: $_" | Out-File $log -Append' + #13#10 +
+    '  "Stack: $($_.ScriptStackTrace)" | Out-File $log -Append' + #13#10 +
+    '  exit 1' + #13#10 +
+    '}',
+    False);
+
   if not Exec('powershell.exe',
-      '-NoProfile -ExecutionPolicy Bypass -Command "' + Script + '"',
-      '', SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
+      '-NoProfile -ExecutionPolicy Bypass -File "' + ScriptFile + '"',
+      '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    ResultCode := -1;
+
+  if ResultCode <> 0 then
+  begin
+    LogContent := '(log file not found)';
+    LoadStringFromFile(LogFile, LogContent);
     MsgBox(
-      'Stockfish could not be downloaded automatically.' + #13#10 +
+      'Stockfish could not be downloaded automatically (exit code: ' +
+        IntToStr(ResultCode) + ').' + #13#10 +
       'You can get it from https://stockfishchess.org and place it in:' + #13#10 +
-      EnginesDir,
-      mbInformation, MB_OK);
+      EnginesDir + #13#10#13#10 +
+      '--- Download log ---' + #13#10 +
+      LogContent,
+      mbError, MB_OK);
+  end;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
