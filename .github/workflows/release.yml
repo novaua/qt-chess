@@ -77,7 +77,6 @@ jobs:
             /p:Platform=x64 `
             /p:PlatformToolset=v143 `
             /p:QtMsBuild="${{ steps.qtvstools.outputs.msbuild_dir }}" `
-            /p:DefaultQtVersion=6.10.2_msvc2022_64 `
             /m /v:minimal
 
       - name: Collect deployment files
