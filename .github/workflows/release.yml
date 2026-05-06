@@ -55,22 +55,23 @@ jobs:
           Write-Host "Qt MSBuild dir: $msbuildDir"
           "msbuild_dir=$msbuildDir" | Out-File $env:GITHUB_OUTPUT -Append
 
-          # Qt6_DIR = .../Qt/6.10.2/msvc2022_64/lib/cmake/Qt6
-          # Two levels up gives the msvc2022_64 root that Qt VS Tools expects.
-          $qtInstallDir = (Get-Item $env:Qt6_DIR).Parent.Parent.FullName
-          Write-Host "Qt install dir: $qtInstallDir"
+          # Derive the Qt msvc2022_64 root from qmake.exe which install-qt-action
+          # puts on PATH: qmake lives in <qtroot>/bin/, one level up is the root.
+          $qmake = (Get-Command qmake.exe).Source
+          $qtInstallDir = Split-Path -Parent (Split-Path -Parent $qmake)
+          Write-Host "Qt install dir: $qtInstallDir  (qmake: $qmake)"
 
           # Export QTDIR so Qt VS Tools MSBuild targets can find Qt without registry.
           "QTDIR=$qtInstallDir" | Out-File $env:GITHUB_ENV -Append
 
           # Register the Qt version in the registry under every path Qt VS Tools
-          # 3.x is known to check, with both common value-name spellings.
+          # 3.x is known to check.
           foreach ($regBase in @('HKCU:\Software\Digia\Variants\Qt',
                                   'HKLM:\Software\Digia\Variants\Qt',
                                   'HKCU:\Software\Qt\Qt')) {
             New-Item -Path "$regBase\6.10.2_msvc2022_64" -Force | Out-Null
-            Set-ItemProperty "$regBase\6.10.2_msvc2022_64" -Name InstallPath -Value $qtInstallDir
-            Set-ItemProperty "$regBase\6.10.2_msvc2022_64" -Name ""           -Value $qtInstallDir
+            Set-ItemProperty "$regBase\6.10.2_msvc2022_64" -Name InstallPath    -Value $qtInstallDir
+            Set-ItemProperty "$regBase\6.10.2_msvc2022_64" -Name "(default)"    -Value $qtInstallDir
           }
 
       - name: Build (MSBuild Release|x64)
