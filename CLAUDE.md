@@ -84,3 +84,12 @@ Builds as a DLL consumed by the VS test runner. Tests exercise `Game`, `Board`, 
 - Chess logic stays in the `Chess::` namespace; GUI code stays in ChessGui
 - QML ↔ C++ communication goes exclusively through `ChessConnector` — don't add direct `Q_OBJECT` wrappers elsewhere
 - `PieceColor` is an `enum class` (Light/Dark); use scoped references (`PieceColor::Light`)
+
+## Resuming Work After a Session Break
+
+At the start of a new session, read these two files to get full context:
+
+1. `PROGRESS.md` — latest status, what's broken, and numbered next steps
+2. `TASKS.md` — full task checklist; find first unchecked item under "In Progress"
+
+Then confirm the current branch with `git branch` and `git log --oneline -5` before making any changes.
