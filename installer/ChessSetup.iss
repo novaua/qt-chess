@@ -55,7 +55,7 @@ var
 
 // Called by the download engine on every received chunk.
 // Logs to the setup log only when >= 1% progress or >= 10 s have elapsed.
-function OnStockfishProgress(const Url, Filename: String; const Progress, ProgressMax: Int64): Boolean;
+function OnStockfishProgress(const Url, Filename: String; Progress, ProgressMax: Int64): Boolean;
 var
   Pct: Integer;
 begin
