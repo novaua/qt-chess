@@ -16,6 +16,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 OutputDir=Output
 OutputBaseFilename=ChessSetup-{#MyAppVersion}
+SetupIconFile=..\ChessGui\ChessGui\chess.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible
