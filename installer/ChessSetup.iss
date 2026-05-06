@@ -55,25 +55,26 @@ begin
   // issues that arise when passing -Command "..." on the command line.
   SaveStringToFile(ScriptFile,
     '$log = "' + LogFile + '"' + #13#10 +
+    'function Log($m) { $m | Out-File $log -Append -Encoding ASCII }' + #13#10 +
     'try {' + #13#10 +
-    '  "=== Stockfish download started $(Get-Date) ===" | Out-File $log' + #13#10 +
+    '  "=== Stockfish download started $(Get-Date) ===" | Out-File $log -Encoding ASCII' + #13#10 +
     '  $rel = (Invoke-RestMethod "https://api.github.com/repos/official-stockfish/Stockfish/releases/latest").tag_name' + #13#10 +
-    '  "Release tag: $rel" | Out-File $log -Append' + #13#10 +
+    '  Log "Release tag: $rel"' + #13#10 +
     '  $zip = "stockfish-windows-x86-64-avx2.zip"' + #13#10 +
     '  $url = "https://github.com/official-stockfish/Stockfish/releases/download/$rel/$zip"' + #13#10 +
-    '  "Downloading: $url" | Out-File $log -Append' + #13#10 +
+    '  Log "Downloading: $url"' + #13#10 +
     '  Invoke-WebRequest $url -OutFile "$env:TEMP\sf.zip" -UseBasicParsing' + #13#10 +
-    '  "Download OK. Extracting..." | Out-File $log -Append' + #13#10 +
+    '  Log "Download OK. Extracting..."' + #13#10 +
     '  Expand-Archive "$env:TEMP\sf.zip" -DestinationPath "$env:TEMP\sf" -Force' + #13#10 +
-    '  "Extraction OK. Searching for stockfish*.exe..." | Out-File $log -Append' + #13#10 +
+    '  Log "Extraction OK. Searching for stockfish*.exe..."' + #13#10 +
     '  $exe = Get-ChildItem "$env:TEMP\sf" -Recurse -Filter "stockfish*.exe" | Select-Object -First 1' + #13#10 +
     '  if (-not $exe) { throw "No stockfish*.exe found inside the zip" }' + #13#10 +
-    '  "Found: $($exe.FullName)" | Out-File $log -Append' + #13#10 +
+    '  Log "Found: $($exe.FullName)"' + #13#10 +
     '  Copy-Item $exe.FullName "' + EnginesDir + '\stockfish.exe" -Force' + #13#10 +
-    '  "=== Done ===" | Out-File $log -Append' + #13#10 +
+    '  Log "=== Done ==="' + #13#10 +
     '} catch {' + #13#10 +
-    '  "ERROR: $_" | Out-File $log -Append' + #13#10 +
-    '  "Stack: $($_.ScriptStackTrace)" | Out-File $log -Append' + #13#10 +
+    '  Log "ERROR: $_"' + #13#10 +
+    '  Log "Stack: $($_.ScriptStackTrace)"' + #13#10 +
     '  exit 1' + #13#10 +
     '}',
     False);
