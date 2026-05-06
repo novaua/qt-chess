@@ -45,42 +45,15 @@ const
   StockfishUrl = 'https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip';
   StockfishZip = 'stockfish.zip';
 
-function GetTickCount: Cardinal;
-  external 'GetTickCount@kernel32.dll stdcall';
-
 var
   DownloadPage: TDownloadWizardPage;
-  LastProgressPct:  Integer;
-  LastProgressTick: Cardinal;
-
-// Called by the download engine on every received chunk.
-// Logs to the setup log only when >= 1% progress or >= 10 s have elapsed.
-function OnStockfishProgress(const Url, Filename: String; Progress, ProgressMax: Int64): Boolean;
-var
-  Pct: Integer;
-begin
-  Result := True;
-  if ProgressMax <= 0 then Exit;
-
-  Pct := Integer((Progress * 100) div ProgressMax);
-
-  if (Pct >= LastProgressPct + 1) or
-     (GetTickCount - LastProgressTick >= 10000) then
-  begin
-    Log(Format('Stockfish download: %d%%  (%d KB / %d KB)', [Pct, Integer(Progress div 1024), Integer(ProgressMax div 1024)]));
-    LastProgressPct  := Pct;
-    LastProgressTick := GetTickCount;
-  end;
-end;
 
 procedure InitializeWizard;
 begin
-  LastProgressPct  := -1;
-  LastProgressTick := 0;
   DownloadPage := CreateDownloadPage(
     'Downloading Stockfish Chess Engine',
     'Fetching the latest Stockfish engine from GitHub...',
-    @OnStockfishProgress);
+    nil);
 end;
 
 // Queue the Stockfish download when the user clicks Next on the Ready page.
