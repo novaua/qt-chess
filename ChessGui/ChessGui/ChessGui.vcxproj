@@ -65,19 +65,19 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(QtMsBuild)\qt_defaults.props" Condition="Exists('$(QtMsBuild)\qt_defaults.props')" />
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <QtInstall>$(DefaultQtVersion)</QtInstall>
+    <QtInstall>6.10.2_msvc2022_64</QtInstall>
     <QtModules>core;gui;network;qml;quick;widgets;quickwidgets;quickcontrols2</QtModules>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <QtInstall>msvc_Qt551</QtInstall>
+    <QtInstall>6.10.2_msvc2022_64</QtInstall>
     <QtModules>core;gui;network;qml;quick;widgets;quickwidgets;quickcontrols2</QtModules>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <QtInstall>msvc_Qt551</QtInstall>
+    <QtInstall>6.10.2_msvc2022_64</QtInstall>
     <QtModules>core;gui;network;qml;quick;widgets;quickwidgets;quickcontrols2</QtModules>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <QtInstall>$(DefaultQtVersion)</QtInstall>
+    <QtInstall>6.10.2_msvc2022_64</QtInstall>
     <QtModules>core;gui;network;qml;quick;widgets;quickwidgets;quickcontrols2</QtModules>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') OR !Exists('$(QtMsBuild)\Qt.props')">
@@ -181,7 +181,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;.;..\..\ChessCore;release;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;.;$(SolutionDir)\ChessCore;release;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Zc:strictStrings -w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>release\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -294,7 +294,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;.;..\..\ChessCore;debug;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;.;$(SolutionDir)\ChessCore;debug;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>debug\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -350,11 +350,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="chessconnector.cpp" />
+    <ClCompile Include="ChessEnginePlayer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="networkplayer.cpp" />
     <ClCompile Include="..\..\ChessCore\stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\ChessCore\ChessEnginePlayer.h" />
     <ClInclude Include="..\..\ChessCore\Piece.h" />
     <QtMoc Include="chessconnector.h" />
     <QtMoc Include="networkplayer.h" />
@@ -520,6 +522,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
     <QtRcc Include="qml.qrc" />
+    <ResourceCompile Include="ChessGui.rc" />
     <None Include="pics\white\r.png">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

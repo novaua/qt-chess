@@ -4,7 +4,6 @@ QT += qml quick widgets
 
 SOURCES += main.cpp \
     ../../ChessCore/Board.cpp \
-    ../../ChessCore/ChessEnginePlayer.cpp \
     ../../ChessCore/ChessException.cpp \
     ../../ChessCore/Game.cpp \
     ../../ChessCore/Move.cpp \
@@ -17,12 +16,13 @@ SOURCES += main.cpp \
     ../../ChessCore/BoardPositionsCache.cpp \
     ../../ChessCore/Check.cpp \
     ../../ChessCore/Events.cpp \
+    ChessEnginePlayer.cpp \
     networkplayer.cpp
 
 RESOURCES += qml.qrc
 
 CONFIG += c++11
-INCLUDEPATH += ../../ChessCore/
+INCLUDEPATH += ../../ChessCore/ ../../UciConnector/
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH =
@@ -35,7 +35,6 @@ SUBDIRS += \
 
 HEADERS += \
     ../../ChessCore/Board.h \
-    ../../ChessCore/ChessEnginePlayer.h \
     ../../ChessCore/ChessException.h \
     ../../ChessCore/Events.h \
     ../../ChessCore/Game.h \
@@ -52,6 +51,7 @@ HEADERS += \
     ../../ChessCore/BoardPositionsCache.h \
     ../../ChessCore/LruCacheMap.hpp \
     ../../ChessCore/Check.h \
+    ChessEnginePlayer.h \
     networkplayer.h
 
 DISTFILES += \

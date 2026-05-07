@@ -143,10 +143,10 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\ChessGui\ChessGui\ChessEnginePlayer.h" />
     <ClInclude Include="Board.h" />
     <ClInclude Include="BoardPositionsCache.h" />
     <ClInclude Include="Check.h" />
-    <ClInclude Include="ChessEnginePlayer.h" />
     <ClInclude Include="ChessException.h" />
     <ClInclude Include="Events.h" />
     <ClInclude Include="Game.h" />
@@ -163,7 +163,6 @@
     <ClCompile Include="Board.cpp" />
     <ClCompile Include="BoardPositionsCache.cpp" />
     <ClCompile Include="Check.cpp" />
-    <ClCompile Include="ChessEnginePlayer.cpp" />
     <ClCompile Include="ChessException.cpp" />
     <ClCompile Include="Events.cpp" />
     <ClCompile Include="Game.cpp" />

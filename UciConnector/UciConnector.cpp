@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "UciConnector.h"
+#include <QCoreApplication>
 #include <QProcess>
 #include <QStandardPaths>
 #include <QString>
@@ -55,8 +56,13 @@ UciConnector::UciConnector() : _initOk(false)
 void UciConnector::Init()
 {
     QString sfPath = QStandardPaths::findExecutable(UciEngineProgrammExe);
+    if (sfPath.isEmpty()) {
+        QString enginesDir = QCoreApplication::applicationDirPath() + "/engines";
+        sfPath = QStandardPaths::findExecutable(UciEngineProgrammExe, {enginesDir});
+    }
     if (sfPath.isEmpty())
-        throw std::runtime_error("UciConnector: stockfish.exe not found on PATH");
+        throw std::runtime_error(
+            "UciConnector: stockfish.exe not found on PATH or in ./engines/");
 
     _uciEngine->start(sfPath, QStringList());
     if (!_uciEngine->waitForStarted(5000))

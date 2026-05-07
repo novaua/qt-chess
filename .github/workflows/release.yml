@@ -1,0 +1,115 @@
+name: Build Installer
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    tags: ['v*']
+
+env:
+  QT_VERSION: '6.10.2'
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: win64_msvc2022_64
+          modules: qt5compat qtshadertools
+
+      - name: Setup MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      # Qt VS Tools supplies the MSBuild targets that process moc/rcc and set
+      # Qt include/link paths from the <QtModules> property in the .vcxproj.
+      # The VSIX is a ZIP; we extract it, locate qt.targets, and hand the
+      # directory to MSBuild via /p:QtMsBuild. The Qt installation is
+      # registered in the HKCU registry under the version name that matches
+      # <QtInstall>6.10.2_msvc2022_64</QtInstall> in ChessGui.vcxproj.
+      - name: Install Qt VS Tools MSBuild integration
+        id: qtvstools
+        shell: pwsh
+        run: |
+          # VS Marketplace always serves the latest published Qt VS Tools version.
+          $vsixUrl = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/TheQtCompany/vsextensions/QtVisualStudioTools2022/latest/vspackage'
+          Write-Host "Downloading Qt VS Tools from VS Marketplace"
+          Invoke-WebRequest $vsixUrl -OutFile qt-vstools.vsix -UseBasicParsing
+
+          Expand-Archive qt-vstools.vsix -DestinationPath qt-vstools -Force
+          $targets = Get-ChildItem qt-vstools -Recurse -Filter 'qt.targets' | Select-Object -First 1
+          if (-not $targets) { throw "qt.targets not found inside VSIX" }
+          $msbuildDir = $targets.DirectoryName
+          Write-Host "Qt MSBuild dir: $msbuildDir"
+          "msbuild_dir=$msbuildDir" | Out-File $env:GITHUB_OUTPUT -Append
+
+          # Derive the Qt msvc2022_64 root from qmake.exe which install-qt-action
+          # puts on PATH: qmake lives in <qtroot>/bin/, one level up is the root.
+          $qmake = (Get-Command qmake.exe).Source
+          $qtInstallDir = Split-Path -Parent (Split-Path -Parent $qmake)
+          Write-Host "Qt install dir: $qtInstallDir  (qmake: $qmake)"
+          "qt_install_dir=$qtInstallDir" | Out-File $env:GITHUB_OUTPUT -Append
+
+      - name: Build (MSBuild Release|x64)
+        shell: pwsh
+        run: |
+          msbuild ChessCore.sln `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:PlatformToolset=v143 `
+            /p:QtMsBuild="${{ steps.qtvstools.outputs.msbuild_dir }}" `
+            /p:QtInstall="${{ steps.qtvstools.outputs.qt_install_dir }}" `
+            /m /v:minimal
+
+      - name: Collect deployment files
+        shell: pwsh
+        run: |
+          New-Item -Path deploy -ItemType Directory -Force
+          Copy-Item x64\Release\ChessGui.exe deploy\
+          windeployqt --release --verbose 2 --qmldir ChessGui\ChessGui deploy\ChessGui.exe
+          Write-Host "=== deploy folder contents ==="
+          Get-ChildItem deploy -Recurse | Select-Object FullName
+
+      - name: Compute version string
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $v = "${{ github.ref_name }}" -replace '^v', ''
+          } else {
+            $v = "pr-${{ github.event.pull_request.number }}"
+          }
+          "value=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Build Inno Setup installer
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\ChessSetup.iss
+
+      # PR builds: upload installer as a downloadable artifact (14-day retention)
+      - name: Upload installer artifact (PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChessSetup-${{ steps.version.outputs.value }}
+          path: installer/Output/ChessSetup-*.exe
+          retention-days: 14
+
+      # Tag pushes: publish a GitHub Release
+      - name: Create GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Chess++ ${{ github.ref_name }}"
+          files: installer/Output/ChessSetup-*.exe
+          generate_release_notes: true

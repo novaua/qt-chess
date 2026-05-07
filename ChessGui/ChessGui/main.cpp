@@ -1,12 +1,14 @@
 #include "stdafx.h"
 
 #include <QApplication>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include "chessconnector.h"
 #include <QQmlContext>
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    app.setWindowIcon(QIcon(":/pics/chess_icon.svg"));
 
     QQmlApplicationEngine engine;
 
