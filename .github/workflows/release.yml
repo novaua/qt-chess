@@ -22,6 +22,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           arch: win64_msvc2022_64
+          modules: qt5compat
 
       - name: Setup MSVC (x64)
         uses: ilammy/msvc-dev-cmd@v1
