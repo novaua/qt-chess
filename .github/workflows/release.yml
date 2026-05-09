@@ -121,7 +121,7 @@ jobs:
           APP_VERSION: ${{ steps.version.outputs.value }}
           PFX_PASS: ${{ secrets.PFX_PASSWORD }}
         run: |
-          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
             /S"MySignTool=${{ github.workspace }}\sign_tool.bat `$f" `
             installer\ChessSetup.iss
 
