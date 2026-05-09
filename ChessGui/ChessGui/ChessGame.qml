@@ -36,6 +36,32 @@ ApplicationWindow {
         }
     }
 
+    component ModeButton: QQC.Button {
+        id: mb
+        checkable: true
+        implicitWidth: 150
+        implicitHeight: 38
+        contentItem: Text {
+            text: mb.text
+            color: !mb.enabled
+                ? (root.isDarkMode ? "#666666" : "#aaaaaa")
+                : (root.isDarkMode ? "#ffffff" : "#000000")
+            font: mb.font
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
+        background: Rectangle {
+            radius: 6
+            color: mb.checked
+                ? "#0078d4"
+                : mb.down
+                    ? (root.isDarkMode ? "#282828" : "#c0c0c0")
+                    : (root.isDarkMode ? "#3c3c3c" : "#e0e0e0")
+            border.color: mb.checked ? "#005a9e"
+                : (root.isDarkMode ? "#555555" : "#bbbbbb")
+        }
+    }
+
     title: qsTr("Chess ++")
     color: isDarkMode ? "#1e1e1e" : "#f0f0f0"
 
@@ -90,46 +116,6 @@ ApplicationWindow {
                     spacing: 10
 
                     Button {
-                        id: buttonStart
-                        text: "Start 2 player game"
-                        onClicked: {
-                            screen.state = "screen_2"
-                            if (chessConnector.IsOnPlayerMode)
-                                chessConnector.endGame()
-                            chessConnector.startNewGame()
-                            gameIsInProgress = true
-                            console.log("New Game ")
-                        }
-                    }
-
-                    Button {
-                        id: buttonStartSingle
-                        text: "Start single player game"
-                        onClicked: {
-                            buttonPrev.text = "Prev"
-                            screen.state = "screen_4"
-                            if (chessConnector.IsOnPlayerMode)
-                                chessConnector.endGame()
-                            chessConnector.startNewGameWithComputer()
-                            gameIsInProgress = true
-                            console.log("New Game with computer")
-                        }
-                    }
-
-                    Button {
-                        id: buttonLoad
-                        text: "Load"
-                        onClicked: {
-                            if (chessConnector.loadGame()) {
-                                chessConnector.startNewGame()
-                                screen.state = "screen_3"
-                                gameIsInProgress = true
-                            }
-                            console.log("Load pressed!")
-                        }
-                    }
-
-                    Button {
                         id: buttonStop
                         text: "Stop"
                         onClicked: {
@@ -166,7 +152,6 @@ ApplicationWindow {
                             console.log("Advanced")
                         }
                     }
-
                 }
 
                 Row {
@@ -194,12 +179,130 @@ ApplicationWindow {
             }
         }
 
+        // ── Start menu overlay ─────────────────────────────────────────────
+        Rectangle {
+            id: startMenu
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -15
+            width: 340
+            height: menuContent.implicitHeight + 48
+            visible: screen.state === "screen_1"
+            color: root.isDarkMode ? "#252525" : "#f4f4f4"
+            border.color: root.isDarkMode ? "#555555" : "#cccccc"
+            border.width: 1
+            radius: 12
+
+            Column {
+                id: menuContent
+                anchors.centerIn: parent
+                spacing: 20
+                width: parent.width - 48
+
+                Text {
+                    text: "Chess ++"
+                    font.pixelSize: 26
+                    font.bold: true
+                    color: root.isDarkMode ? "#ffffff" : "#000000"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                // Game mode radio group
+                ButtonGroup { id: gameModeGroup }
+
+                Grid {
+                    columns: 2
+                    spacing: 10
+                    anchors.horizontalCenter: parent.horizontalCenter
+
+                    ModeButton {
+                        id: btnSingle
+                        text: "Single Player"
+                        ButtonGroup.group: gameModeGroup
+                        checked: true
+                    }
+                    ModeButton {
+                        id: btnTwo
+                        text: "Two Player"
+                        ButtonGroup.group: gameModeGroup
+                    }
+                    ModeButton {
+                        id: btnContinue
+                        text: "Continue"
+                        ButtonGroup.group: gameModeGroup
+                        enabled: chessConnector.CanContinue
+                    }
+                    ModeButton {
+                        id: btnLoad
+                        text: "Load"
+                        ButtonGroup.group: gameModeGroup
+                        enabled: chessConnector.CanLoad
+                    }
+                }
+
+                // Difficulty — UI only, engine wiring is a future task
+                Column {
+                    spacing: 6
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    opacity: btnSingle.checked ? 1.0 : 0.35
+
+                    Text {
+                        text: "Difficulty: " + difficultySlider.value.toFixed(0)
+                        color: root.isDarkMode ? "#ffffff" : "#000000"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    Slider {
+                        id: difficultySlider
+                        from: 0; to: 20; value: 10; stepSize: 1
+                        width: 260
+                        enabled: btnSingle.checked
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                }
+
+                // Action buttons
+                Row {
+                    spacing: 16
+                    anchors.horizontalCenter: parent.horizontalCenter
+
+                    Button {
+                        text: "Start Game"
+                        implicitHeight: 32
+                        implicitWidth: 110
+                        onClicked: {
+                            if (btnSingle.checked) {
+                                screen.state = "screen_4"
+                                chessConnector.startNewGameWithComputer()
+                                gameIsInProgress = true
+                            } else if (btnTwo.checked) {
+                                screen.state = "screen_2"
+                                chessConnector.startNewGame()
+                                gameIsInProgress = true
+                            } else if (btnContinue.checked) {
+                                var single = chessConnector.continueGame()
+                                screen.state = single ? "screen_4" : "screen_2"
+                                gameIsInProgress = true
+                            } else if (btnLoad.checked) {
+                                if (chessConnector.loadGame()) {
+                                    screen.state = "screen_3"
+                                    gameIsInProgress = true
+                                }
+                            }
+                        }
+                    }
+
+                    Button {
+                        text: "Exit"
+                        implicitHeight: 32
+                        implicitWidth: 80
+                        onClicked: Qt.quit()
+                    }
+                }
+            }
+        }
+
         states: [
             State {
                 name: "screen_1"
-                PropertyChanges { target: buttonStart; visible: true }
-                PropertyChanges { target: buttonStartSingle; visible: true }
-                PropertyChanges { target: buttonLoad; visible: true }
                 PropertyChanges { target: buttonStop; visible: false }
                 PropertyChanges { target: buttonSave; visible: false }
                 PropertyChanges { target: buttonNext; visible: false }
@@ -210,9 +313,6 @@ ApplicationWindow {
             },
             State {
                 name: "screen_2"
-                PropertyChanges { target: buttonStart; visible: false }
-                PropertyChanges { target: buttonStartSingle; visible: false }
-                PropertyChanges { target: buttonLoad; visible: false }
                 PropertyChanges { target: buttonStop; visible: true }
                 PropertyChanges { target: buttonSave; visible: true }
                 PropertyChanges { target: buttonNext; visible: false }
@@ -223,10 +323,7 @@ ApplicationWindow {
             },
             State {
                 name: "screen_3"
-                PropertyChanges { target: buttonStart; visible: true }
-                PropertyChanges { target: buttonStartSingle; visible: true }
-                PropertyChanges { target: buttonLoad; visible: true }
-                PropertyChanges { target: buttonStop; visible: false }
+                PropertyChanges { target: buttonStop; visible: true }
                 PropertyChanges { target: buttonSave; visible: false }
                 PropertyChanges { target: buttonNext; visible: true }
                 PropertyChanges { target: buttonPrev; visible: true }
@@ -236,9 +333,6 @@ ApplicationWindow {
             },
             State {
                 name: "screen_4"
-                PropertyChanges { target: buttonStart; visible: false }
-                PropertyChanges { target: buttonStartSingle; visible: false }
-                PropertyChanges { target: buttonLoad; visible: false }
                 PropertyChanges { target: buttonStop; visible: true }
                 PropertyChanges { target: buttonSave; visible: true }
                 PropertyChanges { target: buttonNext; visible: false }
