@@ -106,10 +106,9 @@ jobs:
           PFX_PASS: ${{ secrets.PFX_PASSWORD }}
         run: |
           $pfxPath = "${{ github.workspace }}\certificate.pfx"
-          $signCmd = "signtool.exe sign /f `"$pfxPath`" /p $env:PFX_PASS /tr http://timestamp.digicert.com /td sha256 /fd sha256 `$f"
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
-            /S"MySignTool=$signCmd" `
-            installer\ChessSetup.iss
+          $signParam = '/SMySignTool=signtool.exe sign /f "' + $pfxPath + '" /p ' + $env:PFX_PASS + ' /tr http://timestamp.digicert.com /td sha256 /fd sha256 $f'
+          
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" $signParam installer\ChessSetup.iss
 
       - name: Cleanup Certificate
         if: always()
