@@ -101,19 +101,19 @@ jobs:
       
       - name : Create Signing Script
         shell: pwsh
-        env: 
-          PFX_PASS: ${{ secrets.PFX_PASSWORD }}
         run: |
           $pfxPath = "${{ github.workspace }}\certificate.pfx"
-          $signScript = "@signtool.exe sign /v /f `"$pfxPath`" /p $env:PFX_PASS /tr http://timestamp.sectigo.com /td sha256 /fd sha256 %1"
+          # Use %PFX_PASS% so the password is resolved by CMD at call time, not stored in the file.
+          $signScript = "@signtool.exe sign /v /f `"$pfxPath`" /p %PFX_PASS% /tr http://timestamp.sectigo.com /td sha256 /fd sha256 %1"
           $signScript | Out-File -FilePath "${{ github.workspace }}\sign_tool.bat" -Encoding ascii
-      
-      - name: Sign Binaries (EXE and DLLs)
+
+      - name: Sign Binaries (EXE only)
         shell: pwsh
+        env:
+          PFX_PASS: ${{ secrets.PFX_PASSWORD }}
         run: |
-          Write-Host "Signing all binaries in deploy folder..."
+          Write-Host "Signing app EXEs in deploy folder..."
           Get-ChildItem -Path deploy -Filter *.exe -Recurse | ForEach-Object { & "${{ github.workspace }}\sign_tool.bat" "$($_.FullName)" }
-          Get-ChildItem -Path deploy -Filter *.dll -Recurse | ForEach-Object { & "${{ github.workspace }}\sign_tool.bat" "$($_.FullName)" }
 
       - name: Build and Sign Inno Setup installer
         shell: pwsh
