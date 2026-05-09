@@ -57,8 +57,6 @@ ApplicationWindow {
     height: 1054
     visible: true
 
-    Loader { id: dialogLoader }
-
     Rectangle {
         id: screen
         state: "screen_1"
@@ -169,14 +167,6 @@ ApplicationWindow {
                         }
                     }
 
-                    Button {
-                        id: buttonNetworkGame
-                        text: "Network Player"
-                        onClicked: {
-                            dialogLoader.source = "SelectPlayerDialog.qml"
-                            console.log("Show net players.")
-                        }
-                    }
                 }
 
                 Row {

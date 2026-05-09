@@ -4,7 +4,6 @@
 
 #include <QDir>
 #include <QDebug>
-#include <QHostInfo>
 #include <QThread>
 
 using namespace Chess;
@@ -26,8 +25,7 @@ void ClearBoard(QStringList& board, const QString& cleanValue = EmptyFlag)
 
 ChessConnector::ChessConnector(QObject* parent)
 	: QObject(parent),
-	_game(GameAptr(new Game())),
-	_netPlayer(std::make_shared<NetworkPlayer>("Vitaly-Nb" /*QHostInfo().hostName() */))
+	_game(GameAptr(new Game()))
 {
 	_game->RegisterBoardChanged(
 		[&](int index, const Piece& piece)
@@ -66,8 +64,6 @@ ChessConnector::ChessConnector(QObject* parent)
 		});
 
 	ClearBoard(_possibleMoves);
-	_netPlayer->SendAvaliability();
-	_netPlayer->ReceiveMessage();
 }
 
 int ChessConnector::MoveCount()
@@ -328,12 +324,3 @@ ChessConnector::~ChessConnector()
 	qDebug() << "Game Exited.";
 }
 
-QStringList ChessConnector::PlayersName()
-{
-	// ToDo
-	QStringList players;
-	players.append("Joe");
-	players.append("Vitaly");
-
-	return players;
-}

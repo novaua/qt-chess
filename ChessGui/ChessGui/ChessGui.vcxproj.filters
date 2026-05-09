@@ -89,9 +89,6 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="networkplayer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\UciConnector\pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -148,9 +145,6 @@
     <ClInclude Include="..\..\UciConnector\framework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <QtMoc Include="networkplayer.h">
-      <Filter>Header Files</Filter>
-    </QtMoc>
     <ClInclude Include="..\..\UciConnector\pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -205,9 +199,6 @@
     <None Include="NavigationLayer.qml">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="NetworkPlayers.qml">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="Notificator.qml">
       <Filter>Resource Files</Filter>
     </None>
@@ -221,9 +212,6 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="pics\black\R.png">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="SelectPlayerDialog.qml">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="pics\white\b.png">
