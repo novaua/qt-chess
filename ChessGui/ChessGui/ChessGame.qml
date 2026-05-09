@@ -119,18 +119,6 @@ ApplicationWindow {
                     }
 
                     Button {
-                        id: buttonComputerMove
-                        text: "Computer move"
-                        onClicked: {
-                            chessConnector.computerMove()
-                            buttonPrev.text = "Undo"
-                            screen.state = "screen_4"
-                            gameIsInProgress = true
-                            console.log("Computer move pressed!")
-                        }
-                    }
-
-                    Button {
                         id: buttonLoad
                         text: "Load"
                         onClicked: {
@@ -221,7 +209,6 @@ ApplicationWindow {
                 name: "screen_1"
                 PropertyChanges { target: buttonStart; visible: true }
                 PropertyChanges { target: buttonStartSingle; visible: true }
-                PropertyChanges { target: buttonComputerMove; visible: false }
                 PropertyChanges { target: buttonLoad; visible: true }
                 PropertyChanges { target: buttonStop; visible: false }
                 PropertyChanges { target: buttonSave; visible: false }
@@ -235,7 +222,6 @@ ApplicationWindow {
                 name: "screen_2"
                 PropertyChanges { target: buttonStart; visible: false }
                 PropertyChanges { target: buttonStartSingle; visible: false }
-                PropertyChanges { target: buttonComputerMove; visible: false }
                 PropertyChanges { target: buttonLoad; visible: false }
                 PropertyChanges { target: buttonStop; visible: true }
                 PropertyChanges { target: buttonSave; visible: true }
@@ -249,7 +235,6 @@ ApplicationWindow {
                 name: "screen_3"
                 PropertyChanges { target: buttonStart; visible: true }
                 PropertyChanges { target: buttonStartSingle; visible: true }
-                PropertyChanges { target: buttonComputerMove; visible: false }
                 PropertyChanges { target: buttonLoad; visible: true }
                 PropertyChanges { target: buttonStop; visible: false }
                 PropertyChanges { target: buttonSave; visible: false }
@@ -263,7 +248,6 @@ ApplicationWindow {
                 name: "screen_4"
                 PropertyChanges { target: buttonStart; visible: false }
                 PropertyChanges { target: buttonStartSingle; visible: false }
-                PropertyChanges { target: buttonComputerMove; visible: true }
                 PropertyChanges { target: buttonLoad; visible: false }
                 PropertyChanges { target: buttonStop; visible: true }
                 PropertyChanges { target: buttonSave; visible: true }

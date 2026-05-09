@@ -12,6 +12,7 @@ SOURCES += main.cpp \
     ../../UciConnector/UciConnector.cpp \
     ../../UciConnector/pch.cpp \
     chessconnector.cpp \
+    engineworker.cpp \
     ../../ChessCore/HistoryPlayer.cpp \
     ../../ChessCore/BoardPositionsCache.cpp \
     ../../ChessCore/Check.cpp \
@@ -52,6 +53,7 @@ HEADERS += \
     ../../ChessCore/LruCacheMap.hpp \
     ../../ChessCore/Check.h \
     ChessEnginePlayer.h \
+    engineworker.h \
     networkplayer.h
 
 DISTFILES += \

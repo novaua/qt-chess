@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QDebug>
 #include <QHostInfo>
+#include <QThread>
 
 using namespace Chess;
 
@@ -43,6 +44,7 @@ ChessConnector::ChessConnector(QObject* parent)
 			}
 			else if (event.GetType() == EtCheckMate)
 			{
+				_gameOver = true;
 				emit checkMateNotify();
 			}
 			else if (event.GetType() == EtCastling)
@@ -84,6 +86,10 @@ void ChessConnector::figureSelected(int index)
 		return;
 	}
 
+	if (_engineThinking) {
+		return;
+	}
+
 	//find possible moves for the position and notify IU
 	auto pmString = _possibleMoves[index];
 
@@ -95,6 +101,12 @@ void ChessConnector::figureSelected(int index)
 	if (selected != -1)
 	{
 		makeMove(BoardPosition(selected), BoardPosition(index));
+
+		if (_engineWorker && !_gameOver)
+		{
+			_engineThinking = true;
+			emit requestEngineMove();
+		}
 	}
 	else
 	{
@@ -148,6 +160,8 @@ void ChessConnector::makeMove(int from, int to)
 
 void ChessConnector::startNewGame()
 {
+	stopEngineThread();
+	_gameOver = false;
 	_game->Restart();
 	EmitMoveCountUpdates();
 
@@ -156,8 +170,66 @@ void ChessConnector::startNewGame()
 
 void ChessConnector::startNewGameWithComputer()
 {
+	stopEngineThread();
 	_game->EndGame();
-	_chessEnginePlayer = std::make_shared<ChessEnginePlayer>(_game);
+	_gameOver = false;
+	EmitMoveCountUpdates();
+	startEngineThread();
+}
+
+void ChessConnector::startEngineThread()
+{
+	_engineWorker = new EngineWorker(_game);
+	_engineThread = new QThread(this);
+	_engineWorker->moveToThread(_engineThread);
+
+	connect(this, &ChessConnector::requestEngineMove, _engineWorker, &EngineWorker::doMove);
+	connect(_engineWorker, &EngineWorker::moveComplete, this, &ChessConnector::onEngineMoveComplete);
+	connect(_engineWorker, &EngineWorker::moveError, this, &ChessConnector::onEngineMoveError);
+
+	// Destroy the worker on the engine thread when it finishes.
+	// Qt processes QEvent::DeferredDelete after emitting finished(), so QProcess
+	// is destroyed on its owning thread — no cross-thread QObject event assertion.
+	connect(_engineThread, &QThread::finished, _engineWorker, &QObject::deleteLater);
+
+	_engineThread->start();
+}
+
+void ChessConnector::stopEngineThread()
+{
+	if (!_engineThread)
+		return;
+
+	disconnect(this, &ChessConnector::requestEngineMove, _engineWorker, &EngineWorker::doMove);
+
+	// Kill the stockfish process so any blocking waitForReadyRead() in the engine
+	// thread returns immediately, allowing the thread to exit cleanly.
+	// QProcess::kill() → TerminateProcess() is an OS-level call, safe cross-thread.
+	_engineWorker->killEngine();
+
+	_engineThread->quit();
+	_engineThread->wait(3000);
+
+	// _engineWorker was deleted on the engine thread via the finished->deleteLater
+	// connection above. Just null the pointer here.
+	_engineWorker = nullptr;
+
+	delete _engineThread;
+	_engineThread = nullptr;
+
+	_engineThinking = false;
+}
+
+void ChessConnector::onEngineMoveComplete()
+{
+	_engineThinking = false;
+	EmitMoveCountUpdates();
+}
+
+void ChessConnector::onEngineMoveError(const QString& message)
+{
+	_engineThinking = false;
+	qDebug() << "[Engine] move error:" << message;
 }
 
 QString pathAppend(const QString& path1, const QString& path2)
@@ -241,7 +313,9 @@ int ChessConnector::IsOnPlayerMode()
 
 void ChessConnector::endGame()
 {
+	stopEngineThread();
 	_game->EndGame();
+	_gameOver = false;
 	EmitMoveCountUpdates();
 	emit IsOnPlayerModeChanged();
 	ClearBoard(_possibleMoves);
@@ -250,6 +324,7 @@ void ChessConnector::endGame()
 
 ChessConnector::~ChessConnector()
 {
+	stopEngineThread();
 	qDebug() << "Game Exited.";
 }
 
@@ -261,10 +336,4 @@ QStringList ChessConnector::PlayersName()
 	players.append("Vitaly");
 
 	return players;
-}
-
-
-void ChessConnector::computerMove()
-{
-	_chessEnginePlayer->DoMove();
 }

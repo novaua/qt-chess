@@ -59,6 +59,9 @@
     <ClCompile Include="ChessEnginePlayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="engineworker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\ChessCore\ChessException.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -137,6 +140,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <QtMoc Include="chessconnector.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="engineworker.h">
       <Filter>Header Files</Filter>
     </QtMoc>
     <ClInclude Include="..\..\UciConnector\framework.h">

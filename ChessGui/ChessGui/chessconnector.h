@@ -3,11 +3,13 @@
 
 #include <QObject>
 #include <QStringList>
+#include <QThread>
+#include <atomic>
 #include <functional>
 
 #include "Game.h"
 #include "networkplayer.h"
-#include "ChessEnginePlayer.h"
+#include "engineworker.h"
 
 class ChessConnector : public QObject
 {
@@ -46,15 +48,15 @@ signals:
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
 
-
 	void noSavedGame();
 	void savedOk();
 	void noMoreMovesNotify();
 
+	void requestEngineMove();
+
 public slots:
 	void startNewGame();
 	void startNewGameWithComputer();
-	void computerMove();
 
 	void endGame();
 
@@ -67,20 +69,29 @@ public slots:
 	void moveNext();
 	void movePrev();
 
+private slots:
+	void onEngineMoveComplete();
+	void onEngineMoveError(const QString& message);
 
 private:
 	void makeMove(int from, int to);
 	void EmitMoveCountUpdates();
+	void startEngineThread();
+	void stopEngineThread();
 
 private:
 	QStringList _possibleMoves;
 
 	Chess::GameAptr _game;
 	Chess::HistoryPlayerAptr _player;
-	Chess::ChessEnginePlayerAptr _chessEnginePlayer;
 	Chess::PawnPromotedCallback _onPawnPromotedCallback;
 
 	NetworkPlayerAptr _netPlayer;
+
+	QThread* _engineThread = nullptr;
+	EngineWorker* _engineWorker = nullptr;
+	bool _engineThinking = false;
+	std::atomic<bool> _gameOver { false };
 };
 
 #endif // CHESSCONNECTOR_H
