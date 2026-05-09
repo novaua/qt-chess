@@ -108,7 +108,7 @@ jobs:
          # Создаем вспомогательный скрипт для подписи. 
           # Это гарантирует, что signtool получит чистые аргументы без влияния Inno Setup /S парсинга.
           $pfxPath = "${{ github.workspace }}\certificate.pfx"
-          $signScript = "@signtool.exe sign /f `"$pfxPath`" /p $env:PFX_PASS /tr http://digicert.com /td sha256 /fd sha256 %1"
+          $signScript = "@signtool.exe sign /f `"$pfxPath`" /p $env:PFX_PASS /tr http://globalsign.com /td sha256 /fd sha256 %1"
           $signScript | Out-File -FilePath "${{ github.workspace }}\sign_tool.bat" -Encoding ascii
 
           # Запускаем сборку, передавая путь к нашему .bat файлу
