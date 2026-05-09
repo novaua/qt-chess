@@ -22,3 +22,8 @@ void ChessEnginePlayer::DoMove()
 
 	_game->DoMove(Move::Parse(move.BestMove));
 }
+
+void ChessEnginePlayer::KillEngine()
+{
+	_connector->Kill();
+}

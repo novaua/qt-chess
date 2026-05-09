@@ -94,9 +94,12 @@ std::string UciConnector::ProcessCommand(const Command& comm)
     std::string line;
     while (_uciEngine->state() == QProcess::Running) {
         line = readLineBlocking(_uciEngine.get(), 10000);
-        if (line.empty()) break;
-        if (line.find(comm.Response) != std::string::npos) break;
-        std::cout << line << std::endl << std::flush;
+        if (line.empty()) 
+            break;
+        if (line.find(comm.Response) != std::string::npos) 
+            break;
+		// ToDo: Add logging of engine output, with a way to enable/disable it.
+        // std::cout << line << std::endl << std::flush;
     }
     return line;
 }
@@ -117,6 +120,15 @@ bool UciConnector::NewGame()
 {
     ProcessCommand({ UciNewGameCommand, "" });
     return CheckReady();
+}
+
+void UciConnector::Kill()
+{
+    // Safe to call cross-thread: TerminateProcess() is an OS-level call.
+    // Causes any blocking waitForReadyRead() in the engine thread to return,
+    // allowing the thread to exit cleanly before we destroy it.
+    if (_uciEngine && _uciEngine->state() != QProcess::NotRunning)
+        _uciEngine->kill();
 }
 
 UciConnector::~UciConnector()

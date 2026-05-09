@@ -351,15 +351,15 @@
   <ItemGroup>
     <ClCompile Include="chessconnector.cpp" />
     <ClCompile Include="ChessEnginePlayer.cpp" />
+    <ClCompile Include="engineworker.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="networkplayer.cpp" />
     <ClCompile Include="..\..\ChessCore\stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\ChessCore\ChessEnginePlayer.h" />
     <ClInclude Include="..\..\ChessCore\Piece.h" />
     <QtMoc Include="chessconnector.h" />
-    <QtMoc Include="networkplayer.h" />
+    <QtMoc Include="engineworker.h" />
     <ClInclude Include="..\..\ChessCore\stdafx.h" />
     <ClInclude Include="..\..\ChessCore\targetver.h" />
   </ItemGroup>

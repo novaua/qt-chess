@@ -4,20 +4,20 @@ QT += qml quick widgets
 
 SOURCES += main.cpp \
     ../../ChessCore/Board.cpp \
+    ../../ChessCore/BoardPositionsCache.cpp \
+    ../../ChessCore/Check.cpp \
     ../../ChessCore/ChessException.cpp \
+    ../../ChessCore/Events.cpp \
     ../../ChessCore/Game.cpp \
+    ../../ChessCore/HistoryPlayer.cpp \
     ../../ChessCore/Move.cpp \
     ../../ChessCore/Piece.cpp \
     ../../ChessCore/stdafx.cpp \
     ../../UciConnector/UciConnector.cpp \
     ../../UciConnector/pch.cpp \
     chessconnector.cpp \
-    ../../ChessCore/HistoryPlayer.cpp \
-    ../../ChessCore/BoardPositionsCache.cpp \
-    ../../ChessCore/Check.cpp \
-    ../../ChessCore/Events.cpp \
-    ChessEnginePlayer.cpp \
-    networkplayer.cpp
+    engineworker.cpp \
+    ChessEnginePlayer.cpp
 
 RESOURCES += qml.qrc
 
@@ -35,9 +35,13 @@ SUBDIRS += \
 
 HEADERS += \
     ../../ChessCore/Board.h \
+    ../../ChessCore/BoardPositionsCache.h \
+    ../../ChessCore/Check.h \
     ../../ChessCore/ChessException.h \
     ../../ChessCore/Events.h \
     ../../ChessCore/Game.h \
+    ../../ChessCore/HistoryPlayer.h \
+    ../../ChessCore/LruCacheMap.hpp \
     ../../ChessCore/Move.h \
     ../../ChessCore/Piece.h \
     ../../ChessCore/Serializer.h \
@@ -47,12 +51,8 @@ HEADERS += \
     ../../UciConnector/framework.h \
     ../../UciConnector/pch.h \
     chessconnector.h \
-    ../../ChessCore/HistoryPlayer.h \
-    ../../ChessCore/BoardPositionsCache.h \
-    ../../ChessCore/LruCacheMap.hpp \
-    ../../ChessCore/Check.h \
-    ChessEnginePlayer.h \
-    networkplayer.h
+    engineworker.h \
+    ChessEnginePlayer.h
 
 DISTFILES += \
     ../../UciConnector/UciConnector.vcxproj \

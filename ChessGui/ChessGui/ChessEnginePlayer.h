@@ -13,6 +13,7 @@ namespace Chess {
 		ChessEnginePlayer(const GameAptr& game);
 
 		void DoMove();
+		void KillEngine();
 	};
 
 	typedef std::shared_ptr<ChessEnginePlayer> ChessEnginePlayerAptr;

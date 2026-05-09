@@ -44,6 +44,7 @@ public:
 	std::vector<std::string> GetOptions();
 	EngineMoveResponse GetEngineMove(const StartPosMoveRequest& req,
 	                                 const std::chrono::seconds& moveTime);
+	void Kill();
 	~UciConnector();
 };
 
