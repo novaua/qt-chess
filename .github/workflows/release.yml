@@ -105,10 +105,16 @@ jobs:
           APP_VERSION: ${{ steps.version.outputs.value }}
           PFX_PASS: ${{ secrets.PFX_PASSWORD }}
         run: |
+         # Создаем вспомогательный скрипт для подписи. 
+          # Это гарантирует, что signtool получит чистые аргументы без влияния Inno Setup /S парсинга.
           $pfxPath = "${{ github.workspace }}\certificate.pfx"
-          $signParam = '/SMySignTool=signtool.exe sign /f "' + $pfxPath + '" /p ' + $env:PFX_PASS + ' /tr http://timestamp.digicert.com /td sha256 /fd sha256 $f'
-          
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" $signParam installer\ChessSetup.iss
+          $signScript = "@signtool.exe sign /f `"$pfxPath`" /p $env:PFX_PASS /tr http://digicert.com /td sha256 /fd sha256 %1"
+          $signScript | Out-File -FilePath "${{ github.workspace }}\sign_tool.bat" -Encoding ascii
+
+          # Запускаем сборку, передавая путь к нашему .bat файлу
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            /S"MySignTool=${{ github.workspace }}\sign_tool.bat `$f" `
+            installer\ChessSetup.iss
 
       - name: Cleanup Certificate
         if: always()
