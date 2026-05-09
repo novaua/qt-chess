@@ -105,8 +105,11 @@ jobs:
           APP_VERSION: ${{ steps.version.outputs.value }}
           PFX_PASS: ${{ secrets.PFX_PASSWORD }}
         run: |
-         $signCmd = "signtool.exe sign /f `"${{ github.workspace }}\certificate.pfx`" /p $env:PFX_PASS /tr http://digicert.com /td sha256 /fd sha256 `$f"
-         & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"  /S"MySignTool=$signCmd" installer\ChessSetup.iss
+          $pfxPath = "${{ github.workspace }}\certificate.pfx"
+          $signCmd = "signtool.exe sign /f `"$pfxPath`" /p $env:PFX_PASS /tr http://timestamp.digicert.com /td sha256 /fd sha256 `$f"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            /S"MySignTool=$signCmd" `
+            installer\ChessSetup.iss
 
       - name: Cleanup Certificate
         if: always()
