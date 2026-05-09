@@ -89,12 +89,28 @@ jobs:
           }
           "value=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Build Inno Setup installer
+      - name: Decode Certificate
+        shell: pwsh
+        run: |
+          $certBase64 = "${{ secrets.PFX_CERT_BASE64 }}"
+          if ([string]::IsNullOrEmpty($certBase64)) {
+            Write-Error "PFX_CERT_BASE64 is empty! Check your GitHub Secrets."
+            exit 1
+          }
+          [System.Convert]::FromBase64String($certBase64) | Set-Content "${{ github.workspace }}\certificate.pfx" -AsByteStream
+
+      - name: Build and Sign Inno Setup installer
         shell: pwsh
         env:
           APP_VERSION: ${{ steps.version.outputs.value }}
+          PFX_PASS: ${{ secrets.PFX_PASSWORD }}
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\ChessSetup.iss
+         $signCmd = "signtool.exe sign /f `"${{ github.workspace }}\certificate.pfx`" /p $env:PFX_PASS /tr http://digicert.com /td sha256 /fd sha256 `$f"
+         & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"  /S"MySignTool=$signCmd" installer\ChessSetup.iss
+
+      - name: Cleanup Certificate
+        if: always()
+        run: Remove-Item "${{ github.workspace }}\certificate.pfx" -Force
 
       # PR builds: upload installer as a downloadable artifact (14-day retention)
       - name: Upload installer artifact (PR)

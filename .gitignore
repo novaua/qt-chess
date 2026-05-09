@@ -50,6 +50,7 @@ Thumbs.db
 **/*Debug
 **/Release
 **/GeneratedFiles
+**/deploy
 
 #other
 *.suo
