@@ -16,10 +16,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UciConnector", "UciConnecto
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1471DC62-4151-40E3-A46E-270712E02C71}"
 	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
 		ChessGui\ChessGui\ChessGui.pro = ChessGui\ChessGui\ChessGui.pro
+		installer\ChessSetup.iss = installer\ChessSetup.iss
 		CLAUDE.md = CLAUDE.md
 		PROGRESS.md = PROGRESS.md
 		README.md = README.md
+		.github\workflows\release.yml = .github\workflows\release.yml
 		TASKS.md = TASKS.md
 		vcpkg-configuration.json = vcpkg-configuration.json
 		vcpkg.json = vcpkg.json

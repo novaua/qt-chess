@@ -89,12 +89,47 @@ jobs:
           }
           "value=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Build Inno Setup installer
+      - name: Decode Certificate
+        shell: pwsh
+        run: |
+          $certBase64 = "${{ secrets.PFX_CERT_BASE64 }}"
+          if ([string]::IsNullOrEmpty($certBase64)) {
+            Write-Error "PFX_CERT_BASE64 is empty! Check your GitHub Secrets."
+            exit 1
+          }
+          [System.Convert]::FromBase64String($certBase64) | Set-Content "${{ github.workspace }}\certificate.pfx" -AsByteStream
+      
+      - name : Create Signing Script
+        shell: pwsh
+        env: 
+          PFX_PASS: ${{ secrets.PFX_PASSWORD }}
+        run: |
+          $pfxPath = "${{ github.workspace }}\certificate.pfx"
+          $signScript = "@signtool.exe sign /v /f `"$pfxPath`" /p $env:PFX_PASS /tr http://timestamp.sectigo.com /td sha256 /fd sha256 %1"
+          $signScript | Out-File -FilePath "${{ github.workspace }}\sign_tool.bat" -Encoding ascii
+      
+      - name: Sign Binaries (EXE and DLLs)
+        shell: pwsh
+        run: |
+          Write-Host "Signing all binaries in deploy folder..."
+          Get-ChildItem -Path deploy -Filter *.exe -Recurse | ForEach-Object { & "${{ github.workspace }}\sign_tool.bat" "$($_.FullName)" }
+          Get-ChildItem -Path deploy -Filter *.dll -Recurse | ForEach-Object { & "${{ github.workspace }}\sign_tool.bat" "$($_.FullName)" }
+
+      - name: Build and Sign Inno Setup installer
         shell: pwsh
         env:
           APP_VERSION: ${{ steps.version.outputs.value }}
+          PFX_PASS: ${{ secrets.PFX_PASSWORD }}
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\ChessSetup.iss
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            /S"MySignTool=${{ github.workspace }}\sign_tool.bat `$f" `
+            installer\ChessSetup.iss
+
+      - name: Cleanup Certificate
+        if: always()
+        run: | 
+           Remove-Item "${{ github.workspace }}\certificate.pfx" -Force -ErrorAction SilentlyContinue
+           Remove-Item "${{ github.workspace }}\sign_tool.bat" -Force -ErrorAction SilentlyContinue
 
       # PR builds: upload installer as a downloadable artifact (14-day retention)
       - name: Upload installer artifact (PR)
