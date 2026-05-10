@@ -107,8 +107,8 @@ Grid{
                 width:height
                 fillMode: Image.PreserveAspectFit
                 source:(modelData!=" " ? (modelData===modelData.toLowerCase()
-                        ?"qrc:/pics/black/"+modelData.toUpperCase()+".png"
-                        :"qrc:/pics/white/"+modelData.toLowerCase()+".png")
+                        ?"qrc:/piece/pics/black/"+modelData.toUpperCase()+".png"
+                        :"qrc:/piece/pics/white/"+modelData.toLowerCase()+".png")
                     :"")
             }
 

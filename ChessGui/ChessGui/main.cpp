@@ -8,13 +8,13 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-    app.setWindowIcon(QIcon(":/pics/chess_icon.svg"));
+    app.setWindowIcon(QIcon(":/app/pics/chess_icon.svg"));
 
     QQmlApplicationEngine engine;
 
     engine.rootContext()->setContextProperty("chessConnector", new ChessConnector(&engine));
 
-    engine.load(QUrl(QStringLiteral("qrc:/ChessGame.qml")));
+    engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
 
     return app.exec();
 }

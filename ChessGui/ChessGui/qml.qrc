@@ -1,20 +1,21 @@
 <RCC>
     <qresource prefix="/">
-        <file>pics/chess_icon.svg</file>
-        <file>pics/ChessBackground.jpg</file>
-        <file>Button.qml</file>
-        <file>CustomSlider.qml</file>
-        <file>ChessBoard.qml</file>
-        <file>ChessBoxes.qml</file>
-        <file>ChessFigures.qml</file>
-        <file>ChessGame.qml</file>
-        <file>ChessGui.pro</file>
-        <file>MarkerColumn.qml</file>
-        <file>MarkerRow.qml</file>
-        <file>NavigationLayer.qml</file>
-        <file>Notificator.qml</file>
-        <file>EmptyBoardModel.qml</file>
-        <file>PawnPromotionOptions.qml</file>
+        <file>qml/Button.qml</file>
+        <file>qml/ChessBoard.qml</file>
+        <file>qml/ChessBoxes.qml</file>
+        <file>qml/ChessFigures.qml</file>
+        <file>qml/ChessGame.qml</file>
+        <file>qml/CustomSlider.qml</file>
+        <file>qml/EmptyBoardModel.qml</file>
+        <file>qml/MarkerColumn.qml</file>
+        <file>qml/MarkerRow.qml</file>
+        <file>qml/NavigationLayer.qml</file>
+        <file>qml/NetworkPlayers.qml</file>
+        <file>qml/Notificator.qml</file>
+        <file>qml/PawnPromotionOptions.qml</file>
+        <file>qml/SelectPlayerDialog.qml</file>
+    </qresource>
+    <qresource prefix="/piece">
         <file>pics/black/B.png</file>
         <file>pics/black/K.png</file>
         <file>pics/black/N.png</file>
@@ -27,5 +28,10 @@
         <file>pics/white/p.png</file>
         <file>pics/white/q.png</file>
         <file>pics/white/r.png</file>
+    </qresource>
+    <qresource prefix="/app">
+        <file>pics/chess_icon.svg</file>
+        <file>pics/ChessBackground.jpg</file>
+        <file>pics/rotate.png</file>
     </qresource>
 </RCC>

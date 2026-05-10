@@ -6,6 +6,8 @@ Rectangle{
     border.color: lightChessBoxColor
     color: darkChessBoxColor
 
+    property variant playerList
+
     Behavior on opacity  {
         NumberAnimation {
             easing {
@@ -22,7 +24,7 @@ Rectangle{
         anchors.top:parent.top
         width: parent.width
         height: parent.height/4
-        text:"Pawn Promotion"
+        text:"Select Network Player"
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         fontSizeMode: Text.Fit
@@ -31,6 +33,24 @@ Rectangle{
         font.pixelSize: 50
     }
 
+    ListModel {
+        id: testModel
+        ListElement { modelData: "Joe"}
+        ListElement { modelData: "Vitaly"}
+    }
+
+    ListView {
+        anchors.fill: parent
+        model: playerList
+        delegate: Component {
+            Column {
+                Text { text: modelData }
+            }
+        }
+
+        spacing: 10
+    }
+/*
     Row{
         id:pawnPromotionRow
         anchors.horizontalCenter: parent.horizontalCenter
@@ -41,8 +61,7 @@ Rectangle{
         Repeater{
             id:pawnPromotionRptr
             model:pawnPromotionRec.parent!==null
-                  ?((pawnPromotionRec.parent.side) === 2 ?["q","r","b","n"]
-                                                         :["Q","R","B","N"]):0
+                  ?((pawnPromotionRec.parent.side) === 2 ? ["Q","R","B","N"]:["q","r","b","n"]):0
 
             delegate: Image{
                 height: pawnPromotionRow.width<pawnPromotionRow.height*4?pawnPromotionRow.width/4:pawnPromotionRow.height
@@ -51,10 +70,10 @@ Rectangle{
                 smooth: true
                 antialiasing:true
                 fillMode: Image.PreserveAspectFit
-                source:modelData!=" "? (modelData === modelData.toLowerCase()
-                                        ? "pics/black/"+modelData.toUpperCase()+".png"
-                                        : "pics/white/"+modelData.toLowerCase()+".png")
-                                     :" ";
+                source:modelData!=" "? (modelData === modelData.toUpperCase()
+                                        ? "qrc:/piece/pics/black/"+modelData+".png"
+                                        : "qrc:/piece/pics/white/"+modelData+".png")
+                                     :"";
                 MouseArea{
                     anchors.fill:parent
                     onClicked: {
@@ -67,7 +86,7 @@ Rectangle{
             }
         }
     }
-
+*/
     Timer {
         id:pawnPromotionTimer
         interval: 1000;
