@@ -160,14 +160,25 @@ ApplicationWindow {
 
                     Text {
                         id: statusNote
+                        height: robotIcon.height
+                        verticalAlignment: Text.AlignVCenter
                         color: root.isDarkMode ? "#ffffff" : "#000000"
                         text: chessConnector.MoveCount
                     }
 
                     Text {
                         id: statusNote1
+                        height: robotIcon.height
+                        verticalAlignment: Text.AlignVCenter
                         color: root.isDarkMode ? "#ffffff" : "#000000"
                         text: chessConnector.IsWhiteMove ? "white" : "black"
+                    }
+
+                    Text {
+                        id: robotIcon
+                        text: "🤖"
+                        font.pixelSize: 18
+                        verticalAlignment: Text.AlignVCenter
                     }
 
                     Button {
@@ -252,7 +263,7 @@ ApplicationWindow {
                     }
                     CustomSlider {
                         id: difficultySlider
-                        from: 1; to: 5; value: 3; stepSize: 1
+                        from: 1; to: 5; value: chessConnector.LastLevel; stepSize: 1
                         width: 260
                         enabled: btnSingle.checked
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -268,6 +279,20 @@ ApplicationWindow {
                         text: "Start Game"
                         implicitHeight: 32
                         implicitWidth: 110
+                        focus: true
+                        font.bold: true
+                        background: Rectangle {
+                            radius: 4
+                            color: parent.down ? "#005a9e" : "#0078d4"
+                            border.color: "#005a9e"
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: "#ffffff"
+                            font: parent.font
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
                         onClicked: {
                             if (btnSingle.checked) {
                                 screen.state = "screen_4"
@@ -310,6 +335,7 @@ ApplicationWindow {
                 PropertyChanges { target: themeToggle; visible: true }
                 PropertyChanges { target: statusNote; visible: false }
                 PropertyChanges { target: statusNote1; visible: false }
+                PropertyChanges { target: robotIcon; visible: false }
             },
             State {
                 name: "screen_2"
@@ -320,6 +346,7 @@ ApplicationWindow {
                 PropertyChanges { target: themeToggle; visible: false }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
+                PropertyChanges { target: robotIcon; visible: false }
             },
             State {
                 name: "screen_3"
@@ -330,6 +357,7 @@ ApplicationWindow {
                 PropertyChanges { target: themeToggle; visible: false }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
+                PropertyChanges { target: robotIcon; visible: false }
             },
             State {
                 name: "screen_4"
@@ -340,6 +368,7 @@ ApplicationWindow {
                 PropertyChanges { target: themeToggle; visible: false }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
+                PropertyChanges { target: robotIcon; visible: true }
             }
         ]
     }

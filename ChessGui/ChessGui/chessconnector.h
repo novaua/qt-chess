@@ -9,6 +9,7 @@
 
 #include "Game.h"
 #include "engineworker.h"
+#include "AppConfig.h"
 
 class ChessConnector : public QObject
 {
@@ -19,6 +20,10 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
 		Q_PROPERTY(bool CanContinue READ canContinue NOTIFY canContinueChanged)
 		Q_PROPERTY(bool CanLoad READ canLoad NOTIFY canLoadChanged)
+		Q_PROPERTY(int LastLevel    READ lastLevel    CONSTANT)
+		Q_PROPERTY(int GamesPlayed  READ gamesPlayed  NOTIFY statsChanged)
+		Q_PROPERTY(int HumanWins    READ humanWins    NOTIFY statsChanged)
+		Q_PROPERTY(int ComputerWins READ computerWins NOTIFY statsChanged)
 public:
 	explicit ChessConnector(QObject* parent= nullptr);
 	~ChessConnector();
@@ -28,6 +33,10 @@ public:
 	int IsOnPlayerMode();
 	bool canContinue() const;
 	bool canLoad() const;
+	int lastLevel()    const { return _config.lastLevel; }
+	int gamesPlayed()  const { return _config.stats.gamesPlayed; }
+	int humanWins()    const { return _config.stats.humanWins; }
+	int computerWins() const { return _config.stats.computerWins; }
 
 	QStringList& PossibleMoves();
 	void setPossibleMoves(const QStringList& moves);
@@ -42,6 +51,7 @@ signals:
 	void IsOnPlayerModeChanged();
 	void canContinueChanged();
 	void canLoadChanged();
+	void statsChanged();
 
 	void checkNotify();
 	void checkMateNotify();
@@ -82,9 +92,6 @@ private:
 	void stopEngineThread();
 	void autoSaveGame(bool isSinglePlayer);
 	void deleteAutoSave();
-	bool readAutoSaveIsSinglePlayer() const;
-	QString getAutoSaveFilePath() const;
-	QString getAutoSaveModePath() const;
 
 private:
 	QStringList _possibleMoves;
@@ -97,7 +104,7 @@ private:
 	EngineWorker* _engineWorker = nullptr;
 	bool _engineThinking = false;
 	std::atomic<bool> _gameOver { false };
-	int _lastLevel = 3;
+	AppConfig _config;
 };
 
 #endif // CHESSCONNECTOR_H

@@ -7,6 +7,7 @@
 #include <QQmlContext>
 int main(int argc, char *argv[])
 {
+    QCoreApplication::setApplicationName("ChessPlusPlus");
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/app/pics/chess_icon.svg"));
 

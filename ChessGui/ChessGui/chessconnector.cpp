@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "chessconnector.h"
 #include "ChessException.h"
+#include "AppConfig.h"
 
 #include <QDir>
 #include <QDebug>
@@ -10,7 +11,6 @@
 using namespace Chess;
 
 const char* EmptyFlag = " ";
-const char* DefaultSaveGameFile = "chess.save";
 
 void ClearBoard(QStringList& board, const QString& cleanValue = EmptyFlag)
 {
@@ -26,7 +26,8 @@ void ClearBoard(QStringList& board, const QString& cleanValue = EmptyFlag)
 
 ChessConnector::ChessConnector(QObject* parent)
 	: QObject(parent),
-	_game(GameAptr(new Game()))
+	_game(GameAptr(new Game())),
+	_config(AppConfig::load())
 {
 	_game->RegisterBoardChanged(
 		[&](int index, const Piece& piece)
@@ -44,6 +45,13 @@ ChessConnector::ChessConnector(QObject* parent)
 			else if (event.GetType() == EtCheckMate)
 			{
 				_gameOver = true;
+				_config.stats.gamesPlayed++;
+				if (_engineWorker) {
+					if (_game->IsWhiteMove()) _config.stats.computerWins++;
+					else                      _config.stats.humanWins++;
+				}
+				_config.save();
+				emit statsChanged();
 				emit checkMateNotify();
 			}
 			else if (event.GetType() == EtCastling)
@@ -170,7 +178,8 @@ void ChessConnector::startNewGame()
 
 void ChessConnector::startNewGameWithComputer(int level)
 {
-	_lastLevel = level;
+	_config.lastLevel = level;
+	_config.save();
 	deleteAutoSave();
 	stopEngineThread();
 	_player = nullptr;
@@ -236,17 +245,6 @@ void ChessConnector::onEngineMoveError(const QString& message)
 	qDebug() << "[Engine] move error:" << message;
 }
 
-QString pathAppend(const QString& path1, const QString& path2)
-{
-	return QDir::cleanPath(path1 + QDir::separator() + path2);
-}
-
-QString getSaveGameFilePath()
-{
-	auto path = pathAppend(QDir::currentPath(), DefaultSaveGameFile);
-	return path;
-}
-
 bool fileExists(QString path) {
 	QFileInfo checkFile(path);
 
@@ -260,7 +258,7 @@ bool fileExists(QString path) {
 
 void ChessConnector::saveGame()
 {
-	_game->Save(getSaveGameFilePath().toStdString());
+	_game->Save(AppConfig::savedGameFilePath().toStdString());
 	emit savedOk();
 	emit canLoadChanged();
 }
@@ -269,11 +267,13 @@ bool ChessConnector::loadGame()
 {
 	auto success = false;
 	try {
-		if (fileExists(getSaveGameFilePath()))
+		if (fileExists(AppConfig::savedGameFilePath()))
 		{
-			_game->Load(getSaveGameFilePath().toStdString());
+			_game->Load(AppConfig::savedGameFilePath().toStdString());
+			_game->Restart();
 			_player = _game->MakePlayer();
 			emit IsOnPlayerModeChanged();
+			EmitMoveCountUpdates();
 			success = true;
 		}
 	}
@@ -292,21 +292,36 @@ bool ChessConnector::loadGame()
 
 void ChessConnector::moveNext()
 {
+	if (!_player) return;
+
 	if (!_player->CanMove(true)) {
 		emit noMoreMovesNotify();
+		return;
 	}
-
 	_player->MoveNext();
 	EmitMoveCountUpdates();
 }
 
 void ChessConnector::movePrev()
 {
+	if (!_player) {
+		// Live game: undo last human move + computer reply pair
+		if (_engineThinking) return;
+		int count = _game->GetMoveCount();
+		if (count == 0) { emit noMoreMovesNotify(); return; }
+		int movesToUndo = (_engineWorker && count >= 2) ? 2 : 1;
+		for (int i = 0; i < movesToUndo; i++)
+			_game->UndoMove();
+		ClearBoard(_possibleMoves);
+		emit PossibleMovesChanged();
+		EmitMoveCountUpdates();
+		return;
+	}
 
 	if (!_player->CanMove(false)) {
 		emit noMoreMovesNotify();
+		return;
 	}
-
 	_player->MoveBack();
 	EmitMoveCountUpdates();
 }
@@ -334,10 +349,10 @@ void ChessConnector::endGame()
 
 bool ChessConnector::continueGame()
 {
-	bool isSingle = readAutoSaveIsSinglePlayer();
+	bool isSingle = _config.autoSaveIsSinglePlayer;
 
 	stopEngineThread();
-	_game->Load(getAutoSaveFilePath().toStdString());
+	_game->Load(AppConfig::autoSaveFilePath().toStdString());
 	_game->ResumeFromLoad();
 	_gameOver = false;
 
@@ -346,7 +361,7 @@ bool ChessConnector::continueGame()
 	EmitMoveCountUpdates();
 
 	if (isSingle) {
-		startEngineThread(Chess::EngineLevel(_lastLevel));
+		startEngineThread(Chess::EngineLevel(_config.lastLevel));
 		if (!_game->IsWhiteMove()) {
 			_engineThinking = true;
 			emit requestEngineMove();
@@ -357,48 +372,33 @@ bool ChessConnector::continueGame()
 
 bool ChessConnector::canContinue() const
 {
-	return fileExists(getAutoSaveFilePath());
+	return fileExists(AppConfig::autoSaveFilePath());
 }
 
 bool ChessConnector::canLoad() const
 {
-	return fileExists(getSaveGameFilePath());
-}
-
-QString ChessConnector::getAutoSaveFilePath() const
-{
-	return pathAppend(QDir::currentPath(), "chess.autosave");
-}
-
-QString ChessConnector::getAutoSaveModePath() const
-{
-	return pathAppend(QDir::currentPath(), "chess.autosave.mode");
+	return fileExists(AppConfig::savedGameFilePath());
 }
 
 void ChessConnector::autoSaveGame(bool isSinglePlayer)
 {
-	_game->Save(getAutoSaveFilePath().toStdString());
-	QFile modeFile(getAutoSaveModePath());
-	if (modeFile.open(QIODevice::WriteOnly | QIODevice::Text))
-		modeFile.write(isSinglePlayer ? "1" : "0");
+	_game->Save(AppConfig::autoSaveFilePath().toStdString());
+	_config.autoSaveIsSinglePlayer = isSinglePlayer;
+	_config.save();
 }
 
 void ChessConnector::deleteAutoSave()
 {
-	QFile::remove(getAutoSaveFilePath());
-	QFile::remove(getAutoSaveModePath());
-}
-
-bool ChessConnector::readAutoSaveIsSinglePlayer() const
-{
-	QFile f(getAutoSaveModePath());
-	if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
-		return false;
-	return f.readAll().trimmed() == "1";
+	QFile::remove(AppConfig::autoSaveFilePath());
+	_config.autoSaveIsSinglePlayer = false;
+	_config.save();
 }
 
 ChessConnector::~ChessConnector()
 {
+	if (_game->GetMoveCount() > 0 && !_gameOver && !IsOnPlayerMode())
+		autoSaveGame(_engineWorker != nullptr);
+
 	stopEngineThread();
 	qDebug() << "Game Exited.";
 }
