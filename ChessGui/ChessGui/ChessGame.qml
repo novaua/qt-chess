@@ -246,13 +246,13 @@ ApplicationWindow {
                     opacity: btnSingle.checked ? 1.0 : 0.35
 
                     Text {
-                        text: "Difficulty: " + difficultySlider.value.toFixed(0)
+                        text: "Level: " + difficultySlider.value.toFixed(0)
                         color: root.isDarkMode ? "#ffffff" : "#000000"
                         anchors.horizontalCenter: parent.horizontalCenter
                     }
-                    Slider {
+                    CustomSlider {
                         id: difficultySlider
-                        from: 0; to: 20; value: 10; stepSize: 1
+                        from: 1; to: 5; value: 3; stepSize: 1
                         width: 260
                         enabled: btnSingle.checked
                         anchors.horizontalCenter: parent.horizontalCenter

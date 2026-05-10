@@ -358,6 +358,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\ChessCore\ChessEnginePlayer.h" />
     <ClInclude Include="..\..\ChessCore\Piece.h" />
+    <ClInclude Include="EngineLevel.h" />
     <QtMoc Include="chessconnector.h" />
     <QtMoc Include="engineworker.h" />
     <ClInclude Include="..\..\ChessCore\stdafx.h" />
@@ -365,6 +366,7 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <None Include="CustomSlider.qml" />
     <None Include="pics\black\B.png">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

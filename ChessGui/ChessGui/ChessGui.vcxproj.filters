@@ -47,40 +47,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\ChessCore\Board.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\ChessCore\BoardPositionsCache.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\ChessCore\Check.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ChessEnginePlayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="engineworker.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\ChessCore\ChessException.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\ChessCore\Events.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\ChessCore\Game.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\ChessCore\HistoryPlayer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\ChessCore\Move.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\ChessCore\Piece.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\UciConnector\UciConnector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="chessconnector.cpp">
@@ -89,51 +59,12 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\UciConnector\pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\ChessCore\stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\ChessCore\Board.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ChessCore\BoardPositionsCache.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ChessCore\Check.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ChessEnginePlayer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ChessCore\ChessException.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ChessCore\Events.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ChessCore\Game.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ChessCore\HistoryPlayer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ChessCore\LruCacheMap.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ChessCore\Move.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\ChessCore\Piece.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ChessCore\Serializer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\UciConnector\UciConnector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <QtMoc Include="chessconnector.h">
@@ -142,20 +73,22 @@
     <QtMoc Include="engineworker.h">
       <Filter>Header Files</Filter>
     </QtMoc>
-    <ClInclude Include="..\..\UciConnector\framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\UciConnector\pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\ChessCore\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\ChessCore\targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\ChessCore\ChessEnginePlayer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineLevel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ResourceCompile Include="ChessGui.rc" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="pics\black\B.png">
       <Filter>Resource Files</Filter>
@@ -235,13 +168,8 @@
     <None Include="pics\white\r.png">
       <Filter>Resource Files</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\UciConnector\UciConnector.vcxproj">
-      <Filter>Distribution Files</Filter>
-    </None>
-    <None Include="..\..\UciConnector\UciConnector.vcxproj.filters">
-      <Filter>Distribution Files</Filter>
-    </None>
+    <None Include="NetworkPlayers.qml" />
+    <None Include="SelectPlayerDialog.qml" />
+    <None Include="CustomSlider.qml" />
   </ItemGroup>
 </Project>

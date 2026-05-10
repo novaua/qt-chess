@@ -3,6 +3,7 @@
         <file>pics/chess_icon.svg</file>
         <file>pics/ChessBackground.jpg</file>
         <file>Button.qml</file>
+        <file>CustomSlider.qml</file>
         <file>ChessBoard.qml</file>
         <file>ChessBoxes.qml</file>
         <file>ChessFigures.qml</file>
