@@ -268,6 +268,20 @@ ApplicationWindow {
                         text: "Start Game"
                         implicitHeight: 32
                         implicitWidth: 110
+                        focus: true
+                        font.bold: true
+                        background: Rectangle {
+                            radius: 4
+                            color: parent.down ? "#005a9e" : "#0078d4"
+                            border.color: "#005a9e"
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: "#ffffff"
+                            font: parent.font
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
                         onClicked: {
                             if (btnSingle.checked) {
                                 screen.state = "screen_4"

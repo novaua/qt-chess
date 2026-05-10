@@ -51,6 +51,9 @@
     <Filter Include="Resource Files\white">
       <UniqueIdentifier>{12511668-3e40-44db-bd26-3eb7f6d011bf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Qml">
+      <UniqueIdentifier>{bad18dcf-0dbb-4410-968e-e0ff29c3e244}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChessEnginePlayer.cpp">
@@ -99,52 +102,52 @@
     <QtRcc Include="qml.qrc">
       <Filter>Resource Files</Filter>
     </QtRcc>
-    <None Include="qml\Button.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\ChessBoard.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\ChessBoxes.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\ChessFigures.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\ChessGame.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\CustomSlider.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\EmptyBoardModel.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\MarkerColumn.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\MarkerRow.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\NavigationLayer.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\NetworkPlayers.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\Notificator.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\PawnPromotionOptions.qml">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="qml\SelectPlayerDialog.qml">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="pics\chess_icon.svg">
       <Filter>Resource Files</Filter>
+    </None>
+    <None Include="qml\Button.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ChessBoard.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ChessBoxes.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ChessFigures.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ChessGame.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\CustomSlider.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\EmptyBoardModel.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\SelectPlayerDialog.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\MarkerColumn.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\MarkerRow.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\NavigationLayer.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\NetworkPlayers.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\Notificator.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\PawnPromotionOptions.qml">
+      <Filter>Source Files\Qml</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
