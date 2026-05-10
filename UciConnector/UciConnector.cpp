@@ -176,14 +176,14 @@ std::vector<std::string> UciConnector::GetOptions()
 }
 
 EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req,
-                                               const std::chrono::seconds& moveTime)
+                                               std::chrono::milliseconds moveTime)
 {
     std::string moves;
     for (const auto& move : req.Moves)
         moves += move + " ";
     ProcessCommand({ "position startpos moves " + moves, "" });
 
-    auto moveMs = static_cast<int>(std::chrono::milliseconds(moveTime).count());
+    auto moveMs = static_cast<int>(moveTime.count());
     std::string goCmd = "go movetime " + std::to_string(moveMs);
     sendLine(_uciEngine.get(), goCmd);
 

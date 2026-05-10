@@ -3,12 +3,12 @@
 
 using namespace Chess;
 
-ChessEnginePlayer::ChessEnginePlayer(const GameAptr& game, int difficulty)
-	: _game(game), _difficulty(difficulty)
+ChessEnginePlayer::ChessEnginePlayer(const GameAptr& game, EngineLevel level)
+	: _game(game), _level(level)
 {
 	_connector = std::make_shared<UciConnector>();
 	_connector->Init();
-	_connector->SetDifficulty(_difficulty);
+	_connector->SetDifficulty(_level.SkillLevel());
 }
 
 void ChessEnginePlayer::DoMove()
@@ -20,7 +20,7 @@ void ChessEnginePlayer::DoMove()
 		moveRequest.Moves.push_back(move.ToUciString());
 	}
 
-	auto move = _connector->GetEngineMove(moveRequest, std::chrono::seconds(1));
+	auto move = _connector->GetEngineMove(moveRequest, _level.MoveTime());
 
 	_game->DoMove(Move::Parse(move.BestMove));
 }

@@ -43,7 +43,7 @@ public:
 	void SetOption(const std::string& op, const std::string& value);
 	std::vector<std::string> GetOptions();
 	EngineMoveResponse GetEngineMove(const StartPosMoveRequest& req,
-	                                 const std::chrono::seconds& moveTime);
+	                                 std::chrono::milliseconds moveTime);
 	void SetDifficulty(int level);
 	void Kill();
 	~UciConnector();

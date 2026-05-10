@@ -168,9 +168,9 @@ void ChessConnector::startNewGame()
 	qDebug() << "Cpp Game restarted!";
 }
 
-void ChessConnector::startNewGameWithComputer(int difficulty)
+void ChessConnector::startNewGameWithComputer(int level)
 {
-	_lastDifficulty = difficulty;
+	_lastLevel = level;
 	deleteAutoSave();
 	stopEngineThread();
 	_player = nullptr;
@@ -178,12 +178,12 @@ void ChessConnector::startNewGameWithComputer(int difficulty)
 	_gameOver = false;
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
-	startEngineThread(difficulty);
+	startEngineThread(Chess::EngineLevel(level));
 }
 
-void ChessConnector::startEngineThread(int difficulty)
+void ChessConnector::startEngineThread(Chess::EngineLevel level)
 {
-	_engineWorker = new EngineWorker(_game, difficulty);
+	_engineWorker = new EngineWorker(_game, level);
 	_engineThread = new QThread(this);
 	_engineWorker->moveToThread(_engineThread);
 
@@ -346,7 +346,7 @@ bool ChessConnector::continueGame()
 	EmitMoveCountUpdates();
 
 	if (isSingle) {
-		startEngineThread(_lastDifficulty);
+		startEngineThread(Chess::EngineLevel(_lastLevel));
 		if (!_game->IsWhiteMove()) {
 			_engineThinking = true;
 			emit requestEngineMove();

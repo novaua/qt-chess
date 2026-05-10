@@ -90,7 +90,7 @@ namespace ConnectorTests
 			_connector->SetDifficulty(1);
 			Assert::AreEqual(string("1"), _connector->GetOption("Skill Level"));
 
-			auto response = _connector->GetEngineMove({ { "e2e4", "e7e5", "b1c3" } }, chrono::seconds(2));
+			auto response = _connector->GetEngineMove({ { "e2e4", "e7e5", "b1c3" } }, chrono::milliseconds(2000));
 
 			Assert::IsFalse(response.BestMove.empty(),
 				L"Engine must return a move at low difficulty");
