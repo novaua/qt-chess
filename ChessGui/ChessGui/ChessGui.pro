@@ -25,7 +25,7 @@ CONFIG += c++11
 INCLUDEPATH += ../../ChessCore/ ../../UciConnector/
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
-QML_IMPORT_PATH =
+QML_IMPORT_PATH = .
 
 # Default rules for deployment.
 include(deployment.pri)
@@ -56,4 +56,18 @@ HEADERS += \
 
 DISTFILES += \
     ../../UciConnector/UciConnector.vcxproj \
-    ../../UciConnector/UciConnector.vcxproj.filters
+    ../../UciConnector/UciConnector.vcxproj.filters \
+    Button.qml \
+    ChessBoard.qml \
+    ChessBoxes.qml \
+    ChessFigures.qml \
+    ChessGame.qml \
+    CustomSlider.qml \
+    EmptyBoardModel.qml \
+    MarkerColumn.qml \
+    MarkerRow.qml \
+    NavigationLayer.qml \
+    Notificator.qml \
+    PawnPromotionOptions.qml \
+    NetworkPlayers.qml \
+    SelectPlayerDialog.qml

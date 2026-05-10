@@ -52,8 +52,8 @@ Rectangle{
                 antialiasing:true
                 fillMode: Image.PreserveAspectFit
                 source:modelData!=" "? (modelData === modelData.toLowerCase()
-                                        ? "pics/black/"+modelData.toUpperCase()+".png"
-                                        : "pics/white/"+modelData.toLowerCase()+".png")
+                                        ? "qrc:/pics/black/"+modelData.toUpperCase()+".png"
+                                        : "qrc:/pics/white/"+modelData.toLowerCase()+".png")
                                      :" ";
                 MouseArea{
                     anchors.fill:parent

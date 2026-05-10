@@ -1,20 +1,21 @@
 <RCC>
-    <qresource prefix="/">
-        <file>pics/chess_icon.svg</file>
-        <file>pics/ChessBackground.jpg</file>
+    <qresource prefix="/qt/qml/chessgui">
         <file>Button.qml</file>
-        <file>CustomSlider.qml</file>
         <file>ChessBoard.qml</file>
         <file>ChessBoxes.qml</file>
         <file>ChessFigures.qml</file>
         <file>ChessGame.qml</file>
-        <file>ChessGui.pro</file>
+        <file>CustomSlider.qml</file>
+        <file>EmptyBoardModel.qml</file>
         <file>MarkerColumn.qml</file>
         <file>MarkerRow.qml</file>
         <file>NavigationLayer.qml</file>
         <file>Notificator.qml</file>
-        <file>EmptyBoardModel.qml</file>
         <file>PawnPromotionOptions.qml</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>pics/chess_icon.svg</file>
+        <file>pics/ChessBackground.jpg</file>
         <file>pics/black/B.png</file>
         <file>pics/black/K.png</file>
         <file>pics/black/N.png</file>

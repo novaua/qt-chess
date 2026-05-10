@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 
     engine.rootContext()->setContextProperty("chessConnector", new ChessConnector(&engine));
 
-    engine.load(QUrl(QStringLiteral("qrc:/ChessGame.qml")));
+    engine.load(QUrl(QStringLiteral("qrc:/qt/qml/chessgui/ChessGame.qml")));
 
     return app.exec();
 }
