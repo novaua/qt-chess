@@ -45,6 +45,12 @@
       <Extensions>*</Extensions>
       <ParseFiles>false</ParseFiles>
     </Filter>
+    <Filter Include="Resource Files\black">
+      <UniqueIdentifier>{bcc5361c-b427-436b-97ef-afa2e42fb7db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\white">
+      <UniqueIdentifier>{12511668-3e40-44db-bd26-3eb7f6d011bf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChessEnginePlayer.cpp">
@@ -90,86 +96,99 @@
     <ResourceCompile Include="ChessGui.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="pics\black\B.png">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Button.qml">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pics\ChessBackground.jpg">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ChessBoard.qml">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ChessBoxes.qml">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ChessFigures.qml">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ChessGame.qml">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ChessGui.pro">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="EmptyBoardModel.qml">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pics\black\K.png">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="MarkerColumn.qml">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="MarkerRow.qml">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pics\black\N.png">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="NavigationLayer.qml">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="Notificator.qml">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pics\black\P.png">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="PawnPromotionOptions.qml">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pics\black\Q.png">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pics\black\R.png">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pics\white\b.png">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pics\white\k.png">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pics\white\n.png">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pics\white\p.png">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="pics\white\q.png">
-      <Filter>Resource Files</Filter>
-    </None>
     <QtRcc Include="qml.qrc">
       <Filter>Resource Files</Filter>
     </QtRcc>
-    <None Include="pics\white\r.png">
+    <None Include="qml\Button.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\ChessBoard.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\ChessBoxes.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\ChessFigures.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\ChessGame.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\CustomSlider.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\EmptyBoardModel.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\MarkerColumn.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\MarkerRow.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\NavigationLayer.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\NetworkPlayers.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\Notificator.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\PawnPromotionOptions.qml">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qml\SelectPlayerDialog.qml">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="pics\chess_icon.svg">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="NetworkPlayers.qml" />
-    <None Include="SelectPlayerDialog.qml" />
-    <None Include="CustomSlider.qml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="pics\ChessBackground.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="pics\rotate.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="pics\black\B.png">
+      <Filter>Resource Files\black</Filter>
+    </Image>
+    <Image Include="pics\black\K.png">
+      <Filter>Resource Files\black</Filter>
+    </Image>
+    <Image Include="pics\black\N.png">
+      <Filter>Resource Files\black</Filter>
+    </Image>
+    <Image Include="pics\black\P.png">
+      <Filter>Resource Files\black</Filter>
+    </Image>
+    <Image Include="pics\black\Q.png">
+      <Filter>Resource Files\black</Filter>
+    </Image>
+    <Image Include="pics\black\R.png">
+      <Filter>Resource Files\black</Filter>
+    </Image>
+    <Image Include="pics\white\b.png">
+      <Filter>Resource Files\white</Filter>
+    </Image>
+    <Image Include="pics\white\k.png">
+      <Filter>Resource Files\white</Filter>
+    </Image>
+    <Image Include="pics\white\n.png">
+      <Filter>Resource Files\white</Filter>
+    </Image>
+    <Image Include="pics\white\p.png">
+      <Filter>Resource Files\white</Filter>
+    </Image>
+    <Image Include="pics\white\q.png">
+      <Filter>Resource Files\white</Filter>
+    </Image>
+    <Image Include="pics\white\r.png">
+      <Filter>Resource Files\white</Filter>
+    </Image>
   </ItemGroup>
 </Project>

@@ -91,7 +91,7 @@ ApplicationWindow {
         Image {
             id: background
             anchors.fill: parent
-            source: "qrc:///pics/ChessBackground.jpg"
+            source: "qrc:/app/pics/ChessBackground.jpg"
             fillMode: Image.PreserveAspectCrop
         }
 
