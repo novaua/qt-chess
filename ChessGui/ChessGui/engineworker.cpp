@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include "engineworker.h"
 
-EngineWorker::EngineWorker(const Chess::GameAptr& game, QObject* parent)
-    : QObject(parent), _game(game)
+EngineWorker::EngineWorker(const Chess::GameAptr& game, int difficulty, QObject* parent)
+    : QObject(parent), _game(game), _difficulty(difficulty)
 {}
 
 // Runs on the engine thread. ChessEnginePlayer (and its QProcess) are created here
@@ -16,7 +16,7 @@ void EngineWorker::killEngine()
 void EngineWorker::doMove()
 {
     if (!_enginePlayer)
-        _enginePlayer = std::make_shared<Chess::ChessEnginePlayer>(_game);
+        _enginePlayer = std::make_shared<Chess::ChessEnginePlayer>(_game, _difficulty);
 
     try {
         _enginePlayer->DoMove();

@@ -69,5 +69,31 @@ namespace ConnectorTests
 			Assert::IsFalse(response.BestMove.empty());
 			Assert::IsFalse(response.Ponder.empty());
 		}
+
+		TEST_METHOD(SetDifficulty_Boundaries_Test)
+		{
+			_connector->SetDifficulty(0);
+			Assert::AreEqual(string("0"), _connector->GetOption("Skill Level"),
+				L"Difficulty 0 should be reflected by GetOption");
+
+			_connector->SetDifficulty(20);
+			Assert::AreEqual(string("20"), _connector->GetOption("Skill Level"),
+				L"Difficulty 20 should be reflected by GetOption");
+
+			_connector->SetDifficulty(10);
+			Assert::AreEqual(string("10"), _connector->GetOption("Skill Level"),
+				L"Difficulty 10 should be reflected by GetOption");
+		}
+
+		TEST_METHOD(MakeMove_AfterDifficultySet_Test)
+		{
+			_connector->SetDifficulty(1);
+			Assert::AreEqual(string("1"), _connector->GetOption("Skill Level"));
+
+			auto response = _connector->GetEngineMove({ { "e2e4", "e7e5", "b1c3" } }, chrono::seconds(2));
+
+			Assert::IsFalse(response.BestMove.empty(),
+				L"Engine must return a move at low difficulty");
+		}
 	};
 }

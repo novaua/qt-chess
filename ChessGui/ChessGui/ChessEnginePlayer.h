@@ -10,10 +10,13 @@ namespace Chess {
 		UciConnectorAPtr _connector;
 
 	public:
-		ChessEnginePlayer(const GameAptr& game);
+		ChessEnginePlayer(const GameAptr& game, int difficulty = 10);
 
 		void DoMove();
 		void KillEngine();
+
+private:
+	int _difficulty;
 	};
 
 	typedef std::shared_ptr<ChessEnginePlayer> ChessEnginePlayerAptr;

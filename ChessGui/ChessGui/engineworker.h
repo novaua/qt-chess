@@ -10,9 +10,10 @@ class EngineWorker : public QObject
     Q_OBJECT
     Chess::GameAptr _game;
     Chess::ChessEnginePlayerAptr _enginePlayer;
+    int _difficulty;
 
 public:
-    explicit EngineWorker(const Chess::GameAptr& game, QObject* parent = nullptr);
+    explicit EngineWorker(const Chess::GameAptr& game, int difficulty = 10, QObject* parent = nullptr);
 
     void killEngine();
 

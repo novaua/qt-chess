@@ -57,7 +57,7 @@ signals:
 
 public slots:
 	void startNewGame();
-	void startNewGameWithComputer();
+	void startNewGameWithComputer(int difficulty = 10);
 	Q_INVOKABLE bool continueGame();
 
 	void endGame();
@@ -78,7 +78,7 @@ private slots:
 private:
 	void makeMove(int from, int to);
 	void EmitMoveCountUpdates();
-	void startEngineThread();
+	void startEngineThread(int difficulty = 10);
 	void stopEngineThread();
 	void autoSaveGame(bool isSinglePlayer);
 	void deleteAutoSave();
@@ -97,6 +97,7 @@ private:
 	EngineWorker* _engineWorker = nullptr;
 	bool _engineThinking = false;
 	std::atomic<bool> _gameOver { false };
+	int _lastDifficulty = 10;
 };
 
 #endif // CHESSCONNECTOR_H

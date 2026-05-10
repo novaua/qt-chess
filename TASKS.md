@@ -22,11 +22,11 @@
 
 - [ ] Merge `feMakeInstaller_0430a` → `develop` once CI passes green
 - [ ] Tag a release (`v*`) to trigger the GitHub Release publish step
-- [ ] Engine Difficulty setting
-  - Slider UI is already in the start menu (`difficultySlider.value`, range 0–20)
-  - Wire up: pass difficulty to Stockfish via `setoption name Skill Level value N` UCI command before each move
-  - Add `void SetDifficulty(int level)` to `UciConnector`; call from `ChessEnginePlayer::DoMove()`
-  - `ChessConnector::startNewGameWithComputer()` should accept difficulty parameter from QML slider value
+- [x] Engine Difficulty setting — implemented
+  - `UciConnector::SetDifficulty(int)` sets "Skill Level" via `setoption`; `SetOption` now updates `_opt` so `GetOption` reflects it
+  - `ChessEnginePlayer(game, difficulty)` calls `SetDifficulty` after `Init()`
+  - `startNewGameWithComputer(int difficulty)` stores `_lastDifficulty`; `continueGame()` reuses it
+  - Two new unit tests in `UciConnectorTest.cpp`: boundary verification via `GetOption`, move test at difficulty 1
 
 ---
 

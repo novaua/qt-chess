@@ -3,10 +3,12 @@
 
 using namespace Chess;
 
-ChessEnginePlayer::ChessEnginePlayer(const GameAptr& game) : _game(game)
+ChessEnginePlayer::ChessEnginePlayer(const GameAptr& game, int difficulty)
+	: _game(game), _difficulty(difficulty)
 {
 	_connector = std::make_shared<UciConnector>();
 	_connector->Init();
+	_connector->SetDifficulty(_difficulty);
 }
 
 void ChessEnginePlayer::DoMove()

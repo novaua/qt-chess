@@ -271,7 +271,7 @@ ApplicationWindow {
                         onClicked: {
                             if (btnSingle.checked) {
                                 screen.state = "screen_4"
-                                chessConnector.startNewGameWithComputer()
+                                chessConnector.startNewGameWithComputer(Math.round(difficultySlider.value))
                                 gameIsInProgress = true
                             } else if (btnTwo.checked) {
                                 screen.state = "screen_2"
