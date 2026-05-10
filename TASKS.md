@@ -20,6 +20,9 @@
 
 ### Backlog
 
+- [ ] **User profiles** — per-user config (display name, settings, stats); `AppConfig` is designed to extend
+- [ ] **chess.com account** — save/restore user chess.com credentials and data when connected
+
 - [ ] Merge `feMakeInstaller_0430a` → `develop` once CI passes green
 - [ ] Tag a release (`v*`) to trigger the GitHub Release publish step
 - [x] Engine Difficulty setting — implemented

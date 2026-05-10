@@ -3,6 +3,7 @@ TEMPLATE = app
 QT += qml quick widgets
 
 SOURCES += main.cpp \
+    AppConfig.cpp \
     ../../ChessCore/Board.cpp \
     ../../ChessCore/BoardPositionsCache.cpp \
     ../../ChessCore/Check.cpp \
@@ -34,6 +35,7 @@ SUBDIRS += \
     ../../QtChessCoreLib/QtChessCoreLib/QtChessCoreLib.pro
 
 HEADERS += \
+    AppConfig.h \
     ../../ChessCore/Board.h \
     ../../ChessCore/BoardPositionsCache.h \
     ../../ChessCore/Check.h \

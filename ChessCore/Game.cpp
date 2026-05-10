@@ -118,6 +118,8 @@ namespace Chess
 		std::ifstream fs(path, std::ios::in | std::ios::binary);
 		ValidateHeader(fs, SaveGameHeader);
 
+		_loadedHistory.clear();
+
 		auto count = BinarySerializer::Deserialize<int>(fs);
 		for (auto i = 0; i < count; ++i)
 		{
