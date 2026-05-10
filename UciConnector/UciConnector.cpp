@@ -21,6 +21,7 @@ const std::string ReadyCommand      = "isready";
 const std::string ReadyOkCommand    = "readyok";
 const std::string BestMoveCommand   = "bestmove";
 const std::string QuitCommand       = "quit";
+const std::string SkillLevelOption  = "Skill Level";
 
 const std::regex IdNameRegex    ("id name (.*)");
 const std::regex OptionNameRegex("option name (.*) type (.*)");
@@ -156,6 +157,14 @@ void UciConnector::SetOption(const std::string& op, const std::string& value)
     ProcessCommand({ cmd, "" });
     if (!CheckReady())
         throw std::logic_error("Setting: '" + op + "' failed!");
+
+    _opt[op] = value;
+}
+
+void UciConnector::SetDifficulty(int level)
+{
+    level = std::max(0, std::min(20, level));
+    SetOption(SkillLevelOption, std::to_string(level));
 }
 
 std::vector<std::string> UciConnector::GetOptions()

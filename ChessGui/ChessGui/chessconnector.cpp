@@ -4,6 +4,7 @@
 
 #include <QDir>
 #include <QDebug>
+#include <QFile>
 #include <QThread>
 
 using namespace Chess;
@@ -156,26 +157,33 @@ void ChessConnector::makeMove(int from, int to)
 
 void ChessConnector::startNewGame()
 {
+	deleteAutoSave();
 	stopEngineThread();
+	_player = nullptr;
 	_gameOver = false;
 	_game->Restart();
 	EmitMoveCountUpdates();
+	emit canContinueChanged();
 
 	qDebug() << "Cpp Game restarted!";
 }
 
-void ChessConnector::startNewGameWithComputer()
+void ChessConnector::startNewGameWithComputer(int difficulty)
 {
+	_lastDifficulty = difficulty;
+	deleteAutoSave();
 	stopEngineThread();
+	_player = nullptr;
 	_game->EndGame();
 	_gameOver = false;
 	EmitMoveCountUpdates();
-	startEngineThread();
+	emit canContinueChanged();
+	startEngineThread(difficulty);
 }
 
-void ChessConnector::startEngineThread()
+void ChessConnector::startEngineThread(int difficulty)
 {
-	_engineWorker = new EngineWorker(_game);
+	_engineWorker = new EngineWorker(_game, difficulty);
 	_engineThread = new QThread(this);
 	_engineWorker->moveToThread(_engineThread);
 
@@ -254,6 +262,7 @@ void ChessConnector::saveGame()
 {
 	_game->Save(getSaveGameFilePath().toStdString());
 	emit savedOk();
+	emit canLoadChanged();
 }
 
 bool ChessConnector::loadGame()
@@ -309,13 +318,83 @@ int ChessConnector::IsOnPlayerMode()
 
 void ChessConnector::endGame()
 {
+	if (_game->GetMoveCount() > 0 && !IsOnPlayerMode())
+		autoSaveGame(_engineWorker != nullptr);
+
 	stopEngineThread();
+	_player = nullptr;
 	_game->EndGame();
 	_gameOver = false;
 	EmitMoveCountUpdates();
 	emit IsOnPlayerModeChanged();
 	ClearBoard(_possibleMoves);
 	emit PossibleMovesChanged();
+	emit canContinueChanged();
+}
+
+bool ChessConnector::continueGame()
+{
+	bool isSingle = readAutoSaveIsSinglePlayer();
+
+	stopEngineThread();
+	_game->Load(getAutoSaveFilePath().toStdString());
+	_game->ResumeFromLoad();
+	_gameOver = false;
+
+	deleteAutoSave();
+	emit canContinueChanged();
+	EmitMoveCountUpdates();
+
+	if (isSingle) {
+		startEngineThread(_lastDifficulty);
+		if (!_game->IsWhiteMove()) {
+			_engineThinking = true;
+			emit requestEngineMove();
+		}
+	}
+	return isSingle;
+}
+
+bool ChessConnector::canContinue() const
+{
+	return fileExists(getAutoSaveFilePath());
+}
+
+bool ChessConnector::canLoad() const
+{
+	return fileExists(getSaveGameFilePath());
+}
+
+QString ChessConnector::getAutoSaveFilePath() const
+{
+	return pathAppend(QDir::currentPath(), "chess.autosave");
+}
+
+QString ChessConnector::getAutoSaveModePath() const
+{
+	return pathAppend(QDir::currentPath(), "chess.autosave.mode");
+}
+
+void ChessConnector::autoSaveGame(bool isSinglePlayer)
+{
+	_game->Save(getAutoSaveFilePath().toStdString());
+	QFile modeFile(getAutoSaveModePath());
+	if (modeFile.open(QIODevice::WriteOnly | QIODevice::Text))
+		modeFile.write(isSinglePlayer ? "1" : "0");
+}
+
+void ChessConnector::deleteAutoSave()
+{
+	QFile::remove(getAutoSaveFilePath());
+	QFile::remove(getAutoSaveModePath());
+}
+
+bool ChessConnector::readAutoSaveIsSinglePlayer() const
+{
+	QFile f(getAutoSaveModePath());
+	if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	return f.readAll().trimmed() == "1";
 }
 
 ChessConnector::~ChessConnector()

@@ -22,6 +22,11 @@
 
 - [ ] Merge `feMakeInstaller_0430a` → `develop` once CI passes green
 - [ ] Tag a release (`v*`) to trigger the GitHub Release publish step
+- [x] Engine Difficulty setting — implemented
+  - `UciConnector::SetDifficulty(int)` sets "Skill Level" via `setoption`; `SetOption` now updates `_opt` so `GetOption` reflects it
+  - `ChessEnginePlayer(game, difficulty)` calls `SetDifficulty` after `Init()`
+  - `startNewGameWithComputer(int difficulty)` stores `_lastDifficulty`; `continueGame()` reuses it
+  - Two new unit tests in `UciConnectorTest.cpp`: boundary verification via `GetOption`, move test at difficulty 1
 
 ---
 

@@ -63,6 +63,7 @@ namespace Chess
 
 		void Save(const std::string &path);
 		void Load(const std::string &path);
+		void ResumeFromLoad();
 
 		void DoMove(BoardPosition from, BoardPosition to);
 		void DoMove(const Move &move);

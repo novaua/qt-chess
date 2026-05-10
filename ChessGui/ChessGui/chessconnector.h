@@ -17,6 +17,8 @@ class ChessConnector : public QObject
 		Q_PROPERTY(QStringList PossibleMoves READ PossibleMoves WRITE setPossibleMoves NOTIFY PossibleMovesChanged)
 		Q_PROPERTY(int IsWhiteMove READ IsWhiteMove NOTIFY IsWhiteMoveChanged)
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
+		Q_PROPERTY(bool CanContinue READ canContinue NOTIFY canContinueChanged)
+		Q_PROPERTY(bool CanLoad READ canLoad NOTIFY canLoadChanged)
 public:
 	explicit ChessConnector(QObject* parent= nullptr);
 	~ChessConnector();
@@ -24,6 +26,8 @@ public:
 	int MoveCount();
 	int IsWhiteMove();
 	int IsOnPlayerMode();
+	bool canContinue() const;
+	bool canLoad() const;
 
 	QStringList& PossibleMoves();
 	void setPossibleMoves(const QStringList& moves);
@@ -36,6 +40,8 @@ signals:
 	void MoveCountChanged();
 	void IsWhiteMoveChanged();
 	void IsOnPlayerModeChanged();
+	void canContinueChanged();
+	void canLoadChanged();
 
 	void checkNotify();
 	void checkMateNotify();
@@ -51,7 +57,8 @@ signals:
 
 public slots:
 	void startNewGame();
-	void startNewGameWithComputer();
+	void startNewGameWithComputer(int difficulty = 10);
+	Q_INVOKABLE bool continueGame();
 
 	void endGame();
 
@@ -71,8 +78,13 @@ private slots:
 private:
 	void makeMove(int from, int to);
 	void EmitMoveCountUpdates();
-	void startEngineThread();
+	void startEngineThread(int difficulty = 10);
 	void stopEngineThread();
+	void autoSaveGame(bool isSinglePlayer);
+	void deleteAutoSave();
+	bool readAutoSaveIsSinglePlayer() const;
+	QString getAutoSaveFilePath() const;
+	QString getAutoSaveModePath() const;
 
 private:
 	QStringList _possibleMoves;
@@ -85,6 +97,7 @@ private:
 	EngineWorker* _engineWorker = nullptr;
 	bool _engineThinking = false;
 	std::atomic<bool> _gameOver { false };
+	int _lastDifficulty = 10;
 };
 
 #endif // CHESSCONNECTOR_H

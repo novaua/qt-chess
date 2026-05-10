@@ -31,8 +31,7 @@ namespace Chess
 	}
 
 	Game::~Game()
-	{
-	}
+	{}
 
 	void Game::RegisterGameActionsListeners(const GameActionListener& listener)
 	{
@@ -151,6 +150,21 @@ namespace Chess
 		}
 	}
 
+	void Game::ResumeFromLoad()
+	{
+		{
+			std::lock_guard<std::mutex> lg(_lock);
+			_checkMate = false;
+			*_historyAptr = {};
+			_captured = {};
+			_boardAptr->Initialize();
+		}
+		NotifyFullBoardReinit();
+
+		for (const auto& move : _loadedHistory)
+			DoMove(move.ToMove());
+	}
+
 	void Game::DoMove(const Move& move1)
 	{
 		auto move = move1;
@@ -188,12 +202,12 @@ namespace Chess
 			auto pawnPromotionEvent = PawnPromotionEvent(EtPawnPromotion, ppIndex, (int)side);
 
 			pawnPromotionEvent.OnPromoted = [this](const PositionPiece& positionPiece)
-			{
-				_historyAptr->rbegin()->PromotedTo = positionPiece.Piece;
+				{
+					_historyAptr->rbegin()->PromotedTo = positionPiece.Piece;
 
-				_boardAptr->Place(positionPiece.Position, positionPiece.Piece);
-				NotifyBoardChangesListeners({ positionPiece.Position });
-			};
+					_boardAptr->Place(positionPiece.Position, positionPiece.Piece);
+					NotifyBoardChangesListeners({ positionPiece.Position });
+				};
 
 			NotifyActionsListeners(pawnPromotionEvent);
 		}
