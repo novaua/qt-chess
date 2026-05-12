@@ -32,12 +32,28 @@ void AvatarProvider::randomize(bool isComputerGame)
     emit opponentAvatarChanged();
 }
 
+static QString capitalize(const QString& s)
+{
+    if (s.isEmpty()) return s;
+    return s[0].toUpper() + s.mid(1);
+}
+
 QString AvatarProvider::playerUrl() const
 {
     return "qrc:/app/pics/avatars/" + _playerName + ".png";
 }
 
+QString AvatarProvider::playerName() const
+{
+    return capitalize(_playerName);
+}
+
 QString AvatarProvider::opponentUrl() const
 {
     return "qrc:/app/pics/avatars/" + (_isComputerGame ? "robot" : _opponentName) + ".png";
+}
+
+QString AvatarProvider::opponentName() const
+{
+    return _isComputerGame ? "Robot" : capitalize(_opponentName);
 }

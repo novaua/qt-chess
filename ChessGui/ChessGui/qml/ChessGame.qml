@@ -352,7 +352,9 @@ ApplicationWindow {
         Connections {
             target: chessConnector
             function onCheckMateResult(winner) {
-                _checkmateWinner = winner
+                var isWhite = winner === "White Won"
+                var name = isWhite ? avatarProvider.playerName : avatarProvider.opponentName
+                _checkmateWinner = (isWhite ? "White " : "Black ") + name + " Won"
                 resultDialogTimer.start()
             }
         }

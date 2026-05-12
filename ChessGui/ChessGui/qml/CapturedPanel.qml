@@ -22,8 +22,8 @@ Rectangle {
 
         // Avatar framed like a button card
         Rectangle {
-            width:  panel.height
-            height: panel.height
+            width:  panel.height - 8
+            height: panel.height - 8
             radius: 6
             color:  panel._dark ? "#3c3c3c" : "#e8e8e8"
             border.color: panel._dark ? "#666666" : "#bbbbbb"
@@ -41,7 +41,7 @@ Rectangle {
         Repeater {
             model: panel.pieces
             Image {
-                height: panel.height
+                height: panel.height - 8
                 width:  height
                 fillMode: Image.PreserveAspectFit
                 source: modelData === modelData.toLowerCase()
