@@ -54,6 +54,9 @@
     <Filter Include="Source Files\Qml">
       <UniqueIdentifier>{bad18dcf-0dbb-4410-968e-e0ff29c3e244}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\avatars">
+      <UniqueIdentifier>{0b086f0a-3be9-47ff-bd0b-372183da2505}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChessEnginePlayer.cpp">
@@ -100,9 +103,6 @@
     <ClInclude Include="AppConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="ChessGui.rc" />
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="qml.qrc">
@@ -202,5 +202,73 @@
     <Image Include="pics\white\r.png">
       <Filter>Resource Files\white</Filter>
     </Image>
+    <Image Include="pics\avatars\alien.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\ball.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\bear.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\boy.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\cat.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\crown.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\dragon.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\flower.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\fox.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\girl.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\mouse.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\ninja.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\penguin.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\pirate.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\rabbit.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\robot.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\rocket.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\star.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\sun.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\unicorn.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+    <Image Include="pics\avatars\wizard.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ChessGui.rc">
+      <Filter>Resource Files\avatars</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

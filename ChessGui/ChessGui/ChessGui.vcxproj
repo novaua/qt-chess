@@ -367,6 +367,27 @@
     <ClInclude Include="..\..\ChessCore\targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="pics\avatars\alien.png" />
+    <Image Include="pics\avatars\ball.png" />
+    <Image Include="pics\avatars\bear.png" />
+    <Image Include="pics\avatars\boy.png" />
+    <Image Include="pics\avatars\cat.png" />
+    <Image Include="pics\avatars\crown.png" />
+    <Image Include="pics\avatars\dragon.png" />
+    <Image Include="pics\avatars\flower.png" />
+    <Image Include="pics\avatars\fox.png" />
+    <Image Include="pics\avatars\girl.png" />
+    <Image Include="pics\avatars\mouse.png" />
+    <Image Include="pics\avatars\ninja.png" />
+    <Image Include="pics\avatars\penguin.png" />
+    <Image Include="pics\avatars\pirate.png" />
+    <Image Include="pics\avatars\rabbit.png" />
+    <Image Include="pics\avatars\robot.png" />
+    <Image Include="pics\avatars\rocket.png" />
+    <Image Include="pics\avatars\star.png" />
+    <Image Include="pics\avatars\sun.png" />
+    <Image Include="pics\avatars\unicorn.png" />
+    <Image Include="pics\avatars\wizard.png" />
     <Image Include="pics\black\B.png" />
     <Image Include="pics\black\K.png" />
     <Image Include="pics\black\N.png" />

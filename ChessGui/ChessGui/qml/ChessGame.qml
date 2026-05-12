@@ -14,6 +14,13 @@ ApplicationWindow {
     property variant win
     property string _checkmateWinner: ""
     property bool   _showGameResult: false
+    property real   _panelH: Math.min(root.width, root.height - 30) * 0.95 / 16
+    property var    _avatarList: [
+        "wizard","unicorn","sun","flower","rabbit","mouse","girl","boy","ball","star",
+        "dragon","rocket","penguin","fox","bear","cat","ninja","pirate","alien","crown"
+    ]
+    property string _playerAvatar:   "wizard"
+    property string _opponentAvatar: "unicorn"
 
     Component.onCompleted: {
         isDarkMode = (Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
@@ -100,10 +107,34 @@ ApplicationWindow {
         Column {
             anchors.fill: parent
 
+            CapturedPanel {
+                id: topPanel
+                width: parent.width
+                height: _panelH
+                visible: gameIsInProgress
+                avatarPrimary:  chessConnector.IsOnPlayerMode === 0 && gameIsInProgress
+                                ? "https://api.dicebear.com/9.x/bottts/svg?seed=chess-robot"
+                                : "https://api.dicebear.com/9.x/adventurer/svg?seed=" + _opponentAvatar
+                avatarFallback: chessConnector.IsOnPlayerMode === 0 && gameIsInProgress
+                                ? "qrc:/app/pics/avatars/robot.png"
+                                : "qrc:/app/pics/avatars/" + _opponentAvatar + ".png"
+                pieces: chessConnector.CapturedByDark
+            }
+
             ChessBoard {
                 width: parent.width
-                height: parent.height - 30
+                height: parent.height - 30 - (gameIsInProgress ? 2 * _panelH : 0)
                 id: chessBoard
+            }
+
+            CapturedPanel {
+                id: bottomPanel
+                width: parent.width
+                height: _panelH
+                visible: gameIsInProgress
+                avatarPrimary:  "https://api.dicebear.com/9.x/adventurer/svg?seed=" + _playerAvatar
+                avatarFallback: "qrc:/app/pics/avatars/" + _playerAvatar + ".png"
+                pieces: chessConnector.CapturedByLight
             }
 
             Rectangle {
@@ -332,6 +363,12 @@ ApplicationWindow {
             function onCheckMateResult(winner) {
                 _checkmateWinner = winner
                 resultDialogTimer.start()
+            }
+            function onNewGameStarted() {
+                var idx = Math.floor(Math.random() * _avatarList.length)
+                _playerAvatar = _avatarList[idx]
+                var idx2 = (idx + 1 + Math.floor(Math.random() * (_avatarList.length - 1))) % _avatarList.length
+                _opponentAvatar = _avatarList[idx2]
             }
         }
 

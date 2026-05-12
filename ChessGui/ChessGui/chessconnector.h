@@ -27,6 +27,8 @@ class ChessConnector : public QObject
 		Q_PROPERTY(QString StatsCreatedDate READ statsCreatedDate NOTIFY statsChanged)
 		Q_PROPERTY(int LastMoveFrom READ lastMoveFrom NOTIFY lastMoveChanged)
 		Q_PROPERTY(int LastMoveTo   READ lastMoveTo   NOTIFY lastMoveChanged)
+		Q_PROPERTY(QStringList CapturedByDark  READ capturedByDark  NOTIFY capturedChanged)
+		Q_PROPERTY(QStringList CapturedByLight READ capturedByLight NOTIFY capturedChanged)
 public:
 	explicit ChessConnector(QObject* parent= nullptr);
 	~ChessConnector();
@@ -43,6 +45,8 @@ public:
 	QString statsCreatedDate() const { return _config.createdDate.toString("MMMM d, yyyy"); }
 	int lastMoveFrom() const;
 	int lastMoveTo()   const;
+	QStringList capturedByDark()  const;
+	QStringList capturedByLight() const;
 
 	QStringList& PossibleMoves();
 	void setPossibleMoves(const QStringList& moves);
@@ -63,6 +67,8 @@ signals:
 	void checkMateNotify();
 	void checkMateResult(QString winner);
 	void lastMoveChanged();
+	void capturedChanged();
+	void newGameStarted();
 
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
