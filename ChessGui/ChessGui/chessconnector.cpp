@@ -150,6 +150,44 @@ void ChessConnector::EmitMoveCountUpdates()
 {
 	emit MoveCountChanged();
 	emit IsWhiteMoveChanged();
+	emit lastMoveChanged();
+	emit capturedChanged();
+}
+
+int ChessConnector::lastMoveFrom() const
+{
+	const auto& rec = _game->GetGameRecord();
+	return rec.empty() ? -1 : (int)rec.back().From.Position;
+}
+
+int ChessConnector::lastMoveTo() const
+{
+	const auto& rec = _game->GetGameRecord();
+	return rec.empty() ? -1 : (int)rec.back().To.Position;
+}
+
+namespace {
+	// PieceTypes enum: EMPTY=0, KNIGHT=1, BISHOP=2, ROOK=3, QUEEN=4, KING=5, PAWN=6
+	static const char pieceCodes[] = " nbrqkp";
+	QChar pieceCode(const Chess::Piece& p) { return QChar(pieceCodes[p.Type]); }
+}
+
+QStringList ChessConnector::capturedByDark() const
+{
+	QStringList result;
+	for (const auto& m : _game->GetGameRecord())
+		if (m.IsCapturingMove() && m.To.Piece.Color == Chess::PieceColors::Light)
+			result << QString(pieceCode(m.To.Piece).toUpper()); // uppercase = white piece image key
+	return result;
+}
+
+QStringList ChessConnector::capturedByLight() const
+{
+	QStringList result;
+	for (const auto& m : _game->GetGameRecord())
+		if (m.IsCapturingMove() && m.To.Piece.Color == Chess::PieceColors::Dark)
+			result << QString(pieceCode(m.To.Piece).toLower()); // lowercase = black piece image key
+	return result;
 }
 
 void ChessConnector::makeMove(int from, int to)
@@ -174,6 +212,7 @@ void ChessConnector::startNewGame()
 	_game->Restart();
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
+	emit newGameStarted(false);
 
 	qDebug() << "Cpp Game restarted!";
 }
@@ -189,6 +228,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_gameOver = false;
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
+	emit newGameStarted(true);
 	startEngineThread(Chess::EngineLevel(level));
 }
 

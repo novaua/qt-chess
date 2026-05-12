@@ -14,6 +14,8 @@ ApplicationWindow {
     property variant win
     property string _checkmateWinner: ""
     property bool   _showGameResult: false
+    property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
+    property real   _panelH: _boardSize / 16
 
     Component.onCompleted: {
         isDarkMode = (Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
@@ -100,10 +102,30 @@ ApplicationWindow {
         Column {
             anchors.fill: parent
 
+            CapturedPanel {
+                id: topPanel
+                width: _boardSize
+                height: _panelH
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: gameIsInProgress
+                avatarUrl: avatarProvider.opponentUrl
+                pieces: chessConnector.CapturedByDark
+            }
+
             ChessBoard {
                 width: parent.width
-                height: parent.height - 30
+                height: parent.height - 30 - (gameIsInProgress ? 2 * _panelH : 0)
                 id: chessBoard
+            }
+
+            CapturedPanel {
+                id: bottomPanel
+                width: _boardSize
+                height: _panelH
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: gameIsInProgress
+                avatarUrl: avatarProvider.playerUrl
+                pieces: chessConnector.CapturedByLight
             }
 
             Rectangle {
@@ -330,7 +352,9 @@ ApplicationWindow {
         Connections {
             target: chessConnector
             function onCheckMateResult(winner) {
-                _checkmateWinner = winner
+                var isWhite = winner === "White Won"
+                var name = isWhite ? avatarProvider.playerName : avatarProvider.opponentName
+                _checkmateWinner = (isWhite ? "White " : "Black ") + name + " Won"
                 resultDialogTimer.start()
             }
         }

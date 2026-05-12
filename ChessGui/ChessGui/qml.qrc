@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>qml/Button.qml</file>
+        <file>qml/CapturedPanel.qml</file>
         <file>qml/GameResultDialog.qml</file>
         <file>qml/ChessBoard.qml</file>
         <file>qml/ChessBoxes.qml</file>
@@ -34,5 +35,26 @@
         <file>pics/chess_icon.svg</file>
         <file>pics/ChessBackground.jpg</file>
         <file>pics/rotate.png</file>
+        <file>pics/avatars/robot.png</file>
+        <file>pics/avatars/wizard.png</file>
+        <file>pics/avatars/unicorn.png</file>
+        <file>pics/avatars/sun.png</file>
+        <file>pics/avatars/flower.png</file>
+        <file>pics/avatars/rabbit.png</file>
+        <file>pics/avatars/mouse.png</file>
+        <file>pics/avatars/girl.png</file>
+        <file>pics/avatars/boy.png</file>
+        <file>pics/avatars/ball.png</file>
+        <file>pics/avatars/star.png</file>
+        <file>pics/avatars/dragon.png</file>
+        <file>pics/avatars/rocket.png</file>
+        <file>pics/avatars/penguin.png</file>
+        <file>pics/avatars/fox.png</file>
+        <file>pics/avatars/bear.png</file>
+        <file>pics/avatars/cat.png</file>
+        <file>pics/avatars/ninja.png</file>
+        <file>pics/avatars/pirate.png</file>
+        <file>pics/avatars/alien.png</file>
+        <file>pics/avatars/crown.png</file>
     </qresource>
 </RCC>

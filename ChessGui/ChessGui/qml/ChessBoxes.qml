@@ -33,6 +33,17 @@ Grid {
             color: ((Math.floor(index / 8) % 2) === 0)
                        ? (index % 2  === 1 ? darkChessBoxColor : lightChessBoxColor)
                        : (index % 2  === 0 ? darkChessBoxColor : lightChessBoxColor)
+
+            //highlighting last move
+            Rectangle {
+                anchors.fill: parent
+                color: "#A8D8EA"
+                opacity: index === chessConnector.LastMoveTo ? 0.75 : 0.5
+                visible: index === chessConnector.LastMoveFrom
+                         || index === chessConnector.LastMoveTo
+                z: 1
+            }
+
             Text {
                 anchors.fill: parent
                 id: name
