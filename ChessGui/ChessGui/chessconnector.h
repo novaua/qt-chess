@@ -68,7 +68,7 @@ signals:
 	void checkMateResult(QString winner);
 	void lastMoveChanged();
 	void capturedChanged();
-	void newGameStarted();
+	void newGameStarted(bool isComputerGame);
 
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);

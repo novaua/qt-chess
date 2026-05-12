@@ -16,12 +16,6 @@ ApplicationWindow {
     property bool   _showGameResult: false
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     property real   _panelH: _boardSize / 16
-    property var    _avatarList: [
-        "wizard","unicorn","sun","flower","rabbit","mouse","girl","boy","ball","star",
-        "dragon","rocket","penguin","fox","bear","cat","ninja","pirate","alien","crown"
-    ]
-    property string _playerAvatar:   "wizard"
-    property string _opponentAvatar: "unicorn"
 
     Component.onCompleted: {
         isDarkMode = (Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
@@ -114,12 +108,7 @@ ApplicationWindow {
                 height: _panelH
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: gameIsInProgress
-                avatarPrimary:  chessConnector.IsOnPlayerMode === 0 && gameIsInProgress
-                                ? "https://api.dicebear.com/9.x/bottts/svg?seed=chess-robot"
-                                : "https://api.dicebear.com/9.x/adventurer/svg?seed=" + _opponentAvatar
-                avatarFallback: chessConnector.IsOnPlayerMode === 0 && gameIsInProgress
-                                ? "qrc:/app/pics/avatars/robot.png"
-                                : "qrc:/app/pics/avatars/" + _opponentAvatar + ".png"
+                avatarUrl: avatarProvider.opponentUrl
                 pieces: chessConnector.CapturedByDark
             }
 
@@ -135,8 +124,7 @@ ApplicationWindow {
                 height: _panelH
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: gameIsInProgress
-                avatarPrimary:  "https://api.dicebear.com/9.x/adventurer/svg?seed=" + _playerAvatar
-                avatarFallback: "qrc:/app/pics/avatars/" + _playerAvatar + ".png"
+                avatarUrl: avatarProvider.playerUrl
                 pieces: chessConnector.CapturedByLight
             }
 
@@ -366,12 +354,6 @@ ApplicationWindow {
             function onCheckMateResult(winner) {
                 _checkmateWinner = winner
                 resultDialogTimer.start()
-            }
-            function onNewGameStarted() {
-                var idx = Math.floor(Math.random() * _avatarList.length)
-                _playerAvatar = _avatarList[idx]
-                var idx2 = (idx + 1 + Math.floor(Math.random() * (_avatarList.length - 1))) % _avatarList.length
-                _opponentAvatar = _avatarList[idx2]
             }
         }
 

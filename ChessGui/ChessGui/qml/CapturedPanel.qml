@@ -5,9 +5,8 @@ Rectangle {
     id: panel
     color: "transparent"
 
-    property string avatarPrimary:  ""
-    property string avatarFallback: ""
-    property var    pieces:         []
+    property string avatarUrl: ""
+    property var    pieces:   []
 
     readonly property bool _dark: {
         if (!Window.window) return false
@@ -35,9 +34,7 @@ Rectangle {
                 anchors.fill: parent
                 anchors.margins: 3
                 fillMode: Image.PreserveAspectFit
-                source: panel.avatarPrimary
-                onStatusChanged:
-                    if (status === Image.Error) source = panel.avatarFallback
+                source: panel.avatarUrl
             }
         }
 

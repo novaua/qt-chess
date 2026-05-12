@@ -212,7 +212,7 @@ void ChessConnector::startNewGame()
 	_game->Restart();
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
-	emit newGameStarted();
+	emit newGameStarted(false);
 
 	qDebug() << "Cpp Game restarted!";
 }
@@ -228,7 +228,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_gameOver = false;
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
-	emit newGameStarted();
+	emit newGameStarted(true);
 	startEngineThread(Chess::EngineLevel(level));
 }
 

@@ -3,8 +3,10 @@
 #include <QApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
-#include "chessconnector.h"
 #include <QQmlContext>
+#include "chessconnector.h"
+#include "AvatarProvider.h"
+
 int main(int argc, char *argv[])
 {
     QCoreApplication::setApplicationName("ChessPlusPlus");
@@ -13,7 +15,14 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    engine.rootContext()->setContextProperty("chessConnector", new ChessConnector(&engine));
+    auto* connector      = new ChessConnector(&engine);
+    auto* avatarProvider = new AvatarProvider(&engine);
+
+    QObject::connect(connector, &ChessConnector::newGameStarted,
+                     avatarProvider, &AvatarProvider::randomize);
+
+    engine.rootContext()->setContextProperty("chessConnector",  connector);
+    engine.rootContext()->setContextProperty("avatarProvider",  avatarProvider);
 
     engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
 
