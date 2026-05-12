@@ -53,7 +53,10 @@ AppConfig AppConfig::load()
 		cfg.stats.gamesPlayed = st.value("gamesPlayed").toInt(0);
 		cfg.stats.humanWins = st.value("humanWins").toInt(0);
 		cfg.stats.computerWins = st.value("computerWins").toInt(0);
+		cfg.createdDate = QDate::fromString(st.value("createdDate").toString(), Qt::ISODate);
 	}
+	if (!cfg.createdDate.isValid())
+		cfg.createdDate = QDate::currentDate();
 
 	if (root.contains("autoSave") && root["autoSave"].isObject()) {
 		QJsonObject a = root["autoSave"].toObject();
@@ -72,6 +75,7 @@ void AppConfig::save() const
 	statistics["gamesPlayed"] = stats.gamesPlayed;
 	statistics["humanWins"] = stats.humanWins;
 	statistics["computerWins"] = stats.computerWins;
+	statistics["createdDate"] = createdDate.toString(Qt::ISODate);
 
 	QJsonObject autoSave;
 	autoSave["isSinglePlayer"] = autoSaveIsSinglePlayer;

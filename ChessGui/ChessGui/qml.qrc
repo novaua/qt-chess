@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>qml/Button.qml</file>
+        <file>qml/GameResultDialog.qml</file>
         <file>qml/ChessBoard.qml</file>
         <file>qml/ChessBoxes.qml</file>
         <file>qml/ChessFigures.qml</file>

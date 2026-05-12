@@ -53,6 +53,8 @@ ChessConnector::ChessConnector(QObject* parent)
 				_config.save();
 				emit statsChanged();
 				emit checkMateNotify();
+				QString winner = _game->IsWhiteMove() ? "Black Won" : "White Won";
+				emit checkMateResult(winner);
 			}
 			else if (event.GetType() == EtCastling)
 			{

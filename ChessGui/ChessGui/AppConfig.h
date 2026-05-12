@@ -1,4 +1,5 @@
 #pragma once
+#include <QDate>
 #include <QString>
 
 struct GameStats {
@@ -12,6 +13,7 @@ public:
 	int       lastLevel = 3;
 	GameStats stats;
 	bool      autoSaveIsSinglePlayer = false;
+	QDate     createdDate;
 
 	static AppConfig load();
 	void             save() const;

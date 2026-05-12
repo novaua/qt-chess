@@ -9,9 +9,11 @@ ApplicationWindow {
     property string darkChessBoxColor:"darkslategray"
     property string markersOfChessBoxColor:"#34495e"
     property string chessFigureGlow: "blue"
-    property bool gameIsInProgress: false
-    property bool isDarkMode: false
+    property bool   gameIsInProgress: false
+    property bool   isDarkMode: false
     property variant win
+    property string _checkmateWinner: ""
+    property bool   _showGameResult: false
 
     Component.onCompleted: {
         isDarkMode = (Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
@@ -322,6 +324,34 @@ ApplicationWindow {
                         onClicked: Qt.quit()
                     }
                 }
+            }
+        }
+
+        Connections {
+            target: chessConnector
+            function onCheckMateResult(winner) {
+                _checkmateWinner = winner
+                resultDialogTimer.start()
+            }
+        }
+
+        Timer {
+            id: resultDialogTimer
+            interval: 1600
+            repeat: false
+            onTriggered: _showGameResult = true
+        }
+
+        GameResultDialog {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -15
+            visible: _showGameResult
+            winner: _checkmateWinner
+            onOkClicked: {
+                _showGameResult = false
+                gameIsInProgress = false
+                chessConnector.endGame()
+                screen.state = "screen_1"
             }
         }
 
