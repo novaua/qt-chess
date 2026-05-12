@@ -14,7 +14,8 @@ ApplicationWindow {
     property variant win
     property string _checkmateWinner: ""
     property bool   _showGameResult: false
-    property real   _panelH: Math.min(root.width, root.height - 30) * 0.95 / 16
+    property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
+    property real   _panelH: _boardSize / 16
     property var    _avatarList: [
         "wizard","unicorn","sun","flower","rabbit","mouse","girl","boy","ball","star",
         "dragon","rocket","penguin","fox","bear","cat","ninja","pirate","alien","crown"
@@ -109,8 +110,9 @@ ApplicationWindow {
 
             CapturedPanel {
                 id: topPanel
-                width: parent.width
+                width: _boardSize
                 height: _panelH
+                anchors.horizontalCenter: parent.horizontalCenter
                 visible: gameIsInProgress
                 avatarPrimary:  chessConnector.IsOnPlayerMode === 0 && gameIsInProgress
                                 ? "https://api.dicebear.com/9.x/bottts/svg?seed=chess-robot"
@@ -129,8 +131,9 @@ ApplicationWindow {
 
             CapturedPanel {
                 id: bottomPanel
-                width: parent.width
+                width: _boardSize
                 height: _panelH
+                anchors.horizontalCenter: parent.horizontalCenter
                 visible: gameIsInProgress
                 avatarPrimary:  "https://api.dicebear.com/9.x/adventurer/svg?seed=" + _playerAvatar
                 avatarFallback: "qrc:/app/pics/avatars/" + _playerAvatar + ".png"
