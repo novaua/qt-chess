@@ -169,6 +169,12 @@ namespace Chess
 
 	void Game::DoMove(const Move& move1)
 	{
+		if (move1.IsCheckmate) {
+			NotifyActionsListeners(EtCheckMate);
+			_checkMate = true;
+			return;
+		}
+
 		auto move = move1;
 		auto side = _boardAptr->At(move.From).Color;
 		MoveGeneration::Validate(_gameState, move, side);

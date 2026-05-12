@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "ChessEnginePlayer.h"
+#include "ChessException.h"
 
 using namespace Chess;
 
@@ -20,9 +21,9 @@ void ChessEnginePlayer::DoMove()
 		moveRequest.Moves.push_back(move.ToUciString());
 	}
 
-	auto move = _connector->GetEngineMove(moveRequest, _level.MoveTime());
-
-	_game->DoMove(Move::Parse(move.BestMove));
+	auto moveResponse = _connector->GetEngineMove(moveRequest, _level.MoveTime());
+	auto chessMove = Move::Parse(moveResponse.BestMove);
+	_game->DoMove(chessMove);
 }
 
 void ChessEnginePlayer::KillEngine()

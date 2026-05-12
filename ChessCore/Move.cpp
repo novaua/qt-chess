@@ -86,7 +86,7 @@ namespace {
 	};
 }
 
-void MoveGeneration::GeneratePawnMoves(std::vector<Move> &moves, const Board &board, BoardPosition pieceOffset, PieceColors side, bool attackingOnly)
+void MoveGeneration::GeneratePawnMoves(std::vector<Move>& moves, const Board& board, BoardPosition pieceOffset, PieceColors side, bool attackingOnly)
 {
 	// pawn moves
 	auto p = board.piece()[pieceOffset];
@@ -143,7 +143,7 @@ void MoveGeneration::GeneratePawnMoves(std::vector<Move> &moves, const Board &bo
 	}
 }
 
-std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board &board, BoardPosition pieceOffset, PieceColors side, bool attackingOnly)
+std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board& board, BoardPosition pieceOffset, PieceColors side, bool attackingOnly)
 {
 	std::vector<Move> moves;
 	auto p = board.piece()[pieceOffset];
@@ -175,7 +175,7 @@ std::vector<Move> MoveGeneration::GenerateBasicMoves(const Board &board, BoardPo
 	return moves;
 }
 
-bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, PieceColors side)
+bool MoveGeneration::IsValidCapturingMove(const Board& board, Move move, PieceColors side)
 {
 	auto result = false;
 	for (auto locMove : GenerateBasicMoves(board, move.From, side, true))
@@ -190,7 +190,7 @@ bool MoveGeneration::IsValidCapturingMove(const Board &board, Move move, PieceCo
 	return result;
 }
 
-std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameState, BoardPosition pieceOffset, PieceColors side)
+std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState& gameState, BoardPosition pieceOffset, PieceColors side)
 {
 	if (gameState.History->empty())
 	{
@@ -199,8 +199,8 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameSta
 
 	std::vector<Move> result;
 
-	const Board &board = *gameState.Board;
-	auto &history = *gameState.History;
+	const Board& board = *gameState.Board;
+	auto& history = *gameState.History;
 
 	auto oppositeSide = OppositeSideOf(side);
 	auto oppositeMoveDirection = oppositeSide == PieceColors::Dark ? -1 : 1;
@@ -210,7 +210,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameSta
 
 	// check if the last opposite side move was made by Peasant
 	auto lastMove = *history.crbegin();
-	if (imThePiece.Type == PAWN &&lastMove.From.Piece.Type == PAWN && lastMove.From.Piece.Color == oppositeSide
+	if (imThePiece.Type == PAWN && lastMove.From.Piece.Type == PAWN && lastMove.From.Piece.Color == oppositeSide
 		&& lastMove.To.Position - lastMove.From.Position == 16 * oppositeMoveDirection)
 	{
 		auto peaceOneRankMove = lastMove.From.Position + 8 * oppositeMoveDirection;
@@ -284,7 +284,7 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState &gameSta
 	return result;
 }
 
-std::vector<Move> MoveGeneration::GenerateMoves(const GameState &gameState, BoardPosition pieceOffset, PieceColors side)
+std::vector<Move> MoveGeneration::GenerateMoves(const GameState& gameState, BoardPosition pieceOffset, PieceColors side)
 {
 	auto moves = MoveGeneration::GenerateBasicMoves(*gameState.Board, pieceOffset, side);
 	auto adMoves = MoveGeneration::GenerateAdvancedMoves(gameState, pieceOffset, side);
@@ -293,7 +293,7 @@ std::vector<Move> MoveGeneration::GenerateMoves(const GameState &gameState, Boar
 	return moves;
 }
 
-void MoveGeneration::ExcludeCheckMoves(const GameState &gameState, std::vector<Move> &moves, PieceColors side)
+void MoveGeneration::ExcludeCheckMoves(const GameState& gameState, std::vector<Move>& moves, PieceColors side)
 {
 	auto simBoard = std::make_shared<Board>(*gameState.Board);
 	simBoard->BoardChanged = nullptr;
@@ -327,7 +327,7 @@ void MoveGeneration::ExcludeCheckMoves(const GameState &gameState, std::vector<M
 	}
 }
 
-void MoveGeneration::Validate(const GameState &gameState, Move &move, PieceColors side)
+void MoveGeneration::Validate(const GameState& gameState, Move& move, PieceColors side)
 {
 	auto found = false;
 	for (auto mv : MoveGeneration::GenerateMoves(gameState, move.From, side))
@@ -346,13 +346,13 @@ void MoveGeneration::Validate(const GameState &gameState, Move &move, PieceColor
 	}
 }
 
-void MoveGeneration::Validate(const GameState &gameState, const Move &move, PieceColors side)
+void MoveGeneration::Validate(const GameState& gameState, const Move& move, PieceColors side)
 {
 	auto move1 = move;
 	Validate(gameState, move1, side);
 }
 
-bool MoveGeneration::AddComplementalMove(const Board &board, const Move &move, Move &complemental)
+bool MoveGeneration::AddComplementalMove(const Board& board, const Move& move, Move& complemental)
 {
 	auto pieceMovesFrom = board.At(move.From);
 	auto pieceMoveTo = board.At(move.To);
@@ -392,7 +392,7 @@ bool MoveGeneration::AddComplementalMove(const Board &board, const Move &move, M
 	return false;
 }
 
-bool MoveGeneration::IsEverMoved(const PositionPiece &positionPiece, const MovesHistory &history)
+bool MoveGeneration::IsEverMoved(const PositionPiece& positionPiece, const MovesHistory& history)
 {
 	for (auto move : history)
 	{
@@ -405,7 +405,7 @@ bool MoveGeneration::IsEverMoved(const PositionPiece &positionPiece, const Moves
 	return false;
 }
 
-bool MoveGeneration::IsEverMoved(const Piece &piece, const MovesHistory &history)
+bool MoveGeneration::IsEverMoved(const Piece& piece, const MovesHistory& history)
 {
 	for (auto move : history)
 	{
@@ -418,50 +418,50 @@ bool MoveGeneration::IsEverMoved(const Piece &piece, const MovesHistory &history
 	return false;
 }
 
-std::vector<Move> MoveGeneration::GenerateAllBasicMoves(const Board &board, PieceColors side)
+std::vector<Move> MoveGeneration::GenerateAllBasicMoves(const Board& board, PieceColors side)
 {
 	std::vector<Move> moves;
 	board.ForEachPiece(std::function<void(BoardPosition)>([&](BoardPosition pos)
-	{
-		auto localMoves = MoveGeneration::GenerateBasicMoves(board, pos, side);
-		moves.insert(moves.end(),
-			std::make_move_iterator(localMoves.begin()),
-			std::make_move_iterator(localMoves.end()));
-	}), side);
+		{
+			auto localMoves = MoveGeneration::GenerateBasicMoves(board, pos, side);
+			moves.insert(moves.end(),
+				std::make_move_iterator(localMoves.begin()),
+				std::make_move_iterator(localMoves.end()));
+		}), side);
 
 	return moves;
 }
 
-void MoveGeneration::GetBoardAttackMap(const Board &board, BoardAttackMap &outCache, PieceColors side)
+void MoveGeneration::GetBoardAttackMap(const Board& board, BoardAttackMap& outCache, PieceColors side)
 {
 	board.ForEachPiece([&](BoardPosition moveFrom)
-	{
-		auto moves = GenerateBasicMoves(board, moveFrom, side, true);
-		for (auto move : moves)
 		{
-			outCache[move.To].push_back({ move.From, board.At(move.From) });
-		}
-	}, side);
+			auto moves = GenerateBasicMoves(board, moveFrom, side, true);
+			for (auto move : moves)
+			{
+				outCache[move.To].push_back({ move.From, board.At(move.From) });
+			}
+		}, side);
 }
 
-void MoveGeneration::GetBoardViktimsMap(const Board &board, BoardAttackMap &outCache, PieceColors side)
+void MoveGeneration::GetBoardViktimsMap(const Board& board, BoardAttackMap& outCache, PieceColors side)
 {
 	board.ForEachPiece([&](BoardPosition moveFrom)
-	{
-		auto moves = GenerateBasicMoves(board, moveFrom, side, true);
-		for (auto move : moves)
 		{
-			outCache[move.From].push_back({ move.To, board.At(move.To) });
-		}
-	}, side);
+			auto moves = GenerateBasicMoves(board, moveFrom, side, true);
+			for (auto move : moves)
+			{
+				outCache[move.From].push_back({ move.To, board.At(move.To) });
+			}
+		}, side);
 }
 
-bool MoveGeneration::IsUnderAttack(const BoardAttackMap & attackCache, const BoardPosition &position)
+bool MoveGeneration::IsUnderAttack(const BoardAttackMap& attackCache, const BoardPosition& position)
 {
 	return attackCache.find(position) != attackCache.end();
 }
 
-std::vector<PositionPiece> MoveGeneration::GetPositionsOf(const Board &board, PieceTypes type, PieceColors side)
+std::vector<PositionPiece> MoveGeneration::GetPositionsOf(const Board& board, PieceTypes type, PieceColors side)
 {
 	std::vector<PositionPiece> resultList;
 	unsigned int maxCount = GetPiceCount(type);
@@ -549,9 +549,17 @@ Move Move::Parse(const std::string& strMove)
 			++delimPtr;
 		}
 	}
+	else if (strMove.find("0000") != std::string::npos
+		|| strMove.find("none") != std::string::npos) { // UCI checkmate is "0000" or "(none)"
+		result.IsCheckmate = true;
+	}
 	else // parse UCI e2e4
 	{
 		auto moves = BoardPositionFromString(strMove);
+		if (moves.size() != 2)
+		{
+			throw ChessException("Invalid move string!");
+		}
 		result.From = moves.at(0);
 		result.To = moves.at(1);
 	}

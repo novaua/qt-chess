@@ -13,6 +13,8 @@ namespace Chess
 
 		Piece PromotedTo;
 
+		bool IsCheckmate;
+
 		std::string ToString()const;
 		static Move Parse(const std::string& strMove);
 	};

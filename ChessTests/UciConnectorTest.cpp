@@ -22,13 +22,13 @@ static std::unique_ptr<QCoreApplication> s_app;
 
 TEST_MODULE_INITIALIZE(ModuleSetup)
 {
-    if (!QCoreApplication::instance())
-        s_app = std::make_unique<QCoreApplication>(s_argc, s_argv);
+	if (!QCoreApplication::instance())
+		s_app = std::make_unique<QCoreApplication>(s_argc, s_argv);
 }
 
 TEST_MODULE_CLEANUP(ModuleTeardown)
 {
-    s_app.reset();
+	s_app.reset();
 }
 
 namespace ConnectorTests
@@ -44,8 +44,7 @@ namespace ConnectorTests
 		}
 
 		TEST_METHOD_CLEANUP(teardownTests)
-		{
-		}
+		{}
 
 		TEST_METHOD(MainInit_IsGoood_Test)
 		{
@@ -93,6 +92,17 @@ namespace ConnectorTests
 			auto response = _connector->GetEngineMove({ { "e2e4", "e7e5", "b1c3" } }, chrono::milliseconds(2000));
 
 			Assert::IsFalse(response.BestMove.empty(),
+				L"Engine must return a move at low difficulty");
+		}
+
+		TEST_METHOD(Checkmate_Detection_Test)
+		{
+			_connector->SetDifficulty(1);
+			Assert::AreEqual(string("1"), _connector->GetOption("Skill Level"));
+
+			auto response = _connector->GetEngineMove({ { "f2f3", "e7e6", "g2g4", "d8h4"} }, chrono::milliseconds(500));
+
+			Assert::AreEqual(string("(none)"), response.BestMove,
 				L"Engine must return a move at low difficulty");
 		}
 	};

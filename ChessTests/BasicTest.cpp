@@ -44,7 +44,7 @@ namespace ChessTests
 				Assert().IsTrue(moves.size() == movesForFigs[count]);
 
 				cout << "Moves for " << a << endl;
-				for (auto move : moves)
+				for (auto& move : moves)
 				{
 					cout << "Move to " << move.To << (move.Capturing ? " capturing" : " free") << endl;
 					wasCapturing += move.Capturing ? 1 : 0;

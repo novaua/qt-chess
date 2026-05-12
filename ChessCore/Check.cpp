@@ -62,8 +62,8 @@ bool GameChecks::IsCheckMate(PieceColors side)
 					}
 
 					auto capturing = !newBoard->At(myPieceMovesTo.Position).IsEmpty();
-
-					newBoard->DoMove({ (BoardPosition)piecePtr->first, myPieceMovesTo.Position, capturing });
+					auto ffrom = (BoardPosition)piecePtr->first;
+					newBoard->DoMove({ ffrom, myPieceMovesTo.Position, capturing });
 					if (!::IsInCheck(_state.Cache, newBoard, side))
 					{
 						//Piece can capture the threatener or escape
