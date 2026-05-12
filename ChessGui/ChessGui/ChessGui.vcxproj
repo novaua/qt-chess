@@ -393,6 +393,7 @@
     <None Include="qml\ChessGame.qml" />
     <None Include="qml\CustomSlider.qml" />
     <None Include="qml\EmptyBoardModel.qml" />
+    <None Include="qml\GameResultDialog.qml" />
     <None Include="qml\MarkerColumn.qml" />
     <None Include="qml\MarkerRow.qml" />
     <None Include="qml\NavigationLayer.qml" />

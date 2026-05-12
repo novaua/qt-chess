@@ -155,6 +155,9 @@
     <None Include="qml\PawnPromotionOptions.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\GameResultDialog.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="pics\ChessBackground.jpg">
