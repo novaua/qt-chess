@@ -448,7 +448,7 @@ void MoveGeneration::GetBoardViktimsMap(const Board& board, BoardAttackMap& outC
 {
 	board.ForEachPiece([&](BoardPosition moveFrom)
 		{
-			auto moves = GenerateBasicMoves(board, moveFrom, side, true);
+			auto moves = GenerateBasicMoves(board, moveFrom, side, false);
 			for (auto move : moves)
 			{
 				outCache[move.From].push_back({ move.To, board.At(move.To) });
