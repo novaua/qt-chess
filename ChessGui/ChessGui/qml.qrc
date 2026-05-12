@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>qml/Button.qml</file>
+        <file>qml/SettingsDialog.qml</file>
         <file>qml/CapturedPanel.qml</file>
         <file>qml/GameResultDialog.qml</file>
         <file>qml/ChessBoard.qml</file>
@@ -33,6 +34,7 @@
     </qresource>
     <qresource prefix="/app">
         <file>pics/chess_icon.svg</file>
+        <file>pics/menu_icon.svg</file>
         <file>pics/ChessBackground.jpg</file>
         <file>pics/rotate.png</file>
         <file>pics/avatars/robot.png</file>

@@ -408,6 +408,7 @@
     <Image Include="pics\white\r.png" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="menu_icon.svg" />
     <None Include="pics\chess_icon.svg" />
     <None Include="qml\Button.qml" />
     <None Include="qml\ChessBoard.qml" />

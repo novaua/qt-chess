@@ -7,24 +7,27 @@
 #include "chessconnector.h"
 #include "AvatarProvider.h"
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-    QCoreApplication::setApplicationName("ChessPlusPlus");
-    QApplication app(argc, argv);
-    app.setWindowIcon(QIcon(":/app/pics/chess_icon.svg"));
+	QCoreApplication::setOrganizationName("ChessPlusPlus_Inc");
+	QCoreApplication::setOrganizationDomain("chessplusplus.app");
+	QCoreApplication::setApplicationName("ChessPlusPlus");
 
-    QQmlApplicationEngine engine;
+	QApplication app(argc, argv);
+	app.setWindowIcon(QIcon(":/app/pics/chess_icon.svg"));
 
-    auto* connector      = new ChessConnector(&engine);
-    auto* avatarProvider = new AvatarProvider(&engine);
+	QQmlApplicationEngine engine;
 
-    QObject::connect(connector, &ChessConnector::newGameStarted,
-                     avatarProvider, &AvatarProvider::randomize);
+	auto* connector = new ChessConnector(&engine);
+	auto* avatarProvider = new AvatarProvider(&engine);
 
-    engine.rootContext()->setContextProperty("chessConnector",  connector);
-    engine.rootContext()->setContextProperty("avatarProvider",  avatarProvider);
+	QObject::connect(connector, &ChessConnector::newGameStarted,
+		avatarProvider, &AvatarProvider::randomize);
 
-    engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
+	engine.rootContext()->setContextProperty("chessConnector", connector);
+	engine.rootContext()->setContextProperty("avatarProvider", avatarProvider);
 
-    return app.exec();
+	engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
+
+	return app.exec();
 }
