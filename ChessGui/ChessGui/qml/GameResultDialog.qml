@@ -15,7 +15,7 @@ Rectangle {
 
     width: 340
     height: dialogContent.implicitHeight + 48
-    color: isDarkMode ? "#252525" : "#f4f4f4"
+    color: isDarkMode ? "#cc252525" : "#ccf4f4f4"
     border.color: isDarkMode ? "#555555" : "#cccccc"
     border.width: 1
     radius: 12
