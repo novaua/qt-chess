@@ -150,6 +150,19 @@ void ChessConnector::EmitMoveCountUpdates()
 {
 	emit MoveCountChanged();
 	emit IsWhiteMoveChanged();
+	emit lastMoveChanged();
+}
+
+int ChessConnector::lastMoveFrom() const
+{
+	const auto& rec = _game->GetGameRecord();
+	return rec.empty() ? -1 : (int)rec.back().From.Position;
+}
+
+int ChessConnector::lastMoveTo() const
+{
+	const auto& rec = _game->GetGameRecord();
+	return rec.empty() ? -1 : (int)rec.back().To.Position;
 }
 
 void ChessConnector::makeMove(int from, int to)
