@@ -161,6 +161,9 @@
     <None Include="qml\GameResultDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="menu_icon.svg">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="pics\ChessBackground.jpg">

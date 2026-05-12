@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls as QQC
+import QtCore
+import Qt5Compat.GraphicalEffects
 
 ApplicationWindow {
     id: root
@@ -10,15 +12,25 @@ ApplicationWindow {
     property string markersOfChessBoxColor:"#34495e"
     property string chessFigureGlow: "blue"
     property bool   gameIsInProgress: false
-    property bool   isDarkMode: false
+    property bool   isDarkMode: appSettings.darkMode
     property variant win
     property string _checkmateWinner: ""
     property bool   _showGameResult: false
+    property bool   _showSettings:   false
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     property real   _panelH: _boardSize / 16
 
-    Component.onCompleted: {
-        isDarkMode = (Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
+    Settings {
+        property alias width:  root.width
+        property alias height: root.height
+        property alias x:      root.x
+        property alias y:      root.y
+    }
+
+    Settings {
+        id: appSettings
+        property bool darkMode:     false
+        property bool musicEnabled: true
     }
 
     component Button: QQC.Button {
@@ -205,11 +217,35 @@ ApplicationWindow {
                         verticalAlignment: Text.AlignVCenter
                     }
 
-                    Button {
-                        id: themeToggle
-                        text: root.isDarkMode ? "🌙 Dark" : "☀️ Light"
-                        onClicked: root.isDarkMode = !root.isDarkMode
+                    Rectangle {
+                        id: menuButton
+                        width: 28; height: 28
+                        radius: 6
+                        color:        root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
+                        border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
+                        border.width: 1
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Image {
+                            id: menuIconImg
+                            anchors.centerIn: parent
+                            width: 16; height: 16
+                            source: "qrc:/app/pics/menu_icon.svg"
+                            visible: false
+                        }
+                        ColorOverlay {
+                            anchors.fill: menuIconImg
+                            source: menuIconImg
+                            color: root.isDarkMode ? "#ffffff" : "#09102B"
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: _showSettings = !_showSettings
+                        }
                     }
+
                 }
             }
         }
@@ -379,6 +415,15 @@ ApplicationWindow {
             }
         }
 
+        // ── Settings dialog ───────────────────────────────────────────────
+        SettingsDialog {
+            id: settingsDialog
+            anchors.centerIn: parent
+            visible: _showSettings
+            z: 20
+            onCloseRequested: _showSettings = false
+        }
+
         states: [
             State {
                 name: "screen_1"
@@ -386,10 +431,10 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: false }
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: false }
-                PropertyChanges { target: themeToggle; visible: true }
                 PropertyChanges { target: statusNote; visible: false }
                 PropertyChanges { target: statusNote1; visible: false }
                 PropertyChanges { target: robotIcon; visible: false }
+                PropertyChanges { target: menuButton; visible: true }
             },
             State {
                 name: "screen_2"
@@ -397,10 +442,10 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: true }
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: false }
-                PropertyChanges { target: themeToggle; visible: false }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
                 PropertyChanges { target: robotIcon; visible: false }
+                PropertyChanges { target: menuButton; visible: false }
             },
             State {
                 name: "screen_3"
@@ -408,10 +453,10 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: false }
                 PropertyChanges { target: buttonNext; visible: true }
                 PropertyChanges { target: buttonPrev; visible: true }
-                PropertyChanges { target: themeToggle; visible: false }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
                 PropertyChanges { target: robotIcon; visible: false }
+                PropertyChanges { target: menuButton; visible: false }
             },
             State {
                 name: "screen_4"
@@ -419,10 +464,10 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: true }
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: true }
-                PropertyChanges { target: themeToggle; visible: false }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
                 PropertyChanges { target: robotIcon; visible: true }
+                PropertyChanges { target: menuButton; visible: false }
             }
         ]
     }
