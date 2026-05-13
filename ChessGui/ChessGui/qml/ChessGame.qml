@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls as QQC
 import QtCore
+import QtMultimedia
 import Qt5Compat.GraphicalEffects
 
 ApplicationWindow {
@@ -32,6 +33,12 @@ ApplicationWindow {
         property bool darkMode:     false
         property bool musicEnabled: true
     }
+
+    SoundEffect { id: sndMove;         source: "qrc:/sounds/move.wav" }
+    SoundEffect { id: sndMoveOpponent; source: "qrc:/sounds/move_opponent.wav" }
+    SoundEffect { id: sndCheck;     source: "qrc:/sounds/check.wav" }
+    SoundEffect { id: sndCheckmate; source: "qrc:/sounds/checkmate.wav" }
+    SoundEffect { id: sndWin;       source: "qrc:/sounds/win.wav" }
 
     component Button: QQC.Button {
         id: self
@@ -124,10 +131,24 @@ ApplicationWindow {
                 pieces: chessConnector.CapturedByDark
             }
 
-            ChessBoard {
+            Item {
                 width: parent.width
                 height: parent.height - 30 - (gameIsInProgress ? 2 * _panelH : 0)
-                id: chessBoard
+
+                ChessBoard {
+                    id: chessBoard
+                    anchors.fill: parent
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: "transparent"
+                    visible: chessConnector.EngineThinking
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.WaitCursor
+                    }
+                }
             }
 
             CapturedPanel {
@@ -387,11 +408,30 @@ ApplicationWindow {
 
         Connections {
             target: chessConnector
+            function onMoveCountChanged() {
+                if (!appSettings.musicEnabled || !gameIsInProgress || chessConnector.MoveCount === 0) 
+                    return
+                var snd = (chessConnector.MoveCount % 2 === 1) ? sndMove : sndMoveOpponent
+                if (snd.status === SoundEffect.Ready) 
+                    snd.play()
+            }
+
+            function onCheckNotify() {
+                if (appSettings.musicEnabled) 
+                    sndCheck.play()
+            }
+
+            function onCheckMateNotify() {
+                if (appSettings.musicEnabled) 
+                    sndCheckmate.play()
+            }
             function onCheckMateResult(winner) {
                 var isWhite = winner === "White Won"
                 var name = isWhite ? avatarProvider.playerName : avatarProvider.opponentName
                 _checkmateWinner = (isWhite ? "White " : "Black ") + name + " Won"
                 resultDialogTimer.start()
+                if (appSettings.musicEnabled) 
+                    sndWin.play()
             }
         }
 

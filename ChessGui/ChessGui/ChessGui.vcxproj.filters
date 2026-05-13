@@ -57,6 +57,9 @@
     <Filter Include="Resource Files\avatars">
       <UniqueIdentifier>{0b086f0a-3be9-47ff-bd0b-372183da2505}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\sound">
+      <UniqueIdentifier>{a6f0d37c-e096-43f3-adce-49c9f0e9e3dd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChessEnginePlayer.cpp">
@@ -281,5 +284,22 @@
     <QtMoc Include="AvatarProvider.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="sounds\check.wav">
+      <Filter>Resource Files\sound</Filter>
+    </Media>
+    <Media Include="sounds\checkmate.wav">
+      <Filter>Resource Files\sound</Filter>
+    </Media>
+    <Media Include="sounds\move.wav">
+      <Filter>Resource Files\sound</Filter>
+    </Media>
+    <Media Include="sounds\win.wav">
+      <Filter>Resource Files\sound</Filter>
+    </Media>
+    <Media Include="sounds\move_opponent.wav">
+      <Filter>Resource Files\sound</Filter>
+    </Media>
   </ItemGroup>
 </Project>

@@ -14,7 +14,7 @@
 class ChessConnector : public QObject
 {
 	Q_OBJECT
-		Q_PROPERTY(int MoveCount READ MoveCount NOTIFY MoveCountChanged)
+		Q_PROPERTY(int MoveCount READ MoveCount NOTIFY moveCountChanged)
 		Q_PROPERTY(QStringList PossibleMoves READ PossibleMoves WRITE setPossibleMoves NOTIFY PossibleMovesChanged)
 		Q_PROPERTY(int IsWhiteMove READ IsWhiteMove NOTIFY IsWhiteMoveChanged)
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
@@ -29,8 +29,9 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int LastMoveTo   READ lastMoveTo   NOTIFY lastMoveChanged)
 		Q_PROPERTY(QStringList CapturedByDark  READ capturedByDark  NOTIFY capturedChanged)
 		Q_PROPERTY(QStringList CapturedByLight READ capturedByLight NOTIFY capturedChanged)
+		Q_PROPERTY(bool EngineThinking READ engineThinking NOTIFY engineThinkingChanged)
 public:
-	explicit ChessConnector(QObject* parent= nullptr);
+	explicit ChessConnector(QObject* parent = nullptr);
 	~ChessConnector();
 
 	int MoveCount();
@@ -38,13 +39,14 @@ public:
 	int IsOnPlayerMode();
 	bool canContinue() const;
 	bool canLoad() const;
-	int     lastLevel()        const { return _config.lastLevel; }
-	int     gamesPlayed()      const { return _config.stats.gamesPlayed; }
-	int     humanWins()        const { return _config.stats.humanWins; }
-	int     computerWins()     const { return _config.stats.computerWins; }
+	int lastLevel()        const { return _config.lastLevel; }
+	int gamesPlayed()      const { return _config.stats.gamesPlayed; }
+	int humanWins()        const { return _config.stats.humanWins; }
+	int computerWins()     const { return _config.stats.computerWins; }
 	QString statsCreatedDate() const { return _config.createdDate.toString("MMMM d, yyyy"); }
-	int lastMoveFrom() const;
-	int lastMoveTo()   const;
+	int  lastMoveFrom()   const;
+	int  lastMoveTo()     const;
+	bool engineThinking() const { return _engineThinking; }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 
@@ -56,7 +58,7 @@ signals:
 
 	void PossibleMovesChanged();
 
-	void MoveCountChanged();
+	void moveCountChanged();
 	void IsWhiteMoveChanged();
 	void IsOnPlayerModeChanged();
 	void canContinueChanged();
@@ -66,6 +68,7 @@ signals:
 	void checkNotify();
 	void checkMateNotify();
 	void checkMateResult(QString winner);
+	void engineThinkingChanged();
 	void lastMoveChanged();
 	void capturedChanged();
 	void newGameStarted(bool isComputerGame);
@@ -102,7 +105,7 @@ private slots:
 private:
 	void makeMove(int from, int to);
 	void EmitMoveCountUpdates();
-	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{3});
+	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
 	void autoSaveGame(bool isSinglePlayer);
 	void deleteAutoSave();
@@ -117,7 +120,7 @@ private:
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
 	bool _engineThinking = false;
-	std::atomic<bool> _gameOver { false };
+	std::atomic<bool> _gameOver{ false };
 	AppConfig _config;
 };
 
