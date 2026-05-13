@@ -59,4 +59,11 @@
         <file>pics/avatars/alien.png</file>
         <file>pics/avatars/crown.png</file>
     </qresource>
+    <qresource prefix="/sounds">
+        <file alias="move.wav">sounds/move.wav</file>
+        <file alias="check.wav">sounds/check.wav</file>
+        <file alias="checkmate.wav">sounds/checkmate.wav</file>
+        <file alias="win.wav">sounds/win.wav</file>
+        <file alias="move_opponent.wav">sounds/move_opponent.wav</file>
+    </qresource>
 </RCC>

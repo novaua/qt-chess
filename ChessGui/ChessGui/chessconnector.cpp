@@ -112,6 +112,7 @@ void ChessConnector::figureSelected(int index)
 		if (_engineWorker && !_gameOver)
 		{
 			_engineThinking = true;
+			emit engineThinkingChanged();
 			emit requestEngineMove();
 		}
 	}
@@ -148,7 +149,7 @@ void ChessConnector::setPossibleMoves(const QStringList& moves)
 
 void ChessConnector::EmitMoveCountUpdates()
 {
-	emit MoveCountChanged();
+	emit moveCountChanged();
 	emit IsWhiteMoveChanged();
 	emit lastMoveChanged();
 	emit capturedChanged();
@@ -273,17 +274,20 @@ void ChessConnector::stopEngineThread()
 	_engineThread = nullptr;
 
 	_engineThinking = false;
+	emit engineThinkingChanged();
 }
 
 void ChessConnector::onEngineMoveComplete()
 {
 	_engineThinking = false;
+	emit engineThinkingChanged();
 	EmitMoveCountUpdates();
 }
 
 void ChessConnector::onEngineMoveError(const QString& message)
 {
 	_engineThinking = false;
+	emit engineThinkingChanged();
 	qDebug() << "[Engine] move error:" << message;
 }
 
@@ -406,6 +410,7 @@ bool ChessConnector::continueGame()
 		startEngineThread(Chess::EngineLevel(_config.lastLevel));
 		if (!_game->IsWhiteMove()) {
 			_engineThinking = true;
+			emit engineThinkingChanged();
 			emit requestEngineMove();
 		}
 	}
