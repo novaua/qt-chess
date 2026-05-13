@@ -553,7 +553,7 @@ Move Move::Parse(const std::string& strMove)
 		|| strMove.find("none") != std::string::npos) { // UCI checkmate is "0000" or "(none)"
 		result.IsCheckmate = true;
 	}
-	else // parse UCI e2e4
+	else // parse UCI e2e4 or e7e8q (with promotion)
 	{
 		auto moves = BoardPositionFromString(strMove);
 		if (moves.size() != 2)
@@ -562,6 +562,11 @@ Move Move::Parse(const std::string& strMove)
 		}
 		result.From = moves.at(0);
 		result.To = moves.at(1);
+		if (strMove.size() == 5)
+		{
+			result.PromotedTo = Piece::Parse(strMove.substr(4, 1));
+			result.PromotedTo.Color = PieceColors::Empty;
+		}
 	}
 
 	return result;

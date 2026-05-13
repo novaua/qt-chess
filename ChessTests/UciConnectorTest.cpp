@@ -105,5 +105,29 @@ namespace ConnectorTests
 			Assert::AreEqual(string("(none)"), response.BestMove,
 				L"Engine must return a move at low difficulty");
 		}
+
+		TEST_METHOD(PawnPromotion_Detection_Test)
+		{
+			_connector->SetDifficulty(1);
+			Assert::AreEqual(string("1"), _connector->GetOption("Skill Level"));
+
+			auto moves1 = std::vector<std::string>{
+				 "e2f1", "h2h3",
+				 "e3e2", "b3b4",
+				 "f4e3", "e2e3",
+				 "e5f4", "h3f4",
+				 "d7d5", "b2b3",
+				 "b8c6", "c2c3",
+				 "g8f6", "g1h3",
+				 "e7e5", "f2f3"
+			};
+
+			std::ranges::reverse(moves1);
+
+			auto response = _connector->GetEngineMove({ moves1 }, chrono::milliseconds(500));
+			auto move = Move::Parse(response.BestMove);
+
+			Assert::AreNotEqual<int>(move.PromotedTo.Type, PieceTypes::EMPTY, L"Likely promoted!");
+		}
 	};
 }

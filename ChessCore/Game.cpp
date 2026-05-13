@@ -179,6 +179,10 @@ namespace Chess
 		auto side = _boardAptr->At(move.From).Color;
 		MoveGeneration::Validate(_gameState, move, side);
 
+		if (move.PromotedTo.Type != PieceTypes::EMPTY) { // ensure side when prometed from engine's move
+			move.PromotedTo.Color = side;
+		}
+
 		Move complementalMove;
 		std::vector<BoardPosition> changedPositions = { move.From, move.To };
 		if (MoveGeneration::AddComplementalMove(*_boardAptr, move, complementalMove))

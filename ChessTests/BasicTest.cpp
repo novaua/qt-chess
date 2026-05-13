@@ -335,6 +335,18 @@ namespace ChessTests
 			}
 		}
 
+		TEST_METHOD(EnginePromotion_Test)
+		{
+			auto moves = { "c7c8q", "c7c8n"};
+			auto promoted = std::vector<PieceTypes>{ QUEEN, KNIGHT };
+			auto i = 0;
+			for (const auto& strMove : moves)
+			{
+				auto move = Move::Parse(strMove);
+				Assert::AreEqual<int>(move.PromotedTo.Type, promoted[i++]);
+			}
+		}
+
 		TEST_METHOD(BoardPosition_Test)
 		{
 			std::stringstream ss;
