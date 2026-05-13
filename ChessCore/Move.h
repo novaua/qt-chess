@@ -45,6 +45,7 @@ namespace Chess
 		Move ToMove() const;
 
 		std::string ToUciString() const;
+		static HistoryMove FromMove(const Move& move, const Piece& from, const Piece& to);
 	};
 
 	typedef std::vector<HistoryMove> MovesHistory;

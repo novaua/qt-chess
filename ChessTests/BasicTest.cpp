@@ -419,5 +419,21 @@ namespace ChessTests
 
 			Assert::IsTrue(d6 == game->ElPasantPosition());
 		}
+
+		TEST_METHOD(PawnPromotionSerializationDark_Test) {
+			auto move = Move{ e7, e8, false, { QUEEN, PieceColors::Dark } };
+			auto historyMove = HistoryMove::FromMove(move, Piece{ PAWN, PieceColors::Dark }, Piece{ QUEEN, PieceColors::Dark });
+			auto modeUciString = historyMove.ToUciString();
+
+			Assert::AreEqual<std::string>("e7e8q", modeUciString);
+		}
+
+		TEST_METHOD(PawnPromotionSerializationWhite_Test) {
+			auto move = Move{ e2, e1, false, { QUEEN, PieceColors::Light } };
+			auto historyMove = HistoryMove::FromMove(move, Piece{ PAWN, PieceColors::Light }, Piece{ QUEEN, PieceColors::Light });
+			auto modeUciString = historyMove.ToUciString();
+
+			Assert::AreEqual<std::string>("e2e1q", modeUciString);
+		}
 	};
 }

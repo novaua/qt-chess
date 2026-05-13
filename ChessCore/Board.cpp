@@ -77,8 +77,6 @@ namespace Chess {
 	{
 		*_previousBoard = *this;
 
-		HistoryMove result = {};
-
 		auto fromPiece = move.PromotedTo.IsEmpty() ? At(move.From) : move.PromotedTo;
 
 		auto toPiece = At(move.To);
@@ -90,14 +88,12 @@ namespace Chess {
 			assert(move.Capturing);
 		}
 
-		result.From = { move.From, At(move.From) };
-		result.To = { move.To, At(move.To) };
-		result.PromotedTo = move.PromotedTo;
+		auto historyMove = HistoryMove::FromMove(move, At(move.From), At(move.To));
 
 		Place(move.From, {});
 		Place(move.To, fromPiece);
 
-		return result;
+		return historyMove;
 	}
 
 	void Board::UndoLastMove()

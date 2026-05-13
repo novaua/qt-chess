@@ -21,10 +21,30 @@ Move HistoryMove::ToMove() const
 	return{ From.Position, To.Position, false, PromotedTo };
 }
 
+std::string ToLower(std::string str) {
+	std::transform(str.begin(), str.end(), str.begin(),
+		[](unsigned char c) { return (unsigned char)std::tolower(c); });
+	return str;
+}
+
 std::string HistoryMove::ToUciString() const {
 	std::stringstream ss;
 	ss << From.Position << To.Position;
+	if (IsPawnPromotionMove()) {
+		ss << ToLower(PromotedTo.ToString());
+	}
+
 	return ss.str();
+}
+
+HistoryMove HistoryMove::FromMove(const Move& move, const Piece& from, const Piece& to) {
+	HistoryMove historyMove = {};
+
+	historyMove.From = { move.From, from };
+	historyMove.To = { move.To, to };
+	historyMove.PromotedTo = move.PromotedTo;
+
+	return historyMove;
 }
 
 namespace {
