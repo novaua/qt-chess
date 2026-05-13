@@ -109,7 +109,7 @@ void ChessConnector::figureSelected(int index)
 	{
 		makeMove(BoardPosition(selected), BoardPosition(index));
 
-		if (_engineWorker && !_gameOver)
+		if (_engineWorker && !_gameOver && _engineAutoPlay)
 		{
 			_engineThinking = true;
 			emit engineThinkingChanged();
@@ -230,7 +230,17 @@ void ChessConnector::startNewGameWithComputer(int level)
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
 	emit newGameStarted(true);
+	_engineAutoPlay = true;
 	startEngineThread(Chess::EngineLevel(level));
+}
+
+void ChessConnector::robotMove()
+{
+	if (!_engineThread)
+		startEngineThread(Chess::EngineLevel{ _config.lastLevel });
+	_engineThinking = true;
+	emit engineThinkingChanged();
+	emit requestEngineMove();
 }
 
 void ChessConnector::startEngineThread(Chess::EngineLevel level)
@@ -274,6 +284,7 @@ void ChessConnector::stopEngineThread()
 	_engineThread = nullptr;
 
 	_engineThinking = false;
+	_engineAutoPlay = false;
 	emit engineThinkingChanged();
 }
 

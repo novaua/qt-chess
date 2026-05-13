@@ -93,7 +93,7 @@ void UciConnector::Init()
 
 static void Log(const std::string& line)
 {
-#ifdef DEBUG
+#ifdef _DEBUG
 	auto logFileName = "uci_debug_log.txt";
 	auto now = std::chrono::system_clock::now();
 

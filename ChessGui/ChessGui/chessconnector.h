@@ -85,6 +85,7 @@ signals:
 public slots:
 	void startNewGame();
 	void startNewGameWithComputer(int level = 3);
+	Q_INVOKABLE void robotMove();
 	Q_INVOKABLE bool continueGame();
 
 	void endGame();
@@ -120,6 +121,7 @@ private:
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
 	bool _engineThinking = false;
+	bool _engineAutoPlay = false;
 	std::atomic<bool> _gameOver{ false };
 	AppConfig _config;
 };

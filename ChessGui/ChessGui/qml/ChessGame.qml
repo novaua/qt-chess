@@ -209,6 +209,13 @@ ApplicationWindow {
                             console.log("Advanced")
                         }
                     }
+
+                    Button {
+                        id: buttonRobotMove
+                        text: "Robot"
+                        enabled: !chessConnector.EngineThinking
+                        onClicked: chessConnector.robotMove()
+                    }
                 }
 
                 Row {
@@ -471,6 +478,7 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: false }
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: false }
+                PropertyChanges { target: buttonRobotMove; visible: false }
                 PropertyChanges { target: statusNote; visible: false }
                 PropertyChanges { target: statusNote1; visible: false }
                 PropertyChanges { target: robotIcon; visible: false }
@@ -482,6 +490,7 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: true }
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: false }
+                PropertyChanges { target: buttonRobotMove; visible: true }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
                 PropertyChanges { target: robotIcon; visible: false }
@@ -493,6 +502,7 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: false }
                 PropertyChanges { target: buttonNext; visible: true }
                 PropertyChanges { target: buttonPrev; visible: true }
+                PropertyChanges { target: buttonRobotMove; visible: false }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
                 PropertyChanges { target: robotIcon; visible: false }
@@ -504,6 +514,7 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: true }
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: true }
+                PropertyChanges { target: buttonRobotMove; visible: false }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
                 PropertyChanges { target: robotIcon; visible: true }
