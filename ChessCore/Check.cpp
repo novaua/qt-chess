@@ -53,16 +53,19 @@ bool GameChecks::IsCheckMate(PieceColors side)
 		{
 			for (auto piecePtr = thisSideKillMap->begin(); piecePtr != thisSideKillMap->end(); ++piecePtr)
 			{
+				auto movingFromPos = (BoardPosition)piecePtr->first;
+				auto isKingMoving = (movingFromPos == imTheKing.Position);
+
 				for (auto myPieceMovesTo : piecePtr->second)
 				{
-					if (attacker.Piece.Type == KNIGHT && myPieceMovesTo.Position != attacker.Position)
+					if (!isKingMoving && attacker.Piece.Type == KNIGHT && myPieceMovesTo.Position != attacker.Position)
 					{
-						// my piece is unable to capture the Knight
+						// non-king piece cannot block a Knight, only capture it
 						continue;
 					}
 
 					auto capturing = !newBoard->At(myPieceMovesTo.Position).IsEmpty();
-					auto ffrom = (BoardPosition)piecePtr->first;
+					auto ffrom = movingFromPos;
 					newBoard->DoMove({ ffrom, myPieceMovesTo.Position, capturing });
 					if (!::IsInCheck(_state.Cache, newBoard, side))
 					{
