@@ -73,13 +73,15 @@ namespace Chess
 		int GetMoveCount();
 		int GetHalfMovesCount();
 
-		bool IsCastlingPossible(PieceColors c);
 		BoardPosition ElPasantPosition();
 
 		std::string MakeFen();
 
 		~Game();
 	private:
+		bool CanCastleKingside(PieceColors c);
+		bool CanCastleQueenside(PieceColors c);
+
 		void AssureMove(BoardPosition from, BoardPosition to);
 		bool CanMoveFrom(BoardPosition from);
 		void NotifyFullBoardReinit();

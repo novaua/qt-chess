@@ -57,8 +57,8 @@ namespace ChessTests
 
 		TEST_METHOD(GameFenCastlingLost_Test)
 		{
-			// 1.a4 a5 2.Ra3 — white rook leaves a1; white loses both castling rights
-			string fen = "rnbqkbnr/1ppppppp/8/p7/P7/R7/1PPPPPPP/1NBQKBNR b -kq - 1 2";
+			// 1.a4 a5 2.Ra3 — white a1 rook moves; only queenside right lost, kingside survives
+			string fen = "rnbqkbnr/1ppppppp/8/p7/P7/R7/1PPPPPPP/1NBQKBNR b Kkq - 1 2";
 			auto game = std::make_unique<Game>();
 
 			game->DoMove({ a2, a4 });
@@ -108,8 +108,8 @@ namespace ChessTests
 		TEST_METHOD(GameFenKasparovTopalov1999_25_Test)
 		{
 			// Kasparov vs Topalov, Wijk aan Zee 1999 — after White's 13th move (Nc1)
-			// White has castled queenside (king left e1) → loses castling; Black has not
-			string fen = "r3k2r/1b1nqp1p/p1pp1npQ/1p2p3/3PP3/P1N2P2/1PP3PP/1KNR1B1R b -kq - 1 13";
+			// White castled queenside (king left e1) → all white rights gone; Black untouched → kq
+			string fen = "r3k2r/1b1nqp1p/p1pp1npQ/1p2p3/3PP3/P1N2P2/1PP3PP/1KNR1B1R b kq - 1 13";
 			auto game = std::make_unique<Game>();
 
 			for (const auto& uci : {
@@ -125,8 +125,8 @@ namespace ChessTests
 		TEST_METHOD(GameFenFischerSpassky1972G6_35_Test)
 		{
 			// Fischer vs Spassky, World Championship 1972 Game 6 — after White's 18th move (Nd4)
-			// Rook left a1 early (hm 21) → White loses castling; Black castled (hm 10) → both "--"
-			string fen = "2r3k1/r2nqpp1/p3b2p/2pp4/3N4/Q3P3/PP2BPPP/2R2RK1 b -- - 5 18";
+			// Rook left a1 (hm 21) + king castled (hm 31) → no white rights; black castled (hm 10) → neither
+			string fen = "2r3k1/r2nqpp1/p3b2p/2pp4/3N4/Q3P3/PP2BPPP/2R2RK1 b - - 5 18";
 			auto game = std::make_unique<Game>();
 
 			for (const auto& uci : {
@@ -144,8 +144,8 @@ namespace ChessTests
 		TEST_METHOD(GameFenDeepBlueKasparov1997G2_57_Test)
 		{
 			// Deep Blue vs Kasparov, World Championship 1997 Game 2 — after White's 29th move (Qf2)
-			// Both sides castled early → "--"; no en passant; halfmove clock 3
-			string fen = "r1rqnbk1/3b1pp1/p6p/1p1Pp3/PPp1P3/R1P1B1NP/2B2QP1/R5K1 b -- - 3 29";
+			// Both sides castled early → neither can castle → "-"
+			string fen = "r1rqnbk1/3b1pp1/p6p/1p1Pp3/PPp1P3/R1P1B1NP/2B2QP1/R5K1 b - - 3 29";
 			auto game = std::make_unique<Game>();
 
 			for (const auto& uci : {
@@ -165,8 +165,8 @@ namespace ChessTests
 		TEST_METHOD(GameFenByrne_FischerGameOfCentury1956_61_Test)
 		{
 			// Byrne vs Fischer, New York 1956 "Game of the Century" — after White's 31st move (Nf3)
-			// White rook left a1 (hm 17), king left e1 (hm 33); Black castled (hm 8) → both "--"
-			string fen = "3Q1bk1/1p3p1p/2p3p1/3b4/8/5N1P/r4nPK/8 b -- - 2 31";
+			// White rook left a1 (hm 17), king left e1 (hm 33); Black castled (hm 8) → neither can castle
+			string fen = "3Q1bk1/1p3p1p/2p3p1/3b4/8/5N1P/r4nPK/8 b - - 2 31";
 			auto game = std::make_unique<Game>();
 
 			for (const auto& uci : {
@@ -187,8 +187,8 @@ namespace ChessTests
 		TEST_METHOD(GameFenDeepBlueKasparov1997G2_65_Test)
 		{
 			// Deep Blue vs Kasparov, World Championship 1997 Game 2 — after White's 33rd move (Nf5)
-			// Both sides castled early → "--"; halfmove clock 11 (long quiet sequence)
-			string fen = "r1r1qbk1/3b1pp1/p2n3p/1pBPpN2/PPp1P3/2P4P/R1B2QP1/R5K1 b -- - 11 33";
+			// Both sides castled early → neither can castle → "-"
+			string fen = "r1r1qbk1/3b1pp1/p2n3p/1pBPpN2/PPp1P3/2P4P/R1B2QP1/R5K1 b - - 11 33";
 			auto game = std::make_unique<Game>();
 
 			for (const auto& uci : {
@@ -270,8 +270,8 @@ namespace ChessTests
 		TEST_METHOD(GameFenCastling_QueensideRookMoved_KingsideRightPreserved_Test)
 		{
 			// 1.a4 a5 2.Ra3 Nf6 — white a1 rook moves; king and h1 rook untouched
-			// current output: "b -kq"   correct standard FEN: "b Kkq"
-			string fen = "rnbqkbnr/1ppppppp/5n2/p7/P7/R7/1PPPPPPP/1NBQKBNR b Kkq - 2 3";
+			// current output: "w -kq"   correct standard FEN: "w Kkq"
+			string fen = "rnbqkb1r/1ppppppp/5n2/p7/P7/R7/1PPPPPPP/1NBQKBNR w Kkq - 2 3";
 			auto game = std::make_unique<Game>();
 
 			game->DoMove({ a2, a4 });
@@ -286,8 +286,8 @@ namespace ChessTests
 		TEST_METHOD(GameFenCastling_KingsideRookMoved_QueensideRightPreserved_Test)
 		{
 			// 1.h4 h5 2.Rh3 Nf6 — white h1 rook moves; king and a1 rook untouched
-			// current output: "b -kq"   correct standard FEN: "b Qkq"
-			string fen = "rnbqkb1r/ppppppp1/5n2/7p/7P/7R/PPPPPPP1/RNBQKBN1 b Qkq - 2 3";
+			// current output: "w -kq"   correct standard FEN: "w Qkq"
+			string fen = "rnbqkb1r/ppppppp1/5n2/7p/7P/7R/PPPPPPP1/RNBQKBN1 w Qkq - 2 3";
 			auto game = std::make_unique<Game>();
 
 			game->DoMove({ h2, h4 });

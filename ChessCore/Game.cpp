@@ -324,23 +324,33 @@ namespace Chess
 		}
 	}
 
-	bool Game::IsCastlingPossible(PieceColors c)
+	bool Game::CanCastleKingside(PieceColors c)
 	{
-		//white ever moved from a1, e1, h1
-		//black ever moved from a8, e8, h8
-		static BoardPosition whitePos[] = { a1, e1, h1 };
-		static BoardPosition darkPos[] = { a8, e8, h8 };
+		BoardPosition kingPos = (c == PieceColors::Light) ? e1 : e8;
+		BoardPosition rookPos = (c == PieceColors::Light) ? h1 : h8;
+		int start = (c == PieceColors::Light) ? 0 : 1;
 
-		auto* checkPos = (c == PieceColors::Light ? whitePos : darkPos);
-
-		for (int i = (c == PieceColors::Light ? 0 : 1); i < _historyAptr->size(); i += 2)
+		for (int i = start; i < (int)_historyAptr->size(); i += 2)
 		{
-			auto move = (*_historyAptr)[i];
-			auto res = std::find(checkPos, checkPos + 3, move.From.Position);
-			if (res != checkPos + 3)
+			auto from = (*_historyAptr)[i].From.Position;
+			if (from == kingPos || from == rookPos)
 				return false;
 		}
+		return true;
+	}
 
+	bool Game::CanCastleQueenside(PieceColors c)
+	{
+		BoardPosition kingPos = (c == PieceColors::Light) ? e1 : e8;
+		BoardPosition rookPos = (c == PieceColors::Light) ? a1 : a8;
+		int start = (c == PieceColors::Light) ? 0 : 1;
+
+		for (int i = start; i < (int)_historyAptr->size(); i += 2)
+		{
+			auto from = (*_historyAptr)[i].From.Position;
+			if (from == kingPos || from == rookPos)
+				return false;
+		}
 		return true;
 	}
 
@@ -414,10 +424,13 @@ namespace Chess
 
 		fen += IsWhiteMove() ? " w" : " b";
 
-		// KQkq
-		fen += " ";
-		fen += IsCastlingPossible(PieceColors::Light) ? "KQ" : "-";
-		fen += IsCastlingPossible(PieceColors::Dark) ? "kq" : "-";
+		// Castling availability — standard FEN: individual letters, "-" when none
+		std::string castling;
+		if (CanCastleKingside(PieceColors::Light))  castling += "K";
+		if (CanCastleQueenside(PieceColors::Light)) castling += "Q";
+		if (CanCastleKingside(PieceColors::Dark))   castling += "k";
+		if (CanCastleQueenside(PieceColors::Dark))  castling += "q";
+		fen += " " + (castling.empty() ? "-" : castling);
 
 		fen += " " + BoardPositionToString(ElPasantPosition());
 
