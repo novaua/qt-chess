@@ -63,7 +63,7 @@ namespace ConnectorTests
 
 		TEST_METHOD(MakeMove_Test)
 		{
-			auto response = _connector->GetEngineMove({ { "e2e4",  "e7e5" , "b1c3" } }, chrono::seconds(1));
+			auto response = _connector->GetEngineMove({ {}, { "e2e4",  "e7e5" , "b1c3" } }, chrono::seconds(1));
 
 			Assert::IsFalse(response.BestMove.empty());
 			Assert::IsFalse(response.Ponder.empty());
@@ -89,7 +89,7 @@ namespace ConnectorTests
 			_connector->SetDifficulty(1);
 			Assert::AreEqual(string("1"), _connector->GetOption("Skill Level"));
 
-			auto response = _connector->GetEngineMove({ { "e2e4", "e7e5", "b1c3" } }, chrono::milliseconds(2000));
+			auto response = _connector->GetEngineMove({ {}, { "e2e4", "e7e5", "b1c3" } }, chrono::milliseconds(2000));
 
 			Assert::IsFalse(response.BestMove.empty(),
 				L"Engine must return a move at low difficulty");
@@ -100,7 +100,7 @@ namespace ConnectorTests
 			_connector->SetDifficulty(1);
 			Assert::AreEqual(string("1"), _connector->GetOption("Skill Level"));
 
-			auto response = _connector->GetEngineMove({ { "f2f3", "e7e6", "g2g4", "d8h4"} }, chrono::milliseconds(500));
+			auto response = _connector->GetEngineMove({ {}, { "f2f3", "e7e6", "g2g4", "d8h4"} }, chrono::milliseconds(500));
 
 			Assert::AreEqual(string("(none)"), response.BestMove,
 				L"Engine must return a move at low difficulty");
@@ -124,7 +124,7 @@ namespace ConnectorTests
 
 			std::ranges::reverse(moves1);
 
-			auto response = _connector->GetEngineMove({ moves1 }, chrono::milliseconds(500));
+			auto response = _connector->GetEngineMove({ {}, moves1 }, chrono::milliseconds(500));
 			auto move = Move::Parse(response.BestMove);
 
 			Assert::AreNotEqual<int>(move.PromotedTo.Type, PieceTypes::EMPTY, L"Likely promoted!");

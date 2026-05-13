@@ -200,10 +200,15 @@ std::vector<std::string> UciConnector::GetOptions()
 EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req,
 	std::chrono::milliseconds moveTime)
 {
-	std::string moves;
-	for (const auto& move : req.Moves)
-		moves += move + " ";
-	ProcessCommand({ "position startpos moves " + moves, "" });
+	std::string posCmd = req.Fen.empty()
+		? "position startpos"
+		: "position fen " + req.Fen;
+	if (!req.Moves.empty()) {
+		std::string moves;
+		for (const auto& move : req.Moves) moves += move + " ";
+		posCmd += " moves " + moves;
+	}
+	ProcessCommand({ posCmd, "" });
 
 	auto moveMs = static_cast<int>(moveTime.count());
 	auto resp = ProcessCommand({ "go movetime " + std::to_string(moveMs), BestMoveCommand });

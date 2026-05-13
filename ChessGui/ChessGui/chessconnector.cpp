@@ -252,6 +252,14 @@ void ChessConnector::applyMoves(const QString& movesStr)
 	EmitMoveCountUpdates();
 }
 
+void ChessConnector::setUseFen(bool v)
+{
+	if (_config.useFen == v) return;
+	_config.useFen = v;
+	_config.save();
+	emit useFenChanged();
+}
+
 void ChessConnector::robotMove()
 {
 	if (!_engineThread)
@@ -263,7 +271,10 @@ void ChessConnector::robotMove()
 
 void ChessConnector::startEngineThread(Chess::EngineLevel level)
 {
-	_engineWorker = new EngineWorker(_game, level);
+	auto mode = _config.useFen
+		? Chess::PositionMode::FenWindow
+		: Chess::PositionMode::StartPos;
+	_engineWorker = new EngineWorker(_game, level, mode);
 	_engineThread = new QThread(this);
 	_engineWorker->moveToThread(_engineThread);
 

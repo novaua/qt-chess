@@ -12,9 +12,13 @@ class EngineWorker : public QObject
     Chess::GameAptr _game;
     Chess::ChessEnginePlayerAptr _enginePlayer;
     Chess::EngineLevel _level;
+    Chess::PositionMode _mode;
 
 public:
-    explicit EngineWorker(const Chess::GameAptr& game, Chess::EngineLevel level = Chess::EngineLevel{3}, QObject* parent = nullptr);
+    explicit EngineWorker(const Chess::GameAptr& game,
+                          Chess::EngineLevel level = Chess::EngineLevel{3},
+                          Chess::PositionMode mode = Chess::PositionMode::FenWindow,
+                          QObject* parent = nullptr);
 
     void killEngine();
 

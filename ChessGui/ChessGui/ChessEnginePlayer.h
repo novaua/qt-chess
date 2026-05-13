@@ -5,14 +5,20 @@
 
 namespace Chess {
 
+	enum class PositionMode { StartPos, PureFen, FenWindow };
+	constexpr int FenWindowSize = 8;
+
 	class ChessEnginePlayer
 	{
 		GameAptr _game;
 		UciConnectorAPtr _connector;
 		EngineLevel _level;
+		PositionMode _mode;
 
 	public:
-		ChessEnginePlayer(const GameAptr& game, EngineLevel level = EngineLevel{3});
+		ChessEnginePlayer(const GameAptr& game,
+		                  EngineLevel level = EngineLevel{3},
+		                  PositionMode mode = PositionMode::FenWindow);
 
 		void DoMove();
 		void KillEngine();

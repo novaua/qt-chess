@@ -15,7 +15,8 @@ struct Command
 
 struct StartPosMoveRequest
 {
-	std::vector<std::string> Moves;
+	std::string Fen;                 // empty → "position startpos"
+	std::vector<std::string> Moves;  // moves appended after the position token
 };
 
 struct EngineMoveResponse
