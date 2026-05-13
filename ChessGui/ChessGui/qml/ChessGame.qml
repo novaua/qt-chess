@@ -18,6 +18,7 @@ ApplicationWindow {
     property string _checkmateWinner: ""
     property bool   _showGameResult: false
     property bool   _showSettings:   false
+    property bool   _showMoveInput:  false
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     property real   _panelH: _boardSize / 16
 
@@ -469,6 +470,25 @@ ApplicationWindow {
             visible: _showSettings
             z: 20
             onCloseRequested: _showSettings = false
+        }
+
+        // ── Move-input cheat dialog (Alt+S in two-player mode) ────────────
+        Shortcut {
+            sequence: "Alt+S"
+            enabled: screen.state === "screen_2"
+            onActivated: {
+                _showMoveInput = true
+                applyMovesDialog.focusInput()
+            }
+        }
+
+        ApplyMovesDialog {
+            id: applyMovesDialog
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -15
+            visible: _showMoveInput
+            z: 20
+            onCloseRequested: _showMoveInput = false
         }
 
         states: [

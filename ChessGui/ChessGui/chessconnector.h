@@ -86,6 +86,7 @@ public slots:
 	void startNewGame();
 	void startNewGameWithComputer(int level = 3);
 	Q_INVOKABLE void robotMove();
+	Q_INVOKABLE void applyMoves(const QString& movesStr);
 	Q_INVOKABLE bool continueGame();
 
 	void endGame();

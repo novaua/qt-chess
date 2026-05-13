@@ -234,6 +234,24 @@ void ChessConnector::startNewGameWithComputer(int level)
 	startEngineThread(Chess::EngineLevel(level));
 }
 
+void ChessConnector::applyMoves(const QString& movesStr)
+{
+	const auto moveList = movesStr.trimmed().split(' ', Qt::SkipEmptyParts);
+	for (const auto& moveStr : moveList)
+	{
+		try
+		{
+			_game->DoMove(Chess::Move::Parse(moveStr.toStdString()));
+		}
+		catch (const std::exception& ex)
+		{
+			qDebug() << "applyMoves: invalid move" << moveStr << ":" << ex.what();
+			break;
+		}
+	}
+	EmitMoveCountUpdates();
+}
+
 void ChessConnector::robotMove()
 {
 	if (!_engineThread)
