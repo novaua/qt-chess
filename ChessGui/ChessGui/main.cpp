@@ -21,6 +21,8 @@ int main(int argc, char* argv[])
 	auto* connector = new ChessConnector(&engine);
 	auto* avatarProvider = new AvatarProvider(&engine);
 
+	connector->setAvatarProvider(avatarProvider);
+
 	QObject::connect(connector, &ChessConnector::newGameStarted,
 		avatarProvider, &AvatarProvider::randomize);
 

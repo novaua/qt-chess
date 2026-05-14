@@ -13,13 +13,16 @@ class AvatarProvider : public QObject
 public:
     explicit AvatarProvider(QObject* parent = nullptr);
 
-    QString playerUrl()    const;
-    QString playerName()   const;
-    QString opponentUrl()  const;
-    QString opponentName() const;
+    QString playerUrl()      const;
+    QString playerName()     const;
+    QString playerRawName()  const;
+    QString opponentUrl()    const;
+    QString opponentName()   const;
+    QString opponentRawName() const;
 
 public slots:
     void randomize(bool isComputerGame);
+    void restore(const QString& playerName, const QString& opponentName, bool isComputerGame);
 
 signals:
     void playerAvatarChanged();

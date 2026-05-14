@@ -38,6 +38,15 @@ static QString capitalize(const QString& s)
     return s[0].toUpper() + s.mid(1);
 }
 
+void AvatarProvider::restore(const QString& playerName, const QString& opponentName, bool isComputerGame)
+{
+    _playerName     = playerName;
+    _opponentName   = opponentName;
+    _isComputerGame = isComputerGame;
+    emit playerAvatarChanged();
+    emit opponentAvatarChanged();
+}
+
 QString AvatarProvider::playerUrl() const
 {
     return "qrc:/app/pics/avatars/" + _playerName + ".png";
@@ -48,6 +57,11 @@ QString AvatarProvider::playerName() const
     return capitalize(_playerName);
 }
 
+QString AvatarProvider::playerRawName() const
+{
+    return _playerName;
+}
+
 QString AvatarProvider::opponentUrl() const
 {
     return "qrc:/app/pics/avatars/" + (_isComputerGame ? "robot" : _opponentName) + ".png";
@@ -56,4 +70,9 @@ QString AvatarProvider::opponentUrl() const
 QString AvatarProvider::opponentName() const
 {
     return _isComputerGame ? "Robot" : capitalize(_opponentName);
+}
+
+QString AvatarProvider::opponentRawName() const
+{
+    return _opponentName;
 }
