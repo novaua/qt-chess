@@ -30,6 +30,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(QStringList CapturedByDark  READ capturedByDark  NOTIFY capturedChanged)
 		Q_PROPERTY(QStringList CapturedByLight READ capturedByLight NOTIFY capturedChanged)
 		Q_PROPERTY(bool EngineThinking READ engineThinking NOTIFY engineThinkingChanged)
+		Q_PROPERTY(bool UseFen READ useFen WRITE setUseFen NOTIFY useFenChanged)
 public:
 	explicit ChessConnector(QObject* parent = nullptr);
 	~ChessConnector();
@@ -47,6 +48,7 @@ public:
 	int  lastMoveFrom()   const;
 	int  lastMoveTo()     const;
 	bool engineThinking() const { return _engineThinking; }
+	bool useFen()         const { return _config.useFen; }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 
@@ -69,6 +71,7 @@ signals:
 	void checkMateNotify();
 	void checkMateResult(QString winner);
 	void engineThinkingChanged();
+	void useFenChanged();
 	void lastMoveChanged();
 	void capturedChanged();
 	void newGameStarted(bool isComputerGame);
@@ -85,6 +88,9 @@ signals:
 public slots:
 	void startNewGame();
 	void startNewGameWithComputer(int level = 3);
+	Q_INVOKABLE void robotMove();
+	void setUseFen(bool v);
+	Q_INVOKABLE void applyMoves(const QString& movesStr);
 	Q_INVOKABLE bool continueGame();
 
 	void endGame();
@@ -120,6 +126,7 @@ private:
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
 	bool _engineThinking = false;
+	bool _engineAutoPlay = false;
 	std::atomic<bool> _gameOver{ false };
 	AppConfig _config;
 };

@@ -76,6 +76,22 @@ Rectangle {
                         onToggled: appSettings.musicEnabled = checked
                     }
                 }
+
+                Row {
+                    width: parent.width
+                    Text {
+                        text: "Use FEN (engine)"
+                        color: isDarkMode ? "#dddddd" : "#222222"
+                        font.pixelSize: 15
+                        width: parent.width - fenSwitch.width
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Controls.Switch {
+                        id: fenSwitch
+                        checked: chessConnector.UseFen
+                        onToggled: chessConnector.UseFen = checked
+                    }
+                }
             }
         }
 

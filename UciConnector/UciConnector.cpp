@@ -11,6 +11,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <fstream>
+#include <format>
 
 const QString UciEngineProgrammExe = "stockfish.exe";
 
@@ -89,10 +91,28 @@ void UciConnector::Init()
 	_initOk = CheckReady();
 }
 
+static void Log(const std::string& line)
+{
+#ifdef _DEBUG
+	auto logFileName = "uci_debug_log.txt";
+	auto now = std::chrono::system_clock::now();
+
+	// Format directly into a std::string (HH:MM:SS format)
+	std::string time_str = std::format("{:%H:%M:%S}", now);
+
+	std::ofstream log(logFileName, std::ios::app);
+	log << "[" << time_str << "] " << line << std::endl << std::flush;
+#endif // DEBUG
+}
+
 std::string UciConnector::ProcessCommand(const Command& comm)
 {
+	Log(std::format(">>> Processing command: '{0}', expecting response: '{1}'",
+		comm.Request, comm.Response));
+
 	sendLine(_uciEngine.get(), comm.Request);
-	if (comm.Response.empty()) return "";
+	if (comm.Response.empty())
+		return "";
 
 	std::string line;
 	while (_uciEngine->state() == QProcess::Running) {
@@ -101,9 +121,9 @@ std::string UciConnector::ProcessCommand(const Command& comm)
 			break;
 		if (line.find(comm.Response) != std::string::npos)
 			break;
-		// ToDo: Add logging of engine output, with a way to enable/disable it.
-		// std::cout << line << std::endl << std::flush;
 	}
+
+	Log(std::format("Engine response: '{}' <<<", line));
 	return line;
 }
 
@@ -180,27 +200,18 @@ std::vector<std::string> UciConnector::GetOptions()
 EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req,
 	std::chrono::milliseconds moveTime)
 {
-	std::string moves;
-	for (const auto& move : req.Moves)
-		moves += move + " ";
-	ProcessCommand({ "position startpos moves " + moves, "" });
+	std::string posCmd = req.Fen.empty()
+		? "position startpos"
+		: "position fen " + req.Fen;
+	if (!req.Moves.empty()) {
+		std::string moves;
+		for (const auto& move : req.Moves) moves += move + " ";
+		posCmd += " moves " + moves;
+	}
+	ProcessCommand({ posCmd, "" });
 
 	auto moveMs = static_cast<int>(moveTime.count());
-	std::string goCmd = "go movetime " + std::to_string(moveMs);
-	sendLine(_uciEngine.get(), goCmd);
-
-	// Per-line timeout: moveTime + 10s buffer.
-	// Stockfish emits many "info depth" lines before "bestmove", each within the
-	// search window, so the budget must be at least as large as the search time.
-	int budget = moveMs + 10000;
-	std::string resp;
-	while (_uciEngine->state() == QProcess::Running) {
-		resp = readLineBlocking(_uciEngine.get(), budget);
-		if (resp.empty())
-			break;
-		if (resp.find(BestMoveCommand) != std::string::npos)
-			break;
-	}
+	auto resp = ProcessCommand({ "go movetime " + std::to_string(moveMs), BestMoveCommand });
 
 	std::cmatch m;
 	if (std::regex_match(resp.c_str(), m, BestMoveRegex))
@@ -208,6 +219,8 @@ EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req,
 
 	if (std::regex_match(resp.c_str(), m, BestMoveRegex1))
 		return { m[1], {} };
+
+	//c7c8q for a Queen or c7c8n for a Knight)
 
 	throw std::logic_error("Engine move failed, response: '" + resp + "'");
 }

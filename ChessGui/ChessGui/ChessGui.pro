@@ -57,6 +57,7 @@ HEADERS += \
     ChessEnginePlayer.h
 
 DISTFILES += \
+    ApplyMovesDialog.qml \
     ../../UciConnector/UciConnector.vcxproj \
     ../../UciConnector/UciConnector.vcxproj.filters \
     Button.qml \

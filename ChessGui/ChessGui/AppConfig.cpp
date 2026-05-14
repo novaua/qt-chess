@@ -46,6 +46,7 @@ AppConfig AppConfig::load()
 	if (root.contains("settings") && root["settings"].isObject()) {
 		QJsonObject s = root["settings"].toObject();
 		cfg.lastLevel = s.value("lastLevel").toInt(cfg.lastLevel);
+		cfg.useFen    = s.value("useFen").toBool(true);
 	}
 
 	if (root.contains("statistics") && root["statistics"].isObject()) {
@@ -70,6 +71,7 @@ void AppConfig::save() const
 {
 	QJsonObject settings;
 	settings["lastLevel"] = lastLevel;
+	settings["useFen"]    = useFen;
 
 	QJsonObject statistics;
 	statistics["gamesPlayed"] = stats.gamesPlayed;

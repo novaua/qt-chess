@@ -109,7 +109,7 @@ void ChessConnector::figureSelected(int index)
 	{
 		makeMove(BoardPosition(selected), BoardPosition(index));
 
-		if (_engineWorker && !_gameOver)
+		if (_engineWorker && !_gameOver && _engineAutoPlay)
 		{
 			_engineThinking = true;
 			emit engineThinkingChanged();
@@ -230,12 +230,51 @@ void ChessConnector::startNewGameWithComputer(int level)
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
 	emit newGameStarted(true);
+	_engineAutoPlay = true;
 	startEngineThread(Chess::EngineLevel(level));
+}
+
+void ChessConnector::applyMoves(const QString& movesStr)
+{
+	const auto moveList = movesStr.trimmed().split(' ', Qt::SkipEmptyParts);
+	for (const auto& moveStr : moveList)
+	{
+		try
+		{
+			_game->DoMove(Chess::Move::Parse(moveStr.toStdString()));
+		}
+		catch (const std::exception& ex)
+		{
+			qDebug() << "applyMoves: invalid move" << moveStr << ":" << ex.what();
+			break;
+		}
+	}
+	EmitMoveCountUpdates();
+}
+
+void ChessConnector::setUseFen(bool v)
+{
+	if (_config.useFen == v) return;
+	_config.useFen = v;
+	_config.save();
+	emit useFenChanged();
+}
+
+void ChessConnector::robotMove()
+{
+	if (!_engineThread)
+		startEngineThread(Chess::EngineLevel{ _config.lastLevel });
+	_engineThinking = true;
+	emit engineThinkingChanged();
+	emit requestEngineMove();
 }
 
 void ChessConnector::startEngineThread(Chess::EngineLevel level)
 {
-	_engineWorker = new EngineWorker(_game, level);
+	auto mode = _config.useFen
+		? Chess::PositionMode::FenWindow
+		: Chess::PositionMode::StartPos;
+	_engineWorker = new EngineWorker(_game, level, mode);
 	_engineThread = new QThread(this);
 	_engineWorker->moveToThread(_engineThread);
 
@@ -274,6 +313,7 @@ void ChessConnector::stopEngineThread()
 	_engineThread = nullptr;
 
 	_engineThinking = false;
+	_engineAutoPlay = false;
 	emit engineThinkingChanged();
 }
 

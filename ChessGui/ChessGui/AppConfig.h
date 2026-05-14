@@ -11,6 +11,7 @@ struct GameStats {
 class AppConfig {
 public:
 	int       lastLevel = 3;
+	bool      useFen = true;
 	GameStats stats;
 	bool      autoSaveIsSinglePlayer = false;
 	QDate     createdDate;

@@ -167,6 +167,9 @@
     <None Include="menu_icon.svg">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="qml\ApplyMovesDialog.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="pics\ChessBackground.jpg">

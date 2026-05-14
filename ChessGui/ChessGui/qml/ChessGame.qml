@@ -18,6 +18,7 @@ ApplicationWindow {
     property string _checkmateWinner: ""
     property bool   _showGameResult: false
     property bool   _showSettings:   false
+    property bool   _showMoveInput:  false
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     property real   _panelH: _boardSize / 16
 
@@ -208,6 +209,13 @@ ApplicationWindow {
                             chessConnector.moveNext()
                             console.log("Advanced")
                         }
+                    }
+
+                    Button {
+                        id: buttonRobotMove
+                        text: "Robot"
+                        enabled: !chessConnector.EngineThinking
+                        onClicked: chessConnector.robotMove()
                     }
                 }
 
@@ -464,6 +472,25 @@ ApplicationWindow {
             onCloseRequested: _showSettings = false
         }
 
+        // ── Move-input cheat dialog (Alt+S in two-player mode) ────────────
+        Shortcut {
+            sequence: "Alt+S"
+            enabled: screen.state === "screen_2"
+            onActivated: {
+                _showMoveInput = true
+                applyMovesDialog.focusInput()
+            }
+        }
+
+        ApplyMovesDialog {
+            id: applyMovesDialog
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -15
+            visible: _showMoveInput
+            z: 20
+            onCloseRequested: _showMoveInput = false
+        }
+
         states: [
             State {
                 name: "screen_1"
@@ -471,6 +498,7 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: false }
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: false }
+                PropertyChanges { target: buttonRobotMove; visible: false }
                 PropertyChanges { target: statusNote; visible: false }
                 PropertyChanges { target: statusNote1; visible: false }
                 PropertyChanges { target: robotIcon; visible: false }
@@ -482,6 +510,7 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: true }
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: false }
+                PropertyChanges { target: buttonRobotMove; visible: true }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
                 PropertyChanges { target: robotIcon; visible: false }
@@ -493,6 +522,7 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: false }
                 PropertyChanges { target: buttonNext; visible: true }
                 PropertyChanges { target: buttonPrev; visible: true }
+                PropertyChanges { target: buttonRobotMove; visible: false }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
                 PropertyChanges { target: robotIcon; visible: false }
@@ -504,6 +534,7 @@ ApplicationWindow {
                 PropertyChanges { target: buttonSave; visible: true }
                 PropertyChanges { target: buttonNext; visible: false }
                 PropertyChanges { target: buttonPrev; visible: true }
+                PropertyChanges { target: buttonRobotMove; visible: false }
                 PropertyChanges { target: statusNote; visible: true }
                 PropertyChanges { target: statusNote1; visible: true }
                 PropertyChanges { target: robotIcon; visible: true }
