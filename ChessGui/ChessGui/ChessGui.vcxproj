@@ -420,6 +420,7 @@
     <None Include="qml\ChessBoxes.qml" />
     <None Include="qml\ChessFigures.qml" />
     <None Include="qml\ChessGame.qml" />
+    <None Include="qml\CreateUserDialog.qml" />
     <None Include="qml\CustomSlider.qml" />
     <None Include="qml\EmptyBoardModel.qml" />
     <None Include="qml\GameResultDialog.qml" />
@@ -430,6 +431,7 @@
     <None Include="qml\Notificator.qml" />
     <None Include="qml\PawnPromotionOptions.qml" />
     <None Include="qml\SelectPlayerDialog.qml" />
+    <None Include="qml\UserLoginScreen.qml" />
     <QtRcc Include="qml.qrc" />
     <ResourceCompile Include="ChessGui.rc" />
   </ItemGroup>
