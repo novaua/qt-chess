@@ -16,9 +16,12 @@ ApplicationWindow {
     property bool   isDarkMode: appSettings.darkMode
     property variant win
     property string _checkmateWinner: ""
-    property bool   _showGameResult: false
-    property bool   _showSettings:   false
-    property bool   _showMoveInput:  false
+    property bool   _showGameResult:    false
+    property bool   _showSettings:      false
+    property bool   _showMoveInput:     false
+    property bool   _showProfile:       false
+    property bool   _showPlayerPicker:  false
+    property bool   _pendingPlayerPlaysWhite: true
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     property real   _panelH: _boardSize / 16
 
@@ -231,7 +234,26 @@ ApplicationWindow {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: _showSettings = !_showSettings
+                            onClicked: appMenu.popup()
+                        }
+
+                        QQC.Menu {
+                            id: appMenu
+                            QQC.MenuItem {
+                                text: "Settings"
+                                onTriggered: _showSettings = true
+                            }
+                            QQC.MenuItem {
+                                text: "Profile"
+                                onTriggered: _showProfile = true
+                            }
+                            QQC.MenuItem {
+                                text: "Switch User"
+                                onTriggered: {
+                                    chessConnector.endGame()
+                                    userManager.logout()
+                                }
+                            }
                         }
                     }
 
@@ -413,10 +435,16 @@ ApplicationWindow {
                                 chessConnector.startNewGameWithComputer(Math.round(difficultySlider.value))
                                 gameIsInProgress = true
                             } else if (btnTwo.checked) {
-                                chessConnector.setPlayerPlaysWhite(btnColorWhite.checked)
-                                screen.state = "screen_2"
-                                chessConnector.startNewGame()
-                                gameIsInProgress = true
+                                if (userManager.userCount >= 2) {
+                                    _pendingPlayerPlaysWhite = btnColorWhite.checked
+                                    _showPlayerPicker = true
+                                } else {
+                                    chessConnector.setPlayerPlaysWhite(btnColorWhite.checked)
+                                    screen.state = "screen_2"
+                                    chessConnector.startNewGame()
+                                    gameIsInProgress = true
+                                    chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
+                                }
                             } else if (btnContinue.checked) {
                                 var single = chessConnector.continueGame()
                                 screen.state = single ? "screen_4" : "screen_2"
@@ -528,6 +556,84 @@ ApplicationWindow {
             visible: _showMoveInput
             z: 20
             onCloseRequested: _showMoveInput = false
+        }
+
+        // ── Profile dialog ───────────────────────────────────────────────────
+        CreateUserDialog {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -15
+            visible: _showProfile
+            z: 20
+            editMode: true
+            initialName:   userManager.activeUserName
+            initialAvatar: userManager.activeUserAvatar
+            onConfirmed: function(name, avatar) {
+                userManager.updateProfile(name, avatar)
+                _showProfile = false
+            }
+            onCancelled: _showProfile = false
+        }
+
+        // ── Second-player picker (two-player with ≥2 users) ─────────────────
+        SelectPlayerDialog {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -15
+            visible: _showPlayerPicker
+            z: 20
+            onConfirmed: function(opponentAvatarName) {
+                _showPlayerPicker = false
+                chessConnector.setPlayerPlaysWhite(_pendingPlayerPlaysWhite)
+                screen.state = "screen_2"
+                chessConnector.startNewGame()
+                if (opponentAvatarName !== "")
+                    avatarProvider.setOpponentFromUser(opponentAvatarName)
+                gameIsInProgress = true
+                chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
+            }
+            onCloseRequested: _showPlayerPicker = false
+        }
+
+        // ── Login / Create-user overlay (shown when not logged in) ──────────
+        Rectangle {
+            id: authOverlay
+            anchors.fill: parent
+            z: 50
+            visible: !userManager.isLoggedIn
+            color: "transparent"
+
+            property bool _showCreate: !userManager.hasUsers
+
+            UserLoginScreen {
+                anchors.fill: parent
+                visible: !authOverlay._showCreate
+                onAddUserRequested: authOverlay._showCreate = true
+            }
+
+            Item {
+                anchors.fill: parent
+                visible: authOverlay._showCreate
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: root.isDarkMode ? "#1e1e1e" : "#f0f0f0"
+                    Image {
+                        anchors.fill: parent
+                        source: "qrc:/app/pics/ChessBackground.jpg"
+                        fillMode: Image.PreserveAspectCrop
+                        opacity: 0.35
+                    }
+                }
+
+                CreateUserDialog {
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: -20
+                    editMode: false
+                    onConfirmed: function(name, avatar) {
+                        userManager.createUser(name, avatar)
+                        authOverlay._showCreate = false
+                    }
+                }
+            }
         }
 
         states: [

@@ -18,7 +18,9 @@ SOURCES += main.cpp \
     ../../UciConnector/pch.cpp \
     chessconnector.cpp \
     engineworker.cpp \
-    ChessEnginePlayer.cpp
+    ChessEnginePlayer.cpp \
+    AvatarProvider.cpp \
+    UserManager.cpp
 
 RESOURCES += qml.qrc
 
@@ -54,7 +56,9 @@ HEADERS += \
     ../../UciConnector/pch.h \
     chessconnector.h \
     engineworker.h \
-    ChessEnginePlayer.h
+    ChessEnginePlayer.h \
+    AvatarProvider.h \
+    UserManager.h
 
 DISTFILES += \
     ApplyMovesDialog.qml \

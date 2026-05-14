@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
+#include <QString>
 
 QString AppConfig::appDataDir()
 {
@@ -19,14 +20,20 @@ QString AppConfig::configFilePath()
 	return appDataDir() + "/config.json";
 }
 
-QString AppConfig::autoSaveFilePath()
+QString AppConfig::autoSaveFilePath(const QString& userId)
 {
-	return appDataDir() + "/chess.autosave";
+	if (userId.isEmpty()) return appDataDir() + "/chess.autosave";
+	QString dir = appDataDir() + "/users/" + userId;
+	QDir().mkpath(dir);
+	return dir + "/chess.autosave";
 }
 
-QString AppConfig::savedGameFilePath()
+QString AppConfig::savedGameFilePath(const QString& userId)
 {
-	return appDataDir() + "/chess.save";
+	if (userId.isEmpty()) return appDataDir() + "/chess.save";
+	QString dir = appDataDir() + "/users/" + userId;
+	QDir().mkpath(dir);
+	return dir + "/chess.save";
 }
 
 AppConfig AppConfig::load()
@@ -50,32 +57,6 @@ AppConfig AppConfig::load()
 		cfg.playerPlaysWhite = s.value("playerPlaysWhite").toBool(true);
 	}
 
-	if (root.contains("statistics") && root["statistics"].isObject()) {
-		QJsonObject st = root["statistics"].toObject();
-		cfg.stats.gamesPlayed = st.value("gamesPlayed").toInt(0);
-		cfg.stats.humanWins = st.value("humanWins").toInt(0);
-		cfg.stats.computerWins = st.value("computerWins").toInt(0);
-		cfg.createdDate = QDate::fromString(st.value("createdDate").toString(), Qt::ISODate);
-	}
-	if (!cfg.createdDate.isValid())
-		cfg.createdDate = QDate::currentDate();
-
-	if (root.contains("autoSave") && root["autoSave"].isObject()) {
-		QJsonObject a = root["autoSave"].toObject();
-		cfg.autoSaveIsSinglePlayer    = a.value("isSinglePlayer").toBool(false);
-		cfg.autoSavePlayerPlaysWhite  = a.value("playerPlaysWhite").toBool(true);
-		cfg.autoSavePlayerAvatarName   = a.value("playerAvatarName").toString("wizard");
-		cfg.autoSaveOpponentAvatarName = a.value("opponentAvatarName").toString("unicorn");
-	}
-
-	if (root.contains("savedGame") && root["savedGame"].isObject()) {
-		QJsonObject sg = root["savedGame"].toObject();
-		cfg.savedGameIsSinglePlayer    = sg.value("isSinglePlayer").toBool(false);
-		cfg.savedGamePlayerPlaysWhite  = sg.value("playerPlaysWhite").toBool(true);
-		cfg.savedGamePlayerAvatarName  = sg.value("playerAvatarName").toString("wizard");
-		cfg.savedGameOpponentAvatarName = sg.value("opponentAvatarName").toString("unicorn");
-	}
-
 	return cfg;
 }
 
@@ -86,30 +67,9 @@ void AppConfig::save() const
 	settings["useFen"]           = useFen;
 	settings["playerPlaysWhite"] = playerPlaysWhite;
 
-	QJsonObject statistics;
-	statistics["gamesPlayed"] = stats.gamesPlayed;
-	statistics["humanWins"]   = stats.humanWins;
-	statistics["computerWins"] = stats.computerWins;
-	statistics["createdDate"] = createdDate.toString(Qt::ISODate);
-
-	QJsonObject autoSave;
-	autoSave["isSinglePlayer"]   = autoSaveIsSinglePlayer;
-	autoSave["playerPlaysWhite"] = autoSavePlayerPlaysWhite;
-	autoSave["playerAvatarName"]   = autoSavePlayerAvatarName;
-	autoSave["opponentAvatarName"] = autoSaveOpponentAvatarName;
-
-	QJsonObject savedGame;
-	savedGame["isSinglePlayer"]    = savedGameIsSinglePlayer;
-	savedGame["playerPlaysWhite"]  = savedGamePlayerPlaysWhite;
-	savedGame["playerAvatarName"]  = savedGamePlayerAvatarName;
-	savedGame["opponentAvatarName"] = savedGameOpponentAvatarName;
-
 	QJsonObject root;
-	root["version"]   = 1;
-	root["settings"]  = settings;
-	root["statistics"] = statistics;
-	root["autoSave"]  = autoSave;
-	root["savedGame"] = savedGame;
+	root["version"]  = 1;
+	root["settings"] = settings;
 
 	QFile file(configFilePath());
 	if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))

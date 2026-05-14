@@ -83,6 +83,9 @@
     <ClCompile Include="AvatarProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UserManager.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\ChessCore\Piece.h">
@@ -168,6 +171,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="qml\ApplyMovesDialog.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\CreateUserDialog.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\UserLoginScreen.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
   </ItemGroup>
@@ -286,6 +295,9 @@
   <ItemGroup>
     <QtMoc Include="AvatarProvider.h">
       <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="UserManager.h">
+      <Filter>Generated Files</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

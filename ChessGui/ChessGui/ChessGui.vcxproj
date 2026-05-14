@@ -353,6 +353,7 @@
   <ItemGroup>
     <ClCompile Include="AppConfig.cpp" />
     <ClCompile Include="AvatarProvider.cpp" />
+    <ClCompile Include="UserManager.cpp" />
     <ClCompile Include="chessconnector.cpp" />
     <ClCompile Include="ChessEnginePlayer.cpp" />
     <ClCompile Include="engineworker.cpp" />
@@ -364,6 +365,7 @@
     <ClInclude Include="..\..\ChessCore\Piece.h" />
     <ClInclude Include="AppConfig.h" />
     <QtMoc Include="AvatarProvider.h" />
+    <QtMoc Include="UserManager.h" />
     <ClInclude Include="EngineLevel.h" />
     <QtMoc Include="chessconnector.h" />
     <QtMoc Include="engineworker.h" />
@@ -418,6 +420,7 @@
     <None Include="qml\ChessBoxes.qml" />
     <None Include="qml\ChessFigures.qml" />
     <None Include="qml\ChessGame.qml" />
+    <None Include="qml\CreateUserDialog.qml" />
     <None Include="qml\CustomSlider.qml" />
     <None Include="qml\EmptyBoardModel.qml" />
     <None Include="qml\GameResultDialog.qml" />
@@ -428,6 +431,7 @@
     <None Include="qml\Notificator.qml" />
     <None Include="qml\PawnPromotionOptions.qml" />
     <None Include="qml\SelectPlayerDialog.qml" />
+    <None Include="qml\UserLoginScreen.qml" />
     <QtRcc Include="qml.qrc" />
     <ResourceCompile Include="ChessGui.rc" />
   </ItemGroup>

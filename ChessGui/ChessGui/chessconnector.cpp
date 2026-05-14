@@ -47,14 +47,10 @@ ChessConnector::ChessConnector(QObject* parent)
 				emit checkMateNotify();
 				if (_player) return;
 				_gameOver = true;
-				_config.stats.gamesPlayed++;
-				if (_engineWorker) {
+				if (_userManager) {
 					bool humanWon = _game->IsWhiteMove() != _config.playerPlaysWhite;
-					if (humanWon) _config.stats.humanWins++;
-					else          _config.stats.computerWins++;
+					_userManager->recordResult(humanWon, _engineWorker != nullptr);
 				}
-				_config.save();
-				emit statsChanged();
 				QString winner = _game->IsWhiteMove() ? "Black Won" : "White Won";
 				emit checkMateResult(winner);
 			}
@@ -346,6 +342,16 @@ void ChessConnector::onEngineMoveError(const QString& message)
 	qDebug() << "[Engine] move error:" << message;
 }
 
+QString ChessConnector::autoSavePath() const
+{
+	return AppConfig::autoSaveFilePath(_userManager ? _userManager->activeUserId() : QString());
+}
+
+QString ChessConnector::savedGamePath() const
+{
+	return AppConfig::savedGameFilePath(_userManager ? _userManager->activeUserId() : QString());
+}
+
 bool fileExists(QString path) {
 	QFileInfo checkFile(path);
 
@@ -359,14 +365,17 @@ bool fileExists(QString path) {
 
 void ChessConnector::saveGame()
 {
-	_config.savedGameIsSinglePlayer   = _engineWorker != nullptr;
-	_config.savedGamePlayerPlaysWhite = _config.playerPlaysWhite;
-	if (_avatarProvider) {
-		_config.savedGamePlayerAvatarName   = _avatarProvider->playerRawName();
-		_config.savedGameOpponentAvatarName = _avatarProvider->opponentRawName();
+	if (_userManager) {
+		UserManager::GameSaveInfo info;
+		info.isSinglePlayer   = _engineWorker != nullptr;
+		info.playerPlaysWhite = _config.playerPlaysWhite;
+		if (_avatarProvider) {
+			info.playerAvatarName   = _avatarProvider->playerRawName();
+			info.opponentAvatarName = _avatarProvider->opponentRawName();
+		}
+		_userManager->setSavedGameInfo(info);
 	}
-	_config.save();
-	_game->Save(AppConfig::savedGameFilePath().toStdString());
+	_game->Save(savedGamePath().toStdString());
 	emit savedOk();
 	emit canLoadChanged();
 }
@@ -375,15 +384,14 @@ bool ChessConnector::loadGame()
 {
 	auto success = false;
 	try {
-		if (fileExists(AppConfig::savedGameFilePath()))
+		if (fileExists(savedGamePath()))
 		{
-			_config.playerPlaysWhite = _config.savedGamePlayerPlaysWhite;
+			const auto info = _userManager ? _userManager->savedGameInfo() : UserManager::GameSaveInfo{};
+			_config.playerPlaysWhite = info.playerPlaysWhite;
 			emit playerPlaysWhiteChanged();
 			if (_avatarProvider)
-				_avatarProvider->restore(_config.savedGamePlayerAvatarName,
-				                         _config.savedGameOpponentAvatarName,
-				                         _config.savedGameIsSinglePlayer);
-			_game->Load(AppConfig::savedGameFilePath().toStdString());
+				_avatarProvider->restore(info.playerAvatarName, info.opponentAvatarName, info.isSinglePlayer);
+			_game->Load(savedGamePath().toStdString());
 			_game->Restart();
 			_player = _game->MakePlayer();
 			emit IsOnPlayerModeChanged();
@@ -463,18 +471,17 @@ void ChessConnector::endGame()
 
 bool ChessConnector::continueGame()
 {
-	bool isSingle = _config.autoSaveIsSinglePlayer;
+	const auto info = _userManager ? _userManager->autoSaveInfo() : UserManager::GameSaveInfo{};
+	const bool isSingle = info.isSinglePlayer;
 
-	_config.playerPlaysWhite = _config.autoSavePlayerPlaysWhite;
+	_config.playerPlaysWhite = info.playerPlaysWhite;
 	emit playerPlaysWhiteChanged();
 
 	if (_avatarProvider)
-		_avatarProvider->restore(_config.autoSavePlayerAvatarName,
-		                         _config.autoSaveOpponentAvatarName,
-		                         isSingle);
+		_avatarProvider->restore(info.playerAvatarName, info.opponentAvatarName, isSingle);
 
 	stopEngineThread();
-	_game->Load(AppConfig::autoSaveFilePath().toStdString());
+	_game->Load(autoSavePath().toStdString());
 	_game->ResumeFromLoad();
 	_gameOver = false;
 
@@ -496,31 +503,33 @@ bool ChessConnector::continueGame()
 
 bool ChessConnector::canContinue() const
 {
-	return fileExists(AppConfig::autoSaveFilePath());
+	return fileExists(autoSavePath());
 }
 
 bool ChessConnector::canLoad() const
 {
-	return fileExists(AppConfig::savedGameFilePath());
+	return fileExists(savedGamePath());
 }
 
 void ChessConnector::autoSaveGame(bool isSinglePlayer)
 {
-	_game->Save(AppConfig::autoSaveFilePath().toStdString());
-	_config.autoSaveIsSinglePlayer   = isSinglePlayer;
-	_config.autoSavePlayerPlaysWhite = _config.playerPlaysWhite;
-	if (_avatarProvider) {
-		_config.autoSavePlayerAvatarName   = _avatarProvider->playerRawName();
-		_config.autoSaveOpponentAvatarName = _avatarProvider->opponentRawName();
+	_game->Save(autoSavePath().toStdString());
+	if (_userManager) {
+		UserManager::GameSaveInfo info;
+		info.isSinglePlayer   = isSinglePlayer;
+		info.playerPlaysWhite = _config.playerPlaysWhite;
+		if (_avatarProvider) {
+			info.playerAvatarName   = _avatarProvider->playerRawName();
+			info.opponentAvatarName = _avatarProvider->opponentRawName();
+		}
+		_userManager->setAutoSaveInfo(info);
 	}
-	_config.save();
 }
 
 void ChessConnector::deleteAutoSave()
 {
-	QFile::remove(AppConfig::autoSaveFilePath());
-	_config.autoSaveIsSinglePlayer = false;
-	_config.save();
+	QFile::remove(autoSavePath());
+	if (_userManager) _userManager->clearAutoSaveInfo();
 }
 
 ChessConnector::~ChessConnector()
