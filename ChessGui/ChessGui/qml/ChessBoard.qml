@@ -117,6 +117,7 @@ Rectangle {
     Notificator
     {
         id:notificator
+        rotation: -chessBoard.angle
     }
 
     function showNotification(notificationText)

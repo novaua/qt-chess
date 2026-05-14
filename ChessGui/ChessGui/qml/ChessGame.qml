@@ -122,46 +122,6 @@ ApplicationWindow {
         Column {
             anchors.fill: parent
 
-            CapturedPanel {
-                id: topPanel
-                width: _boardSize
-                height: _panelH
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: gameIsInProgress
-                avatarUrl: avatarProvider.opponentUrl
-                pieces: chessConnector.CapturedByDark
-            }
-
-            Item {
-                width: parent.width
-                height: parent.height - 30 - (gameIsInProgress ? 2 * _panelH : 0)
-
-                ChessBoard {
-                    id: chessBoard
-                    anchors.fill: parent
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: "transparent"
-                    visible: chessConnector.EngineThinking
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.WaitCursor
-                    }
-                }
-            }
-
-            CapturedPanel {
-                id: bottomPanel
-                width: _boardSize
-                height: _panelH
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: gameIsInProgress
-                avatarUrl: avatarProvider.playerUrl
-                pieces: chessConnector.CapturedByLight
-            }
-
             Rectangle {
                 id: toolBar
                 width: parent.width
@@ -277,6 +237,46 @@ ApplicationWindow {
 
                 }
             }
+
+            CapturedPanel {
+                id: topPanel
+                width: _boardSize
+                height: _panelH
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: gameIsInProgress
+                avatarUrl: avatarProvider.opponentUrl
+                pieces: chessConnector.PlayerPlaysWhite ? chessConnector.CapturedByDark : chessConnector.CapturedByLight
+            }
+
+            Item {
+                width: parent.width
+                height: parent.height - 30 - (gameIsInProgress ? 2 * _panelH : 0)
+
+                ChessBoard {
+                    id: chessBoard
+                    anchors.fill: parent
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: "transparent"
+                    visible: chessConnector.EngineThinking
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.WaitCursor
+                    }
+                }
+            }
+
+            CapturedPanel {
+                id: bottomPanel
+                width: _boardSize
+                height: _panelH
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: gameIsInProgress
+                avatarUrl: avatarProvider.playerUrl
+                pieces: chessConnector.PlayerPlaysWhite ? chessConnector.CapturedByLight : chessConnector.CapturedByDark
+            }
         }
 
         // ── Start menu overlay ─────────────────────────────────────────────
@@ -339,7 +339,31 @@ ApplicationWindow {
                     }
                 }
 
-                // Difficulty — UI only, engine wiring is a future task
+                // Color selection
+                Row {
+                    spacing: 10
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: btnSingle.checked || btnTwo.checked
+
+                    ButtonGroup { id: colorGroup }
+
+                    ModeButton {
+                        id: btnColorWhite
+                        text: "White ♔"
+                        implicitWidth: 120
+                        ButtonGroup.group: colorGroup
+                        checked: chessConnector.PlayerPlaysWhite
+                    }
+                    ModeButton {
+                        id: btnColorBlack
+                        text: "Black ♚"
+                        implicitWidth: 120
+                        ButtonGroup.group: colorGroup
+                        checked: !chessConnector.PlayerPlaysWhite
+                    }
+                }
+
+                // Difficulty
                 Column {
                     spacing: 6
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -384,10 +408,12 @@ ApplicationWindow {
                         }
                         onClicked: {
                             if (btnSingle.checked) {
+                                chessConnector.setPlayerPlaysWhite(btnColorWhite.checked)
                                 screen.state = "screen_4"
                                 chessConnector.startNewGameWithComputer(Math.round(difficultySlider.value))
                                 gameIsInProgress = true
                             } else if (btnTwo.checked) {
+                                chessConnector.setPlayerPlaysWhite(btnColorWhite.checked)
                                 screen.state = "screen_2"
                                 chessConnector.startNewGame()
                                 gameIsInProgress = true
@@ -395,10 +421,12 @@ ApplicationWindow {
                                 var single = chessConnector.continueGame()
                                 screen.state = single ? "screen_4" : "screen_2"
                                 gameIsInProgress = true
+                                chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
                             } else if (btnLoad.checked) {
                                 if (chessConnector.loadGame()) {
                                     screen.state = "screen_3"
                                     gameIsInProgress = true
+                                    chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
                                 }
                             }
                         }
@@ -440,6 +468,17 @@ ApplicationWindow {
                 resultDialogTimer.start()
                 if (appSettings.musicEnabled) 
                     sndWin.play()
+            }
+        }
+
+        Connections {
+            target: chessConnector
+            function onNewGameStarted(isComputerGame) {
+                chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
+            }
+            function onPlayerPlaysWhiteChanged() {
+                if (gameIsInProgress)
+                    chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
             }
         }
 

@@ -44,15 +44,17 @@ ChessConnector::ChessConnector(QObject* parent)
 			}
 			else if (event.GetType() == EtCheckMate)
 			{
+				emit checkMateNotify();
+				if (_player) return;
 				_gameOver = true;
 				_config.stats.gamesPlayed++;
 				if (_engineWorker) {
-					if (_game->IsWhiteMove()) _config.stats.computerWins++;
-					else                      _config.stats.humanWins++;
+					bool humanWon = _game->IsWhiteMove() != _config.playerPlaysWhite;
+					if (humanWon) _config.stats.humanWins++;
+					else          _config.stats.computerWins++;
 				}
 				_config.save();
 				emit statsChanged();
-				emit checkMateNotify();
 				QString winner = _game->IsWhiteMove() ? "Black Won" : "White Won";
 				emit checkMateResult(winner);
 			}
@@ -232,6 +234,11 @@ void ChessConnector::startNewGameWithComputer(int level)
 	emit newGameStarted(true);
 	_engineAutoPlay = true;
 	startEngineThread(Chess::EngineLevel(level));
+	if (!_config.playerPlaysWhite) {
+		_engineThinking = true;
+		emit engineThinkingChanged();
+		emit requestEngineMove();
+	}
 }
 
 void ChessConnector::applyMoves(const QString& movesStr)
@@ -258,6 +265,14 @@ void ChessConnector::setUseFen(bool v)
 	_config.useFen = v;
 	_config.save();
 	emit useFenChanged();
+}
+
+void ChessConnector::setPlayerPlaysWhite(bool v)
+{
+	if (_config.playerPlaysWhite == v) return;
+	_config.playerPlaysWhite = v;
+	_config.save();
+	emit playerPlaysWhiteChanged();
 }
 
 void ChessConnector::robotMove()
@@ -344,6 +359,13 @@ bool fileExists(QString path) {
 
 void ChessConnector::saveGame()
 {
+	_config.savedGameIsSinglePlayer   = _engineWorker != nullptr;
+	_config.savedGamePlayerPlaysWhite = _config.playerPlaysWhite;
+	if (_avatarProvider) {
+		_config.savedGamePlayerAvatarName   = _avatarProvider->playerRawName();
+		_config.savedGameOpponentAvatarName = _avatarProvider->opponentRawName();
+	}
+	_config.save();
 	_game->Save(AppConfig::savedGameFilePath().toStdString());
 	emit savedOk();
 	emit canLoadChanged();
@@ -355,6 +377,12 @@ bool ChessConnector::loadGame()
 	try {
 		if (fileExists(AppConfig::savedGameFilePath()))
 		{
+			_config.playerPlaysWhite = _config.savedGamePlayerPlaysWhite;
+			emit playerPlaysWhiteChanged();
+			if (_avatarProvider)
+				_avatarProvider->restore(_config.savedGamePlayerAvatarName,
+				                         _config.savedGameOpponentAvatarName,
+				                         _config.savedGameIsSinglePlayer);
 			_game->Load(AppConfig::savedGameFilePath().toStdString());
 			_game->Restart();
 			_player = _game->MakePlayer();
@@ -437,6 +465,14 @@ bool ChessConnector::continueGame()
 {
 	bool isSingle = _config.autoSaveIsSinglePlayer;
 
+	_config.playerPlaysWhite = _config.autoSavePlayerPlaysWhite;
+	emit playerPlaysWhiteChanged();
+
+	if (_avatarProvider)
+		_avatarProvider->restore(_config.autoSavePlayerAvatarName,
+		                         _config.autoSaveOpponentAvatarName,
+		                         isSingle);
+
 	stopEngineThread();
 	_game->Load(AppConfig::autoSaveFilePath().toStdString());
 	_game->ResumeFromLoad();
@@ -447,8 +483,9 @@ bool ChessConnector::continueGame()
 	EmitMoveCountUpdates();
 
 	if (isSingle) {
+		_engineAutoPlay = true;
 		startEngineThread(Chess::EngineLevel(_config.lastLevel));
-		if (!_game->IsWhiteMove()) {
+		if (_game->IsWhiteMove() != _config.playerPlaysWhite) {
 			_engineThinking = true;
 			emit engineThinkingChanged();
 			emit requestEngineMove();
@@ -470,7 +507,12 @@ bool ChessConnector::canLoad() const
 void ChessConnector::autoSaveGame(bool isSinglePlayer)
 {
 	_game->Save(AppConfig::autoSaveFilePath().toStdString());
-	_config.autoSaveIsSinglePlayer = isSinglePlayer;
+	_config.autoSaveIsSinglePlayer   = isSinglePlayer;
+	_config.autoSavePlayerPlaysWhite = _config.playerPlaysWhite;
+	if (_avatarProvider) {
+		_config.autoSavePlayerAvatarName   = _avatarProvider->playerRawName();
+		_config.autoSaveOpponentAvatarName = _avatarProvider->opponentRawName();
+	}
 	_config.save();
 }
 

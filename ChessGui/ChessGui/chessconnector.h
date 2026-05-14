@@ -10,6 +10,7 @@
 #include "Game.h"
 #include "engineworker.h"
 #include "AppConfig.h"
+#include "AvatarProvider.h"
 
 class ChessConnector : public QObject
 {
@@ -29,11 +30,14 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int LastMoveTo   READ lastMoveTo   NOTIFY lastMoveChanged)
 		Q_PROPERTY(QStringList CapturedByDark  READ capturedByDark  NOTIFY capturedChanged)
 		Q_PROPERTY(QStringList CapturedByLight READ capturedByLight NOTIFY capturedChanged)
-		Q_PROPERTY(bool EngineThinking READ engineThinking NOTIFY engineThinkingChanged)
-		Q_PROPERTY(bool UseFen READ useFen WRITE setUseFen NOTIFY useFenChanged)
+		Q_PROPERTY(bool EngineThinking    READ engineThinking    NOTIFY engineThinkingChanged)
+		Q_PROPERTY(bool UseFen            READ useFen            WRITE setUseFen NOTIFY useFenChanged)
+		Q_PROPERTY(bool PlayerPlaysWhite  READ playerPlaysWhite  NOTIFY playerPlaysWhiteChanged)
 public:
 	explicit ChessConnector(QObject* parent = nullptr);
 	~ChessConnector();
+
+	void setAvatarProvider(AvatarProvider* ap) { _avatarProvider = ap; }
 
 	int MoveCount();
 	int IsWhiteMove();
@@ -47,8 +51,9 @@ public:
 	QString statsCreatedDate() const { return _config.createdDate.toString("MMMM d, yyyy"); }
 	int  lastMoveFrom()   const;
 	int  lastMoveTo()     const;
-	bool engineThinking() const { return _engineThinking; }
-	bool useFen()         const { return _config.useFen; }
+	bool engineThinking()    const { return _engineThinking; }
+	bool useFen()            const { return _config.useFen; }
+	bool playerPlaysWhite()  const { return _config.playerPlaysWhite; }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 
@@ -72,6 +77,7 @@ signals:
 	void checkMateResult(QString winner);
 	void engineThinkingChanged();
 	void useFenChanged();
+	void playerPlaysWhiteChanged();
 	void lastMoveChanged();
 	void capturedChanged();
 	void newGameStarted(bool isComputerGame);
@@ -90,6 +96,7 @@ public slots:
 	void startNewGameWithComputer(int level = 3);
 	Q_INVOKABLE void robotMove();
 	void setUseFen(bool v);
+	Q_INVOKABLE void setPlayerPlaysWhite(bool v);
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
 	Q_INVOKABLE bool continueGame();
 
@@ -123,6 +130,7 @@ private:
 	Chess::HistoryPlayerAptr _player;
 	Chess::PawnPromotedCallback _onPawnPromotedCallback;
 
+	AvatarProvider* _avatarProvider = nullptr;
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
 	bool _engineThinking = false;
