@@ -21,14 +21,13 @@ AvatarProvider::AvatarProvider(QObject* parent)
 void AvatarProvider::randomize(bool isComputerGame)
 {
     const auto& names = avatarNames();
-    int idx  = (int)QRandomGenerator::global()->bounded((quint32)names.size());
-    int idx2 = (idx + 1 + (int)QRandomGenerator::global()->bounded((quint32)(names.size() - 1))) % names.size();
+    int idx = (int)QRandomGenerator::global()->bounded((quint32)names.size());
+    while (names.size() > 1 && names[idx] == _playerName)
+        idx = (int)QRandomGenerator::global()->bounded((quint32)names.size());
 
-    _playerName     = names[idx];
-    _opponentName   = names[idx2];
+    _opponentName   = names[idx];
     _isComputerGame = isComputerGame;
 
-    emit playerAvatarChanged();
     emit opponentAvatarChanged();
 }
 
@@ -75,4 +74,17 @@ QString AvatarProvider::opponentName() const
 QString AvatarProvider::opponentRawName() const
 {
     return _opponentName;
+}
+
+void AvatarProvider::setPlayerFromUser(const QString& avatarName)
+{
+    _playerName = avatarName;
+    emit playerAvatarChanged();
+}
+
+void AvatarProvider::setOpponentFromUser(const QString& avatarName)
+{
+    _opponentName   = avatarName;
+    _isComputerGame = false;
+    emit opponentAvatarChanged();
 }

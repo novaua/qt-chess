@@ -1,100 +1,133 @@
 import QtQuick
+import QtQuick.Window
 
-Rectangle{
-    id:pawnPromotionRec
-    radius: 0.125*height
-    border.color: lightChessBoxColor
-    color: darkChessBoxColor
+Rectangle {
+    id: dialog
 
-    property variant playerList
-
-    Behavior on opacity  {
-        NumberAnimation {
-            easing {
-                type: Easing.InCirc
-                amplitude: 6.0
-                period: 30
-            }
-        }
+    readonly property bool isDarkMode: {
+        if (!Window.window) return false
+        var c = Window.window.color
+        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) <= 0.5
     }
 
-    Text {
-        id:notificatorText
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top:parent.top
-        width: parent.width
-        height: parent.height/4
-        text:"Select Network Player"
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        fontSizeMode: Text.Fit
-        color: lightChessBoxColor
-        minimumPixelSize: 2
-        font.pixelSize: 50
-    }
+    property string _selectedAvatar: ""
 
-    ListModel {
-        id: testModel
-        ListElement { modelData: "Joe"}
-        ListElement { modelData: "Vitaly"}
-    }
+    signal confirmed(string opponentAvatarName)  // empty = random
+    signal closeRequested()
 
-    ListView {
-        anchors.fill: parent
-        model: playerList
-        delegate: Component {
-            Column {
-                Text { text: modelData }
-            }
+    width: 340
+    height: content.implicitHeight + 48
+    color:        isDarkMode ? "#252525" : "#f4f4f4"
+    border.color: isDarkMode ? "#555555" : "#cccccc"
+    border.width: 1
+    radius: 12
+
+    Column {
+        id: content
+        anchors.centerIn: parent
+        width: parent.width - 40
+        spacing: 16
+
+        Text {
+            text: "Select Second Player"
+            font.pixelSize: 20
+            font.bold: true
+            color: isDarkMode ? "#ffffff" : "#000000"
+            anchors.horizontalCenter: parent.horizontalCenter
         }
 
-        spacing: 10
-    }
-/*
-    Row{
-        id:pawnPromotionRow
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom:parent.bottom
-        width: parent.width
-        height: 3*parent.height/4
+        Flow {
+            spacing: 12
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
 
-        Repeater{
-            id:pawnPromotionRptr
-            model:pawnPromotionRec.parent!==null
-                  ?((pawnPromotionRec.parent.side) === 2 ? ["Q","R","B","N"]:["q","r","b","n"]):0
+            Repeater {
+                model: userManager.users
+                delegate: Rectangle {
+                    // hide the currently logged-in user
+                    visible: modelData.id !== userManager.activeUserId
+                    width:  visible ? 80  : 0
+                    height: visible ? 100 : 0
+                    radius: 8
+                    color: dialog._selectedAvatar === modelData.avatarName
+                        ? (isDarkMode ? "#1a4a7a" : "#cce4ff")
+                        : (isDarkMode ? "#2d2d2d" : "#ffffff")
+                    border.color: dialog._selectedAvatar === modelData.avatarName
+                        ? "#0078d4"
+                        : (isDarkMode ? "#555555" : "#dddddd")
+                    border.width: 2
 
-            delegate: Image{
-                height: pawnPromotionRow.width<pawnPromotionRow.height*4?pawnPromotionRow.width/4:pawnPromotionRow.height
-                width: height
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: 6
 
-                smooth: true
-                antialiasing:true
-                fillMode: Image.PreserveAspectFit
-                source:modelData!=" "? (modelData === modelData.toUpperCase()
-                                        ? "qrc:/piece/pics/black/"+modelData+".png"
-                                        : "qrc:/piece/pics/white/"+modelData+".png")
-                                     :"";
-                MouseArea{
-                    anchors.fill:parent
-                    onClicked: {
-                        pawnPromotionTimer.start()
-                        chessConnector.pawnPromote(pawnPromotionRec.parent.index,modelData)
+                        Image {
+                            width: 52; height: 52
+                            source: modelData.avatarUrl
+                            fillMode: Image.PreserveAspectFit
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+
+                        Text {
+                            text: modelData.name
+                            color: isDarkMode ? "#ffffff" : "#000000"
+                            font.pixelSize: 11
+                            width: 72
+                            elide: Text.ElideRight
+                            horizontalAlignment: Text.AlignHCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
                     }
-                    onPressed: parent.scale=0.8
-                    onReleased: parent.scale=1
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: dialog._selectedAvatar = modelData.avatarName
+                    }
                 }
             }
         }
-    }
-*/
-    Timer {
-        id:pawnPromotionTimer
-        interval: 1000;
-        running: false;
-        repeat: false
-        onTriggered:{
-            parent.opacity=0
-            pawnPromotionRec.parent.source=""
+
+        Row {
+            spacing: 12
+            anchors.horizontalCenter: parent.horizontalCenter
+
+            Button {
+                text: "OK"
+                implicitWidth: 90
+                implicitHeight: 32
+                font.bold: true
+                enabled: dialog._selectedAvatar !== ""
+                background: Rectangle {
+                    radius: 4
+                    color: parent.enabled
+                        ? (parent.down ? "#005a9e" : "#0078d4")
+                        : (isDarkMode ? "#2a2a2a" : "#cccccc")
+                    border.color: parent.enabled ? "#005a9e" : "transparent"
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: parent.enabled ? "#ffffff" : (isDarkMode ? "#666666" : "#aaaaaa")
+                    font: parent.font
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: dialog.confirmed(dialog._selectedAvatar)
+            }
+
+            Button {
+                text: "Random"
+                implicitWidth: 90
+                implicitHeight: 32
+                onClicked: dialog.confirmed("")
+            }
+
+            Button {
+                text: "Cancel"
+                implicitWidth: 80
+                implicitHeight: 32
+                onClicked: dialog.closeRequested()
+            }
         }
     }
 }

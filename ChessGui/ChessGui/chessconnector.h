@@ -11,6 +11,7 @@
 #include "engineworker.h"
 #include "AppConfig.h"
 #include "AvatarProvider.h"
+#include "UserManager.h"
 
 class ChessConnector : public QObject
 {
@@ -22,10 +23,6 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool CanContinue READ canContinue NOTIFY canContinueChanged)
 		Q_PROPERTY(bool CanLoad READ canLoad NOTIFY canLoadChanged)
 		Q_PROPERTY(int LastLevel    READ lastLevel    CONSTANT)
-		Q_PROPERTY(int     GamesPlayed      READ gamesPlayed      NOTIFY statsChanged)
-		Q_PROPERTY(int     HumanWins        READ humanWins        NOTIFY statsChanged)
-		Q_PROPERTY(int     ComputerWins     READ computerWins     NOTIFY statsChanged)
-		Q_PROPERTY(QString StatsCreatedDate READ statsCreatedDate NOTIFY statsChanged)
 		Q_PROPERTY(int LastMoveFrom READ lastMoveFrom NOTIFY lastMoveChanged)
 		Q_PROPERTY(int LastMoveTo   READ lastMoveTo   NOTIFY lastMoveChanged)
 		Q_PROPERTY(QStringList CapturedByDark  READ capturedByDark  NOTIFY capturedChanged)
@@ -38,6 +35,7 @@ public:
 	~ChessConnector();
 
 	void setAvatarProvider(AvatarProvider* ap) { _avatarProvider = ap; }
+	void setUserManager(UserManager* um)       { _userManager = um; }
 
 	int MoveCount();
 	int IsWhiteMove();
@@ -45,10 +43,6 @@ public:
 	bool canContinue() const;
 	bool canLoad() const;
 	int lastLevel()        const { return _config.lastLevel; }
-	int gamesPlayed()      const { return _config.stats.gamesPlayed; }
-	int humanWins()        const { return _config.stats.humanWins; }
-	int computerWins()     const { return _config.stats.computerWins; }
-	QString statsCreatedDate() const { return _config.createdDate.toString("MMMM d, yyyy"); }
 	int  lastMoveFrom()   const;
 	int  lastMoveTo()     const;
 	bool engineThinking()    const { return _engineThinking; }
@@ -70,7 +64,6 @@ signals:
 	void IsOnPlayerModeChanged();
 	void canContinueChanged();
 	void canLoadChanged();
-	void statsChanged();
 
 	void checkNotify();
 	void checkMateNotify();
@@ -122,6 +115,8 @@ private:
 	void stopEngineThread();
 	void autoSaveGame(bool isSinglePlayer);
 	void deleteAutoSave();
+	QString autoSavePath()  const;
+	QString savedGamePath() const;
 
 private:
 	QStringList _possibleMoves;
@@ -131,6 +126,7 @@ private:
 	Chess::PawnPromotedCallback _onPawnPromotedCallback;
 
 	AvatarProvider* _avatarProvider = nullptr;
+	UserManager*    _userManager    = nullptr;
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
 	bool _engineThinking = false;

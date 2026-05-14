@@ -23,6 +23,8 @@ public:
 public slots:
     void randomize(bool isComputerGame);
     void restore(const QString& playerName, const QString& opponentName, bool isComputerGame);
+    Q_INVOKABLE void setPlayerFromUser(const QString& avatarName);
+    Q_INVOKABLE void setOpponentFromUser(const QString& avatarName);
 
 signals:
     void playerAvatarChanged();

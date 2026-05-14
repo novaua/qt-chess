@@ -41,28 +41,28 @@ Rectangle {
         }
 
         Text {
-            text: "Games played: " + chessConnector.GamesPlayed
+            text: "Games played: " + userManager.gamesPlayed
             color: isDarkMode ? "#dddddd" : "#222222"
             font.pixelSize: 16
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
         Text {
-            text: "Human won: " + chessConnector.HumanWins
+            text: "Human won: " + userManager.humanWins
             color: isDarkMode ? "#dddddd" : "#222222"
             font.pixelSize: 16
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
         Text {
-            text: "Robot won: " + chessConnector.ComputerWins
+            text: "Robot won: " + userManager.computerWins
             color: isDarkMode ? "#dddddd" : "#222222"
             font.pixelSize: 16
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
         Text {
-            text: "Since: " + chessConnector.StatsCreatedDate
+            text: "Since: " + userManager.statsCreatedDate
             color: isDarkMode ? "#888888" : "#888888"
             font.pixelSize: 13
             anchors.horizontalCenter: parent.horizontalCenter
