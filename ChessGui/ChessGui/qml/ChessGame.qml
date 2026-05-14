@@ -122,46 +122,6 @@ ApplicationWindow {
         Column {
             anchors.fill: parent
 
-            CapturedPanel {
-                id: topPanel
-                width: _boardSize
-                height: _panelH
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: gameIsInProgress
-                avatarUrl: avatarProvider.opponentUrl
-                pieces: chessConnector.CapturedByDark
-            }
-
-            Item {
-                width: parent.width
-                height: parent.height - 30 - (gameIsInProgress ? 2 * _panelH : 0)
-
-                ChessBoard {
-                    id: chessBoard
-                    anchors.fill: parent
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: "transparent"
-                    visible: chessConnector.EngineThinking
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.WaitCursor
-                    }
-                }
-            }
-
-            CapturedPanel {
-                id: bottomPanel
-                width: _boardSize
-                height: _panelH
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: gameIsInProgress
-                avatarUrl: avatarProvider.playerUrl
-                pieces: chessConnector.CapturedByLight
-            }
-
             Rectangle {
                 id: toolBar
                 width: parent.width
@@ -276,6 +236,46 @@ ApplicationWindow {
                     }
 
                 }
+            }
+
+            CapturedPanel {
+                id: topPanel
+                width: _boardSize
+                height: _panelH
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: gameIsInProgress
+                avatarUrl: avatarProvider.opponentUrl
+                pieces: chessConnector.CapturedByDark
+            }
+
+            Item {
+                width: parent.width
+                height: parent.height - 30 - (gameIsInProgress ? 2 * _panelH : 0)
+
+                ChessBoard {
+                    id: chessBoard
+                    anchors.fill: parent
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: "transparent"
+                    visible: chessConnector.EngineThinking
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.WaitCursor
+                    }
+                }
+            }
+
+            CapturedPanel {
+                id: bottomPanel
+                width: _boardSize
+                height: _panelH
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: gameIsInProgress
+                avatarUrl: avatarProvider.playerUrl
+                pieces: chessConnector.CapturedByLight
             }
         }
 
