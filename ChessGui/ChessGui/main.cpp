@@ -19,45 +19,17 @@
 #include <QDir>
 #include <windows.h>
 
-// Custom message handler function
-void customLogMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+static QFile* g_logFile = nullptr;
+
+void customLogMessageHandler(QtMsgType type, const QMessageLogContext&, const QString& msg)
 {
-	// Define your log directory and file name
-	// This saves to C:/Users/<User>/AppData/Local/<YourAppName>/logs/app_debug.log
-	QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-	QString logDirPath = appDataPath + "/logs";
-
-	QDir logDir(logDirPath);
-	if (!logDir.exists()) {
-		logDir.mkpath(".");
+	static const char* typeStr[] = { "DEBUG", "WARN ", "CRIT ", "FATAL", "INFO " };
+	if (g_logFile) {
+		QTextStream(g_logFile)
+		    << '[' << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
+		    << "] [" << typeStr[type] << "] " << msg << '\n';
 	}
-
-	QString logFilePath = logDirPath + "/ChessPlusPlus_AppDebug.log";
-	QFile logFile(logFilePath);
-
-	// Open file in Append mode
-	if (logFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-		QTextStream stream(&logFile);
-		QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
-
-		// Format the type text
-		QString typeStr;
-		switch (type) {
-		case QtDebugMsg:    typeStr = "DEBUG"; break;
-		case QtWarningMsg:  typeStr = "WARN "; break;
-		case QtCriticalMsg: typeStr = "CRIT "; break;
-		case QtFatalMsg:    typeStr = "FATAL"; break;
-		case QtInfoMsg:     typeStr = "INFO "; break;
-		}
-
-		// Write formatted entry to the file
-		stream << "[" << timestamp << "] [" << typeStr << "] " << msg << "\n";
-		logFile.close();
-	}
-
-	// Still send output to Visual Studio Debug Window so you can see it live
-	QString vsMsg = QString("%1\n").arg(msg);
-	OutputDebugStringW(reinterpret_cast<const WCHAR*>(vsMsg.utf16()));
+	OutputDebugStringW(reinterpret_cast<const WCHAR*>((msg + u'\n').utf16()));
 }
 
 int main(int argc, char* argv[])
@@ -66,7 +38,13 @@ int main(int argc, char* argv[])
 	QCoreApplication::setOrganizationDomain("chessplusplus.app");
 	QCoreApplication::setApplicationName("ChessPlusPlus");
 
-	// Install the file-logging handler before the application starts
+	const QString logDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/logs";
+	QDir().mkpath(logDir);
+	g_logFile = new QFile(logDir + "/ChessPlusPlus_AppDebug.log");
+	if (!g_logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+		delete g_logFile;
+		g_logFile = nullptr;
+	}
 	qInstallMessageHandler(customLogMessageHandler);
 
 	QApplication app(argc, argv);
@@ -103,7 +81,5 @@ int main(int argc, char* argv[])
 
 	engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
 
-	// Test the output file
-	qDebug() << "Log file system initialized successfully!";
 	return app.exec();
 }

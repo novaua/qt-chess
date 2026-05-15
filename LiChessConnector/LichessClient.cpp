@@ -27,7 +27,7 @@ LichessClient::LichessClient(QObject* parent)
 void LichessClient::setToken(const QString& decryptedToken)
 {
     _token = decryptedToken;
-    qDebug() << "LichessClient: token" << (_token.isEmpty() ? "cleared" : "set, length=" + QString::number(_token.size()));
+    qDebug() << "LichessClient: token" << (_token.isEmpty() ? "cleared" : QString("set(%1 chars)").arg(_token.size()));
 }
 
 QNetworkRequest LichessClient::makeRequest(const QString& path) const
@@ -117,7 +117,7 @@ void LichessClient::streamGame(const QString& gameId)
 {
     stopStream();
     _currentGameId  = gameId;
-    _lastMovesList  = {};
+    _lastMovesList.clear();
 
     QNetworkRequest req = makeRequest(
         QStringLiteral("/api/board/game/stream/") + gameId);
@@ -126,20 +126,16 @@ void LichessClient::streamGame(const QString& gameId)
     _streamReply = _nam.get(req);
 
     connect(_streamReply, &QNetworkReply::readyRead, this, [this]() {
-        const int status = _streamReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        qDebug() << "LichessClient: stream readyRead | HTTP" << status;
         handleStreamData(_streamReply);
     });
 
     connect(_streamReply, &QNetworkReply::errorOccurred, this,
             [this](QNetworkReply::NetworkError code) {
-                const int status = _streamReply
-                    ? _streamReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() : 0;
-                qDebug() << "LichessClient: stream error | HTTP" << status
-                         << "| code:" << code
-                         << "|" << (_streamReply ? _streamReply->errorString() : "no reply");
-                if (_streamReply)
-                    emit networkError(_streamReply->errorString());
+                const int status = _streamReply->attribute(
+                    QNetworkRequest::HttpStatusCodeAttribute).toInt();
+                qDebug() << "LichessClient: stream error | HTTP" << status << "| code:" << code
+                         << "|" << _streamReply->errorString();
+                emit networkError(_streamReply->errorString());
             });
 }
 
@@ -168,13 +164,14 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
             const QString opponentName      = opponent.value(QStringLiteral("name")).toString();
             const QString opponentAvatarUrl = {}; // Lichess doesn't provide avatar in stream
 
-            // Emit gameStarted first so the board is initialized before any moves are applied.
-            _lastMovesList = state.value(QStringLiteral("moves")).toString().trimmed();
+                    // Emit gameStarted first so the board is initialized before any moves are applied.
+            _lastMovesList = state.value(QStringLiteral("moves")).toString()
+                                 .split(QLatin1Char(' '), Qt::SkipEmptyParts);
             emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl);
 
-            // Replay moves already on the board when joining mid-game (rejoin / late connect).
+            // Resync our board state with moves that arrived before we joined.
             if (!_lastMovesList.isEmpty())
-                emit opponentMoveReceived(_lastMovesList);
+                emit opponentMoveReceived(_lastMovesList.join(QLatin1Char(' ')));
 
         } else if (type == QLatin1String("gameState")) {
             const QString moves  = obj.value(QStringLiteral("moves")).toString();
@@ -186,15 +183,10 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
                 return;
             }
 
-            // Find new moves since last update
-            if (moves.length() > _lastMovesList.length()) {
-                const QString newPart = moves.mid(_lastMovesList.isEmpty() ? 0
-                                                                           : _lastMovesList.length() + 1);
-                _lastMovesList = moves;
-                // newPart may contain multiple space-separated moves if we were behind
-                for (const QString& mv : newPart.split(QLatin1Char(' '), Qt::SkipEmptyParts))
-                    emit opponentMoveReceived(mv);
-            }
+            const QStringList allMoves = moves.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+            for (int i = _lastMovesList.size(); i < allMoves.size(); ++i)
+                emit opponentMoveReceived(allMoves[i]);
+            _lastMovesList = allMoves;
         }
     }
 }
@@ -202,9 +194,7 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
 void LichessClient::postMove(const QString& gameId, const QString& uciMove)
 {
     // Pre-track our own move so the stream echo doesn't re-apply it.
-    _lastMovesList = _lastMovesList.isEmpty()
-        ? uciMove
-        : _lastMovesList + QLatin1Char(' ') + uciMove;
+    _lastMovesList.append(uciMove);
 
     auto* reply = _nam.post(
         makeRequest(QStringLiteral("/api/board/game/") + gameId

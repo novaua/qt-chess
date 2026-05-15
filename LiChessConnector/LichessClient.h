@@ -43,6 +43,6 @@ private:
 	QNetworkAccessManager _nam;
 	QString               _token;
 	QString               _currentGameId;
-	QString               _lastMovesList;   // tracks moves seen so far in stream
+	QStringList           _lastMovesList;   // tracks moves seen so far in stream
 	QNetworkReply* _streamReply = nullptr;
 };

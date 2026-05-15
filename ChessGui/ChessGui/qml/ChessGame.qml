@@ -535,20 +535,14 @@ ApplicationWindow {
                 lichessClient.stopStream()
                 _onlineGameId = ""
 
-                var who = winner === "white" ? "White"
-                        : winner === "black" ? "Black" : ""
-                var reason = status === "mate"      ? " by Checkmate"
-                           : status === "resign"    ? " by Resignation"
-                           : status === "outoftime" ? " on Time"
-                           : ""
+                const winnerName = ({ "white": "White", "black": "Black" })[winner] ?? ""
+                const reason     = ({ "mate": " by Checkmate", "resign": " by Resignation",
+                                      "outoftime": " on Time" })[status] ?? ""
 
-                if (status === "aborted") {
-                    _checkmateWinner = "Game Aborted"
-                } else if (who !== "") {
-                    _checkmateWinner = who + " Won" + reason
-                } else {
-                    _checkmateWinner = "Draw"
-                }
+                if      (status === "aborted") _checkmateWinner = "Game Aborted"
+                else if (winnerName !== "")    _checkmateWinner = winnerName + " Won" + reason
+                else                           _checkmateWinner = "Draw"
+
                 resultDialogTimer.start()
             }
 
