@@ -139,9 +139,7 @@ Grid{
 
     Connections {
         target: chessConnector
-        onBoardChanged: {
-            updateChessFiguresModel(position, newValue)
-        }
+        function onBoardChanged(position, newValue) { updateChessFiguresModel(position, newValue) }
     }
 
     function changeGlow(index)

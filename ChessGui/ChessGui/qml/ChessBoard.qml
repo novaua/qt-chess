@@ -66,17 +66,15 @@ Rectangle {
     }
 
     Connections {
-        target:chessConnector
+        target: chessConnector
 
-        onCheckNotify:showNotification("Check")
-        onCheckMateNotify:showNotification("Checkmate")
-
-        onCastlingNotify: showNotification("Castling")
-        onPawnPromotionNotify: showPawnPromotionOptions(index, side)
-
-        onNoSavedGame:showNotification("No saved Games!")
-        onSavedOk:showNotification("Game saved")
-        onNoMoreMovesNotify:showNotification("No more moves!")
+        function onCheckNotify()                    { showNotification("Check") }
+        function onCheckMateNotify()                { showNotification("Checkmate") }
+        function onCastlingNotify()                 { showNotification("Castling") }
+        function onPawnPromotionNotify(index, side) { showPawnPromotionOptions(index, side) }
+        function onNoSavedGame()                    { showNotification("No saved Games!") }
+        function onSavedOk()                        { showNotification("Game saved") }
+        function onNoMoreMovesNotify()              { showNotification("No more moves!") }
     }
 
     NavigationLayer{

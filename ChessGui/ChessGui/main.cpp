@@ -9,8 +9,7 @@
 #include "UserManager.h"
 #include "LichessClient.h"
 
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
+#include <QQuickStyle>
 #include <QDebug>
 #include <QFile>
 #include <QTextStream>
@@ -34,6 +33,8 @@ void customLogMessageHandler(QtMsgType type, const QMessageLogContext&, const QS
 
 int main(int argc, char* argv[])
 {
+	QQuickStyle::setStyle(QStringLiteral("Basic"));
+
 	QCoreApplication::setOrganizationName("ChessPlusPlus_Inc");
 	QCoreApplication::setOrganizationDomain("chessplusplus.app");
 	QCoreApplication::setApplicationName("ChessPlusPlus");
