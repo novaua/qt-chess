@@ -1,6 +1,9 @@
-#include <QtTest>
+#include <QObject>
+#include <QEventLoop>
+#include <QTimer>
+#include <CppUnitTest.h>
 #include "LichessClient.h"
-/*
+
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 // Teach CppUnitTest how to display QString in assertion failure messages.
@@ -88,7 +91,7 @@ namespace LichessTests
 
         TEST_METHOD(EncryptDecryptToken_SpecialChars_RoundTrips)
         {
-            const QString token = u8"tokén with spaces & symbols!";
+            const QString token = QString::fromUtf8("tok\xC3\xA9n with spaces & symbols!");
             const QString cipher = LichessClient::encryptToken(token);
             const QString recovered = LichessClient::decryptToken(cipher);
             Assert::AreEqual(token, recovered);
@@ -143,7 +146,7 @@ namespace LichessTests
             Assert::IsTrue(username.isEmpty(), L"Username must be empty for rejected token");
         }
 
-        TEST_METHOD(ValidateToken_RealToken_EmitsTrue)
+       TEST_METHOD(ValidateToken_RealToken_EmitsTrue)
         {
             char* envToken = nullptr;
             size_t envLen  = 0;
@@ -177,4 +180,3 @@ namespace LichessTests
         }
     };
 }
-*/

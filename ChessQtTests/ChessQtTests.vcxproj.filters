@@ -23,11 +23,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="ChessQtTests.cpp">
+    <ClCompile Include="UciConnectorTest.cpp">
       <Filter>Source Files</Filter>
-    </QtMoc>
-  </ItemGroup>
-  <ItemGroup>
+    </ClCompile>
     <ClCompile Include="LichessClientTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
