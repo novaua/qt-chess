@@ -98,6 +98,42 @@ namespace LichessTests
 			const QString recovered = _client.decryptToken(cipher);
 			Assert::AreEqual(token, recovered);
 		}
+		// resolveIsWhite ————————————————————————————————————————————————————
+
+		// myColor present — takes priority over everything else
+		TEST_METHOD(ResolveIsWhite_MyColorWhite_ReturnsTrue)
+		{
+			Assert::IsTrue(LichessClient::resolveIsWhite("white", "opponent", "me"));
+		}
+
+		TEST_METHOD(ResolveIsWhite_MyColorBlack_ReturnsFalse)
+		{
+			Assert::IsFalse(LichessClient::resolveIsWhite("black", "opponent", "me"));
+		}
+
+		// myColor absent — fall back to username vs whiteId
+		TEST_METHOD(ResolveIsWhite_NoMyColor_UsernameMatchesWhite_ReturnsTrue)
+		{
+			Assert::IsTrue(LichessClient::resolveIsWhite("", "vgerman256", "vgerman256"));
+		}
+
+		TEST_METHOD(ResolveIsWhite_NoMyColor_UsernameIsBlack_ReturnsFalse)
+		{
+			Assert::IsFalse(LichessClient::resolveIsWhite("", "opponent", "vgerman256"));
+		}
+
+		// myColor absent AND no username — default white
+		TEST_METHOD(ResolveIsWhite_NoMyColor_NoUsername_DefaultsToWhite)
+		{
+			Assert::IsTrue(LichessClient::resolveIsWhite("", "anyone", ""));
+		}
+
+		// myColor takes priority even when username would disagree
+		TEST_METHOD(ResolveIsWhite_MyColorBlack_IgnoresUsername)
+		{
+			// Username matches white.id but myColor says black — myColor wins
+			Assert::IsFalse(LichessClient::resolveIsWhite("black", "me", "me"));
+		}
 	};
 
 	// -----------------------------------------------------------------------

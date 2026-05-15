@@ -66,14 +66,15 @@ int main(int argc, char* argv[])
 		avatarProvider, &AvatarProvider::randomize);
 
 	auto updateLichessToken = [=]() {
-		lichessClient->setToken(
-			LichessClient::decryptToken(userManager->lichessTokenEncrypted()));
-		};
+		lichessClient->setToken(LichessClient::decryptToken(userManager->lichessTokenEncrypted()));
+		lichessClient->setUsername(userManager->lichessUsername());
+	};
 	QObject::connect(userManager, &UserManager::activeUserChanged, [=]() {
 		avatarProvider->setPlayerFromUser(userManager->activeUserAvatar());
 		updateLichessToken();
 		});
 	QObject::connect(userManager, &UserManager::lichessChanged, updateLichessToken);
+	updateLichessToken(); // load() sets the active user silently — seed the token now
 
 	engine.rootContext()->setContextProperty("chessConnector", connector);
 	engine.rootContext()->setContextProperty("avatarProvider", avatarProvider);

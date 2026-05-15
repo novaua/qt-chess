@@ -12,6 +12,7 @@ public:
 	explicit LichessClient(QObject* parent = nullptr);
 
 	void setToken(const QString& decryptedToken);
+	void setUsername(const QString& username);
 
 	Q_INVOKABLE void validateToken(const QString& token);
 	Q_INVOKABLE void createOpenChallenge(int minutes, int increment);
@@ -25,6 +26,7 @@ public:
 
 	static QString encryptToken(const QString& plaintext);
 	static QString decryptToken(const QString& base64Ciphertext);
+	static bool    resolveIsWhite(const QString& myColor, const QString& whiteId, const QString& username);
 
 	QString currentGameId() const { return _currentGameId; }
 
@@ -42,6 +44,7 @@ private:
 
 	QNetworkAccessManager _nam;
 	QString               _token;
+	QString               _username;
 	QString               _currentGameId;
 	QStringList           _lastMovesList;   // tracks moves seen so far in stream
 	QNetworkReply* _streamReply = nullptr;

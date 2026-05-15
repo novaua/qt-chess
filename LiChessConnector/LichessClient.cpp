@@ -30,6 +30,11 @@ void LichessClient::setToken(const QString& decryptedToken)
     qDebug() << "LichessClient: token" << (_token.isEmpty() ? "cleared" : QString("set(%1 chars)").arg(_token.size()));
 }
 
+void LichessClient::setUsername(const QString& username)
+{
+    _username = username.toLower(); // Lichess IDs are always lowercase
+}
+
 QNetworkRequest LichessClient::makeRequest(const QString& path) const
 {
     qDebug() << "LichessClient: >>" << path
@@ -157,8 +162,11 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
             const QJsonObject black = obj.value(QStringLiteral("black")).toObject();
             const QJsonObject state = obj.value(QStringLiteral("state")).toObject();
 
-            const QString myColor = obj.value(QStringLiteral("myColor")).toString();
-            const bool isWhite = (myColor == QLatin1String("white")) || myColor.isEmpty();
+            const QString myColor  = obj.value(QStringLiteral("myColor")).toString();
+            const QString whiteId  = white.value(QStringLiteral("id")).toString();
+            const bool    isWhite  = resolveIsWhite(myColor, whiteId, _username);
+            qDebug() << "LichessClient: playing as" << (isWhite ? "white" : "black")
+                     << "| myColor=" << myColor << "| whiteId=" << whiteId << "| username=" << _username;
 
             const QJsonObject opponent = isWhite ? black : white;
             const QString opponentName      = opponent.value(QStringLiteral("name")).toString();
@@ -242,6 +250,16 @@ QString LichessClient::gameIdFromUrl(const QString& urlOrId) const
     if (bareId.match(urlOrId.trimmed()).hasMatch())
         return urlOrId.trimmed();
     return {};
+}
+
+// static
+bool LichessClient::resolveIsWhite(const QString& myColor, const QString& whiteId, const QString& username)
+{
+    if (!myColor.isEmpty())
+        return myColor == QLatin1String("white");
+    if (!username.isEmpty())
+        return whiteId == username; // Lichess IDs and stored username are both lowercase
+    return true; // last resort: unknown color, assume white
 }
 
 // static

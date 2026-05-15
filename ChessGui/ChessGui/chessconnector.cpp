@@ -95,6 +95,13 @@ void ChessConnector::figureSelected(int index)
 		return;
 	}
 
+	// In online games only allow moving when it's the local player's turn.
+	if (!_onlineGameId.isEmpty()) {
+		const bool localIsWhite = _config.playerPlaysWhite;
+		if (_game->IsWhiteMove() != localIsWhite)
+			return;
+	}
+
 	//find possible moves for the position and notify IU
 	auto pmString = _possibleMoves[index];
 
