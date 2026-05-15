@@ -270,6 +270,7 @@ ApplicationWindow {
                 visible: gameIsInProgress
                 avatarUrl: avatarProvider.opponentUrl
                 pieces: chessConnector.PlayerPlaysWhite ? chessConnector.CapturedByDark : chessConnector.CapturedByLight
+                isActive: gameIsInProgress && (chessConnector.IsWhiteMove === 1) !== chessConnector.PlayerPlaysWhite
             }
 
             Item {
@@ -300,6 +301,7 @@ ApplicationWindow {
                 visible: gameIsInProgress
                 avatarUrl: avatarProvider.playerUrl
                 pieces: chessConnector.PlayerPlaysWhite ? chessConnector.CapturedByLight : chessConnector.CapturedByDark
+                isActive: gameIsInProgress && (chessConnector.IsWhiteMove === 1) === chessConnector.PlayerPlaysWhite
             }
         }
 
