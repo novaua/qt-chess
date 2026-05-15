@@ -18,6 +18,8 @@ class UserManager : public QObject
     Q_PROPERTY(int          humanWins       READ humanWins       NOTIFY statsChanged)
     Q_PROPERTY(int          computerWins    READ computerWins    NOTIFY statsChanged)
     Q_PROPERTY(QString      statsCreatedDate READ statsCreatedDate NOTIFY statsChanged)
+    Q_PROPERTY(bool         lichessConnected READ lichessConnected NOTIFY lichessChanged)
+    Q_PROPERTY(QString      lichessUsername  READ lichessUsername  NOTIFY lichessChanged)
 
 public:
     struct GameSaveInfo {
@@ -35,10 +37,13 @@ public:
     QString      activeUserAvatar() const;
     int          userCount()        const;
     QVariantList users()            const;
-    int          gamesPlayed()      const;
-    int          humanWins()        const;
-    int          computerWins()     const;
-    QString      statsCreatedDate() const;
+    int          gamesPlayed()          const;
+    int          humanWins()            const;
+    int          computerWins()         const;
+    QString      statsCreatedDate()     const;
+    bool         lichessConnected()     const;
+    QString      lichessUsername()      const;
+    QString      lichessTokenEncrypted() const;   // C++ only — never expose to QML
 
     void recordResult(bool humanWon, bool isComputerGame);
 
@@ -53,11 +58,14 @@ public slots:
     Q_INVOKABLE void login(const QString& userId);
     Q_INVOKABLE void logout();
     Q_INVOKABLE void updateProfile(const QString& name, const QString& avatarName);
+    Q_INVOKABLE void saveLichessCredentials(const QString& encryptedToken, const QString& username);
+    Q_INVOKABLE void clearLichessToken();
 
 signals:
     void usersChanged();
     void activeUserChanged();
     void statsChanged();
+    void lichessChanged();
 
 private:
     struct User {
@@ -70,6 +78,8 @@ private:
         QDate        createdDate;
         GameSaveInfo autoSave;
         GameSaveInfo savedGame;
+        QString      lichessTokenEncrypted;
+        QString      lichessUsername;
     };
 
     QList<User> _users;

@@ -19,9 +19,11 @@ ApplicationWindow {
     property bool   _showGameResult:    false
     property bool   _showSettings:      false
     property bool   _showMoveInput:     false
-    property bool   _showProfile:       false
-    property bool   _showPlayerPicker:  false
+    property bool   _showProfile:             false
+    property bool   _showPlayerPicker:        false
     property bool   _pendingPlayerPlaysWhite: true
+    property bool   _showOnlineDialog:        false
+    property string _onlineGameId:            ""
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     property real   _panelH: _boardSize / 16
 
@@ -332,7 +334,7 @@ ApplicationWindow {
                 ButtonGroup { id: gameModeGroup }
 
                 Grid {
-                    columns: 2
+                    columns: 3
                     spacing: 10
                     anchors.horizontalCenter: parent.horizontalCenter
 
@@ -345,6 +347,11 @@ ApplicationWindow {
                     ModeButton {
                         id: btnTwo
                         text: "Two Player"
+                        ButtonGroup.group: gameModeGroup
+                    }
+                    ModeButton {
+                        id: btnOnline
+                        text: "Online ♟"
                         ButtonGroup.group: gameModeGroup
                     }
                     ModeButton {
@@ -429,6 +436,10 @@ ApplicationWindow {
                             verticalAlignment: Text.AlignVCenter
                         }
                         onClicked: {
+                            if (btnOnline.checked) {
+                                _showOnlineDialog = true
+                                return
+                            }
                             if (btnSingle.checked) {
                                 chessConnector.setPlayerPlaysWhite(btnColorWhite.checked)
                                 screen.state = "screen_4"
@@ -500,6 +511,33 @@ ApplicationWindow {
         }
 
         Connections {
+            target: lichessClient
+
+            function onGameStarted(playingAsWhite, opponentName, opponentAvatarUrl) {
+                var gameId = lichessClient.currentGameId
+                _onlineGameId = gameId
+                chessConnector.startOnlineGame(gameId, playingAsWhite)
+                avatarProvider.setOpponentFromUser(opponentAvatarUrl !== "" ? opponentAvatarUrl : "unicorn")
+                screen.state = "screen_2"
+                gameIsInProgress = true
+                chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
+                _showOnlineDialog = false
+            }
+
+            function onGameEnded(status, winner) {
+                var msg = winner === "white" ? "White Won"
+                        : winner === "black" ? "Black Won" : "Draw"
+                _checkmateWinner = msg
+                resultDialogTimer.start()
+                _onlineGameId = ""
+            }
+
+            function onNetworkError(message) {
+                console.log("Lichess error: " + message)
+            }
+        }
+
+        Connections {
             target: chessConnector
             function onNewGameStarted(isComputerGame) {
                 chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
@@ -556,6 +594,15 @@ ApplicationWindow {
             visible: _showMoveInput
             z: 20
             onCloseRequested: _showMoveInput = false
+        }
+
+        // ── Lichess online dialog ────────────────────────────────────────────
+        LichessGameDialog {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -15
+            visible: _showOnlineDialog
+            z: 20
+            onCloseRequested: _showOnlineDialog = false
         }
 
         // ── Profile dialog ───────────────────────────────────────────────────

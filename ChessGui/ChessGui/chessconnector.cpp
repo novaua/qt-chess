@@ -195,11 +195,47 @@ void ChessConnector::makeMove(int from, int to)
 	{
 		_game->DoMove((BoardPosition)from, (BoardPosition)to);
 		EmitMoveCountUpdates();
+
+		if (!_onlineGameId.isEmpty() && _lichessClient) {
+			const auto& rec = _game->GetGameRecord();
+			if (!rec.empty())
+				_lichessClient->postMove(_onlineGameId,
+				    QString::fromStdString(rec.back().ToUciString()));
+		}
 	}
 	catch (ChessException& ex)
 	{
 		qDebug() << "Exception caught moving [" << from << ", " << to << "]:" << ex.what();
 	}
+}
+
+void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
+{
+	stopEngineThread();
+	_player = nullptr;
+	_gameOver = false;
+	_engineAutoPlay = false;
+	_onlineGameId = gameId;
+
+	_config.playerPlaysWhite = playingAsWhite;
+	emit playerPlaysWhiteChanged();
+
+	_game->Restart();
+	EmitMoveCountUpdates();
+	emit newGameStarted(false);
+
+	if (_lichessClient) {
+		connect(_lichessClient, &LichessClient::opponentMoveReceived,
+		        this, &ChessConnector::applyMoves,
+		        Qt::UniqueConnection);
+	}
+}
+
+void ChessConnector::resignOnlineGame()
+{
+	if (!_onlineGameId.isEmpty() && _lichessClient)
+		_lichessClient->resign(_onlineGameId);
+	_onlineGameId.clear();
 }
 
 void ChessConnector::startNewGame()
@@ -455,8 +491,12 @@ int ChessConnector::IsOnPlayerMode()
 
 void ChessConnector::endGame()
 {
-	if (_game->GetMoveCount() > 0 && !IsOnPlayerMode())
+	if (!_onlineGameId.isEmpty()) {
+		if (_lichessClient) _lichessClient->stopStream();
+		_onlineGameId.clear();
+	} else if (_game->GetMoveCount() > 0 && !IsOnPlayerMode()) {
 		autoSaveGame(_engineWorker != nullptr);
+	}
 
 	stopEngineThread();
 	_player = nullptr;

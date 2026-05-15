@@ -353,6 +353,7 @@
   <ItemGroup>
     <ClCompile Include="AppConfig.cpp" />
     <ClCompile Include="AvatarProvider.cpp" />
+    <ClCompile Include="LichessClient.cpp" />
     <ClCompile Include="UserManager.cpp" />
     <ClCompile Include="chessconnector.cpp" />
     <ClCompile Include="ChessEnginePlayer.cpp" />
@@ -365,6 +366,7 @@
     <ClInclude Include="..\..\ChessCore\Piece.h" />
     <ClInclude Include="AppConfig.h" />
     <QtMoc Include="AvatarProvider.h" />
+    <QtMoc Include="LichessClient.h" />
     <QtMoc Include="UserManager.h" />
     <ClInclude Include="EngineLevel.h" />
     <QtMoc Include="chessconnector.h" />
@@ -424,6 +426,7 @@
     <None Include="qml\CustomSlider.qml" />
     <None Include="qml\EmptyBoardModel.qml" />
     <None Include="qml\GameResultDialog.qml" />
+    <None Include="qml\LichessGameDialog.qml" />
     <None Include="qml\MarkerColumn.qml" />
     <None Include="qml\MarkerRow.qml" />
     <None Include="qml\NavigationLayer.qml" />

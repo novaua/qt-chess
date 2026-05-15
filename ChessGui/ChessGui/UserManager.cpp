@@ -53,6 +53,10 @@ int     UserManager::gamesPlayed()  const { const auto* u = activeUser(); return
 int     UserManager::humanWins()    const { const auto* u = activeUser(); return u ? u->humanWins    : 0; }
 int     UserManager::computerWins() const { const auto* u = activeUser(); return u ? u->computerWins : 0; }
 
+bool    UserManager::lichessConnected()     const { const auto* u = activeUser(); return u && !u->lichessTokenEncrypted.isEmpty(); }
+QString UserManager::lichessUsername()      const { const auto* u = activeUser(); return u ? u->lichessUsername       : QString(); }
+QString UserManager::lichessTokenEncrypted() const { const auto* u = activeUser(); return u ? u->lichessTokenEncrypted : QString(); }
+
 QString UserManager::statsCreatedDate() const
 {
     const auto* u = activeUser();
@@ -131,6 +135,26 @@ void UserManager::setSavedGameInfo(const GameSaveInfo& info)
     if (!u) return;
     u->savedGame = info;
     save();
+}
+
+void UserManager::saveLichessCredentials(const QString& encryptedToken, const QString& username)
+{
+    auto* u = activeUser();
+    if (!u) return;
+    u->lichessTokenEncrypted = encryptedToken;
+    u->lichessUsername       = username;
+    save();
+    emit lichessChanged();
+}
+
+void UserManager::clearLichessToken()
+{
+    auto* u = activeUser();
+    if (!u) return;
+    u->lichessTokenEncrypted.clear();
+    u->lichessUsername.clear();
+    save();
+    emit lichessChanged();
 }
 
 void UserManager::clearAutoSaveInfo()
@@ -213,8 +237,10 @@ void UserManager::load()
         u.gamesPlayed  = stats.value(QStringLiteral("gamesPlayed")).toInt(0);
         u.humanWins    = stats.value(QStringLiteral("humanWins")).toInt(0);
         u.computerWins = stats.value(QStringLiteral("computerWins")).toInt(0);
-        u.autoSave  = saveInfoFromJson(obj.value(QStringLiteral("autoSave")).toObject());
-        u.savedGame = saveInfoFromJson(obj.value(QStringLiteral("savedGame")).toObject());
+        u.autoSave              = saveInfoFromJson(obj.value(QStringLiteral("autoSave")).toObject());
+        u.savedGame             = saveInfoFromJson(obj.value(QStringLiteral("savedGame")).toObject());
+        u.lichessTokenEncrypted = obj.value(QStringLiteral("lichessToken")).toString();
+        u.lichessUsername       = obj.value(QStringLiteral("lichessUsername")).toString();
         if (!u.id.isEmpty() && !u.name.isEmpty())
             _users.append(u);
     }
@@ -235,8 +261,10 @@ void UserManager::save() const
         obj[QStringLiteral("avatarName")]  = u.avatarName;
         obj[QStringLiteral("createdDate")] = u.createdDate.toString(Qt::ISODate);
         obj[QStringLiteral("stats")]       = stats;
-        obj[QStringLiteral("autoSave")]    = saveInfoToJson(u.autoSave);
-        obj[QStringLiteral("savedGame")]   = saveInfoToJson(u.savedGame);
+        obj[QStringLiteral("autoSave")]        = saveInfoToJson(u.autoSave);
+        obj[QStringLiteral("savedGame")]       = saveInfoToJson(u.savedGame);
+        obj[QStringLiteral("lichessToken")]    = u.lichessTokenEncrypted;
+        obj[QStringLiteral("lichessUsername")] = u.lichessUsername;
         usersArray.append(obj);
     }
 

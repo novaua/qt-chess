@@ -111,22 +111,113 @@ Rectangle {
             spacing: 6
             visible: dialog.editMode
 
+            property bool _validating: false
+            property string _lichessStatus: ""   // "" | "ok:username" | "err"
+
+            Connections {
+                target: lichessClient
+                function onTokenValidated(ok, username) {
+                    parent._validating = false
+                    if (ok) {
+                        parent._lichessStatus = "ok:" + username
+                        userManager.saveLichessCredentials(
+                            lichessClient.encryptToken(lichessTokenField.text),
+                            username)
+                    } else {
+                        parent._lichessStatus = "err"
+                    }
+                }
+            }
+
             Text {
                 text: "Lichess Token"
                 font.pixelSize: 13
-                color: isDarkMode ? "#888888" : "#aaaaaa"
+                color: isDarkMode ? "#bbbbbb" : "#555555"
             }
 
-            QQC.TextField {
+            // Show connected state OR token input
+            Column {
                 width: parent.width
-                placeholderText: "Coming soon — multiplayer"
-                enabled: false
-                color: isDarkMode ? "#666666" : "#aaaaaa"
-                background: Rectangle {
-                    radius: 4
-                    color:        isDarkMode ? "#2a2a2a" : "#f8f8f8"
-                    border.color: isDarkMode ? "#444444" : "#dddddd"
-                    border.width: 1
+                spacing: 6
+
+                // Already connected: show username + disconnect button
+                Row {
+                    visible: userManager.lichessConnected && parent.parent._lichessStatus === ""
+                    spacing: 8
+                    Text {
+                        text: "✓ " + userManager.lichessUsername
+                        color: "#27ae60"
+                        font.pixelSize: 13
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Button {
+                        text: "Disconnect"
+                        implicitWidth: 90
+                        implicitHeight: 26
+                        onClicked: {
+                            userManager.clearLichessToken()
+                            parent.parent._lichessStatus = ""
+                        }
+                    }
+                }
+
+                // Token input row
+                Row {
+                    visible: !userManager.lichessConnected || parent.parent._lichessStatus !== ""
+                    width: parent.width
+                    spacing: 6
+
+                    QQC.TextField {
+                        id: lichessTokenField
+                        width: parent.width - validateBtn.width - 6
+                        placeholderText: "Paste your Lichess API token"
+                        echoMode: TextInput.Password
+                        color: isDarkMode ? "#ffffff" : "#000000"
+                        placeholderTextColor: isDarkMode ? "#888" : "#aaa"
+                        background: Rectangle {
+                            radius: 4
+                            color:        isDarkMode ? "#3c3c3c" : "#ffffff"
+                            border.color: lichessTokenField.activeFocus ? "#0078d4"
+                                        : (isDarkMode ? "#555555" : "#cccccc")
+                            border.width: 1
+                        }
+                    }
+
+                    Button {
+                        id: validateBtn
+                        text: "Validate"
+                        implicitWidth: 74
+                        implicitHeight: lichessTokenField.height
+                        enabled: lichessTokenField.text.trim() !== "" && !parent.parent._validating
+                        onClicked: {
+                            parent.parent._validating    = true
+                            parent.parent._lichessStatus = ""
+                            lichessClient.validateToken(lichessTokenField.text.trim())
+                        }
+                    }
+                }
+
+                // Validation status
+                Row {
+                    spacing: 6
+                    visible: parent.parent._validating || parent.parent._lichessStatus !== ""
+
+                    QQC.BusyIndicator {
+                        width: 16; height: 16
+                        running: parent.parent._validating
+                        visible: parent.parent._validating
+                    }
+
+                    Text {
+                        visible: !parent.parent._validating
+                        text: parent.parent._lichessStatus.startsWith("ok:")
+                            ? ("✓ Connected as " + parent.parent._lichessStatus.substring(3))
+                            : "✗ Invalid token"
+                        color: parent.parent._lichessStatus.startsWith("ok:")
+                            ? "#27ae60" : "#e74c3c"
+                        font.pixelSize: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
             }
         }
