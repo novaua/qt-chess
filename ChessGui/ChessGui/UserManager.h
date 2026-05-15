@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QString>
 #include <QVariantList>
+#include "LichessClient.h"
 
 class UserManager : public QObject
 {
@@ -58,7 +59,7 @@ public slots:
     Q_INVOKABLE void login(const QString& userId);
     Q_INVOKABLE void logout();
     Q_INVOKABLE void updateProfile(const QString& name, const QString& avatarName);
-    Q_INVOKABLE void saveLichessCredentials(const QString& encryptedToken, const QString& username);
+    Q_INVOKABLE void saveLichessCredentials(const QString& plainToken, const QString& username);
     Q_INVOKABLE void clearLichessToken();
 
 signals:

@@ -19,55 +19,57 @@ namespace LichessTests
 {
 	TEST_CLASS(LichessStaticTests)
 	{
+		LichessClient _client;
+
 	public:
 
 		// gameIdFromUrl —————————————————————————————————————————————————————
 
 		TEST_METHOD(GameIdFromUrl_FullUrl_ReturnsId)
 		{
-			auto id = LichessClient::gameIdFromUrl("https://lichess.org/AbCdEfGh");
+			auto id = _client.gameIdFromUrl("https://lichess.org/AbCdEfGh");
 			Assert::AreEqual(QString("AbCdEfGh"), id);
 		}
 
 		TEST_METHOD(GameIdFromUrl_FullUrlWithColorSuffix_ReturnsId)
 		{
-			auto id = LichessClient::gameIdFromUrl("https://lichess.org/AbCdEfGh/white");
+			auto id = _client.gameIdFromUrl("https://lichess.org/AbCdEfGh/white");
 			Assert::AreEqual(QString("AbCdEfGh"), id);
 		}
 
 		TEST_METHOD(GameIdFromUrl_BareId_ReturnsSame)
 		{
-			auto id = LichessClient::gameIdFromUrl("AbCdEfGh");
+			auto id = _client.gameIdFromUrl("AbCdEfGh");
 			Assert::AreEqual(QString("AbCdEfGh"), id);
 		}
 
 		TEST_METHOD(GameIdFromUrl_BareIdWithSpaces_ReturnsTrimmed)
 		{
-			auto id = LichessClient::gameIdFromUrl("  AbCdEfGh  ");
+			auto id = _client.gameIdFromUrl("  AbCdEfGh  ");
 			Assert::AreEqual(QString("AbCdEfGh"), id);
 		}
 
 		TEST_METHOD(GameIdFromUrl_TooShort_ReturnsEmpty)
 		{
-			auto id = LichessClient::gameIdFromUrl("AbCdEfG");  // 7 chars
+			auto id = _client.gameIdFromUrl("AbCdEfG");  // 7 chars
 			Assert::IsTrue(id.isEmpty(), L"7-char string should not match");
 		}
 
 		TEST_METHOD(GameIdFromUrl_TooLong_ReturnsEmpty)
 		{
-			auto id = LichessClient::gameIdFromUrl("AbCdEfGhI");  // 9 chars
+			auto id = _client.gameIdFromUrl("AbCdEfGhI");  // 9 chars
 			Assert::IsTrue(id.isEmpty(), L"9-char bare string should not match");
 		}
 
 		TEST_METHOD(GameIdFromUrl_NonAlphanumeric_ReturnsEmpty)
 		{
-			auto id = LichessClient::gameIdFromUrl("Ab!dEfGh");
+			auto id = _client.gameIdFromUrl("Ab!dEfGh");
 			Assert::IsTrue(id.isEmpty(), L"Special chars should not match");
 		}
 
 		TEST_METHOD(GameIdFromUrl_Empty_ReturnsEmpty)
 		{
-			auto id = LichessClient::gameIdFromUrl("");
+			auto id = _client.gameIdFromUrl("");
 			Assert::IsTrue(id.isEmpty());
 		}
 
@@ -76,24 +78,24 @@ namespace LichessTests
 		TEST_METHOD(EncryptDecryptToken_TypicalToken_RoundTrips)
 		{
 			const QString token = "lip_AbCdEf1234567890";
-			const QString cipher = LichessClient::encryptToken(token);
+			const QString cipher = _client.encryptToken(token);
 			Assert::IsFalse(cipher.isEmpty(), L"Encrypted token must not be empty");
 
-			const QString recovered = LichessClient::decryptToken(cipher);
+			const QString recovered = _client.decryptToken(cipher);
 			Assert::AreEqual(token, recovered);
 		}
 
 		TEST_METHOD(DecryptToken_EmptyInput_ReturnsEmpty)
 		{
-			const QString result = LichessClient::decryptToken("");
+			const QString result = _client.decryptToken("");
 			Assert::IsTrue(result.isEmpty());
 		}
 
 		TEST_METHOD(EncryptDecryptToken_SpecialChars_RoundTrips)
 		{
 			const QString token = QString::fromUtf8("tok\xC3\xA9n with spaces & symbols!");
-			const QString cipher = LichessClient::encryptToken(token);
-			const QString recovered = LichessClient::decryptToken(cipher);
+			const QString cipher = _client.encryptToken(token);
+			const QString recovered = _client.decryptToken(cipher);
 			Assert::AreEqual(token, recovered);
 		}
 	};

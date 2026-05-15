@@ -33,7 +33,7 @@ Rectangle {
             dialog._statusText = "Waiting for opponent…"
         }
 
-        function onGameStarted(playingAsWhite, opponentName, opponentAvatarUrl) {
+        function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
             dialog._waiting    = false
             dialog._statusText = ""
             dialog.closeRequested()

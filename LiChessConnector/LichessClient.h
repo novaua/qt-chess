@@ -21,16 +21,17 @@ public:
 	Q_INVOKABLE void resign(const QString& gameId);
 	Q_INVOKABLE void stopStream();
 
+	Q_INVOKABLE QString gameIdFromUrl(const QString& urlOrId) const;
+
 	static QString encryptToken(const QString& plaintext);
 	static QString decryptToken(const QString& base64Ciphertext);
-	static QString gameIdFromUrl(const QString& urlOrId);
 
 	QString currentGameId() const { return _currentGameId; }
 
 signals:
 	void tokenValidated(bool ok, QString username);
 	void challengeCreated(QString gameId, QString joinUrl);
-	void gameStarted(bool playingAsWhite, QString opponentName, QString opponentAvatarUrl);
+	void gameStarted(QString gameId, bool playingAsWhite, QString opponentName, QString opponentAvatarUrl);
 	void opponentMoveReceived(QString uciMove);
 	void gameEnded(QString status, QString winner);
 	void networkError(QString message);

@@ -308,7 +308,7 @@ ApplicationWindow {
             id: startMenu
             anchors.centerIn: parent
             anchors.verticalCenterOffset: -15
-            width: 340
+            width: 360
             height: menuContent.implicitHeight + 48
             visible: screen.state === "screen_1"
             color: root.isDarkMode ? "#252525" : "#f4f4f4"
@@ -333,38 +333,46 @@ ApplicationWindow {
                 // Game mode radio group
                 ButtonGroup { id: gameModeGroup }
 
-                Grid {
-                    columns: 3
+                Column {
                     spacing: 10
                     anchors.horizontalCenter: parent.horizontalCenter
 
-                    ModeButton {
-                        id: btnSingle
-                        text: "Single Player"
-                        ButtonGroup.group: gameModeGroup
-                        checked: true
+                    Row {
+                        spacing: 10
+                        ModeButton {
+                            id: btnSingle
+                            text: "Single Player"
+                            ButtonGroup.group: gameModeGroup
+                            checked: true
+                        }
+                        ModeButton {
+                            id: btnTwo
+                            text: "Two Player"
+                            ButtonGroup.group: gameModeGroup
+                        }
                     }
-                    ModeButton {
-                        id: btnTwo
-                        text: "Two Player"
-                        ButtonGroup.group: gameModeGroup
-                    }
+
                     ModeButton {
                         id: btnOnline
                         text: "Online ♟"
+                        implicitWidth: 310
                         ButtonGroup.group: gameModeGroup
                     }
-                    ModeButton {
-                        id: btnContinue
-                        text: "Continue"
-                        ButtonGroup.group: gameModeGroup
-                        enabled: chessConnector.CanContinue
-                    }
-                    ModeButton {
-                        id: btnLoad
-                        text: "Load"
-                        ButtonGroup.group: gameModeGroup
-                        enabled: chessConnector.CanLoad
+
+                    Row {
+                        spacing: 10
+                        ModeButton {
+                            id: btnContinue
+                            text: "Continue"
+                            ButtonGroup.group: gameModeGroup
+                            enabled: chessConnector.CanContinue
+                        }
+                        ModeButton {
+                            id: btnLoad
+                            text: "Load"
+                            ButtonGroup.group: gameModeGroup
+                            enabled: chessConnector.CanLoad
+                        }
                     }
                 }
 
@@ -513,8 +521,7 @@ ApplicationWindow {
         Connections {
             target: lichessClient
 
-            function onGameStarted(playingAsWhite, opponentName, opponentAvatarUrl) {
-                var gameId = lichessClient.currentGameId
+            function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
                 _onlineGameId = gameId
                 chessConnector.startOnlineGame(gameId, playingAsWhite)
                 avatarProvider.setOpponentFromUser(opponentAvatarUrl !== "" ? opponentAvatarUrl : "unicorn")
@@ -525,15 +532,29 @@ ApplicationWindow {
             }
 
             function onGameEnded(status, winner) {
-                var msg = winner === "white" ? "White Won"
-                        : winner === "black" ? "Black Won" : "Draw"
-                _checkmateWinner = msg
-                resultDialogTimer.start()
+                lichessClient.stopStream()
                 _onlineGameId = ""
+
+                var who = winner === "white" ? "White"
+                        : winner === "black" ? "Black" : ""
+                var reason = status === "mate"      ? " by Checkmate"
+                           : status === "resign"    ? " by Resignation"
+                           : status === "outoftime" ? " on Time"
+                           : ""
+
+                if (status === "aborted") {
+                    _checkmateWinner = "Game Aborted"
+                } else if (who !== "") {
+                    _checkmateWinner = who + " Won" + reason
+                } else {
+                    _checkmateWinner = "Draw"
+                }
+                resultDialogTimer.start()
             }
 
             function onNetworkError(message) {
-                console.log("Lichess error: " + message)
+                if (_onlineGameId !== "")
+                    networkErrorBanner.show(message)
             }
         }
 
@@ -594,6 +615,45 @@ ApplicationWindow {
             visible: _showMoveInput
             z: 20
             onCloseRequested: _showMoveInput = false
+        }
+
+        // ── Lichess network error banner ─────────────────────────────────────
+        Rectangle {
+            id: networkErrorBanner
+            anchors { top: parent.top; topMargin: 8; horizontalCenter: parent.horizontalCenter }
+            width: Math.min(parent.width - 32, 420)
+            height: bannerText.implicitHeight + 20
+            radius: 8
+            color: "#c0392b"
+            visible: false
+            z: 30
+
+            function show(msg) {
+                bannerText.text = "⚠ " + msg
+                visible = true
+                bannerTimer.restart()
+            }
+
+            Text {
+                id: bannerText
+                anchors { centerIn: parent; margins: 10 }
+                width: parent.width - 20
+                color: "#ffffff"
+                font.pixelSize: 13
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Timer {
+                id: bannerTimer
+                interval: 4000
+                onTriggered: networkErrorBanner.visible = false
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: networkErrorBanner.visible = false
+            }
         }
 
         // ── Lichess online dialog ────────────────────────────────────────────

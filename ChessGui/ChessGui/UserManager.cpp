@@ -137,11 +137,11 @@ void UserManager::setSavedGameInfo(const GameSaveInfo& info)
     save();
 }
 
-void UserManager::saveLichessCredentials(const QString& encryptedToken, const QString& username)
+void UserManager::saveLichessCredentials(const QString& plainToken, const QString& username)
 {
     auto* u = activeUser();
     if (!u) return;
-    u->lichessTokenEncrypted = encryptedToken;
+    u->lichessTokenEncrypted = LichessClient::encryptToken(plainToken);
     u->lichessUsername       = username;
     save();
     emit lichessChanged();

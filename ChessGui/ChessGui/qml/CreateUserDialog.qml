@@ -105,8 +105,9 @@ Rectangle {
             }
         }
 
-        // Lichess token row (profile mode only, grayed out)
+        // Lichess token row (profile mode only)
         Column {
+            id: lichessSection
             width: parent.width
             spacing: 6
             visible: dialog.editMode
@@ -117,14 +118,14 @@ Rectangle {
             Connections {
                 target: lichessClient
                 function onTokenValidated(ok, username) {
-                    parent._validating = false
+                    lichessSection._validating = false
                     if (ok) {
-                        parent._lichessStatus = "ok:" + username
+                        lichessSection._lichessStatus = "ok:" + username
                         userManager.saveLichessCredentials(
-                            lichessClient.encryptToken(lichessTokenField.text),
+                            lichessTokenField.text,
                             username)
                     } else {
-                        parent._lichessStatus = "err"
+                        lichessSection._lichessStatus = "err"
                     }
                 }
             }
@@ -142,7 +143,7 @@ Rectangle {
 
                 // Already connected: show username + disconnect button
                 Row {
-                    visible: userManager.lichessConnected && parent.parent._lichessStatus === ""
+                    visible: userManager.lichessConnected && lichessSection._lichessStatus === ""
                     spacing: 8
                     Text {
                         text: "✓ " + userManager.lichessUsername
@@ -156,14 +157,14 @@ Rectangle {
                         implicitHeight: 26
                         onClicked: {
                             userManager.clearLichessToken()
-                            parent.parent._lichessStatus = ""
+                            lichessSection._lichessStatus = ""
                         }
                     }
                 }
 
                 // Token input row
                 Row {
-                    visible: !userManager.lichessConnected || parent.parent._lichessStatus !== ""
+                    visible: !userManager.lichessConnected || lichessSection._lichessStatus !== ""
                     width: parent.width
                     spacing: 6
 
@@ -188,10 +189,10 @@ Rectangle {
                         text: "Validate"
                         implicitWidth: 74
                         implicitHeight: lichessTokenField.height
-                        enabled: lichessTokenField.text.trim() !== "" && !parent.parent._validating
+                        enabled: lichessTokenField.text.trim() !== "" && !lichessSection._validating
                         onClicked: {
-                            parent.parent._validating    = true
-                            parent.parent._lichessStatus = ""
+                            lichessSection._validating    = true
+                            lichessSection._lichessStatus = ""
                             lichessClient.validateToken(lichessTokenField.text.trim())
                         }
                     }
@@ -200,20 +201,20 @@ Rectangle {
                 // Validation status
                 Row {
                     spacing: 6
-                    visible: parent.parent._validating || parent.parent._lichessStatus !== ""
+                    visible: lichessSection._validating || lichessSection._lichessStatus !== ""
 
                     QQC.BusyIndicator {
                         width: 16; height: 16
-                        running: parent.parent._validating
-                        visible: parent.parent._validating
+                        running: lichessSection._validating
+                        visible: lichessSection._validating
                     }
 
                     Text {
-                        visible: !parent.parent._validating
-                        text: parent.parent._lichessStatus.startsWith("ok:")
-                            ? ("✓ Connected as " + parent.parent._lichessStatus.substring(3))
+                        visible: !lichessSection._validating
+                        text: lichessSection._lichessStatus.startsWith("ok:")
+                            ? ("✓ Connected as " + lichessSection._lichessStatus.substring(3))
                             : "✗ Invalid token"
-                        color: parent.parent._lichessStatus.startsWith("ok:")
+                        color: lichessSection._lichessStatus.startsWith("ok:")
                             ? "#27ae60" : "#e74c3c"
                         font.pixelSize: 12
                         anchors.verticalCenter: parent.verticalCenter

@@ -18,15 +18,22 @@ static const QString kBaseUrl = QStringLiteral("https://lichess.org");
 
 LichessClient::LichessClient(QObject* parent)
     : QObject(parent)
-{}
+{
+    // Prevent Qt from intercepting 401 responses and overriding our Bearer token.
+    connect(&_nam, &QNetworkAccessManager::authenticationRequired,
+            [](QNetworkReply* reply, QAuthenticator*) { reply->abort(); });
+}
 
 void LichessClient::setToken(const QString& decryptedToken)
 {
     _token = decryptedToken;
+    qDebug() << "LichessClient: token" << (_token.isEmpty() ? "cleared" : "set, length=" + QString::number(_token.size()));
 }
 
 QNetworkRequest LichessClient::makeRequest(const QString& path) const
 {
+    qDebug() << "LichessClient: >>" << path
+             << "| token:" << (_token.isEmpty() ? "MISSING" : QString("set(%1 chars)").arg(_token.size()));
     QNetworkRequest req(QUrl(kBaseUrl + path));
     if (!_token.isEmpty())
         req.setRawHeader("Authorization", ("Bearer " + _token).toUtf8());
@@ -96,8 +103,12 @@ void LichessClient::acceptChallenge(const QString& challengeId)
         QByteArray());
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, challengeId]() {
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray body = reply->readAll();
+        qDebug() << "LichessClient: accept" << challengeId
+                 << "| HTTP" << status << "| error:" << reply->error()
+                 << "| body:" << body.left(200);
         reply->deleteLater();
-        // Ignore errors — challenge may already be a started game; proceed to stream
         streamGame(challengeId);
     });
 }
@@ -115,11 +126,18 @@ void LichessClient::streamGame(const QString& gameId)
     _streamReply = _nam.get(req);
 
     connect(_streamReply, &QNetworkReply::readyRead, this, [this]() {
+        const int status = _streamReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "LichessClient: stream readyRead | HTTP" << status;
         handleStreamData(_streamReply);
     });
 
     connect(_streamReply, &QNetworkReply::errorOccurred, this,
-            [this](QNetworkReply::NetworkError) {
+            [this](QNetworkReply::NetworkError code) {
+                const int status = _streamReply
+                    ? _streamReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() : 0;
+                qDebug() << "LichessClient: stream error | HTTP" << status
+                         << "| code:" << code
+                         << "|" << (_streamReply ? _streamReply->errorString() : "no reply");
                 if (_streamReply)
                     emit networkError(_streamReply->errorString());
             });
@@ -129,6 +147,7 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
 {
     while (reply->canReadLine()) {
         const QByteArray line = reply->readLine().trimmed();
+        qDebug() << "LichessClient: stream line:" << line.left(300);
         if (line.isEmpty()) continue;
 
         const auto doc = QJsonDocument::fromJson(line);
@@ -142,14 +161,6 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
             const QJsonObject black = obj.value(QStringLiteral("black")).toObject();
             const QJsonObject state = obj.value(QStringLiteral("state")).toObject();
 
-            // Determine our color from the token's account — use the id fields
-            // We compare against our Lichess username stored via setToken flow;
-            // since we don't have username here, we treat the creator as white for now.
-            // The QML layer receives playingAsWhite from the gameStarted signal.
-            // A future improvement: store username in LichessClient and compare.
-            const bool playingAsWhite = true; // overridden by accept flow below
-
-            // Actually determine color via the "me" field Lichess provides in open challenges
             const QString myColor = obj.value(QStringLiteral("myColor")).toString();
             const bool isWhite = (myColor == QLatin1String("white")) || myColor.isEmpty();
 
@@ -157,13 +168,13 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
             const QString opponentName      = opponent.value(QStringLiteral("name")).toString();
             const QString opponentAvatarUrl = {}; // Lichess doesn't provide avatar in stream
 
-            // Apply any moves that were played before we started streaming (shouldn't happen
-            // for fresh games but handle rejoin case).
-            _lastMovesList = state.value(QStringLiteral("moves")).toString();
-            if (!_lastMovesList.trimmed().isEmpty())
-                emit opponentMoveReceived(_lastMovesList.trimmed());
+            // Emit gameStarted first so the board is initialized before any moves are applied.
+            _lastMovesList = state.value(QStringLiteral("moves")).toString().trimmed();
+            emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl);
 
-            emit gameStarted(isWhite, opponentName, opponentAvatarUrl);
+            // Replay moves already on the board when joining mid-game (rejoin / late connect).
+            if (!_lastMovesList.isEmpty())
+                emit opponentMoveReceived(_lastMovesList);
 
         } else if (type == QLatin1String("gameState")) {
             const QString moves  = obj.value(QStringLiteral("moves")).toString();
@@ -190,6 +201,11 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
 
 void LichessClient::postMove(const QString& gameId, const QString& uciMove)
 {
+    // Pre-track our own move so the stream echo doesn't re-apply it.
+    _lastMovesList = _lastMovesList.isEmpty()
+        ? uciMove
+        : _lastMovesList + QLatin1Char(' ') + uciMove;
+
     auto* reply = _nam.post(
         makeRequest(QStringLiteral("/api/board/game/") + gameId
                     + QStringLiteral("/move/") + uciMove),
@@ -222,8 +238,7 @@ void LichessClient::stopStream()
     _lastMovesList.clear();
 }
 
-// static
-QString LichessClient::gameIdFromUrl(const QString& urlOrId)
+QString LichessClient::gameIdFromUrl(const QString& urlOrId) const
 {
     // Matches: https://lichess.org/XXXXXXXX  or  https://lichess.org/XXXXXXXX/white
     // Also accepts a bare 8-char ID.
@@ -239,7 +254,7 @@ QString LichessClient::gameIdFromUrl(const QString& urlOrId)
     return {};
 }
 
-// static — DPAPI (Windows only)
+// static
 QString LichessClient::encryptToken(const QString& plaintext)
 {
 #ifdef WIN32
