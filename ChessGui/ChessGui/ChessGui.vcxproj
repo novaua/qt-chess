@@ -183,7 +183,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;.;$(SolutionDir)\ChessCore;release;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;$(SolutionDir)\LiChessConnector;.;$(SolutionDir)\ChessCore;release;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Zc:strictStrings -w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>release\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -296,7 +296,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;.;$(SolutionDir)\ChessCore;debug;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;$(SolutionDir)\LiChessConnector;.;$(SolutionDir)\ChessCore;debug;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>debug\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -353,7 +353,6 @@
   <ItemGroup>
     <ClCompile Include="AppConfig.cpp" />
     <ClCompile Include="AvatarProvider.cpp" />
-    <ClCompile Include="LichessClient.cpp" />
     <ClCompile Include="UserManager.cpp" />
     <ClCompile Include="chessconnector.cpp" />
     <ClCompile Include="ChessEnginePlayer.cpp" />
@@ -362,11 +361,9 @@
     <ClCompile Include="..\..\ChessCore\stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\ChessCore\ChessEnginePlayer.h" />
     <ClInclude Include="..\..\ChessCore\Piece.h" />
     <ClInclude Include="AppConfig.h" />
     <QtMoc Include="AvatarProvider.h" />
-    <QtMoc Include="LichessClient.h" />
     <QtMoc Include="UserManager.h" />
     <ClInclude Include="EngineLevel.h" />
     <QtMoc Include="chessconnector.h" />
@@ -441,6 +438,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\ChessCore\ChessCore.vcxproj">
       <Project>{113a444b-2f1c-4b33-9905-41a466ffef7f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\LiChessConnector\LiChessConnector.vcxproj">
+      <Project>{2ed0175f-4de2-440a-965e-04b2f1e4e3c0}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\UciConnector\UciConnector.vcxproj">
       <Project>{bb742a5a-2729-45f2-90c1-2fa70de41600}</Project>

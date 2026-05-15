@@ -199,13 +199,6 @@
     </ClCompile>
     <ClCompile Include="BasicTest.cpp" />
     <ClCompile Include="UciConnectorTest.cpp" />
-    <ClCompile Include="LichessClientTest.cpp" />
-    <ClCompile Include="$(SolutionDir)\ChessGui\ChessGui\LichessClient.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <QtMoc Include="$(SolutionDir)\ChessGui\ChessGui\LichessClient.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ChessCore\ChessCore.vcxproj">

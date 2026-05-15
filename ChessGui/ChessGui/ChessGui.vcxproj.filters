@@ -84,10 +84,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UserManager.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="LichessClient.cpp">
-      <Filter>Generated Files</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -105,9 +102,6 @@
     </ClInclude>
     <ClInclude Include="..\..\ChessCore\targetver.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ChessCore\ChessEnginePlayer.h">
-      <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="EngineLevel.h">
       <Filter>Header Files</Filter>
@@ -303,9 +297,6 @@
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="UserManager.h">
-      <Filter>Generated Files</Filter>
-    </QtMoc>
-    <QtMoc Include="LichessClient.h">
       <Filter>Generated Files</Filter>
     </QtMoc>
   </ItemGroup>
