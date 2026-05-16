@@ -92,33 +92,82 @@ Rectangle {
             width: parent.width
             spacing: 16
 
-            // ── Create game ─────────────────────────────────────────────────
+            // ── Challenge a Friend ──────────────────────────────────────────
             Column {
                 width: parent.width
                 spacing: 8
 
                 Text {
-                    text: "Create Game"
+                    text: "Game setup"
                     font.pixelSize: 15
                     font.bold: true
                     color: isDarkMode ? "#ffffff" : "#000000"
                 }
 
+                // Game type
+                Text {
+                    text: "Game type"
+                    font.pixelSize: 12
+                    color: isDarkMode ? "#aaaaaa" : "#666666"
+                }
+
+                QQC.ComboBox {
+                    id: comboVariant
+                    model: ["Standard", "Chess960"]
+                    implicitWidth: 140
+                    implicitHeight: 30
+                    contentItem: Text {
+                        leftPadding: 8
+                        text: comboVariant.displayText
+                        font: comboVariant.font
+                        color: isDarkMode ? "#ffffff" : "#000000"
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    background: Rectangle {
+                        radius: 4
+                        color: isDarkMode ? "#3c3c3c" : "#ffffff"
+                        border.color: isDarkMode ? "#555555" : "#cccccc"
+                        border.width: 1
+                    }
+                    popup: QQC.Popup {
+                        y: comboVariant.height
+                        width: comboVariant.width
+                        padding: 1
+                        contentItem: ListView {
+                            clip: true
+                            implicitHeight: contentHeight
+                            model: comboVariant.delegateModel
+                        }
+                        background: Rectangle {
+                            color: isDarkMode ? "#3c3c3c" : "#ffffff"
+                            border.color: isDarkMode ? "#555555" : "#cccccc"
+                            border.width: 1
+                            radius: 4
+                        }
+                    }
+                }
+
+                // Time control
+                Text {
+                    text: "Time control"
+                    font.pixelSize: 12
+                    color: isDarkMode ? "#aaaaaa" : "#666666"
+                }
+
                 Row {
-                    spacing: 8
-                    QQC.ButtonGroup { id: tcGroup }
+                    spacing: 6
+                    QQC.ButtonGroup { id: tcTypeGroup }
 
                     Repeater {
-                        model: [{ label: "1+0", min: 1, inc: 0 },
-                                { label: "3+2", min: 3, inc: 2 },
-                                { label: "10+0", min: 10, inc: 0 }]
+                        model: [{ label: "Unlimited", realTime: false },
+                                { label: "Real time",  realTime: true  }]
                         delegate: QQC.Button {
                             text: modelData.label
                             checkable: true
-                            checked: index === 2
-                            QQC.ButtonGroup.group: tcGroup
-                            implicitWidth: 64
-                            implicitHeight: 30
+                            checked: index === 0
+                            QQC.ButtonGroup.group: tcTypeGroup
+                            implicitWidth: 84
+                            implicitHeight: 28
                             background: Rectangle {
                                 radius: 4
                                 color: parent.checked ? "#0078d4"
@@ -131,7 +180,91 @@ Rectangle {
                                 text: parent.text
                                 color: parent.checked ? "#ffffff"
                                      : (isDarkMode ? "#ffffff" : "#000000")
-                                font: parent.font
+                                font.pixelSize: 12
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment:   Text.AlignVCenter
+                            }
+                        }
+                    }
+                }
+
+                // Preset time controls — shown only for Real time
+                Row {
+                    visible: tcTypeGroup.checkedButton !== null
+                             && tcTypeGroup.checkedButton.text === "Real time"
+                    spacing: 6
+                    QQC.ButtonGroup { id: tcGroup }
+
+                    Repeater {
+                        id: tcChips
+                        model: [{ label: "1+0",   min: 1,  inc: 0 },
+                                { label: "3+2",   min: 3,  inc: 2 },
+                                { label: "5+3",   min: 5,  inc: 3 },
+                                { label: "10+0",  min: 10, inc: 0 },
+                                { label: "15+10", min: 15, inc: 10 }]
+                        delegate: QQC.Button {
+                            text: modelData.label
+                            checkable: true
+                            checked: index === 2
+                            QQC.ButtonGroup.group: tcGroup
+                            implicitWidth: 54
+                            implicitHeight: 28
+                            background: Rectangle {
+                                radius: 4
+                                color: parent.checked ? "#0078d4"
+                                     : parent.down ? (isDarkMode ? "#282828" : "#c0c0c0")
+                                     : (isDarkMode ? "#3c3c3c" : "#e0e0e0")
+                                border.color: parent.checked ? "#005a9e"
+                                            : (isDarkMode ? "#555555" : "#bbbbbb")
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: parent.checked ? "#ffffff"
+                                     : (isDarkMode ? "#ffffff" : "#000000")
+                                font.pixelSize: 12
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment:   Text.AlignVCenter
+                            }
+                        }
+                    }
+                }
+
+                // Side selection
+                Text {
+                    text: "Side"
+                    font.pixelSize: 12
+                    color: isDarkMode ? "#aaaaaa" : "#666666"
+                }
+
+                Row {
+                    spacing: 6
+                    QQC.ButtonGroup { id: colorGroup }
+
+                    Repeater {
+                        id: colorChips
+                        model: [{ label: "Random ⇄", value: "random" },
+                                { label: "White ♔",  value: "white"  },
+                                { label: "Black ♚",  value: "black"  }]
+                        delegate: QQC.Button {
+                            text: modelData.label
+                            checkable: true
+                            checked: index === 0
+                            QQC.ButtonGroup.group: colorGroup
+                            implicitWidth: 80
+                            implicitHeight: 28
+                            background: Rectangle {
+                                radius: 4
+                                color: parent.checked ? "#0078d4"
+                                     : parent.down ? (isDarkMode ? "#282828" : "#c0c0c0")
+                                     : (isDarkMode ? "#3c3c3c" : "#e0e0e0")
+                                border.color: parent.checked ? "#005a9e"
+                                            : (isDarkMode ? "#555555" : "#bbbbbb")
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: parent.checked ? "#ffffff"
+                                     : (isDarkMode ? "#ffffff" : "#000000")
+                                font.pixelSize: 12
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment:   Text.AlignVCenter
                             }
@@ -140,8 +273,8 @@ Rectangle {
                 }
 
                 Button {
-                    text: "Create & Share"
-                    implicitWidth: 130
+                    text: "Challenge a Friend"
+                    implicitWidth: 160
                     implicitHeight: 32
                     enabled: !dialog._waiting
                     font.bold: true
@@ -160,15 +293,32 @@ Rectangle {
                         verticalAlignment:   Text.AlignVCenter
                     }
                     onClicked: {
-                        // Find checked time control
-                        for (var i = 0; i < tcGroup.buttons.length; i++) {
-                            if (tcGroup.buttons[i].checked) {
-                                var mins = [1, 3, 10][i]
-                                var inc  = [0, 2, 0][i]
-                                lichessClient.createOpenChallenge(mins, inc)
+                        var isRealTime = tcTypeGroup.checkedButton !== null
+                                        && tcTypeGroup.checkedButton.text === "Real time"
+                        var mins = 0
+                        var inc  = 0
+                        if (isRealTime) {
+                            var minsArr = [1, 3, 5, 10, 15]
+                            var incArr  = [0, 2, 3,  0, 10]
+                            for (var i = 0; i < tcGroup.buttons.length; i++) {
+                                if (tcGroup.buttons[i].checked) {
+                                    mins = minsArr[i]
+                                    inc  = incArr[i]
+                                    break
+                                }
+                            }
+                        }
+                        var colorValues = ["random", "white", "black"]
+                        var chosenColor = "random"
+                        for (var j = 0; j < colorGroup.buttons.length; j++) {
+                            if (colorGroup.buttons[j].checked) {
+                                chosenColor = colorValues[j]
                                 break
                             }
                         }
+                        var variantValues = ["standard", "chess960"]
+                        var chosenVariant = variantValues[comboVariant.currentIndex] || "standard"
+                        lichessClient.createOpenChallenge(mins, inc, chosenColor, chosenVariant)
                     }
                 }
 

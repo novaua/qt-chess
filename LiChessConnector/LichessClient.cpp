@@ -70,30 +70,54 @@ void LichessClient::validateToken(const QString& token)
     });
 }
 
-void LichessClient::createOpenChallenge(int minutes, int increment)
+void LichessClient::createOpenChallenge(int minutes, int increment, const QString& color, const QString& variant)
 {
     QUrlQuery body;
-    body.addQueryItem(QStringLiteral("clock.limit"),     QString::number(minutes * 60));
-    body.addQueryItem(QStringLiteral("clock.increment"), QString::number(increment));
+    if (minutes > 0) {
+        body.addQueryItem(QStringLiteral("clock.limit"),     QString::number(minutes * 60));
+        body.addQueryItem(QStringLiteral("clock.increment"), QString::number(increment));
+    }
+    body.addQueryItem(QStringLiteral("color"),   color);
+    body.addQueryItem(QStringLiteral("variant"), variant);
 
     auto* reply = _nam.post(makeRequest(QStringLiteral("/api/challenge/open")),
                             body.toString(QUrl::FullyEncoded).toUtf8());
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, color]() {
         reply->deleteLater();
+        const QByteArray raw = reply->readAll();
+        const int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "LichessClient: createOpenChallenge HTTP" << httpStatus << raw.left(500);
+
         if (reply->error() != QNetworkReply::NoError) {
             emit networkError(reply->errorString());
             return;
         }
-        const auto doc = QJsonDocument::fromJson(reply->readAll());
-        if (doc.isNull()) { emit networkError(QStringLiteral("Invalid response")); return; }
 
-        const QJsonObject challenge = doc.object().value(QStringLiteral("challenge")).toObject();
-        const QString gameId  = challenge.value(QStringLiteral("id")).toString();
-        // urlWhite is for white player, urlBlack for black — we give the joiner whichever they click
-        const QString joinUrl = challenge.value(QStringLiteral("url")).toString();
+        const auto doc = QJsonDocument::fromJson(raw);
+        if (doc.isNull() || !doc.isObject()) { emit networkError(QStringLiteral("Invalid response")); return; }
 
+        const QJsonObject root = doc.object();
+
+        // Lichess returns application-level errors as {"error":"..."} with HTTP 200
+        const QString apiError = root.value(QStringLiteral("error")).toString();
+        if (!apiError.isEmpty()) { emit networkError(apiError); return; }
+
+        const QString gameId = root.value(QStringLiteral("id")).toString();
         if (gameId.isEmpty()) { emit networkError(QStringLiteral("No game ID in response")); return; }
+
+        // All URL fields are at the root level of the response.
+        // Give the friend the URL for their side:
+        //   creator=white → friend plays black → urlBlack
+        //   creator=black → friend plays white → urlWhite
+        //   random        → base url (random assignment)
+        QString joinUrl;
+        if (color == QLatin1String("white"))
+            joinUrl = root.value(QStringLiteral("urlBlack")).toString();
+        else if (color == QLatin1String("black"))
+            joinUrl = root.value(QStringLiteral("urlWhite")).toString();
+        if (joinUrl.isEmpty())
+            joinUrl = root.value(QStringLiteral("url")).toString();
 
         _currentGameId = gameId;
         emit challengeCreated(gameId, joinUrl);

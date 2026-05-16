@@ -15,7 +15,7 @@ public:
 	void setUsername(const QString& username);
 
 	Q_INVOKABLE void validateToken(const QString& token);
-	Q_INVOKABLE void createOpenChallenge(int minutes, int increment);
+	Q_INVOKABLE void createOpenChallenge(int minutes, int increment, const QString& color, const QString& variant);
 	Q_INVOKABLE void acceptChallenge(const QString& challengeId);
 	Q_INVOKABLE void streamGame(const QString& gameId);
 	Q_INVOKABLE void postMove(const QString& gameId, const QString& uciMove);
