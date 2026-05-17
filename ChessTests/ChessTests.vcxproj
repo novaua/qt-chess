@@ -60,19 +60,19 @@
   <Import Project="$(QtMsBuild)\qt_defaults.props" Condition="Exists('$(QtMsBuild)\qt_defaults.props')" />
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <QtInstall>$(DefaultQtVersion)</QtInstall>
-    <QtModules>core</QtModules>
+    <QtModules>core;network</QtModules>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <QtInstall>$(DefaultQtVersion)</QtInstall>
-    <QtModules>core</QtModules>
+    <QtModules>core;network</QtModules>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <QtInstall>$(DefaultQtVersion)</QtInstall>
-    <QtModules>core</QtModules>
+    <QtModules>core;network</QtModules>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <QtInstall>$(DefaultQtVersion)</QtInstall>
-    <QtModules>core</QtModules>
+    <QtModules>core;network</QtModules>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') OR !Exists('$(QtMsBuild)\Qt.props')">
     <Message Importance="High" Text="QtMsBuild: could not locate qt.targets, qt.props; project may not build correctly." />
@@ -116,7 +116,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;$(SolutionDir)\ChessCore;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -132,7 +132,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;$(SolutionDir)\ChessCore;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -151,7 +151,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;$(SolutionDir)\ChessCore;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -171,7 +171,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;$(SolutionDir)\ChessCore;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\UciConnector;$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -198,14 +198,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="BasicTest.cpp" />
-    <ClCompile Include="UciConnectorTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ChessCore\ChessCore.vcxproj">
       <Project>{113a444b-2f1c-4b33-9905-41a466ffef7f}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\UciConnector\UciConnector.vcxproj">
-      <Project>{bb742a5a-2729-45f2-90c1-2fa70de41600}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

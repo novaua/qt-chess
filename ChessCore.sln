@@ -28,6 +28,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		vcpkg.json = vcpkg.json
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChessQtTests", "ChessQtTests\ChessQtTests.vcxproj", "{533063EE-56BB-426C-9618-67C5BC8E2C9E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LiChessConnector", "LiChessConnector\LiChessConnector.vcxproj", "{2ED0175F-4DE2-440A-965E-04B2F1E4E3C0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -50,6 +54,14 @@ Global
 		{BB742A5A-2729-45F2-90C1-2FA70DE41600}.Debug|x64.Build.0 = Debug|x64
 		{BB742A5A-2729-45F2-90C1-2FA70DE41600}.Release|x64.ActiveCfg = Release|x64
 		{BB742A5A-2729-45F2-90C1-2FA70DE41600}.Release|x64.Build.0 = Release|x64
+		{533063EE-56BB-426C-9618-67C5BC8E2C9E}.Debug|x64.ActiveCfg = Debug|x64
+		{533063EE-56BB-426C-9618-67C5BC8E2C9E}.Debug|x64.Build.0 = Debug|x64
+		{533063EE-56BB-426C-9618-67C5BC8E2C9E}.Release|x64.ActiveCfg = Release|x64
+		{533063EE-56BB-426C-9618-67C5BC8E2C9E}.Release|x64.Build.0 = Release|x64
+		{2ED0175F-4DE2-440A-965E-04B2F1E4E3C0}.Debug|x64.ActiveCfg = Debug|x64
+		{2ED0175F-4DE2-440A-965E-04B2F1E4E3C0}.Debug|x64.Build.0 = Debug|x64
+		{2ED0175F-4DE2-440A-965E-04B2F1E4E3C0}.Release|x64.ActiveCfg = Release|x64
+		{2ED0175F-4DE2-440A-965E-04B2F1E4E3C0}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

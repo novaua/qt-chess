@@ -1,8 +1,10 @@
 <RCC>
     <qresource prefix="/">
         <file>qml/ApplyMovesDialog.qml</file>
+        <file>qml/ChallengeDialog.qml</file>
         <file>qml/CreateUserDialog.qml</file>
         <file>qml/UserLoginScreen.qml</file>
+        <file>qml/LichessGameDialog.qml</file>
         <file>qml/Button.qml</file>
         <file>qml/SettingsDialog.qml</file>
         <file>qml/CapturedPanel.qml</file>

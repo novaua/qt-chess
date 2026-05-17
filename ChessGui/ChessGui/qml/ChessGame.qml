@@ -19,11 +19,23 @@ ApplicationWindow {
     property bool   _showGameResult:    false
     property bool   _showSettings:      false
     property bool   _showMoveInput:     false
-    property bool   _showProfile:       false
-    property bool   _showPlayerPicker:  false
+    property bool   _showProfile:             false
+    property bool   _showPlayerPicker:        false
     property bool   _pendingPlayerPlaysWhite: true
+    property bool   _showOnlineDialog:        false
+    property bool   _showChallengeDialog:     false
+    property string _pendingChallengeId:      ""
+    property string _pendingChallengeUrl:     ""
+    property string _onlineGameId:            ""
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     property real   _panelH: _boardSize / 16
+
+    function clearPendingChallenge() {
+        userManager.clearPendingChallenge()
+        _pendingChallengeId  = ""
+        _pendingChallengeUrl = ""
+        _showChallengeDialog = false
+    }
 
     Settings {
         property alias width:  root.width
@@ -268,6 +280,7 @@ ApplicationWindow {
                 visible: gameIsInProgress
                 avatarUrl: avatarProvider.opponentUrl
                 pieces: chessConnector.PlayerPlaysWhite ? chessConnector.CapturedByDark : chessConnector.CapturedByLight
+                isActive: gameIsInProgress && (chessConnector.IsWhiteMove === 1) !== chessConnector.PlayerPlaysWhite
             }
 
             Item {
@@ -298,6 +311,7 @@ ApplicationWindow {
                 visible: gameIsInProgress
                 avatarUrl: avatarProvider.playerUrl
                 pieces: chessConnector.PlayerPlaysWhite ? chessConnector.CapturedByLight : chessConnector.CapturedByDark
+                isActive: gameIsInProgress && (chessConnector.IsWhiteMove === 1) === chessConnector.PlayerPlaysWhite
             }
         }
 
@@ -306,7 +320,7 @@ ApplicationWindow {
             id: startMenu
             anchors.centerIn: parent
             anchors.verticalCenterOffset: -15
-            width: 340
+            width: 360
             height: menuContent.implicitHeight + 48
             visible: screen.state === "screen_1"
             color: root.isDarkMode ? "#252525" : "#f4f4f4"
@@ -331,33 +345,46 @@ ApplicationWindow {
                 // Game mode radio group
                 ButtonGroup { id: gameModeGroup }
 
-                Grid {
-                    columns: 2
+                Column {
                     spacing: 10
                     anchors.horizontalCenter: parent.horizontalCenter
 
-                    ModeButton {
-                        id: btnSingle
-                        text: "Single Player"
-                        ButtonGroup.group: gameModeGroup
-                        checked: true
+                    Row {
+                        spacing: 10
+                        ModeButton {
+                            id: btnSingle
+                            text: "Single Player"
+                            ButtonGroup.group: gameModeGroup
+                            checked: true
+                        }
+                        ModeButton {
+                            id: btnTwo
+                            text: "Two Player"
+                            ButtonGroup.group: gameModeGroup
+                        }
                     }
+
                     ModeButton {
-                        id: btnTwo
-                        text: "Two Player"
+                        id: btnOnline
+                        text: "Online ♟"
+                        implicitWidth: 310
                         ButtonGroup.group: gameModeGroup
                     }
-                    ModeButton {
-                        id: btnContinue
-                        text: "Continue"
-                        ButtonGroup.group: gameModeGroup
-                        enabled: chessConnector.CanContinue
-                    }
-                    ModeButton {
-                        id: btnLoad
-                        text: "Load"
-                        ButtonGroup.group: gameModeGroup
-                        enabled: chessConnector.CanLoad
+
+                    Row {
+                        spacing: 10
+                        ModeButton {
+                            id: btnContinue
+                            text: "Continue"
+                            ButtonGroup.group: gameModeGroup
+                            enabled: chessConnector.CanContinue
+                        }
+                        ModeButton {
+                            id: btnLoad
+                            text: "Load"
+                            ButtonGroup.group: gameModeGroup
+                            enabled: chessConnector.CanLoad
+                        }
                     }
                 }
 
@@ -429,6 +456,17 @@ ApplicationWindow {
                             verticalAlignment: Text.AlignVCenter
                         }
                         onClicked: {
+                            if (btnOnline.checked) {
+                                if (userManager.hasPendingChallenge) {
+                                    _pendingChallengeId  = userManager.pendingChallengeId
+                                    _pendingChallengeUrl = userManager.pendingChallengeUrl
+                                    _showChallengeDialog = true
+                                    lichessClient.waitForGameStart(_pendingChallengeId)
+                                } else {
+                                    _showOnlineDialog = true
+                                }
+                                return
+                            }
                             if (btnSingle.checked) {
                                 chessConnector.setPlayerPlaysWhite(btnColorWhite.checked)
                                 screen.state = "screen_4"
@@ -500,6 +538,58 @@ ApplicationWindow {
         }
 
         Connections {
+            target: lichessClient
+
+            function onChallengeCreated(gameId, joinUrl) {
+                _pendingChallengeId  = gameId
+                _pendingChallengeUrl = joinUrl
+                userManager.savePendingChallenge(gameId, joinUrl)
+                _showOnlineDialog    = false
+                _showChallengeDialog = true
+            }
+
+            function onChallengeCanceled() {
+                clearPendingChallenge()
+                _showOnlineDialog = true
+            }
+
+            function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
+                clearPendingChallenge()
+                _onlineGameId = gameId
+                chessConnector.startOnlineGame(gameId, playingAsWhite)
+                avatarProvider.setOpponentFromUser(opponentAvatarUrl !== "" ? opponentAvatarUrl : "unicorn")
+                screen.state = "screen_2"
+                gameIsInProgress = true
+                chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
+                _showOnlineDialog = false
+            }
+
+            function onGameEnded(status, winner) {
+                lichessClient.stopStream()
+                _onlineGameId = ""
+
+                const winnerName = ({ "white": "White", "black": "Black" })[winner] ?? ""
+                const reason     = ({ "mate": " by Checkmate", "resign": " by Resignation",
+                                      "outoftime": " on Time" })[status] ?? ""
+
+                if      (status === "aborted") _checkmateWinner = "Game Aborted"
+                else if (winnerName !== "")    _checkmateWinner = winnerName + " Won" + reason
+                else                           _checkmateWinner = "Draw"
+
+                resultDialogTimer.start()
+            }
+
+            function onNetworkError(message) {
+                if (_showChallengeDialog) {
+                    clearPendingChallenge()
+                    _showOnlineDialog = true
+                } else if (_onlineGameId !== "") {
+                    networkErrorBanner.show(message)
+                }
+            }
+        }
+
+        Connections {
             target: chessConnector
             function onNewGameStarted(isComputerGame) {
                 chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
@@ -556,6 +646,64 @@ ApplicationWindow {
             visible: _showMoveInput
             z: 20
             onCloseRequested: _showMoveInput = false
+        }
+
+        // ── Lichess network error banner ─────────────────────────────────────
+        Rectangle {
+            id: networkErrorBanner
+            anchors { top: parent.top; topMargin: 8; horizontalCenter: parent.horizontalCenter }
+            width: Math.min(parent.width - 32, 420)
+            height: bannerText.implicitHeight + 20
+            radius: 8
+            color: "#c0392b"
+            visible: false
+            z: 30
+
+            function show(msg) {
+                bannerText.text = "⚠ " + msg
+                visible = true
+                bannerTimer.restart()
+            }
+
+            Text {
+                id: bannerText
+                anchors { centerIn: parent; margins: 10 }
+                width: parent.width - 20
+                color: "#ffffff"
+                font.pixelSize: 13
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Timer {
+                id: bannerTimer
+                interval: 4000
+                onTriggered: networkErrorBanner.visible = false
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: networkErrorBanner.visible = false
+            }
+        }
+
+        // ── Lichess online dialog ────────────────────────────────────────────
+        LichessGameDialog {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -15
+            visible: _showOnlineDialog
+            z: 20
+            onCloseRequested: _showOnlineDialog = false
+        }
+
+        // ── Pending challenge dialog ─────────────────────────────────────────
+        ChallengeDialog {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -15
+            visible: _showChallengeDialog
+            z: 20
+            challengeId:  _pendingChallengeId
+            challengeUrl: _pendingChallengeUrl
         }
 
         // ── Profile dialog ───────────────────────────────────────────────────

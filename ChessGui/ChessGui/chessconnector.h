@@ -12,6 +12,7 @@
 #include "AppConfig.h"
 #include "AvatarProvider.h"
 #include "UserManager.h"
+#include "LichessClient.h"
 
 class ChessConnector : public QObject
 {
@@ -36,6 +37,7 @@ public:
 
 	void setAvatarProvider(AvatarProvider* ap) { _avatarProvider = ap; }
 	void setUserManager(UserManager* um)       { _userManager = um; }
+	void setLichessClient(LichessClient* lc)   { _lichessClient = lc; }
 
 	int MoveCount();
 	int IsWhiteMove();
@@ -92,6 +94,8 @@ public slots:
 	Q_INVOKABLE void setPlayerPlaysWhite(bool v);
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
 	Q_INVOKABLE bool continueGame();
+	Q_INVOKABLE void startOnlineGame(const QString& gameId, bool playingAsWhite);
+	Q_INVOKABLE void resignOnlineGame();
 
 	void endGame();
 
@@ -127,6 +131,8 @@ private:
 
 	AvatarProvider* _avatarProvider = nullptr;
 	UserManager*    _userManager    = nullptr;
+	LichessClient*  _lichessClient  = nullptr;
+	QString         _onlineGameId;
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
 	bool _engineThinking = false;
