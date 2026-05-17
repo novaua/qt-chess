@@ -23,6 +23,9 @@ ApplicationWindow {
     property bool   _showPlayerPicker:        false
     property bool   _pendingPlayerPlaysWhite: true
     property bool   _showOnlineDialog:        false
+    property bool   _showChallengeDialog:     false
+    property string _pendingChallengeId:      ""
+    property string _pendingChallengeUrl:     ""
     property string _onlineGameId:            ""
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     property real   _panelH: _boardSize / 16
@@ -447,7 +450,14 @@ ApplicationWindow {
                         }
                         onClicked: {
                             if (btnOnline.checked) {
-                                _showOnlineDialog = true
+                                if (userManager.hasPendingChallenge) {
+                                    _pendingChallengeId  = userManager.pendingChallengeId
+                                    _pendingChallengeUrl = userManager.pendingChallengeUrl
+                                    _showChallengeDialog = true
+                                    lichessClient.waitForGameStart(_pendingChallengeId)
+                                } else {
+                                    _showOnlineDialog = true
+                                }
                                 return
                             }
                             if (btnSingle.checked) {
@@ -523,7 +533,27 @@ ApplicationWindow {
         Connections {
             target: lichessClient
 
+            function onChallengeCreated(gameId, joinUrl) {
+                _pendingChallengeId  = gameId
+                _pendingChallengeUrl = joinUrl
+                userManager.savePendingChallenge(gameId, joinUrl)
+                _showOnlineDialog    = false
+                _showChallengeDialog = true
+            }
+
+            function onChallengeCanceled() {
+                userManager.clearPendingChallenge()
+                _pendingChallengeId  = ""
+                _pendingChallengeUrl = ""
+                _showChallengeDialog = false
+                _showOnlineDialog    = true
+            }
+
             function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
+                userManager.clearPendingChallenge()
+                _pendingChallengeId  = ""
+                _pendingChallengeUrl = ""
+                _showChallengeDialog = false
                 _onlineGameId = gameId
                 chessConnector.startOnlineGame(gameId, playingAsWhite)
                 avatarProvider.setOpponentFromUser(opponentAvatarUrl !== "" ? opponentAvatarUrl : "unicorn")
@@ -549,8 +579,16 @@ ApplicationWindow {
             }
 
             function onNetworkError(message) {
-                if (_onlineGameId !== "")
+                if (_showChallengeDialog) {
+                    // Stream failed — challenge expired or canceled server-side
+                    userManager.clearPendingChallenge()
+                    _pendingChallengeId  = ""
+                    _pendingChallengeUrl = ""
+                    _showChallengeDialog = false
+                    _showOnlineDialog    = true
+                } else if (_onlineGameId !== "") {
                     networkErrorBanner.show(message)
+                }
             }
         }
 
@@ -659,6 +697,16 @@ ApplicationWindow {
             visible: _showOnlineDialog
             z: 20
             onCloseRequested: _showOnlineDialog = false
+        }
+
+        // ── Pending challenge dialog ─────────────────────────────────────────
+        ChallengeDialog {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -15
+            visible: _showChallengeDialog
+            z: 20
+            challengeId:  _pendingChallengeId
+            challengeUrl: _pendingChallengeUrl
         }
 
         // ── Profile dialog ───────────────────────────────────────────────────

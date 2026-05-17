@@ -121,7 +121,19 @@ void LichessClient::createOpenChallenge(int minutes, int increment, const QStrin
 
         _currentGameId = gameId;
         emit challengeCreated(gameId, joinUrl);
-        streamGame(gameId);
+        waitForGameStart(gameId);
+    });
+}
+
+void LichessClient::cancelChallenge(const QString& challengeId)
+{
+    stopStream();
+    auto* reply = _nam.post(
+        makeRequest(QStringLiteral("/api/challenge/") + challengeId + QStringLiteral("/cancel")),
+        QByteArray());
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        emit challengeCanceled();
     });
 }
 
@@ -140,6 +152,131 @@ void LichessClient::acceptChallenge(const QString& challengeId)
         reply->deleteLater();
         streamGame(challengeId);
     });
+}
+
+void LichessClient::waitForGameStart(const QString& gameId)
+{
+    stopEventStream();
+    _pollTimer.stop();
+    _waitForGameId          = gameId;
+    _waitingForGameStart    = true;
+
+    // Register the creator as a Board API player immediately.
+    // Without this call the stream endpoint returns 404 even after the opponent
+    // joins.  The accept always returns {"ok":true} for the creator regardless
+    // of whether an opponent is present yet — it is NOT a detection mechanism,
+    // just a registration step.
+    auto* reg = _nam.post(
+        makeRequest(QStringLiteral("/api/challenge/") + gameId
+                    + QStringLiteral("/accept")),
+        QByteArray());
+    connect(reg, &QNetworkReply::finished, this, [reg]() {
+        reg->deleteLater();
+    });
+
+    // Event stream: may deliver gameStart once both players are registered.
+    QNetworkRequest req = makeRequest(QStringLiteral("/api/stream/event"));
+    req.setRawHeader("Accept", "application/x-ndjson");
+    _eventStreamReply = _nam.get(req);
+    connect(_eventStreamReply, &QNetworkReply::readyRead, this, [this]() {
+        handleEventStreamData(_eventStreamReply);
+    });
+    connect(_eventStreamReply, &QNetworkReply::errorOccurred, this,
+            [this](QNetworkReply::NetworkError code) {
+                const int status = _eventStreamReply->attribute(
+                    QNetworkRequest::HttpStatusCodeAttribute).toInt();
+                qDebug() << "LichessClient: event stream error | HTTP" << status
+                         << "| code:" << code << "|" << _eventStreamReply->errorString();
+            });
+
+    // Poll the board-game stream endpoint every 3 s.
+    // Returns 404 while only the creator is registered; flips to 200 once the
+    // opponent joins and both players are present.
+    connect(&_pollTimer, &QTimer::timeout, this, &LichessClient::checkGameReady,
+            Qt::UniqueConnection);
+    _pollTimer.start(3000);
+}
+
+void LichessClient::handleEventStreamData(QNetworkReply* reply)
+{
+    while (reply->canReadLine()) {
+        const QByteArray line = reply->readLine().trimmed();
+        qDebug() << "LichessClient: event stream line:" << line.left(300);
+        if (line.isEmpty()) continue;
+
+        const auto doc = QJsonDocument::fromJson(line);
+        if (doc.isNull() || !doc.isObject()) continue;
+
+        const QJsonObject obj  = doc.object();
+        const QString     type = obj.value(QStringLiteral("type")).toString();
+
+        if (type == QLatin1String("gameStart")) {
+            const QJsonObject game   = obj.value(QStringLiteral("game")).toObject();
+            const QString     gameId = game.value(QStringLiteral("id")).toString();
+            qDebug() << "LichessClient: event stream gameStart" << gameId
+                     << "| waiting for:" << _waitForGameId;
+            if (!_waitForGameId.isEmpty() && gameId != _waitForGameId)
+                continue;
+            onGameStartDetected(gameId);
+            return;
+        }
+    }
+}
+
+void LichessClient::checkGameReady()
+{
+    if (!_waitingForGameStart || _waitForGameId.isEmpty()) {
+        _pollTimer.stop();
+        return;
+    }
+
+    qDebug() << "LichessClient: polling stream" << _waitForGameId;
+
+    // The stream returns 404 while the opponent is absent and 200 once both
+    // players are present.  The creator was already registered via the accept
+    // call in waitForGameStart, so no additional accept is needed here.
+    QNetworkRequest req = makeRequest(
+        QStringLiteral("/api/board/game/stream/") + _waitForGameId);
+    req.setRawHeader("Accept", "application/x-ndjson");
+
+    auto* probe = _nam.get(req);
+
+    connect(probe, &QNetworkReply::metaDataChanged, this, [this, probe]() {
+        const int status = probe->attribute(
+            QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (status == 0) return;
+        qDebug() << "LichessClient: stream probe HTTP" << status;
+        probe->abort();
+        probe->deleteLater();
+        if (status == 200 && _waitingForGameStart) {
+            const QString id = _waitForGameId;
+            onGameStartDetected(id);
+        }
+    });
+
+    connect(probe, &QNetworkReply::errorOccurred, this,
+            [probe](QNetworkReply::NetworkError code) {
+                qDebug() << "LichessClient: stream probe error" << code;
+                probe->deleteLater();
+            });
+}
+
+void LichessClient::onGameStartDetected(const QString& gameId)
+{
+    _pollTimer.stop();
+    _waitingForGameStart = false;
+    stopEventStream();
+    streamGame(gameId); // accept was already called by checkGameReady
+}
+
+void LichessClient::stopEventStream()
+{
+    if (_eventStreamReply) {
+        _eventStreamReply->abort();
+        _eventStreamReply->deleteLater();
+        _eventStreamReply = nullptr;
+    }
+    _waitForGameId.clear();
 }
 
 void LichessClient::streamGame(const QString& gameId)
@@ -251,6 +388,9 @@ void LichessClient::resign(const QString& gameId)
 
 void LichessClient::stopStream()
 {
+    _pollTimer.stop();
+    _waitingForGameStart = false;
+    stopEventStream();
     if (_streamReply) {
         _streamReply->abort();
         _streamReply->deleteLater();

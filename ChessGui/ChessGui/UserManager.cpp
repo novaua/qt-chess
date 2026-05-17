@@ -56,6 +56,9 @@ int     UserManager::computerWins() const { const auto* u = activeUser(); return
 bool    UserManager::lichessConnected()     const { const auto* u = activeUser(); return u && !u->lichessTokenEncrypted.isEmpty(); }
 QString UserManager::lichessUsername()      const { const auto* u = activeUser(); return u ? u->lichessUsername       : QString(); }
 QString UserManager::lichessTokenEncrypted() const { const auto* u = activeUser(); return u ? u->lichessTokenEncrypted : QString(); }
+bool    UserManager::hasPendingChallenge()  const { const auto* u = activeUser(); return u && !u->pendingChallengeId.isEmpty(); }
+QString UserManager::pendingChallengeId()   const { const auto* u = activeUser(); return u ? u->pendingChallengeId   : QString(); }
+QString UserManager::pendingChallengeUrl()  const { const auto* u = activeUser(); return u ? u->pendingChallengeUrl  : QString(); }
 
 QString UserManager::statsCreatedDate() const
 {
@@ -157,6 +160,26 @@ void UserManager::clearLichessToken()
     emit lichessChanged();
 }
 
+void UserManager::savePendingChallenge(const QString& id, const QString& url)
+{
+    auto* u = activeUser();
+    if (!u) return;
+    u->pendingChallengeId  = id;
+    u->pendingChallengeUrl = url;
+    save();
+    emit pendingChallengeChanged();
+}
+
+void UserManager::clearPendingChallenge()
+{
+    auto* u = activeUser();
+    if (!u) return;
+    u->pendingChallengeId.clear();
+    u->pendingChallengeUrl.clear();
+    save();
+    emit pendingChallengeChanged();
+}
+
 void UserManager::clearAutoSaveInfo()
 {
     auto* u = activeUser();
@@ -241,6 +264,8 @@ void UserManager::load()
         u.savedGame             = saveInfoFromJson(obj.value(QStringLiteral("savedGame")).toObject());
         u.lichessTokenEncrypted = obj.value(QStringLiteral("lichessToken")).toString();
         u.lichessUsername       = obj.value(QStringLiteral("lichessUsername")).toString();
+        u.pendingChallengeId    = obj.value(QStringLiteral("pendingChallengeId")).toString();
+        u.pendingChallengeUrl   = obj.value(QStringLiteral("pendingChallengeUrl")).toString();
         if (!u.id.isEmpty() && !u.name.isEmpty())
             _users.append(u);
     }
@@ -263,8 +288,10 @@ void UserManager::save() const
         obj[QStringLiteral("stats")]       = stats;
         obj[QStringLiteral("autoSave")]        = saveInfoToJson(u.autoSave);
         obj[QStringLiteral("savedGame")]       = saveInfoToJson(u.savedGame);
-        obj[QStringLiteral("lichessToken")]    = u.lichessTokenEncrypted;
-        obj[QStringLiteral("lichessUsername")] = u.lichessUsername;
+        obj[QStringLiteral("lichessToken")]       = u.lichessTokenEncrypted;
+        obj[QStringLiteral("lichessUsername")]    = u.lichessUsername;
+        obj[QStringLiteral("pendingChallengeId")]  = u.pendingChallengeId;
+        obj[QStringLiteral("pendingChallengeUrl")] = u.pendingChallengeUrl;
         usersArray.append(obj);
     }
 

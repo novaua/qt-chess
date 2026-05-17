@@ -11,8 +11,7 @@ Rectangle {
         return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) <= 0.5
     }
 
-    property string _gameUrl:    ""
-    property bool   _waiting:    false
+    property bool   _busy:       false
     property string _statusText: ""
 
     signal closeRequested()
@@ -28,19 +27,15 @@ Rectangle {
         target: lichessClient
 
         function onChallengeCreated(gameId, joinUrl) {
-            dialog._gameUrl    = joinUrl
-            dialog._waiting    = true
-            dialog._statusText = "Waiting for opponent…"
+            dialog._busy = false
         }
 
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
-            dialog._waiting    = false
-            dialog._statusText = ""
-            dialog.closeRequested()
+            dialog._busy = false
         }
 
         function onNetworkError(message) {
-            dialog._waiting    = false
+            dialog._busy       = false
             dialog._statusText = "Error: " + message
         }
     }
@@ -276,7 +271,7 @@ Rectangle {
                     text: "Challenge a Friend"
                     implicitWidth: 160
                     implicitHeight: 32
-                    enabled: !dialog._waiting
+                    enabled: !dialog._busy
                     font.bold: true
                     background: Rectangle {
                         radius: 4
@@ -318,75 +313,18 @@ Rectangle {
                         }
                         var variantValues = ["standard", "chess960"]
                         var chosenVariant = variantValues[comboVariant.currentIndex] || "standard"
+                        dialog._busy = true
                         lichessClient.createOpenChallenge(mins, inc, chosenColor, chosenVariant)
                     }
                 }
 
-                // URL + QR after challenge created
-                Column {
-                    visible: dialog._gameUrl !== ""
+                Text {
+                    visible: dialog._statusText !== ""
+                    text: dialog._statusText
+                    color: "#e74c3c"
+                    font.pixelSize: 13
                     width: parent.width
-                    spacing: 8
-
-                    Row {
-                        width: parent.width
-                        spacing: 6
-
-                        QQC.TextField {
-                            id: urlField
-                            text: dialog._gameUrl
-                            readOnly: true
-                            width: parent.width - copyBtn.width - 6
-                            color: isDarkMode ? "#ffffff" : "#000000"
-                            background: Rectangle {
-                                radius: 4
-                                color:        isDarkMode ? "#3c3c3c" : "#ffffff"
-                                border.color: isDarkMode ? "#555555" : "#cccccc"
-                                border.width: 1
-                            }
-                        }
-
-                        Button {
-                            id: copyBtn
-                            text: "Copy"
-                            implicitWidth: 56
-                            implicitHeight: urlField.height
-                            onClicked: {
-                                urlField.selectAll()
-                                urlField.copy()
-                            }
-                        }
-                    }
-
-                    Image {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        width: 160; height: 160
-                        source: dialog._gameUrl !== ""
-                            ? ("https://api.qrserver.com/v1/create-qr-code/?size=160x160&data="
-                               + encodeURIComponent(dialog._gameUrl))
-                            : ""
-                        fillMode: Image.PreserveAspectFit
-                    }
-                }
-
-                Row {
-                    visible: dialog._waiting || dialog._statusText !== ""
-                    spacing: 8
-
-                    QQC.BusyIndicator {
-                        width: 20; height: 20
-                        running: dialog._waiting
-                        visible: dialog._waiting
-                    }
-
-                    Text {
-                        text: dialog._statusText
-                        color: dialog._statusText.startsWith("Error")
-                            ? "#e74c3c"
-                            : (isDarkMode ? "#dddddd" : "#444444")
-                        font.pixelSize: 13
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
+                    wrapMode: Text.WordWrap
                 }
             }
 
@@ -432,7 +370,7 @@ Rectangle {
                         text: "Join"
                         implicitWidth: 56
                         implicitHeight: joinUrlField.height
-                        enabled: joinUrlField.text.trim() !== "" && !dialog._waiting
+                        enabled: joinUrlField.text.trim() !== "" && !dialog._busy
                         font.bold: true
                         background: Rectangle {
                             radius: 4
@@ -454,8 +392,8 @@ Rectangle {
                                 dialog._statusText = "Invalid URL or game ID"
                                 return
                             }
-                            dialog._waiting    = true
-                            dialog._statusText = "Connecting…"
+                            dialog._busy       = true
+                            dialog._statusText = ""
                             lichessClient.acceptChallenge(gameId)
                         }
                     }
@@ -471,8 +409,7 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             onClicked: {
                 lichessClient.stopStream()
-                dialog._waiting    = false
-                dialog._gameUrl    = ""
+                dialog._busy       = false
                 dialog._statusText = ""
                 dialog.closeRequested()
             }

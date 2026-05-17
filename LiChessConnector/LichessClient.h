@@ -1,6 +1,7 @@
 #pragma once
 #include "lichessconnector_global.h"
 #include <QNetworkAccessManager>
+#include <QTimer>
 
 class QNetworkReply;
 
@@ -18,9 +19,11 @@ public:
 	Q_INVOKABLE void createOpenChallenge(int minutes, int increment, const QString& color, const QString& variant);
 	Q_INVOKABLE void acceptChallenge(const QString& challengeId);
 	Q_INVOKABLE void streamGame(const QString& gameId);
+	Q_INVOKABLE void waitForGameStart(const QString& gameId);
 	Q_INVOKABLE void postMove(const QString& gameId, const QString& uciMove);
 	Q_INVOKABLE void resign(const QString& gameId);
 	Q_INVOKABLE void stopStream();
+	Q_INVOKABLE void cancelChallenge(const QString& challengeId);
 
 	Q_INVOKABLE QString gameIdFromUrl(const QString& urlOrId) const;
 
@@ -37,15 +40,25 @@ signals:
 	void opponentMoveReceived(QString uciMove);
 	void gameEnded(QString status, QString winner);
 	void networkError(QString message);
+	void challengeCanceled();
 
 private:
 	QNetworkRequest makeRequest(const QString& path) const;
 	void handleStreamData(QNetworkReply* reply);
 
+	void handleEventStreamData(QNetworkReply* reply);
+	void stopEventStream();
+	void checkGameReady();
+	void onGameStartDetected(const QString& gameId);
+
 	QNetworkAccessManager _nam;
 	QString               _token;
 	QString               _username;
 	QString               _currentGameId;
+	QString               _waitForGameId;
 	QStringList           _lastMovesList;   // tracks moves seen so far in stream
-	QNetworkReply* _streamReply = nullptr;
+	QNetworkReply* _streamReply      = nullptr;
+	QNetworkReply* _eventStreamReply = nullptr;
+	QTimer         _pollTimer;
+	bool           _waitingForGameStart = false;
 };
