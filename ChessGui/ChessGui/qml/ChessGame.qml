@@ -30,6 +30,13 @@ ApplicationWindow {
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     property real   _panelH: _boardSize / 16
 
+    function clearPendingChallenge() {
+        userManager.clearPendingChallenge()
+        _pendingChallengeId  = ""
+        _pendingChallengeUrl = ""
+        _showChallengeDialog = false
+    }
+
     Settings {
         property alias width:  root.width
         property alias height: root.height
@@ -542,18 +549,12 @@ ApplicationWindow {
             }
 
             function onChallengeCanceled() {
-                userManager.clearPendingChallenge()
-                _pendingChallengeId  = ""
-                _pendingChallengeUrl = ""
-                _showChallengeDialog = false
-                _showOnlineDialog    = true
+                clearPendingChallenge()
+                _showOnlineDialog = true
             }
 
             function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
-                userManager.clearPendingChallenge()
-                _pendingChallengeId  = ""
-                _pendingChallengeUrl = ""
-                _showChallengeDialog = false
+                clearPendingChallenge()
                 _onlineGameId = gameId
                 chessConnector.startOnlineGame(gameId, playingAsWhite)
                 avatarProvider.setOpponentFromUser(opponentAvatarUrl !== "" ? opponentAvatarUrl : "unicorn")
@@ -580,12 +581,8 @@ ApplicationWindow {
 
             function onNetworkError(message) {
                 if (_showChallengeDialog) {
-                    // Stream failed — challenge expired or canceled server-side
-                    userManager.clearPendingChallenge()
-                    _pendingChallengeId  = ""
-                    _pendingChallengeUrl = ""
-                    _showChallengeDialog = false
-                    _showOnlineDialog    = true
+                    clearPendingChallenge()
+                    _showOnlineDialog = true
                 } else if (_onlineGameId !== "") {
                     networkErrorBanner.show(message)
                 }

@@ -59,6 +59,6 @@ private:
 	QStringList           _lastMovesList;   // tracks moves seen so far in stream
 	QNetworkReply* _streamReply      = nullptr;
 	QNetworkReply* _eventStreamReply = nullptr;
+	QNetworkReply* _probeReply       = nullptr;
 	QTimer         _pollTimer;
-	bool           _waitingForGameStart = false;
 };
