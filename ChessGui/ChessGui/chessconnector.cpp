@@ -2,6 +2,7 @@
 #include "chessconnector.h"
 #include "ChessException.h"
 #include "AppConfig.h"
+#include "San.h"
 
 #include <QDir>
 #include <QDebug>
@@ -155,11 +156,9 @@ void ChessConnector::setPossibleMoves(const QStringList& moves)
 }
 
 namespace {
-	// PieceTypes enum: EMPTY=0, KNIGHT=1, BISHOP=2, ROOK=3, QUEEN=4, KING=5, PAWN=6
 	static const char pieceCodes[] = " nbrqkp";
 	QChar pieceCode(const Chess::Piece& p) { return QChar(pieceCodes[p.Type]); }
 
-	// Unicode figurine symbols indexed by PieceTypes (1=N,2=B,3=R,4=Q,5=K)
 	static const char32_t whiteFigurines[] = { 0, 0x2658, 0x2657, 0x2656, 0x2655, 0x2654 };
 	static const char32_t blackFigurines[] = { 0, 0x265E, 0x265D, 0x265C, 0x265B, 0x265A };
 
@@ -167,12 +166,6 @@ namespace {
 		if (type < 1 || type > 5) return {};
 		auto cp = (color == Chess::PieceColors::Light) ? whiteFigurines[type] : blackFigurines[type];
 		return QString::fromUcs4(&cp, 1);
-	}
-
-	static QString posFile(Chess::BoardPosition pos) { return QString(QChar('a' + (int)pos % 8)); }
-	static QString posRank(Chess::BoardPosition pos) { return QString(QChar('1' + (int)pos / 8)); }
-	static QString posStr(Chess::BoardPosition pos)  {
-		return QString::fromStdString(Chess::BoardPositionToString(pos));
 	}
 
 	static bool isKingInCheck(const Chess::Board& board, Chess::PieceColors sideInCheck) {
@@ -189,27 +182,16 @@ namespace {
 		return inCheck;
 	}
 
-	static bool isCastling(const Chess::HistoryMove& m) {
-		return m.From.Piece.Type == Chess::KING
-		    && std::abs((int)m.To.Position % 8 - (int)m.From.Position % 8) == 2;
-	}
-
-	static bool isEnPassant(const Chess::HistoryMove& m) {
-		return m.From.Piece.Type == Chess::PAWN
-		    && m.IsCapturingMove()
-		    && m.To.Piece.Type == Chess::EMPTY;
-	}
-
 	static void applyCastlingRook(Chess::Board& board, const Chess::HistoryMove& m) {
 		int rank     = (int)m.From.Position / 8;
 		int toFile   = (int)m.To.Position % 8;
 		int fromFile = (int)m.From.Position % 8;
 		Chess::Piece rook { Chess::ROOK,  m.From.Piece.Color };
 		Chess::Piece empty{ Chess::EMPTY, Chess::PieceColors::Empty };
-		if (toFile > fromFile) {                          // kingside: h→f
+		if (toFile > fromFile) {
 			board.Place(Chess::BoardPosition(rank * 8 + 7), empty);
 			board.Place(Chess::BoardPosition(rank * 8 + 5), rook);
-		} else {                                          // queenside: a→d
+		} else {
 			board.Place(Chess::BoardPosition(rank * 8 + 0), empty);
 			board.Place(Chess::BoardPosition(rank * 8 + 3), rook);
 		}
@@ -223,57 +205,22 @@ namespace {
 
 	static void applyMove(Chess::Board& board, const Chess::HistoryMove& m) {
 		board.DoMove(m.ToMove());
-		if (isCastling(m))  applyCastlingRook(board, m);
-		if (isEnPassant(m)) applyEnPassant(board, m);
+		if (Chess::IsCastling(m))  applyCastlingRook(board, m);
+		if (Chess::IsEnPassant(m)) applyEnPassant(board, m);
 	}
 
-	static QString fmtMoveSan(const Chess::HistoryMove& m,
-	                           const Chess::Board& boardBefore,
-	                           bool isCheck, bool isMate)
-	{
-		auto fromPos = m.From.Position;
-		auto toPos   = m.To.Position;
-		auto piece   = m.From.Piece;
-
-		if (isCastling(m))
-			return ((int)toPos % 8 > (int)fromPos % 8) ? "O-O" : "O-O-O";
-
-		QString result;
-
-		if (piece.Type == Chess::PAWN) {
-			result = m.IsCapturingMove()
-			    ? posFile(fromPos) + "x" + posStr(toPos)
-			    : posStr(toPos);
-			if (m.IsPawnPromotionMove())
-				result += "=" + pieceSymbol(m.PromotedTo.Type, piece.Color);
-		} else {
-			QString sym = pieceSymbol(piece.Type, piece.Color);
-
-			auto candidates = Chess::MoveGeneration::GetPositionsOf(boardBefore, piece.Type, piece.Color);
-			bool needsRank = false, needsFile = false;
-			for (const auto& pp : candidates) {
-				if (pp.Position == fromPos) continue;
-				for (const auto& mv : Chess::MoveGeneration::GenerateBasicMoves(boardBefore, pp.Position, piece.Color)) {
-					if (mv.To == toPos) {
-						if ((int)pp.Position % 8 == (int)fromPos % 8)
-							needsRank = true;
-						else
-							needsFile = true;
-					}
-				}
-			}
-
-			QString disambig;
-			if      (needsRank && needsFile) disambig = posFile(fromPos) + posRank(fromPos);
-			else if (needsRank)              disambig = posRank(fromPos);
-			else if (needsFile)              disambig = posFile(fromPos);
-
-			result = sym + disambig + (m.IsCapturingMove() ? "x" : "") + posStr(toPos);
+	// Replaces the leading ASCII piece letter (N/B/R/Q/K) with the UTF-8 figurine for the given color.
+	static QString toFan(const std::string& san, Chess::PieceColors color) {
+		if (san.empty() || san[0] == 'O') return QString::fromStdString(san);
+		static const char* const letters = "NBRQK";
+		static const Chess::PieceTypes types[] = {
+			Chess::KNIGHT, Chess::BISHOP, Chess::ROOK, Chess::QUEEN, Chess::KING
+		};
+		for (int i = 0; i < 5; ++i) {
+			if (san[0] == letters[i])
+				return pieceSymbol(types[i], color) + QString::fromStdString(san.substr(1));
 		}
-
-		if (isMate)        result += "#";
-		else if (isCheck)  result += "+";
-		return result;
+		return QString::fromStdString(san);
 	}
 }
 
@@ -306,7 +253,8 @@ QVariantList ChessConnector::moveHistory() const
 		Chess::Board wBefore = board;
 		applyMove(board, rec[i]);
 		bool wCheck = !wMate && isKingInCheck(board, Chess::PieceColors::Dark);
-		row["w"] = fmtMoveSan(rec[i], wBefore, wCheck, wMate);
+		row["w"] = toFan(Chess::FormatMoveSan(rec[i], wBefore, wCheck, wMate),
+		                 rec[i].From.Piece.Color);
 
 		if (i + 1 < rec.size()) {
 			bool bLast = (i + 1 == rec.size() - 1);
@@ -314,7 +262,8 @@ QVariantList ChessConnector::moveHistory() const
 			Chess::Board bBefore = board;
 			applyMove(board, rec[i + 1]);
 			bool bCheck = !bMate && isKingInCheck(board, Chess::PieceColors::Light);
-			row["b"] = fmtMoveSan(rec[i + 1], bBefore, bCheck, bMate);
+			row["b"] = toFan(Chess::FormatMoveSan(rec[i + 1], bBefore, bCheck, bMate),
+			                 rec[i + 1].From.Piece.Color);
 		} else {
 			row["b"] = QString();
 		}
