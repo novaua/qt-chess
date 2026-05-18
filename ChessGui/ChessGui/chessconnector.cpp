@@ -168,20 +168,6 @@ namespace {
 		return QString::fromUcs4(&cp, 1);
 	}
 
-	static bool isKingInCheck(const Chess::Board& board, Chess::PieceColors sideInCheck) {
-		auto kings = Chess::MoveGeneration::GetPositionsOf(board, Chess::KING, sideInCheck);
-		if (kings.empty()) return false;
-		auto kingPos = kings[0].Position;
-		auto attacker = Chess::OppositeSideOf(sideInCheck);
-		bool inCheck = false;
-		board.ForEachPiece([&](Chess::BoardPosition pos) {
-			if (inCheck) return;
-			for (const auto& mv : Chess::MoveGeneration::GenerateBasicMoves(board, pos, attacker, true))
-				if (mv.To == kingPos) { inCheck = true; break; }
-		}, attacker);
-		return inCheck;
-	}
-
 	static void applyCastlingRook(Chess::Board& board, const Chess::HistoryMove& m) {
 		int rank     = (int)m.From.Position / 8;
 		int toFile   = (int)m.To.Position % 8;
@@ -248,21 +234,17 @@ QVariantList ChessConnector::moveHistory() const
 		QVariantMap row;
 		row["n"] = (int)(i / 2) + 1;
 
-		bool wLast = (i == rec.size() - 1);
-		bool wMate  = wLast && _gameResult.contains("1-0");
+		bool wMate = (i == rec.size() - 1) && _gameResult.contains("1-0");
 		Chess::Board wBefore = board;
 		applyMove(board, rec[i]);
-		bool wCheck = !wMate && isKingInCheck(board, Chess::PieceColors::Dark);
-		row["w"] = toFan(Chess::FormatMoveSan(rec[i], wBefore, wCheck, wMate),
+		row["w"] = toFan(Chess::FormatMoveSan(rec[i], wBefore, board, wMate),
 		                 rec[i].From.Piece.Color);
 
 		if (i + 1 < rec.size()) {
-			bool bLast = (i + 1 == rec.size() - 1);
-			bool bMate  = bLast && _gameResult.contains("0-1");
+			bool bMate = (i + 1 == rec.size() - 1) && _gameResult.contains("0-1");
 			Chess::Board bBefore = board;
 			applyMove(board, rec[i + 1]);
-			bool bCheck = !bMate && isKingInCheck(board, Chess::PieceColors::Light);
-			row["b"] = toFan(Chess::FormatMoveSan(rec[i + 1], bBefore, bCheck, bMate),
+			row["b"] = toFan(Chess::FormatMoveSan(rec[i + 1], bBefore, board, bMate),
 			                 rec[i + 1].From.Piece.Color);
 		} else {
 			row["b"] = QString();

@@ -13,12 +13,18 @@ namespace {
         return (type >= KNIGHT && type <= KING) ? sanLetters[type] : '\0';
     }
 
-    std::string posFile(BoardPosition pos) {
-        return std::string(1, static_cast<char>('a' + (int)pos % 8));
-    }
-
-    std::string posRank(BoardPosition pos) {
-        return std::string(1, static_cast<char>('1' + (int)pos / 8));
+    bool isKingInCheck(const Board& board, PieceColors sideInCheck) {
+        auto kings = MoveGeneration::GetPositionsOf(board, KING, sideInCheck);
+        if (kings.empty()) return false;
+        auto kingPos = kings[0].Position;
+        auto attacker = OppositeSideOf(sideInCheck);
+        bool inCheck = false;
+        board.ForEachPiece([&](BoardPosition pos) {
+            if (inCheck) return;
+            for (const auto& mv : MoveGeneration::GenerateBasicMoves(board, pos, attacker, true))
+                if (mv.To == kingPos) { inCheck = true; break; }
+        }, attacker);
+        return inCheck;
     }
 }
 
@@ -35,7 +41,7 @@ bool Chess::IsEnPassant(const HistoryMove& m) {
 
 std::string Chess::FormatMoveSan(const HistoryMove& m,
                                  const Board& boardBefore,
-                                 bool isCheck,
+                                 const Board& boardAfter,
                                  bool isMate)
 {
     auto fromPos = m.From.Position;
@@ -50,7 +56,7 @@ std::string Chess::FormatMoveSan(const HistoryMove& m,
     if (piece.Type == PAWN) {
         bool isCapture = m.IsCapturingMove() || IsEnPassant(m);
         result = isCapture
-            ? posFile(fromPos) + "x" + BoardPositionToString(toPos)
+            ? std::string(1, BoardPositionToString(fromPos)[0]) + "x" + BoardPositionToString(toPos)
             : BoardPositionToString(toPos);
         if (m.IsPawnPromotionMove()) {
             result += "=";
@@ -73,9 +79,9 @@ std::string Chess::FormatMoveSan(const HistoryMove& m,
             }
         }
         std::string disambig;
-        if      (needsRank && needsFile) disambig = posFile(fromPos) + posRank(fromPos);
-        else if (needsRank)              disambig = posRank(fromPos);
-        else if (needsFile)              disambig = posFile(fromPos);
+        if      (needsRank && needsFile) disambig = BoardPositionToString(fromPos);
+        else if (needsRank)              disambig = std::string(1, BoardPositionToString(fromPos)[1]);
+        else if (needsFile)              disambig = std::string(1, BoardPositionToString(fromPos)[0]);
 
         result  = sym;
         result += disambig;
@@ -83,7 +89,9 @@ std::string Chess::FormatMoveSan(const HistoryMove& m,
         result += BoardPositionToString(toPos);
     }
 
-    if (isMate)       result += "#";
+    auto oppColor = OppositeSideOf(piece.Color);
+    bool isCheck = !isMate && isKingInCheck(boardAfter, oppColor);
+    if (isMate)    result += "#";
     else if (isCheck) result += "+";
     return result;
 }

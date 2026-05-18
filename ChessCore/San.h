@@ -11,10 +11,11 @@ namespace Chess {
     bool IsEnPassant(const HistoryMove& m);
 
     // Formats m as Standard Algebraic Notation (SAN).
-    // boardBefore: board state BEFORE m was applied, needed for disambiguation.
-    // isCheck / isMate: caller must determine these; only the suffix is appended here.
+    // boardBefore: state before the move — needed for piece disambiguation.
+    // boardAfter:  state after the move  — used to detect check.
+    // isMate: caller must determine this (requires full legal-move generation).
     std::string FormatMoveSan(const HistoryMove& m,
                               const Board& boardBefore,
-                              bool isCheck,
+                              const Board& boardAfter,
                               bool isMate);
 }

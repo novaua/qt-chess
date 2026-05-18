@@ -25,14 +25,14 @@ public:
         Board board; board.Initialize();
         Board before = board;
         auto hm = board.DoMove({ e2, e4, false });
-        Assert::AreEqual(std::string("e4"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("e4"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(PawnAdvance_d4) {
         Board board; board.Initialize();
         Board before = board;
         auto hm = board.DoMove({ d2, d4, false });
-        Assert::AreEqual(std::string("d4"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("d4"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(PawnCapture_exd5) {
@@ -41,7 +41,7 @@ public:
         board.Place(d5, { PAWN, PieceColors::Dark });
         Board before = board;
         auto hm = board.DoMove({ e4, d5, true });
-        Assert::AreEqual(std::string("exd5"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("exd5"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(EnPassant_exd6) {
@@ -49,9 +49,8 @@ public:
         board.Place(e5, { PAWN, PieceColors::Light });
         board.Place(d5, { PAWN, PieceColors::Dark  });
         Board before = board;
-        // d6 is empty — diagonal pawn move to empty square → IsEnPassant
         auto hm = board.DoMove({ e5, d6, true });
-        Assert::AreEqual(std::string("exd6"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("exd6"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(PawnPromotion_e8Q) {
@@ -59,7 +58,7 @@ public:
         board.Place(e7, { PAWN, PieceColors::Light });
         Board before = board;
         auto hm = board.DoMove({ e7, e8, false, { QUEEN, PieceColors::Light } });
-        Assert::AreEqual(std::string("e8=Q"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("e8=Q"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(PawnPromotionWithCheck_e8Qplus) {
@@ -68,7 +67,8 @@ public:
         board.Place(e1, { KING, PieceColors::Dark  });
         Board before = board;
         auto hm = board.DoMove({ e7, e8, false, { QUEEN, PieceColors::Light } });
-        Assert::AreEqual(std::string("e8=Q+"), FormatMoveSan(hm, before, true, false));
+        // board now has queen on e8 attacking e1 king — check detected internally
+        Assert::AreEqual(std::string("e8=Q+"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(PawnPromotion_captureAndPromote) {
@@ -77,7 +77,7 @@ public:
         board.Place(e8, { ROOK, PieceColors::Dark  });
         Board before = board;
         auto hm = board.DoMove({ d7, e8, true, { QUEEN, PieceColors::Light } });
-        Assert::AreEqual(std::string("dxe8=Q"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("dxe8=Q"), FormatMoveSan(hm, before, board, false));
     }
 
     // -------------------------------------------------------------------------
@@ -88,7 +88,7 @@ public:
         Board board; board.Initialize();
         Board before = board;
         auto hm = board.DoMove({ g1, f3, false });
-        Assert::AreEqual(std::string("Nf3"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("Nf3"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(BishopMove_Bc4) {
@@ -98,7 +98,7 @@ public:
         board.DoMove({ g1, f3, false });
         Board before = board;
         auto hm = board.DoMove({ f1, c4, false });
-        Assert::AreEqual(std::string("Bc4"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("Bc4"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(PieceCapture_Nxe5) {
@@ -107,7 +107,7 @@ public:
         board.Place(e5, { PAWN,   PieceColors::Dark  });
         Board before = board;
         auto hm = board.DoMove({ f3, e5, true });
-        Assert::AreEqual(std::string("Nxe5"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("Nxe5"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(RookCapture_Rxd5) {
@@ -116,7 +116,7 @@ public:
         board.Place(d5, { PAWN, PieceColors::Dark  });
         Board before = board;
         auto hm = board.DoMove({ d1, d5, true });
-        Assert::AreEqual(std::string("Rxd5"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("Rxd5"), FormatMoveSan(hm, before, board, false));
     }
 
     // -------------------------------------------------------------------------
@@ -129,7 +129,7 @@ public:
         board.Place(h1, { ROOK, PieceColors::Light });
         Board before = board;
         auto hm = board.DoMove({ e1, g1, false });
-        Assert::AreEqual(std::string("O-O"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("O-O"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(CastlingQueenside_OOO) {
@@ -138,7 +138,7 @@ public:
         board.Place(a1, { ROOK, PieceColors::Light });
         Board before = board;
         auto hm = board.DoMove({ e1, c1, false });
-        Assert::AreEqual(std::string("O-O-O"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("O-O-O"), FormatMoveSan(hm, before, board, false));
     }
 
     // -------------------------------------------------------------------------
@@ -152,7 +152,7 @@ public:
         board.Place(d1, { ROOK, PieceColors::Light });
         Board before = board;
         auto hm = board.DoMove({ a1, e1, false });
-        Assert::AreEqual(std::string("Rae1"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("Rae1"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(DisambigByFile_Rde1) {
@@ -162,7 +162,7 @@ public:
         board.Place(d1, { ROOK, PieceColors::Light });
         Board before = board;
         auto hm = board.DoMove({ d1, e1, false });
-        Assert::AreEqual(std::string("Re1"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("Re1"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(DisambigByRank_R1e4) {
@@ -172,7 +172,7 @@ public:
         board.Place(e2, { ROOK, PieceColors::Light });
         Board before = board;
         auto hm = board.DoMove({ e1, e4, false });
-        Assert::AreEqual(std::string("R1e4"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("R1e4"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(DisambigBoth_Nef6) {
@@ -182,7 +182,7 @@ public:
         board.Place(g4, { KNIGHT, PieceColors::Light });
         Board before = board;
         auto hm = board.DoMove({ e4, f6, false });
-        Assert::AreEqual(std::string("Nef6"), FormatMoveSan(hm, before, false, false));
+        Assert::AreEqual(std::string("Nef6"), FormatMoveSan(hm, before, board, false));
     }
 
     // -------------------------------------------------------------------------
@@ -195,7 +195,8 @@ public:
         board.Place(h8, { KING,  PieceColors::Dark  });
         Board before = board;
         auto hm = board.DoMove({ h1, h7, false });
-        Assert::AreEqual(std::string("Qh7+"), FormatMoveSan(hm, before, true, false));
+        // queen on h7 attacks king on h8 — check detected from boardAfter
+        Assert::AreEqual(std::string("Qh7+"), FormatMoveSan(hm, before, board, false));
     }
 
     TEST_METHOD(CheckmateSuffix) {
@@ -204,7 +205,7 @@ public:
         board.Place(h8, { KING,  PieceColors::Dark  });
         Board before = board;
         auto hm = board.DoMove({ h1, h7, false });
-        Assert::AreEqual(std::string("Qh7#"), FormatMoveSan(hm, before, false, true));
+        Assert::AreEqual(std::string("Qh7#"), FormatMoveSan(hm, before, board, true));
     }
 
     // -------------------------------------------------------------------------
