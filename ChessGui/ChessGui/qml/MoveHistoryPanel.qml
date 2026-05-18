@@ -24,7 +24,7 @@ Rectangle {
         Text {
             anchors.centerIn: parent
             text: "Move History"
-            font.pixelSize: 11; font.bold: true
+            font.pixelSize: 13; font.bold: true
             color: isDarkMode ? "#cccccc" : "#555555"
         }
     }
@@ -46,7 +46,7 @@ Rectangle {
         delegate: Rectangle {
             required property var modelData
             required property int index
-            width: listView.width; height: 20
+            width: listView.width; height: 26
             color: index % 2 === 0
                 ? (isDarkMode ? "#252525" : "#f8f8f8")
                 : (isDarkMode ? "#2d2d2d" : "#eeeeee")
@@ -55,32 +55,32 @@ Rectangle {
             Row {
                 anchors.fill: parent; anchors.leftMargin: 3; anchors.rightMargin: 3; spacing: 0
                 Text {
-                    width: 24; height: parent.height
+                    width: 26; height: parent.height
                     text: modelData.n + "."
-                    font.pixelSize: 10
+                    font.pixelSize: 13
                     color: isDarkMode ? "#888" : "#999"
                     verticalAlignment: Text.AlignVCenter
                 }
                 Text {
-                    width: 56; height: parent.height
+                    width: 60; height: parent.height
                     text: modelData.w
-                    font.pixelSize: 10; font.family: "Courier New"
+                    font.pixelSize: 13; font.family: "Courier New"
                     color: isDarkMode ? "#ffffff" : "#111111"
                     verticalAlignment: Text.AlignVCenter
                 }
                 Text {
                     width: 12; height: parent.height
                     text: "|"
-                    font.pixelSize: 10
+                    font.pixelSize: 13
                     color: isDarkMode ? "#555" : "#bbb"
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     visible: modelData.b !== ""
                 }
                 Text {
-                    width: 56; height: parent.height
+                    width: 60; height: parent.height
                     text: modelData.b
-                    font.pixelSize: 10; font.family: "Courier New"
+                    font.pixelSize: 13; font.family: "Courier New"
                     color: isDarkMode ? "#ffffff" : "#111111"
                     verticalAlignment: Text.AlignVCenter
                     visible: modelData.b !== ""
@@ -99,7 +99,7 @@ Rectangle {
         Text {
             anchors.centerIn: parent
             text: chessConnector.GameResult
-            font.pixelSize: 10; font.bold: true
+            font.pixelSize: 12; font.bold: true
             color: isDarkMode ? "#f0c040" : "#8B6914"
         }
     }

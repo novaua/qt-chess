@@ -5,6 +5,7 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
+#include "MovesGen.h"
 #include <QThread>
 #include <atomic>
 #include <functional>
