@@ -12,7 +12,7 @@ Rectangle {
 
     color: isDarkMode ? "#1a1a1a" : "#f2f2f2"
     border.color: isDarkMode ? "#444" : "#ccc"
-    border.width: 1
+    border.width: 5
     radius: 6
 
     Rectangle {

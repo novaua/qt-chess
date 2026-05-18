@@ -40,7 +40,6 @@ ApplicationWindow {
             ? root.width * 0.95 / 16    // portrait: board is width-limited
             : effH * 0.95 / 17.9        // landscape: board is height-limited
     }
-    readonly property real _historyPanelW: 160
     readonly property bool _showHistoryPanel: gameIsInProgress && (root.width > root.height * 1.15)
 
     function clearPendingChallenge() {
@@ -318,8 +317,12 @@ ApplicationWindow {
                 MoveHistoryPanel {
                     id: moveHistoryPanel
                     visible: _showHistoryPanel
-                    width: _historyPanelW
-                    anchors { top: parent.top; bottom: parent.bottom; right: parent.right; margins: 6 }
+                    width: 160
+                    height: _boardSize
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                        left: parent.left; leftMargin: (parent.width + _boardSize) / 2 + 5
+                    }
                 }
             }
 
