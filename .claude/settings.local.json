@@ -4,7 +4,23 @@
       "Bash(git *)",
       "WebFetch(domain:github.com)",
       "Bash(Get-ChildItem -Path .)",
-      "Bash(Select-Object Name, PSIsContainer)"
+      "Bash(Select-Object Name, PSIsContainer)",
+      "WebSearch",
+      "WebFetch(domain:www.chessgames.com)",
+      "WebFetch(domain:www.thechesswebsite.com)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(python3 *)",
+      "Bash(Get-ChildItem \"E:\\\\projects\\\\qt-chess\\\\ChessGui\\\\ChessGui\" -Filter \"stdafx*\")",
+      "Bash(cmd *)",
+      "WebFetch(domain:lichess.org)",
+      "Bash(Get-ChildItem -Path \"E:\\\\projects\\\\qt-chess\" -Recurse -Force -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -First 50)",
+      "Bash(Format-Table FullName)",
+      "WebFetch(domain:lichess-org.github.io)",
+      "WebFetch(domain:www.mintlify.com)",
+      "Bash(Get-ChildItem -Path \"E:\\\\projects\\\\qt-chess\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }

@@ -417,6 +417,7 @@
     <None Include="qml\Button.qml" />
     <None Include="qml\ChessBoard.qml" />
     <None Include="qml\ChessBoxes.qml" />
+    <None Include="qml\MoveHistoryPanel.qml" />
     <None Include="qml\ChessFigures.qml" />
     <None Include="qml\ChessGame.qml" />
     <None Include="qml\CreateUserDialog.qml" />

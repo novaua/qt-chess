@@ -29,6 +29,8 @@ ApplicationWindow {
     property string _onlineGameId:            ""
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     property real   _panelH: _boardSize / 16
+    readonly property real _historyPanelW: 160
+    readonly property bool _showHistoryPanel: gameIsInProgress && (root.width > root.height * 1.15)
 
     function clearPendingChallenge() {
         userManager.clearPendingChallenge()
@@ -300,6 +302,13 @@ ApplicationWindow {
                         anchors.fill: parent
                         cursorShape: Qt.WaitCursor
                     }
+                }
+
+                MoveHistoryPanel {
+                    id: moveHistoryPanel
+                    visible: _showHistoryPanel
+                    width: _historyPanelW
+                    anchors { top: parent.top; bottom: parent.bottom; right: parent.right; margins: 6 }
                 }
             }
 

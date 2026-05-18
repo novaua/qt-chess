@@ -3,6 +3,8 @@
 
 #include <QObject>
 #include <QStringList>
+#include <QVariantList>
+#include <QVariantMap>
 #include <QThread>
 #include <atomic>
 #include <functional>
@@ -31,6 +33,8 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool EngineThinking    READ engineThinking    NOTIFY engineThinkingChanged)
 		Q_PROPERTY(bool UseFen            READ useFen            WRITE setUseFen NOTIFY useFenChanged)
 		Q_PROPERTY(bool PlayerPlaysWhite  READ playerPlaysWhite  NOTIFY playerPlaysWhiteChanged)
+		Q_PROPERTY(QVariantList MoveHistory READ moveHistory NOTIFY moveHistoryChanged)
+		Q_PROPERTY(QString      GameResult  READ gameResult  NOTIFY gameResultChanged)
 public:
 	explicit ChessConnector(QObject* parent = nullptr);
 	~ChessConnector();
@@ -50,6 +54,8 @@ public:
 	bool engineThinking()    const { return _engineThinking; }
 	bool useFen()            const { return _config.useFen; }
 	bool playerPlaysWhite()  const { return _config.playerPlaysWhite; }
+	QVariantList moveHistory() const;
+	QString      gameResult()  const { return _gameResult; }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 
@@ -77,6 +83,9 @@ signals:
 	void capturedChanged();
 	void newGameStarted(bool isComputerGame);
 
+	void moveHistoryChanged();
+	void gameResultChanged();
+
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
 
@@ -90,6 +99,7 @@ public slots:
 	void startNewGame();
 	void startNewGameWithComputer(int level = 3);
 	Q_INVOKABLE void robotMove();
+	Q_INVOKABLE void setGameResult(const QString& result);
 	void setUseFen(bool v);
 	Q_INVOKABLE void setPlayerPlaysWhite(bool v);
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
@@ -114,7 +124,7 @@ private slots:
 
 private:
 	void makeMove(int from, int to);
-	void EmitMoveCountUpdates();
+	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
 	void autoSaveGame(bool isSinglePlayer);
@@ -138,6 +148,7 @@ private:
 	bool _engineThinking = false;
 	bool _engineAutoPlay = false;
 	std::atomic<bool> _gameOver{ false };
+	QString _gameResult;
 	AppConfig _config;
 };
 

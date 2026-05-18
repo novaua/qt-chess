@@ -51,6 +51,8 @@ ChessConnector::ChessConnector(QObject* parent)
 					bool humanWon = _game->IsWhiteMove() != _config.playerPlaysWhite;
 					_userManager->recordResult(humanWon, _engineWorker != nullptr);
 				}
+				_gameResult = _game->IsWhiteMove() ? "0-1 Black victorious" : "1-0 White victorious";
+				emit gameResultChanged();
 				QString winner = _game->IsWhiteMove() ? "Black Won" : "White Won";
 				emit checkMateResult(winner);
 			}
@@ -152,12 +154,52 @@ void ChessConnector::setPossibleMoves(const QStringList& moves)
 	emit PossibleMovesChanged();
 }
 
-void ChessConnector::EmitMoveCountUpdates()
+namespace {
+	// PieceTypes enum: EMPTY=0, KNIGHT=1, BISHOP=2, ROOK=3, QUEEN=4, KING=5, PAWN=6
+	static const char pieceCodes[] = " nbrqkp";
+	QChar pieceCode(const Chess::Piece& p) { return QChar(pieceCodes[p.Type]); }
+
+	static QString fmtMove(const Chess::HistoryMove& m) {
+		QString s = QString::fromStdString(Chess::BoardPositionToString(m.From.Position))
+		          + "-"
+		          + QString::fromStdString(Chess::BoardPositionToString(m.To.Position));
+		if (m.IsPawnPromotionMove()) {
+			std::string pt = m.PromotedTo.ToString();
+			s += QString("=") + QChar(std::tolower((unsigned char)pt[0]));
+		}
+		return s;
+	}
+}
+
+void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
 {
 	emit moveCountChanged();
 	emit IsWhiteMoveChanged();
 	emit lastMoveChanged();
 	emit capturedChanged();
+	if (emitHistoryChanged)
+		emit moveHistoryChanged();
+}
+
+QVariantList ChessConnector::moveHistory() const
+{
+	const auto& rec = _game->GetGameRecord();
+	QVariantList result;
+	result.reserve((int)rec.size() / 2 + 1);
+	for (size_t i = 0; i < rec.size(); i += 2) {
+		QVariantMap row;
+		row["n"] = (int)(i / 2) + 1;
+		row["w"] = fmtMove(rec[i]);
+		row["b"] = (i + 1 < rec.size()) ? QVariant(fmtMove(rec[i + 1])) : QVariant(QString(""));
+		result.append(row);
+	}
+	return result;
+}
+
+void ChessConnector::setGameResult(const QString& result)
+{
+	_gameResult = result;
+	emit gameResultChanged();
 }
 
 int ChessConnector::lastMoveFrom() const
@@ -170,12 +212,6 @@ int ChessConnector::lastMoveTo() const
 {
 	const auto& rec = _game->GetGameRecord();
 	return rec.empty() ? -1 : (int)rec.back().To.Position;
-}
-
-namespace {
-	// PieceTypes enum: EMPTY=0, KNIGHT=1, BISHOP=2, ROOK=3, QUEEN=4, KING=5, PAWN=6
-	static const char pieceCodes[] = " nbrqkp";
-	QChar pieceCode(const Chess::Piece& p) { return QChar(pieceCodes[p.Type]); }
 }
 
 QStringList ChessConnector::capturedByDark() const
@@ -221,6 +257,7 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	stopEngineThread();
 	_player = nullptr;
 	_gameOver = false;
+	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
 	_engineAutoPlay = false;
 	_onlineGameId = gameId;
 
@@ -251,6 +288,7 @@ void ChessConnector::startNewGame()
 	stopEngineThread();
 	_player = nullptr;
 	_gameOver = false;
+	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
 	_game->Restart();
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
@@ -268,6 +306,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_player = nullptr;
 	_game->EndGame();
 	_gameOver = false;
+	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
 	emit newGameStarted(true);
@@ -464,7 +503,7 @@ void ChessConnector::moveNext()
 		return;
 	}
 	_player->MoveNext();
-	EmitMoveCountUpdates();
+	EmitMoveCountUpdates(false);
 }
 
 void ChessConnector::movePrev()
@@ -488,7 +527,7 @@ void ChessConnector::movePrev()
 		return;
 	}
 	_player->MoveBack();
-	EmitMoveCountUpdates();
+	EmitMoveCountUpdates(false);
 }
 
 int ChessConnector::IsOnPlayerMode()
