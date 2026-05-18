@@ -249,25 +249,24 @@ namespace {
 		} else {
 			QString sym = pieceSymbol(piece.Type, piece.Color);
 
-			// Disambiguation: find other pieces of the same type that can also reach toPos
 			auto candidates = Chess::MoveGeneration::GetPositionsOf(boardBefore, piece.Type, piece.Color);
-			bool ambigFile = false, ambigRank = false;
+			bool needsRank = false, needsFile = false;
 			for (const auto& pp : candidates) {
 				if (pp.Position == fromPos) continue;
 				for (const auto& mv : Chess::MoveGeneration::GenerateBasicMoves(boardBefore, pp.Position, piece.Color)) {
 					if (mv.To == toPos) {
 						if ((int)pp.Position % 8 == (int)fromPos % 8)
-							ambigFile = true;   // another piece shares same file → need rank to disambiguate
+							needsRank = true;
 						else
-							ambigRank = true;   // another piece on different file → file disambig suffices
+							needsFile = true;
 					}
 				}
 			}
 
 			QString disambig;
-			if      (ambigFile && ambigRank) disambig = posFile(fromPos) + posRank(fromPos);
-			else if (ambigFile)              disambig = posRank(fromPos);
-			else if (ambigRank)              disambig = posFile(fromPos);
+			if      (needsRank && needsFile) disambig = posFile(fromPos) + posRank(fromPos);
+			else if (needsRank)              disambig = posRank(fromPos);
+			else if (needsFile)              disambig = posFile(fromPos);
 
 			result = sym + disambig + (m.IsCapturingMove() ? "x" : "") + posStr(toPos);
 		}
@@ -302,7 +301,6 @@ QVariantList ChessConnector::moveHistory() const
 		QVariantMap row;
 		row["n"] = (int)(i / 2) + 1;
 
-		// White move
 		bool wLast = (i == rec.size() - 1);
 		bool wMate  = wLast && _gameResult.contains("1-0");
 		Chess::Board wBefore = board;
@@ -310,16 +308,15 @@ QVariantList ChessConnector::moveHistory() const
 		bool wCheck = !wMate && isKingInCheck(board, Chess::PieceColors::Dark);
 		row["w"] = fmtMoveSan(rec[i], wBefore, wCheck, wMate);
 
-		// Black move
 		if (i + 1 < rec.size()) {
 			bool bLast = (i + 1 == rec.size() - 1);
 			bool bMate  = bLast && _gameResult.contains("0-1");
 			Chess::Board bBefore = board;
 			applyMove(board, rec[i + 1]);
 			bool bCheck = !bMate && isKingInCheck(board, Chess::PieceColors::Light);
-			row["b"] = QVariant(fmtMoveSan(rec[i + 1], bBefore, bCheck, bMate));
+			row["b"] = fmtMoveSan(rec[i + 1], bBefore, bCheck, bMate);
 		} else {
-			row["b"] = QVariant(QString(""));
+			row["b"] = QString();
 		}
 		result.append(row);
 	}
