@@ -18,7 +18,7 @@ bool HistoryMove::IsPawnPromotionMove() const
 
 Move HistoryMove::ToMove() const
 {
-	return{ From.Position, To.Position, false, PromotedTo };
+	return{ From.Position, To.Position, IsCapturingMove(), PromotedTo };
 }
 
 std::string ToLower(std::string str) {
