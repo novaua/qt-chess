@@ -9,15 +9,15 @@ namespace {
     // Indexed by PieceTypes: EMPTY=0 KNIGHT=1 BISHOP=2 ROOK=3 QUEEN=4 KING=5
     static const char sanLetters[] = " NBRQK";
 
-    static char sanPieceLetter(PieceTypes type) {
+    char sanPieceLetter(PieceTypes type) {
         return (type >= KNIGHT && type <= KING) ? sanLetters[type] : '\0';
     }
 
-    static std::string posFile(BoardPosition pos) {
+    std::string posFile(BoardPosition pos) {
         return std::string(1, static_cast<char>('a' + (int)pos % 8));
     }
 
-    static std::string posRank(BoardPosition pos) {
+    std::string posRank(BoardPosition pos) {
         return std::string(1, static_cast<char>('1' + (int)pos / 8));
     }
 }

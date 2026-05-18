@@ -218,7 +218,7 @@ namespace {
 		};
 		for (int i = 0; i < 5; ++i) {
 			if (san[0] == letters[i])
-				return pieceSymbol(types[i], color) + QString::fromStdString(san.substr(1));
+				return pieceSymbol(types[i], color) + QString::fromUtf8(san.c_str() + 1);
 		}
 		return QString::fromStdString(san);
 	}
