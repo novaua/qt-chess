@@ -40,13 +40,13 @@ bool Chess::IsEnPassant(const HistoryMove& m) {
 }
 
 std::string Chess::FormatMoveSan(const HistoryMove& m,
-                                 const Board& boardBefore,
                                  const Board& boardAfter,
                                  bool isMate)
 {
-    auto fromPos = m.From.Position;
-    auto toPos   = m.To.Position;
-    auto piece   = m.From.Piece;
+    auto fromPos    = m.From.Position;
+    auto toPos      = m.To.Position;
+    auto piece      = m.From.Piece;
+    const Board& boardBefore = *boardAfter.BeforeLastMove();
 
     if (IsCastling(m))
         return ((int)toPos % 8 > (int)fromPos % 8) ? "O-O" : "O-O-O";
@@ -91,7 +91,7 @@ std::string Chess::FormatMoveSan(const HistoryMove& m,
 
     auto oppColor = OppositeSideOf(piece.Color);
     bool isCheck = !isMate && isKingInCheck(boardAfter, oppColor);
-    if (isMate)    result += "#";
+    if (isMate)       result += "#";
     else if (isCheck) result += "+";
     return result;
 }

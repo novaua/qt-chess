@@ -235,16 +235,14 @@ QVariantList ChessConnector::moveHistory() const
 		row["n"] = (int)(i / 2) + 1;
 
 		bool wMate = (i == rec.size() - 1) && _gameResult.contains("1-0");
-		Chess::Board wBefore = board;
 		applyMove(board, rec[i]);
-		row["w"] = toFan(Chess::FormatMoveSan(rec[i], wBefore, board, wMate),
+		row["w"] = toFan(Chess::FormatMoveSan(rec[i], board, wMate),
 		                 rec[i].From.Piece.Color);
 
 		if (i + 1 < rec.size()) {
 			bool bMate = (i + 1 == rec.size() - 1) && _gameResult.contains("0-1");
-			Chess::Board bBefore = board;
 			applyMove(board, rec[i + 1]);
-			row["b"] = toFan(Chess::FormatMoveSan(rec[i + 1], bBefore, board, bMate),
+			row["b"] = toFan(Chess::FormatMoveSan(rec[i + 1], board, bMate),
 			                 rec[i + 1].From.Piece.Color);
 		} else {
 			row["b"] = QString();
