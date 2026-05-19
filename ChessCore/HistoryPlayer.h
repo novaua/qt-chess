@@ -18,6 +18,9 @@ namespace Chess
 		void MoveNext();
 		void MoveBack();
 
+		const MovesHistory& GetHistory() const { return _history; }
+		int GetPointer() const { return _pointer; }
+
 		~HistoryPlayer();
 
 	private:

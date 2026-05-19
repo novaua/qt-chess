@@ -62,7 +62,7 @@ public:
 	QVariantList moveHistory() const;
 	QString      gameResult()  const { return _gameResult; }
 	bool reviewMode()    const { return _reviewIndex >= 0; }
-	int  reviewIndex()   const { return _reviewIndex; }
+	int  reviewIndex()   const { return _player ? _player->GetPointer() : _reviewIndex; }
 	bool canReviewPrev() const;
 	bool canReviewNext() const;
 	QStringList capturedByDark()  const;

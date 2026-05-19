@@ -226,7 +226,7 @@ void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
 
 QVariantList ChessConnector::moveHistory() const
 {
-	const auto& rec = _game->GetGameRecord();
+	const auto& rec = _player ? _player->GetHistory() : _game->GetGameRecord();
 	QVariantList result;
 	if (rec.empty()) return result;
 	result.reserve((int)rec.size() / 2 + 1);
@@ -586,11 +586,13 @@ void ChessConnector::movePrev()
 }
 
 bool ChessConnector::canReviewPrev() const {
+	if (_player) return _player->CanMove(false);
 	int cur = reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
 	return cur > 0;
 }
 
 bool ChessConnector::canReviewNext() const {
+	if (_player) return _player->CanMove(true);
 	return reviewMode() && _reviewIndex < (int)_game->GetGameRecord().size();
 }
 
@@ -609,12 +611,23 @@ void ChessConnector::emitBoardState(int moveIndex) {
 }
 
 void ChessConnector::reviewFirst() {
+	if (_player) {
+		while (_player->CanMove(false)) _player->MoveBack();
+		EmitMoveCountUpdates(false);
+		return;
+	}
 	_reviewIndex = 0;
 	emitBoardState(0);
 	emit reviewStateChanged();
 }
 
 void ChessConnector::reviewPrev() {
+	if (_player) {
+		if (!_player->CanMove(false)) { emit noMoreMovesNotify(); return; }
+		_player->MoveBack();
+		EmitMoveCountUpdates(false);
+		return;
+	}
 	int cur = reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
 	if (cur <= 0) return;
 	_reviewIndex = cur - 1;
@@ -623,6 +636,12 @@ void ChessConnector::reviewPrev() {
 }
 
 void ChessConnector::reviewNext() {
+	if (_player) {
+		if (!_player->CanMove(true)) { emit noMoreMovesNotify(); return; }
+		_player->MoveNext();
+		EmitMoveCountUpdates(false);
+		return;
+	}
 	if (!reviewMode()) return;
 	if (_reviewIndex >= (int)_game->GetGameRecord().size() - 1) { reviewLast(); return; }
 	_reviewIndex++;
@@ -631,6 +650,11 @@ void ChessConnector::reviewNext() {
 }
 
 void ChessConnector::reviewLast() {
+	if (_player) {
+		while (_player->CanMove(true)) _player->MoveNext();
+		EmitMoveCountUpdates();
+		return;
+	}
 	if (!reviewMode()) return;
 	_reviewIndex = -1;
 	emitBoardState((int)_game->GetGameRecord().size());
