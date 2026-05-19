@@ -20,7 +20,14 @@
       "WebFetch(domain:lichess-org.github.io)",
       "WebFetch(domain:www.mintlify.com)",
       "Bash(Get-ChildItem -Path \"E:\\\\projects\\\\qt-chess\" -Recurse -Directory)",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"E:\\\\projects\\\\qt-chess\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-Content \"E:\\\\projects\\\\qt-chess\\\\LiChessConnector\\\\LiChessConnector.vcxproj\")",
+      "Bash(Select-String \"ClInclude|ClCompile\")",
+      "Bash(Select-Object -First 20)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" ChessCore.sln /p:Configuration=Debug /p:Platform=x64 /m /v:minimal)",
+      "Bash(Get-ChildItem *)"
     ]
   }
 }

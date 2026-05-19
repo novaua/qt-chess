@@ -16,6 +16,7 @@
 #include "AvatarProvider.h"
 #include "UserManager.h"
 #include "LichessClient.h"
+#include "LichessAuth.h"
 
 class ChessConnector : public QObject
 {
@@ -95,6 +96,7 @@ signals:
 	void moveHistoryChanged();
 	void gameResultChanged();
 	void reviewStateChanged();
+	void lichessLoginResult(bool ok, QString username);
 
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
@@ -133,6 +135,8 @@ public slots:
 	void reviewNext();
 	void reviewLast();
 
+	Q_INVOKABLE void loginWithLichess();
+
 private slots:
 	void onEngineMoveComplete();
 	void onEngineMoveError(const QString& message);
@@ -170,6 +174,7 @@ private:
 	QString _gameResult;
 	AppConfig _config;
 	int _reviewIndex = -1;
+	LichessAuth* _lichessAuth = nullptr;
 
 	QVariantList _moveHistoryCache;
 };

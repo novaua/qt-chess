@@ -105,9 +105,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <QtMoc Include="LichessClient.h" />
+    <QtMoc Include="LichessAuth.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="lichessconnector_global.h" />
     <ClCompile Include="LichessClient.cpp" />
+    <ClCompile Include="LichessAuth.cpp" />
     <ClInclude Include="stdafx.h" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">Create</PrecompiledHeader>

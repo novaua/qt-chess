@@ -677,6 +677,34 @@ void ChessConnector::reviewLast() {
 	emit reviewStateChanged();
 }
 
+void ChessConnector::loginWithLichess()
+{
+	if (_lichessAuth) return; // already in progress
+
+	_lichessAuth = new LichessAuth(this);
+
+	connect(_lichessAuth, &LichessAuth::loginSucceeded,
+		this, [this](const QString& token, const QString& username) {
+		if (_userManager)
+			_userManager->saveLichessCredentials(token, username);
+		if (_lichessClient)
+			_lichessClient->setToken(token);
+		emit lichessLoginResult(true, username);
+		_lichessAuth->deleteLater();
+		_lichessAuth = nullptr;
+	});
+
+	connect(_lichessAuth, &LichessAuth::loginFailed,
+		this, [this](const QString& error) {
+		qDebug() << "[LichessAuth] login failed:" << error;
+		emit lichessLoginResult(false, QString());
+		_lichessAuth->deleteLater();
+		_lichessAuth = nullptr;
+	});
+
+	_lichessAuth->startLogin();
+}
+
 int ChessConnector::IsOnPlayerMode()
 {
 	return _player ? 1 : 0;

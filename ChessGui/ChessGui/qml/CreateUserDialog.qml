@@ -105,7 +105,7 @@ Rectangle {
             }
         }
 
-        // Lichess token row (profile mode only)
+        // Lichess section (profile mode only)
         Column {
             id: lichessSection
             width: parent.width
@@ -114,16 +114,22 @@ Rectangle {
 
             property bool _validating: false
             property string _lichessStatus: ""   // "" | "ok:username" | "err"
+            property bool _showTokenField: false
 
+            Connections {
+                target: chessConnector
+                function onLichessLoginResult(ok, username) {
+                    lichessSection._validating = false
+                    lichessSection._lichessStatus = ok ? ("ok:" + username) : "err"
+                }
+            }
             Connections {
                 target: lichessClient
                 function onTokenValidated(ok, username) {
                     lichessSection._validating = false
                     if (ok) {
                         lichessSection._lichessStatus = "ok:" + username
-                        userManager.saveLichessCredentials(
-                            lichessTokenField.text,
-                            username)
+                        userManager.saveLichessCredentials(lichessTokenField.text, username)
                     } else {
                         lichessSection._lichessStatus = "err"
                     }
@@ -131,12 +137,11 @@ Rectangle {
             }
 
             Text {
-                text: "Lichess Token"
+                text: "Lichess"
                 font.pixelSize: 13
                 color: isDarkMode ? "#bbbbbb" : "#555555"
             }
 
-            // Show connected state OR token input
             Column {
                 width: parent.width
                 spacing: 6
@@ -158,13 +163,54 @@ Rectangle {
                         onClicked: {
                             userManager.clearLichessToken()
                             lichessSection._lichessStatus = ""
+                            lichessSection._showTokenField = false
                         }
                     }
                 }
 
-                // Token input row
+                // Primary: browser OAuth button
                 Row {
                     visible: !userManager.lichessConnected || lichessSection._lichessStatus !== ""
+                    spacing: 6
+
+                    Button {
+                        text: lichessSection._validating ? "Waiting for browser…" : "Login with Lichess"
+                        implicitWidth: 160
+                        implicitHeight: 28
+                        enabled: !lichessSection._validating
+                        onClicked: {
+                            lichessSection._validating    = true
+                            lichessSection._lichessStatus = ""
+                            chessConnector.loginWithLichess()
+                        }
+                    }
+
+                    Text {
+                        text: "or"
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.pixelSize: 12
+                        color: isDarkMode ? "#888" : "#aaa"
+                        visible: !lichessSection._validating
+                    }
+
+                    Text {
+                        text: lichessSection._showTokenField ? "hide" : "use API token"
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.pixelSize: 12
+                        color: "#0078d4"
+                        visible: !lichessSection._validating
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: lichessSection._showTokenField = !lichessSection._showTokenField
+                        }
+                    }
+                }
+
+                // Fallback: manual API token (collapsed by default)
+                Row {
+                    visible: lichessSection._showTokenField &&
+                             (!userManager.lichessConnected || lichessSection._lichessStatus !== "")
                     width: parent.width
                     spacing: 6
 
@@ -198,7 +244,7 @@ Rectangle {
                     }
                 }
 
-                // Validation status
+                // Status row
                 Row {
                     spacing: 6
                     visible: lichessSection._validating || lichessSection._lichessStatus !== ""
@@ -213,7 +259,7 @@ Rectangle {
                         visible: !lichessSection._validating
                         text: lichessSection._lichessStatus.startsWith("ok:")
                             ? ("✓ Connected as " + lichessSection._lichessStatus.substring(3))
-                            : "✗ Invalid token"
+                            : "✗ Login failed"
                         color: lichessSection._lichessStatus.startsWith("ok:")
                             ? "#27ae60" : "#e74c3c"
                         font.pixelSize: 12
