@@ -579,7 +579,24 @@ void ChessConnector::moveNext()
 
 void ChessConnector::movePrev()
 {
-	if (!_player) { reviewPrev(); return; }
+	if (!_player) {
+		if (_engineWorker && !reviewMode()) {
+			if (_engineThinking) return;
+			int count = _game->GetMoveCount();
+			if (count == 0) { emit noMoreMovesNotify(); return; }
+			int movesToUndo = count >= 2 ? 2 : 1;
+			for (int i = 0; i < movesToUndo; i++)
+				_game->UndoMove();
+			if (!_moveHistoryCache.isEmpty())
+				_moveHistoryCache.removeLast();
+			ClearBoard(_possibleMoves);
+			emit PossibleMovesChanged();
+			EmitMoveCountUpdates();
+			return;
+		}
+		reviewPrev();
+		return;
+	}
 
 	if (!_player->CanMove(false)) {
 		emit noMoreMovesNotify();
