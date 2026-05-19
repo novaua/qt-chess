@@ -173,6 +173,13 @@ namespace {
 		return QString::fromUcs4(&cp, 1);
 	}
 
+	static std::shared_ptr<Chess::Game> replayHistory(const Chess::MovesHistory& history, int count) {
+		auto game = std::make_shared<Chess::Game>();
+		for (int i = 0; i < count && i < (int)history.size(); ++i)
+			game->DoMove(history[i].ToMove());
+		return game;
+	}
+
 	// Replaces the leading ASCII piece letter (N/B/R/Q/K) with the UTF-8 figurine for the given color.
 	static QString toFan(const std::string& san, Chess::PieceColors color) {
 		if (san.empty())
@@ -217,7 +224,7 @@ void ChessConnector::appendMoveToHistory() {
 		row["b"] = QString();
 		_moveHistoryCache.append(row);
 	}
-	else {
+	else if (!_moveHistoryCache.isEmpty()) {
 		auto row = _moveHistoryCache.last().toMap();
 		row["b"] = san;
 		_moveHistoryCache[_moveHistoryCache.size() - 1] = row;
@@ -227,7 +234,7 @@ void ChessConnector::appendMoveToHistory() {
 void ChessConnector::buildFullHistoryCache() {
 	const auto& history = _player ? _player->GetHistory() : _game->GetGameRecord();
 	_moveHistoryCache.clear();
-	auto replayGame = std::make_shared<Chess::Game>();
+	auto replayGame = replayHistory(history, 0);
 	for (int i = 0; i < (int)history.size(); i += 2) {
 		QVariantMap row;
 		row["n"] = i / 2 + 1;
@@ -618,10 +625,8 @@ bool ChessConnector::canReviewNext() const {
 }
 
 void ChessConnector::emitBoardState(int moveIndex) {
-	auto replayGame = std::make_shared<Chess::Game>();
 	const auto& rec = _player ? _player->GetHistory() : _game->GetGameRecord();
-	for (int i = 0; i < moveIndex && i < (int)rec.size(); ++i)
-		replayGame->DoMove(rec[i].ToMove());
+	auto replayGame = replayHistory(rec, moveIndex);
 	const auto& board = replayGame->GetCurrentBoard();
 	for (int i = 0; i < 64; ++i) {
 		const auto& str = board.At(Chess::BoardPosition(i)).ToString();
