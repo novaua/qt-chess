@@ -30,13 +30,10 @@ ChessConnector::ChessConnector(QObject* parent)
 	_game(GameAptr(new Game())),
 	_config(AppConfig::load())
 {
-	_displayedPieces.fill(' ');
 	_game->RegisterBoardChanged(
 		[&](int index, const Piece& piece)
 		{
-			const auto& str = piece.ToString();
-			_displayedPieces[index] = str[0];
-			emit boardChanged(index, QString::fromStdString(str));
+			emit boardChanged(index, QString::fromStdString(piece.ToString()));
 		});
 
 	_game->RegisterGameActionsListeners(
@@ -93,13 +90,7 @@ int ChessConnector::IsWhiteMove()
 
 void ChessConnector::figureSelected(int index)
 {
-	if (reviewMode()) return;
-
-	if (IsOnPlayerMode()) {
-		return;
-	}
-
-	if (_engineThinking) {
+	if (IsOnPlayerMode() || reviewMode() || _engineThinking) {
 		return;
 	}
 
@@ -628,13 +619,8 @@ void ChessConnector::emitBoardState(int moveIndex) {
 	const auto& rec = _player ? _player->GetHistory() : _game->GetGameRecord();
 	auto replayGame = replayHistory(rec, moveIndex);
 	const auto& board = replayGame->GetCurrentBoard();
-	for (int i = 0; i < 64; ++i) {
-		const auto& str = board.At(Chess::BoardPosition(i)).ToString();
-		if (str[0] != _displayedPieces[i]) {
-			_displayedPieces[i] = str[0];
-			emit boardChanged(i, QString::fromStdString(str));
-		}
-	}
+	for (int i = 0; i < 64; ++i)
+		emit boardChanged(i, QString::fromStdString(board.At(Chess::BoardPosition(i)).ToString()));
 	ClearBoard(_possibleMoves);
 	emit PossibleMovesChanged();
 	emit lastMoveChanged();
