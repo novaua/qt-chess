@@ -37,6 +37,8 @@ namespace Chess
 		const std::string &ToString() const;
 		static Piece Parse(const std::string &strPiece);
 
+		std::string ToSANString() const;
+
 		size_t GetHashCode() const;
 	};
 }

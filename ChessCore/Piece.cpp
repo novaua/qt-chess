@@ -34,6 +34,14 @@ const std::string &Piece::ToString() const
 	return translationMap[Type + offset];
 }
 
+std::string Piece::ToSANString() const
+{
+	if (Type == EMPTY) return {};
+	auto ch = ToString();
+	ch[0] = std::toupper(ch[0]);
+	return ch;
+}
+
 Piece Piece::Parse(const std::string &strPiece)
 {
 	// this is not absolutely efficient but quite pretty =)
