@@ -73,7 +73,8 @@ jobs:
         shell: pwsh
         run: |
           New-Item -Path deploy -ItemType Directory -Force
-          Copy-Item x64\Release\ChessGui.exe deploy\
+          Copy-Item x64\Release\ChessGui.exe       deploy\
+          Copy-Item x64\Release\LiChessConnector.dll deploy\
           windeployqt --release --verbose 2 --qmldir ChessGui\ChessGui deploy\ChessGui.exe
           Write-Host "=== deploy folder contents ==="
           Get-ChildItem deploy -Recurse | Select-Object FullName
