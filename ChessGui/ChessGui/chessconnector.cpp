@@ -203,16 +203,14 @@ namespace {
 
 	// Replaces the leading ASCII piece letter (N/B/R/Q/K) with the UTF-8 figurine for the given color.
 	static QString toFan(const std::string& san, Chess::PieceColors color) {
-		if (san.empty() || san[0] == 'O') return QString::fromStdString(san);
-		static const char* const letters = "NBRQK";
-		static const Chess::PieceTypes types[] = {
-			Chess::KNIGHT, Chess::BISHOP, Chess::ROOK, Chess::QUEEN, Chess::KING
-		};
-		for (int i = 0; i < 5; ++i) {
-			if (san[0] == letters[i])
-				return pieceSymbol(types[i], color) + QString::fromUtf8(san.c_str() + 1);
-		}
-		return QString::fromStdString(san);
+		if (san.empty())
+			return {};
+		static const char* const letters = "NBRQK"; // indexed: N=1 B=2 R=3 Q=4 K=5
+		const char* p = std::strchr(letters, san[0]);
+		if (!p)
+			return QString::fromStdString(san);
+		auto type = static_cast<Chess::PieceTypes>(p - letters + 1);
+		return pieceSymbol(type, color) + QString::fromUtf8(san.c_str() + 1);
 	}
 }
 
@@ -236,7 +234,7 @@ void ChessConnector::appendMoveToHistory() {
 	if (rec.empty()) return;
 	int i = (int)rec.size() - 1;
 	bool isMate = (i % 2 == 0) ? _gameResult.contains("1-0")
-	                            : _gameResult.contains("0-1");
+		: _gameResult.contains("0-1");
 	const auto& m = rec[i];
 	QString san = toFan(Chess::FormatMoveSan(m, _game->GetCurrentBoard(), isMate),
 		m.From.Piece.Color);
@@ -246,7 +244,8 @@ void ChessConnector::appendMoveToHistory() {
 		row["w"] = san;
 		row["b"] = QString();
 		_moveHistoryCache.append(row);
-	} else {
+	}
+	else {
 		auto row = _moveHistoryCache.last().toMap();
 		row["b"] = san;
 		_moveHistoryCache[_moveHistoryCache.size() - 1] = row;
@@ -270,7 +269,8 @@ void ChessConnector::buildFullHistoryCache() {
 			bool bMate = (i + 1 == (int)history.size() - 1) && _gameResult.contains("0-1");
 			row["b"] = toFan(Chess::FormatMoveSan(history[i + 1], board, bMate),
 				history[i + 1].From.Piece.Color);
-		} else {
+		}
+		else {
 			row["b"] = QString();
 		}
 		_moveHistoryCache.append(row);
