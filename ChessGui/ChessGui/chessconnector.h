@@ -7,6 +7,7 @@
 #include <QVariantMap>
 #include "MovesGen.h"
 #include <QThread>
+#include <array>
 #include <atomic>
 #include <functional>
 
@@ -167,6 +168,7 @@ private:
 	QString _gameResult;
 	AppConfig _config;
 	int _reviewIndex = -1;
+	std::array<char, 64> _displayedPieces{};
 };
 
 #endif // CHESSCONNECTOR_H
