@@ -44,12 +44,12 @@ namespace Chess {
 
 		void Initialize();
 
-		const std::vector<PieceColors> &color() const
+		const std::vector<PieceColors>& color() const
 		{
 			return _color;
 		}
 
-		const std::vector<PieceTypes> &piece() const
+		const std::vector<PieceTypes>& piece() const
 		{
 			return _piece;
 		}
@@ -57,13 +57,15 @@ namespace Chess {
 		Piece At(BoardPosition position) const;
 		Piece At(int position) const;
 
-		void Place(BoardPosition position, const Piece & piece);
+		void Place(BoardPosition position, const Piece& piece);
 
-		void ForEachPiece(const std::function<void(BoardPosition)> &action, PieceColors color) const;
+		void ForEachPiece(const std::function<void(BoardPosition)>& action, PieceColors color) const;
 
 		// Does non-empty Piece move without chess basic rules validation. However it does capturing check.
-		HistoryMove DoMove(const Move &move);
+		HistoryMove DoMove(const Move& move);
 		void UndoLastMove();
+
+		BoardAptr BeforeLastMove() const;
 
 		//position hash code
 		size_t GetHashCode() const;

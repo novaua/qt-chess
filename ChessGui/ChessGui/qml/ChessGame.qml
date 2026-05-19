@@ -28,7 +28,20 @@ ApplicationWindow {
     property string _pendingChallengeUrl:     ""
     property string _onlineGameId:            ""
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
-    property real   _panelH: _boardSize / 16
+    // _panelH is computed analytically to avoid a binding loop:
+    //   _boardSize → chessBoard.height → centralItem.height → _panelH → _boardSize
+    // Portrait (width-limited):  panelH = rootW * 0.95 / 16
+    // Landscape (height-limited): solving panelH = (rootH-30-2*panelH)*0.95/16
+    //   gives panelH = (rootH-30)*0.95 / (16*(1+0.95/8)) = (rootH-30)*0.95/17.9
+    property real   _panelH: {
+        if (!gameIsInProgress) return 0
+        var effH = root.height - 30
+        return (root.width * 1.11875 < effH)
+            ? root.width * 0.95 / 16    // portrait: board is width-limited
+            : effH * 0.95 / 17.9        // landscape: board is height-limited
+    }
+    readonly property real _historyPanelW: 160
+    readonly property bool _showHistoryPanel: gameIsInProgress && (root.width > root.height * 1.15)
 
     function clearPendingChallenge() {
         userManager.clearPendingChallenge()
@@ -299,6 +312,18 @@ ApplicationWindow {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.WaitCursor
+                    }
+                }
+
+                MoveHistoryPanel {
+                    id: moveHistoryPanel
+                    visible: _showHistoryPanel
+                    width: _historyPanelW
+                    height: _boardSize
+                    gameInProgress: gameIsInProgress
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                        left: parent.left; leftMargin: (parent.width + _boardSize) / 2 + 5
                     }
                 }
             }

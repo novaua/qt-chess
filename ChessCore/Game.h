@@ -54,6 +54,7 @@ namespace Chess
 		std::vector<Move> GetAllowedMoves(int index);
 
 		Piece GetPieceAt(int index) const;
+		const Board& GetCurrentBoard() const { return *_boardAptr; }
 
 		void Restart(bool whiteFirst = true);
 		void EndGame();

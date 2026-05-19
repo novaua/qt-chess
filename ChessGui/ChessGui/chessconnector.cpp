@@ -2,6 +2,7 @@
 #include "chessconnector.h"
 #include "ChessException.h"
 #include "AppConfig.h"
+#include "San.h"
 
 #include <QDir>
 #include <QDebug>
@@ -51,6 +52,8 @@ ChessConnector::ChessConnector(QObject* parent)
 					bool humanWon = _game->IsWhiteMove() != _config.playerPlaysWhite;
 					_userManager->recordResult(humanWon, _engineWorker != nullptr);
 				}
+				_gameResult = _game->IsWhiteMove() ? "0-1 Black victorious" : "1-0 White victorious";
+				emit gameResultChanged();
 				QString winner = _game->IsWhiteMove() ? "Black Won" : "White Won";
 				emit checkMateResult(winner);
 			}
@@ -87,11 +90,7 @@ int ChessConnector::IsWhiteMove()
 
 void ChessConnector::figureSelected(int index)
 {
-	if (IsOnPlayerMode()) {
-		return;
-	}
-
-	if (_engineThinking) {
+	if (IsOnPlayerMode() || reviewMode() || _engineThinking) {
 		return;
 	}
 
@@ -152,30 +151,126 @@ void ChessConnector::setPossibleMoves(const QStringList& moves)
 	emit PossibleMovesChanged();
 }
 
-void ChessConnector::EmitMoveCountUpdates()
+namespace {
+	static const char pieceCodes[] = " nbrqkp";
+	QChar pieceCode(const Chess::Piece& p) { return QChar(pieceCodes[p.Type]); }
+
+	static const char32_t whiteFigurines[] = { 0, 0x2658, 0x2657, 0x2656, 0x2655, 0x2654 };
+	static const char32_t blackFigurines[] = { 0, 0x265E, 0x265D, 0x265C, 0x265B, 0x265A };
+
+	static QString pieceSymbol(Chess::PieceTypes type, Chess::PieceColors color) {
+		if (type < 1 || type > 5) return {};
+		auto cp = (color == Chess::PieceColors::Light) ? whiteFigurines[type] : blackFigurines[type];
+		return QString::fromUcs4(&cp, 1);
+	}
+
+	static std::shared_ptr<Chess::Game> replayHistory(const Chess::MovesHistory& history, int count) {
+		auto game = std::make_shared<Chess::Game>();
+		for (int i = 0; i < count && i < (int)history.size(); ++i)
+			game->DoMove(history[i].ToMove());
+		return game;
+	}
+
+	// Replaces the leading ASCII piece letter (N/B/R/Q/K) with the UTF-8 figurine for the given color.
+	static QString toFan(const std::string& san, Chess::PieceColors color) {
+		if (san.empty())
+			return {};
+		static const char* const letters = "NBRQK"; // indexed: N=1 B=2 R=3 Q=4 K=5
+		const char* p = std::strchr(letters, san[0]);
+		if (!p)
+			return QString::fromStdString(san);
+		auto type = static_cast<Chess::PieceTypes>(p - letters + 1);
+		return pieceSymbol(type, color) + QString::fromUtf8(san.c_str() + 1);
+	}
+}
+
+void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
 {
 	emit moveCountChanged();
 	emit IsWhiteMoveChanged();
 	emit lastMoveChanged();
 	emit capturedChanged();
+	if (emitHistoryChanged)
+		emit moveHistoryChanged();
+	emit reviewStateChanged();
+}
+
+void ChessConnector::resetMoveHistoryCache() {
+	_moveHistoryCache.clear();
+}
+
+void ChessConnector::appendMoveToHistory() {
+	const auto& rec = _game->GetGameRecord();
+	if (rec.empty()) return;
+	int i = (int)rec.size() - 1;
+	bool isMate = (i % 2 == 0) ? _gameResult.contains("1-0")
+		: _gameResult.contains("0-1");
+	const auto& m = rec[i];
+	QString san = toFan(Chess::FormatMoveSan(m, _game->GetCurrentBoard(), isMate),
+		m.From.Piece.Color);
+	if (i % 2 == 0) {
+		QVariantMap row;
+		row["n"] = i / 2 + 1;
+		row["w"] = san;
+		row["b"] = QString();
+		_moveHistoryCache.append(row);
+	}
+	else if (!_moveHistoryCache.isEmpty()) {
+		auto row = _moveHistoryCache.last().toMap();
+		row["b"] = san;
+		_moveHistoryCache[_moveHistoryCache.size() - 1] = row;
+	}
+}
+
+void ChessConnector::buildFullHistoryCache() {
+	const auto& history = _player ? _player->GetHistory() : _game->GetGameRecord();
+	_moveHistoryCache.clear();
+	auto replayGame = replayHistory(history, 0);
+	for (int i = 0; i < (int)history.size(); i += 2) {
+		QVariantMap row;
+		row["n"] = i / 2 + 1;
+		replayGame->DoMove(history[i].ToMove());
+		bool wMate = (i == (int)history.size() - 1) && _gameResult.contains("1-0");
+		row["w"] = toFan(Chess::FormatMoveSan(history[i], replayGame->GetCurrentBoard(), wMate),
+			history[i].From.Piece.Color);
+		if (i + 1 < (int)history.size()) {
+			replayGame->DoMove(history[i + 1].ToMove());
+			bool bMate = (i + 1 == (int)history.size() - 1) && _gameResult.contains("0-1");
+			row["b"] = toFan(Chess::FormatMoveSan(history[i + 1], replayGame->GetCurrentBoard(), bMate),
+				history[i + 1].From.Piece.Color);
+		}
+		else {
+			row["b"] = QString();
+		}
+		_moveHistoryCache.append(row);
+	}
+}
+
+QVariantList ChessConnector::moveHistory() const
+{
+	return _moveHistoryCache;
+}
+
+void ChessConnector::setGameResult(const QString& result)
+{
+	_gameResult = result;
+	emit gameResultChanged();
 }
 
 int ChessConnector::lastMoveFrom() const
 {
 	const auto& rec = _game->GetGameRecord();
+	if (reviewMode())
+		return (_reviewIndex == 0 || rec.empty()) ? -1 : (int)rec[_reviewIndex - 1].From.Position;
 	return rec.empty() ? -1 : (int)rec.back().From.Position;
 }
 
 int ChessConnector::lastMoveTo() const
 {
 	const auto& rec = _game->GetGameRecord();
+	if (reviewMode())
+		return (_reviewIndex == 0 || rec.empty()) ? -1 : (int)rec[_reviewIndex - 1].To.Position;
 	return rec.empty() ? -1 : (int)rec.back().To.Position;
-}
-
-namespace {
-	// PieceTypes enum: EMPTY=0, KNIGHT=1, BISHOP=2, ROOK=3, QUEEN=4, KING=5, PAWN=6
-	static const char pieceCodes[] = " nbrqkp";
-	QChar pieceCode(const Chess::Piece& p) { return QChar(pieceCodes[p.Type]); }
 }
 
 QStringList ChessConnector::capturedByDark() const
@@ -201,13 +296,14 @@ void ChessConnector::makeMove(int from, int to)
 	try
 	{
 		_game->DoMove((BoardPosition)from, (BoardPosition)to);
+		appendMoveToHistory();
 		EmitMoveCountUpdates();
 
 		if (!_onlineGameId.isEmpty() && _lichessClient) {
 			const auto& rec = _game->GetGameRecord();
 			if (!rec.empty())
 				_lichessClient->postMove(_onlineGameId,
-				    QString::fromStdString(rec.back().ToUciString()));
+					QString::fromStdString(rec.back().ToUciString()));
 		}
 	}
 	catch (ChessException& ex)
@@ -221,6 +317,7 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	stopEngineThread();
 	_player = nullptr;
 	_gameOver = false;
+	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
 	_engineAutoPlay = false;
 	_onlineGameId = gameId;
 
@@ -233,8 +330,8 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 
 	if (_lichessClient) {
 		connect(_lichessClient, &LichessClient::opponentMoveReceived,
-		        this, &ChessConnector::applyMoves,
-		        Qt::UniqueConnection);
+			this, &ChessConnector::applyMoves,
+			Qt::UniqueConnection);
 	}
 }
 
@@ -247,10 +344,12 @@ void ChessConnector::resignOnlineGame()
 
 void ChessConnector::startNewGame()
 {
+	resetMoveHistoryCache();
 	deleteAutoSave();
 	stopEngineThread();
 	_player = nullptr;
 	_gameOver = false;
+	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
 	_game->Restart();
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
@@ -261,6 +360,7 @@ void ChessConnector::startNewGame()
 
 void ChessConnector::startNewGameWithComputer(int level)
 {
+	resetMoveHistoryCache();
 	_config.lastLevel = level;
 	_config.save();
 	deleteAutoSave();
@@ -268,6 +368,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_player = nullptr;
 	_game->EndGame();
 	_gameOver = false;
+	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
 	emit newGameStarted(true);
@@ -295,6 +396,7 @@ void ChessConnector::applyMoves(const QString& movesStr)
 			break;
 		}
 	}
+	buildFullHistoryCache();
 	EmitMoveCountUpdates();
 }
 
@@ -375,6 +477,11 @@ void ChessConnector::onEngineMoveComplete()
 {
 	_engineThinking = false;
 	emit engineThinkingChanged();
+	if (reviewMode()) {
+		_reviewIndex = -1;
+		emitBoardState((int)_game->GetGameRecord().size());
+	}
+	appendMoveToHistory();
 	EmitMoveCountUpdates();
 }
 
@@ -410,10 +517,10 @@ void ChessConnector::saveGame()
 {
 	if (_userManager) {
 		UserManager::GameSaveInfo info;
-		info.isSinglePlayer   = _engineWorker != nullptr;
+		info.isSinglePlayer = _engineWorker != nullptr;
 		info.playerPlaysWhite = _config.playerPlaysWhite;
 		if (_avatarProvider) {
-			info.playerAvatarName   = _avatarProvider->playerRawName();
+			info.playerAvatarName = _avatarProvider->playerRawName();
 			info.opponentAvatarName = _avatarProvider->opponentRawName();
 		}
 		_userManager->setSavedGameInfo(info);
@@ -437,6 +544,7 @@ bool ChessConnector::loadGame()
 			_game->Load(savedGamePath().toStdString());
 			_game->Restart();
 			_player = _game->MakePlayer();
+			buildFullHistoryCache();
 			emit IsOnPlayerModeChanged();
 			EmitMoveCountUpdates();
 			success = true;
@@ -457,29 +565,34 @@ bool ChessConnector::loadGame()
 
 void ChessConnector::moveNext()
 {
-	if (!_player) return;
+	if (!_player) { reviewNext(); return; }
 
 	if (!_player->CanMove(true)) {
 		emit noMoreMovesNotify();
 		return;
 	}
 	_player->MoveNext();
-	EmitMoveCountUpdates();
+	EmitMoveCountUpdates(false);
 }
 
 void ChessConnector::movePrev()
 {
 	if (!_player) {
-		// Live game: undo last human move + computer reply pair
-		if (_engineThinking) return;
-		int count = _game->GetMoveCount();
-		if (count == 0) { emit noMoreMovesNotify(); return; }
-		int movesToUndo = (_engineWorker && count >= 2) ? 2 : 1;
-		for (int i = 0; i < movesToUndo; i++)
-			_game->UndoMove();
-		ClearBoard(_possibleMoves);
-		emit PossibleMovesChanged();
-		EmitMoveCountUpdates();
+		if (_engineWorker && !reviewMode()) {
+			if (_engineThinking) return;
+			int count = _game->GetMoveCount();
+			if (count == 0) { emit noMoreMovesNotify(); return; }
+			int movesToUndo = count >= 2 ? 2 : 1;
+			for (int i = 0; i < movesToUndo; i++)
+				_game->UndoMove();
+			if (!_moveHistoryCache.isEmpty())
+				_moveHistoryCache.removeLast();
+			ClearBoard(_possibleMoves);
+			emit PossibleMovesChanged();
+			EmitMoveCountUpdates();
+			return;
+		}
+		reviewPrev();
 		return;
 	}
 
@@ -488,7 +601,80 @@ void ChessConnector::movePrev()
 		return;
 	}
 	_player->MoveBack();
-	EmitMoveCountUpdates();
+	EmitMoveCountUpdates(false);
+}
+
+bool ChessConnector::canReviewPrev() const {
+	if (_player) return _player->CanMove(false);
+	int cur = reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
+	return cur > 0;
+}
+
+bool ChessConnector::canReviewNext() const {
+	if (_player) return _player->CanMove(true);
+	return reviewMode() && _reviewIndex < (int)_game->GetGameRecord().size();
+}
+
+void ChessConnector::emitBoardState(int moveIndex) {
+	const auto& rec = _player ? _player->GetHistory() : _game->GetGameRecord();
+	auto replayGame = replayHistory(rec, moveIndex);
+	const auto& board = replayGame->GetCurrentBoard();
+	for (int i = 0; i < 64; ++i)
+		emit boardChanged(i, QString::fromStdString(board.At(Chess::BoardPosition(i)).ToString()));
+	ClearBoard(_possibleMoves);
+	emit PossibleMovesChanged();
+	emit lastMoveChanged();
+}
+
+void ChessConnector::reviewFirst() {
+	if (_player) {
+		while (_player->CanMove(false)) _player->MoveBack();
+		EmitMoveCountUpdates(false);
+		return;
+	}
+	_reviewIndex = 0;
+	emitBoardState(0);
+	emit reviewStateChanged();
+}
+
+void ChessConnector::reviewPrev() {
+	if (_player) {
+		if (!_player->CanMove(false)) { emit noMoreMovesNotify(); return; }
+		_player->MoveBack();
+		EmitMoveCountUpdates(false);
+		return;
+	}
+	int cur = reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
+	if (cur <= 0) return;
+	_reviewIndex = cur - 1;
+	emitBoardState(_reviewIndex);
+	emit reviewStateChanged();
+}
+
+void ChessConnector::reviewNext() {
+	if (_player) {
+		if (!_player->CanMove(true)) { emit noMoreMovesNotify(); return; }
+		_player->MoveNext();
+		EmitMoveCountUpdates(false);
+		return;
+	}
+	if (!reviewMode()) return;
+	if (_reviewIndex >= (int)_game->GetGameRecord().size() - 1) { reviewLast(); return; }
+	_reviewIndex++;
+	emitBoardState(_reviewIndex);
+	emit reviewStateChanged();
+}
+
+void ChessConnector::reviewLast() {
+	if (_player) {
+		while (_player->CanMove(true)) _player->MoveNext();
+		EmitMoveCountUpdates();
+		return;
+	}
+	if (!reviewMode()) return;
+	_reviewIndex = -1;
+	emitBoardState((int)_game->GetGameRecord().size());
+	emit reviewStateChanged();
 }
 
 int ChessConnector::IsOnPlayerMode()
@@ -498,10 +684,12 @@ int ChessConnector::IsOnPlayerMode()
 
 void ChessConnector::endGame()
 {
+	resetMoveHistoryCache();
 	if (!_onlineGameId.isEmpty()) {
 		if (_lichessClient) _lichessClient->stopStream();
 		_onlineGameId.clear();
-	} else if (_game->GetMoveCount() > 0 && !IsOnPlayerMode()) {
+	}
+	else if (_game->GetMoveCount() > 0 && !IsOnPlayerMode()) {
 		autoSaveGame(_engineWorker != nullptr);
 	}
 
@@ -518,6 +706,7 @@ void ChessConnector::endGame()
 
 bool ChessConnector::continueGame()
 {
+	resetMoveHistoryCache();
 	const auto info = _userManager ? _userManager->autoSaveInfo() : UserManager::GameSaveInfo{};
 	const bool isSingle = info.isSinglePlayer;
 
@@ -533,6 +722,7 @@ bool ChessConnector::continueGame()
 	_gameOver = false;
 
 	deleteAutoSave();
+	buildFullHistoryCache();
 	emit canContinueChanged();
 	EmitMoveCountUpdates();
 
@@ -563,10 +753,10 @@ void ChessConnector::autoSaveGame(bool isSinglePlayer)
 	_game->Save(autoSavePath().toStdString());
 	if (_userManager) {
 		UserManager::GameSaveInfo info;
-		info.isSinglePlayer   = isSinglePlayer;
+		info.isSinglePlayer = isSinglePlayer;
 		info.playerPlaysWhite = _config.playerPlaysWhite;
 		if (_avatarProvider) {
-			info.playerAvatarName   = _avatarProvider->playerRawName();
+			info.playerAvatarName = _avatarProvider->playerRawName();
 			info.opponentAvatarName = _avatarProvider->opponentRawName();
 		}
 		_userManager->setAutoSaveInfo(info);

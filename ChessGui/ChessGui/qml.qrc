@@ -16,6 +16,7 @@
         <file>qml/CustomSlider.qml</file>
         <file>qml/EmptyBoardModel.qml</file>
         <file>qml/MarkerColumn.qml</file>
+        <file>qml/MoveHistoryPanel.qml</file>
         <file>qml/MarkerRow.qml</file>
         <file>qml/NavigationLayer.qml</file>
         <file>qml/NetworkPlayers.qml</file>

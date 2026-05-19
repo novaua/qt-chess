@@ -3,6 +3,9 @@
 
 #include <QObject>
 #include <QStringList>
+#include <QVariantList>
+#include <QVariantMap>
+#include "MovesGen.h"
 #include <QThread>
 #include <atomic>
 #include <functional>
@@ -31,6 +34,12 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool EngineThinking    READ engineThinking    NOTIFY engineThinkingChanged)
 		Q_PROPERTY(bool UseFen            READ useFen            WRITE setUseFen NOTIFY useFenChanged)
 		Q_PROPERTY(bool PlayerPlaysWhite  READ playerPlaysWhite  NOTIFY playerPlaysWhiteChanged)
+		Q_PROPERTY(QVariantList MoveHistory READ moveHistory NOTIFY moveHistoryChanged)
+		Q_PROPERTY(QString      GameResult  READ gameResult  NOTIFY gameResultChanged)
+		Q_PROPERTY(bool ReviewMode    READ reviewMode    NOTIFY reviewStateChanged)
+		Q_PROPERTY(int  ReviewIndex   READ reviewIndex   NOTIFY reviewStateChanged)
+		Q_PROPERTY(bool CanReviewPrev READ canReviewPrev NOTIFY reviewStateChanged)
+		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
 public:
 	explicit ChessConnector(QObject* parent = nullptr);
 	~ChessConnector();
@@ -50,6 +59,12 @@ public:
 	bool engineThinking()    const { return _engineThinking; }
 	bool useFen()            const { return _config.useFen; }
 	bool playerPlaysWhite()  const { return _config.playerPlaysWhite; }
+	QVariantList moveHistory() const;
+	QString      gameResult()  const { return _gameResult; }
+	bool reviewMode()    const { return _reviewIndex >= 0; }
+	int  reviewIndex()   const { return _player ? _player->GetPointer() : _reviewIndex; }
+	bool canReviewPrev() const;
+	bool canReviewNext() const;
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 
@@ -77,6 +92,10 @@ signals:
 	void capturedChanged();
 	void newGameStarted(bool isComputerGame);
 
+	void moveHistoryChanged();
+	void gameResultChanged();
+	void reviewStateChanged();
+
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
 
@@ -90,6 +109,7 @@ public slots:
 	void startNewGame();
 	void startNewGameWithComputer(int level = 3);
 	Q_INVOKABLE void robotMove();
+	Q_INVOKABLE void setGameResult(const QString& result);
 	void setUseFen(bool v);
 	Q_INVOKABLE void setPlayerPlaysWhite(bool v);
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
@@ -108,13 +128,22 @@ public slots:
 	void moveNext();
 	void movePrev();
 
+	void reviewFirst();
+	void reviewPrev();
+	void reviewNext();
+	void reviewLast();
+
 private slots:
 	void onEngineMoveComplete();
 	void onEngineMoveError(const QString& message);
 
 private:
 	void makeMove(int from, int to);
-	void EmitMoveCountUpdates();
+	void emitBoardState(int moveIndex);
+	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
+	void appendMoveToHistory();
+	void buildFullHistoryCache();
+	void resetMoveHistoryCache();
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
 	void autoSaveGame(bool isSinglePlayer);
@@ -138,7 +167,11 @@ private:
 	bool _engineThinking = false;
 	bool _engineAutoPlay = false;
 	std::atomic<bool> _gameOver{ false };
+	QString _gameResult;
 	AppConfig _config;
+	int _reviewIndex = -1;
+
+	QVariantList _moveHistoryCache;
 };
 
 #endif // CHESSCONNECTOR_H

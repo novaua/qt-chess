@@ -16,6 +16,7 @@
 #include <vector>
 #include <functional>
 #include <cassert>
+#include <cstdlib>
 #include <ostream>
 #include <fstream>
 

@@ -16,9 +16,20 @@ bool HistoryMove::IsPawnPromotionMove() const
 	return PromotedTo.Type != EMPTY;
 }
 
+bool HistoryMove::IsEnPassantMove() const {
+	return From.Piece.Type == PAWN
+		&& To.Piece.Type == EMPTY
+		&& (int)To.Position % 8 != (int)From.Position % 8;
+}
+
+bool HistoryMove::IsCastlingMove() const {
+	return From.Piece.Type == KING
+		&& std::abs((int)To.Position % 8 - (int)From.Position % 8) == 2;
+}
+
 Move HistoryMove::ToMove() const
 {
-	return{ From.Position, To.Position, false, PromotedTo };
+	return{ From.Position, To.Position, IsCapturingMove(), PromotedTo };
 }
 
 std::string ToLower(std::string str) {

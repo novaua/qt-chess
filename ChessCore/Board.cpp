@@ -101,6 +101,11 @@ namespace Chess {
 		*this = *_previousBoard;
 	}
 
+	BoardAptr Board::BeforeLastMove() const
+	{
+		return _previousBoard;
+	}
+
 	void Board::OnBoardChanged(BoardPosition pos, Piece newValue)
 	{
 		if (BoardChanged)

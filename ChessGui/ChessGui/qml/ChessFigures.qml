@@ -156,6 +156,7 @@ Grid{
 
     function updateChessFiguresModel(index, value)
     {
+        if (chessFiguresModel.get(index).modelData === value) return
         chessFiguresModel.remove(index)
         chessFiguresModel.insert(index,  { modelData: value})
     }
