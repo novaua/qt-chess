@@ -320,6 +320,7 @@ ApplicationWindow {
                     visible: _showHistoryPanel
                     width: _historyPanelW
                     height: _boardSize
+                    gameInProgress: gameIsInProgress
                     anchors {
                         verticalCenter: parent.verticalCenter
                         left: parent.left; leftMargin: (parent.width + _boardSize) / 2 + 5

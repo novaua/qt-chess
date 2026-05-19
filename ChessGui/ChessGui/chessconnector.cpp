@@ -90,6 +90,8 @@ int ChessConnector::IsWhiteMove()
 
 void ChessConnector::figureSelected(int index)
 {
+	if (reviewMode()) return;
+
 	if (IsOnPlayerMode()) {
 		return;
 	}
@@ -219,6 +221,7 @@ void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
 	emit capturedChanged();
 	if (emitHistoryChanged)
 		emit moveHistoryChanged();
+	emit reviewStateChanged();
 }
 
 QVariantList ChessConnector::moveHistory() const
@@ -263,12 +266,16 @@ void ChessConnector::setGameResult(const QString& result)
 int ChessConnector::lastMoveFrom() const
 {
 	const auto& rec = _game->GetGameRecord();
+	if (reviewMode())
+		return (_reviewIndex == 0 || rec.empty()) ? -1 : (int)rec[_reviewIndex - 1].From.Position;
 	return rec.empty() ? -1 : (int)rec.back().From.Position;
 }
 
 int ChessConnector::lastMoveTo() const
 {
 	const auto& rec = _game->GetGameRecord();
+	if (reviewMode())
+		return (_reviewIndex == 0 || rec.empty()) ? -1 : (int)rec[_reviewIndex - 1].To.Position;
 	return rec.empty() ? -1 : (int)rec.back().To.Position;
 }
 
@@ -472,6 +479,8 @@ void ChessConnector::onEngineMoveComplete()
 {
 	_engineThinking = false;
 	emit engineThinkingChanged();
+	if (reviewMode())
+		_reviewIndex = -1;
 	EmitMoveCountUpdates();
 }
 
@@ -554,7 +563,7 @@ bool ChessConnector::loadGame()
 
 void ChessConnector::moveNext()
 {
-	if (!_player) return;
+	if (!_player) { reviewNext(); return; }
 
 	if (!_player->CanMove(true)) {
 		emit noMoreMovesNotify();
@@ -566,19 +575,7 @@ void ChessConnector::moveNext()
 
 void ChessConnector::movePrev()
 {
-	if (!_player) {
-		// Live game: undo last human move + computer reply pair
-		if (_engineThinking) return;
-		int count = _game->GetMoveCount();
-		if (count == 0) { emit noMoreMovesNotify(); return; }
-		int movesToUndo = (_engineWorker && count >= 2) ? 2 : 1;
-		for (int i = 0; i < movesToUndo; i++)
-			_game->UndoMove();
-		ClearBoard(_possibleMoves);
-		emit PossibleMovesChanged();
-		EmitMoveCountUpdates();
-		return;
-	}
+	if (!_player) { reviewPrev(); return; }
 
 	if (!_player->CanMove(false)) {
 		emit noMoreMovesNotify();
@@ -586,6 +583,58 @@ void ChessConnector::movePrev()
 	}
 	_player->MoveBack();
 	EmitMoveCountUpdates(false);
+}
+
+bool ChessConnector::canReviewPrev() const {
+	int cur = reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
+	return cur > 0;
+}
+
+bool ChessConnector::canReviewNext() const {
+	return reviewMode() && _reviewIndex < (int)_game->GetGameRecord().size();
+}
+
+void ChessConnector::emitBoardState(int moveIndex) {
+	Chess::Board board;
+	board.Initialize();
+	const auto& rec = _game->GetGameRecord();
+	for (int i = 0; i < moveIndex && i < (int)rec.size(); ++i)
+		applyMove(board, rec[i]);
+	for (int i = 0; i < 64; ++i)
+		emit boardChanged(i, QString::fromStdString(
+			board.At(Chess::BoardPosition(i)).ToString()));
+	ClearBoard(_possibleMoves);
+	emit PossibleMovesChanged();
+	emit lastMoveChanged();
+}
+
+void ChessConnector::reviewFirst() {
+	_reviewIndex = 0;
+	emitBoardState(0);
+	emit reviewStateChanged();
+}
+
+void ChessConnector::reviewPrev() {
+	int cur = reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
+	if (cur <= 0) return;
+	_reviewIndex = cur - 1;
+	emitBoardState(_reviewIndex);
+	emit reviewStateChanged();
+}
+
+void ChessConnector::reviewNext() {
+	if (!reviewMode()) return;
+	if (_reviewIndex >= (int)_game->GetGameRecord().size() - 1) { reviewLast(); return; }
+	_reviewIndex++;
+	emitBoardState(_reviewIndex);
+	emit reviewStateChanged();
+}
+
+void ChessConnector::reviewLast() {
+	if (!reviewMode()) return;
+	_reviewIndex = -1;
+	emitBoardState((int)_game->GetGameRecord().size());
+	emit reviewStateChanged();
 }
 
 int ChessConnector::IsOnPlayerMode()

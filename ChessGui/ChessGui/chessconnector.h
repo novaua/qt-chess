@@ -36,6 +36,10 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool PlayerPlaysWhite  READ playerPlaysWhite  NOTIFY playerPlaysWhiteChanged)
 		Q_PROPERTY(QVariantList MoveHistory READ moveHistory NOTIFY moveHistoryChanged)
 		Q_PROPERTY(QString      GameResult  READ gameResult  NOTIFY gameResultChanged)
+		Q_PROPERTY(bool ReviewMode    READ reviewMode    NOTIFY reviewStateChanged)
+		Q_PROPERTY(int  ReviewIndex   READ reviewIndex   NOTIFY reviewStateChanged)
+		Q_PROPERTY(bool CanReviewPrev READ canReviewPrev NOTIFY reviewStateChanged)
+		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
 public:
 	explicit ChessConnector(QObject* parent = nullptr);
 	~ChessConnector();
@@ -57,6 +61,10 @@ public:
 	bool playerPlaysWhite()  const { return _config.playerPlaysWhite; }
 	QVariantList moveHistory() const;
 	QString      gameResult()  const { return _gameResult; }
+	bool reviewMode()    const { return _reviewIndex >= 0; }
+	int  reviewIndex()   const { return _reviewIndex; }
+	bool canReviewPrev() const;
+	bool canReviewNext() const;
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 
@@ -86,6 +94,7 @@ signals:
 
 	void moveHistoryChanged();
 	void gameResultChanged();
+	void reviewStateChanged();
 
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
@@ -119,12 +128,18 @@ public slots:
 	void moveNext();
 	void movePrev();
 
+	void reviewFirst();
+	void reviewPrev();
+	void reviewNext();
+	void reviewLast();
+
 private slots:
 	void onEngineMoveComplete();
 	void onEngineMoveError(const QString& message);
 
 private:
 	void makeMove(int from, int to);
+	void emitBoardState(int moveIndex);
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
@@ -151,6 +166,7 @@ private:
 	std::atomic<bool> _gameOver{ false };
 	QString _gameResult;
 	AppConfig _config;
+	int _reviewIndex = -1;
 };
 
 #endif // CHESSCONNECTOR_H
