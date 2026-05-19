@@ -173,34 +173,6 @@ namespace {
 		return QString::fromUcs4(&cp, 1);
 	}
 
-	static void applyCastlingRook(Chess::Board& board, const Chess::HistoryMove& m) {
-		int rank = (int)m.From.Position / 8;
-		int toFile = (int)m.To.Position % 8;
-		int fromFile = (int)m.From.Position % 8;
-		Chess::Piece rook{ Chess::ROOK,  m.From.Piece.Color };
-		Chess::Piece empty{ Chess::EMPTY, Chess::PieceColors::Empty };
-		if (toFile > fromFile) {
-			board.Place(Chess::BoardPosition(rank * 8 + 7), empty);
-			board.Place(Chess::BoardPosition(rank * 8 + 5), rook);
-		}
-		else {
-			board.Place(Chess::BoardPosition(rank * 8 + 0), empty);
-			board.Place(Chess::BoardPosition(rank * 8 + 3), rook);
-		}
-	}
-
-	static void applyEnPassant(Chess::Board& board, const Chess::HistoryMove& m) {
-		int dir = (m.From.Piece.Color == Chess::PieceColors::Light) ? 8 : -8;
-		board.Place(Chess::BoardPosition((int)m.To.Position - dir),
-			Chess::Piece{ Chess::EMPTY, Chess::PieceColors::Empty });
-	}
-
-	static void applyMove(Chess::Board& board, const Chess::HistoryMove& m) {
-		board.DoMove(m.ToMove());
-		if (m.IsCastlingMove())  applyCastlingRook(board, m);
-		if (m.IsEnPassantMove()) applyEnPassant(board, m);
-	}
-
 	// Replaces the leading ASCII piece letter (N/B/R/Q/K) with the UTF-8 figurine for the given color.
 	static QString toFan(const std::string& san, Chess::PieceColors color) {
 		if (san.empty())
@@ -255,19 +227,18 @@ void ChessConnector::appendMoveToHistory() {
 void ChessConnector::buildFullHistoryCache() {
 	const auto& history = _player ? _player->GetHistory() : _game->GetGameRecord();
 	_moveHistoryCache.clear();
-	Chess::Board board;
-	board.Initialize();
+	auto replayGame = std::make_shared<Chess::Game>();
 	for (int i = 0; i < (int)history.size(); i += 2) {
 		QVariantMap row;
 		row["n"] = i / 2 + 1;
-		applyMove(board, history[i]);
+		replayGame->DoMove(history[i].ToMove());
 		bool wMate = (i == (int)history.size() - 1) && _gameResult.contains("1-0");
-		row["w"] = toFan(Chess::FormatMoveSan(history[i], board, wMate),
+		row["w"] = toFan(Chess::FormatMoveSan(history[i], replayGame->GetCurrentBoard(), wMate),
 			history[i].From.Piece.Color);
 		if (i + 1 < (int)history.size()) {
-			applyMove(board, history[i + 1]);
+			replayGame->DoMove(history[i + 1].ToMove());
 			bool bMate = (i + 1 == (int)history.size() - 1) && _gameResult.contains("0-1");
-			row["b"] = toFan(Chess::FormatMoveSan(history[i + 1], board, bMate),
+			row["b"] = toFan(Chess::FormatMoveSan(history[i + 1], replayGame->GetCurrentBoard(), bMate),
 				history[i + 1].From.Piece.Color);
 		}
 		else {
@@ -630,11 +601,11 @@ bool ChessConnector::canReviewNext() const {
 }
 
 void ChessConnector::emitBoardState(int moveIndex) {
-	Chess::Board board;
-	board.Initialize();
+	auto replayGame = std::make_shared<Chess::Game>();
 	const auto& rec = _player ? _player->GetHistory() : _game->GetGameRecord();
 	for (int i = 0; i < moveIndex && i < (int)rec.size(); ++i)
-		applyMove(board, rec[i]);
+		replayGame->DoMove(rec[i].ToMove());
+	const auto& board = replayGame->GetCurrentBoard();
 	for (int i = 0; i < 64; ++i) {
 		const auto& str = board.At(Chess::BoardPosition(i)).ToString();
 		if (str[0] != _displayedPieces[i]) {
