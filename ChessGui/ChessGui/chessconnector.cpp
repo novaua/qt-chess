@@ -169,15 +169,16 @@ namespace {
 	}
 
 	static void applyCastlingRook(Chess::Board& board, const Chess::HistoryMove& m) {
-		int rank     = (int)m.From.Position / 8;
-		int toFile   = (int)m.To.Position % 8;
+		int rank = (int)m.From.Position / 8;
+		int toFile = (int)m.To.Position % 8;
 		int fromFile = (int)m.From.Position % 8;
-		Chess::Piece rook { Chess::ROOK,  m.From.Piece.Color };
+		Chess::Piece rook{ Chess::ROOK,  m.From.Piece.Color };
 		Chess::Piece empty{ Chess::EMPTY, Chess::PieceColors::Empty };
 		if (toFile > fromFile) {
 			board.Place(Chess::BoardPosition(rank * 8 + 7), empty);
 			board.Place(Chess::BoardPosition(rank * 8 + 5), rook);
-		} else {
+		}
+		else {
 			board.Place(Chess::BoardPosition(rank * 8 + 0), empty);
 			board.Place(Chess::BoardPosition(rank * 8 + 3), rook);
 		}
@@ -186,13 +187,13 @@ namespace {
 	static void applyEnPassant(Chess::Board& board, const Chess::HistoryMove& m) {
 		int dir = (m.From.Piece.Color == Chess::PieceColors::Light) ? 8 : -8;
 		board.Place(Chess::BoardPosition((int)m.To.Position - dir),
-		            Chess::Piece{ Chess::EMPTY, Chess::PieceColors::Empty });
+			Chess::Piece{ Chess::EMPTY, Chess::PieceColors::Empty });
 	}
 
 	static void applyMove(Chess::Board& board, const Chess::HistoryMove& m) {
 		board.DoMove(m.ToMove());
-		if (Chess::IsCastling(m))  applyCastlingRook(board, m);
-		if (Chess::IsEnPassant(m)) applyEnPassant(board, m);
+		if (m.IsCastlingMove())  applyCastlingRook(board, m);
+		if (m.IsEnPassantMove()) applyEnPassant(board, m);
 	}
 
 	// Replaces the leading ASCII piece letter (N/B/R/Q/K) with the UTF-8 figurine for the given color.
@@ -237,14 +238,15 @@ QVariantList ChessConnector::moveHistory() const
 		bool wMate = (i == rec.size() - 1) && _gameResult.contains("1-0");
 		applyMove(board, rec[i]);
 		row["w"] = toFan(Chess::FormatMoveSan(rec[i], board, wMate),
-		                 rec[i].From.Piece.Color);
+			rec[i].From.Piece.Color);
 
 		if (i + 1 < rec.size()) {
 			bool bMate = (i + 1 == rec.size() - 1) && _gameResult.contains("0-1");
 			applyMove(board, rec[i + 1]);
 			row["b"] = toFan(Chess::FormatMoveSan(rec[i + 1], board, bMate),
-			                 rec[i + 1].From.Piece.Color);
-		} else {
+				rec[i + 1].From.Piece.Color);
+		}
+		else {
 			row["b"] = QString();
 		}
 		result.append(row);
@@ -299,7 +301,7 @@ void ChessConnector::makeMove(int from, int to)
 			const auto& rec = _game->GetGameRecord();
 			if (!rec.empty())
 				_lichessClient->postMove(_onlineGameId,
-				    QString::fromStdString(rec.back().ToUciString()));
+					QString::fromStdString(rec.back().ToUciString()));
 		}
 	}
 	catch (ChessException& ex)
@@ -326,8 +328,8 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 
 	if (_lichessClient) {
 		connect(_lichessClient, &LichessClient::opponentMoveReceived,
-		        this, &ChessConnector::applyMoves,
-		        Qt::UniqueConnection);
+			this, &ChessConnector::applyMoves,
+			Qt::UniqueConnection);
 	}
 }
 
@@ -505,10 +507,10 @@ void ChessConnector::saveGame()
 {
 	if (_userManager) {
 		UserManager::GameSaveInfo info;
-		info.isSinglePlayer   = _engineWorker != nullptr;
+		info.isSinglePlayer = _engineWorker != nullptr;
 		info.playerPlaysWhite = _config.playerPlaysWhite;
 		if (_avatarProvider) {
-			info.playerAvatarName   = _avatarProvider->playerRawName();
+			info.playerAvatarName = _avatarProvider->playerRawName();
 			info.opponentAvatarName = _avatarProvider->opponentRawName();
 		}
 		_userManager->setSavedGameInfo(info);
@@ -596,7 +598,8 @@ void ChessConnector::endGame()
 	if (!_onlineGameId.isEmpty()) {
 		if (_lichessClient) _lichessClient->stopStream();
 		_onlineGameId.clear();
-	} else if (_game->GetMoveCount() > 0 && !IsOnPlayerMode()) {
+	}
+	else if (_game->GetMoveCount() > 0 && !IsOnPlayerMode()) {
 		autoSaveGame(_engineWorker != nullptr);
 	}
 
@@ -658,10 +661,10 @@ void ChessConnector::autoSaveGame(bool isSinglePlayer)
 	_game->Save(autoSavePath().toStdString());
 	if (_userManager) {
 		UserManager::GameSaveInfo info;
-		info.isSinglePlayer   = isSinglePlayer;
+		info.isSinglePlayer = isSinglePlayer;
 		info.playerPlaysWhite = _config.playerPlaysWhite;
 		if (_avatarProvider) {
-			info.playerAvatarName   = _avatarProvider->playerRawName();
+			info.playerAvatarName = _avatarProvider->playerRawName();
 			info.opponentAvatarName = _avatarProvider->opponentRawName();
 		}
 		_userManager->setAutoSaveInfo(info);

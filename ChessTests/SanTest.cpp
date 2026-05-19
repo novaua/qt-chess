@@ -194,7 +194,7 @@ public:
         board.Place(e1, { KING, PieceColors::Light });
         board.Place(h1, { ROOK, PieceColors::Light });
         auto hm = board.DoMove({ e1, g1, false });
-        Assert::IsTrue(IsCastling(hm));
+        Assert::IsTrue(hm.IsCastlingMove());
     }
 
     TEST_METHOD(IsCastling_True_Queenside) {
@@ -202,21 +202,21 @@ public:
         board.Place(e1, { KING, PieceColors::Light });
         board.Place(a1, { ROOK, PieceColors::Light });
         auto hm = board.DoMove({ e1, c1, false });
-        Assert::IsTrue(IsCastling(hm));
+        Assert::IsTrue(hm.IsCastlingMove());
     }
 
     TEST_METHOD(IsCastling_False_KingStep) {
         Board board; ClearBoard(board);
         board.Place(e1, { KING, PieceColors::Light });
         auto hm = board.DoMove({ e1, d1, false });
-        Assert::IsFalse(IsCastling(hm));
+        Assert::IsFalse(hm.IsCastlingMove());
     }
 
     TEST_METHOD(IsCastling_False_RegularMove) {
         Board board; ClearBoard(board);
         board.Place(e1, { ROOK, PieceColors::Light });
         auto hm = board.DoMove({ e1, e4, false });
-        Assert::IsFalse(IsCastling(hm));
+        Assert::IsFalse(hm.IsCastlingMove());
     }
 
     TEST_METHOD(IsEnPassant_True) {
@@ -224,7 +224,7 @@ public:
         board.Place(e5, { PAWN, PieceColors::Light });
         board.Place(d5, { PAWN, PieceColors::Dark  });
         auto hm = board.DoMove({ e5, d6, true }); // d6 is empty
-        Assert::IsTrue(IsEnPassant(hm));
+        Assert::IsTrue(hm.IsEnPassantMove());
     }
 
     TEST_METHOD(IsEnPassant_False_NormalCapture) {
@@ -232,14 +232,14 @@ public:
         board.Place(e4, { PAWN, PieceColors::Light });
         board.Place(d5, { PAWN, PieceColors::Dark  });
         auto hm = board.DoMove({ e4, d5, true });
-        Assert::IsFalse(IsEnPassant(hm));
+        Assert::IsFalse(hm.IsEnPassantMove());
     }
 
     TEST_METHOD(IsEnPassant_False_PawnAdvance) {
         Board board; ClearBoard(board);
         board.Place(e2, { PAWN, PieceColors::Light });
         auto hm = board.DoMove({ e2, e4, false });
-        Assert::IsFalse(IsEnPassant(hm));
+        Assert::IsFalse(hm.IsEnPassantMove());
     }
 };
 

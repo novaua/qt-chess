@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "San.h"
 #include "MovesGen.h"
-#include <cstdlib>
 
 using namespace Chess;
 
@@ -28,17 +27,6 @@ namespace {
     }
 }
 
-bool Chess::IsCastling(const HistoryMove& m) {
-    return m.From.Piece.Type == KING
-        && std::abs((int)m.To.Position % 8 - (int)m.From.Position % 8) == 2;
-}
-
-bool Chess::IsEnPassant(const HistoryMove& m) {
-    return m.From.Piece.Type == PAWN
-        && m.To.Piece.Type == EMPTY
-        && (int)m.To.Position % 8 != (int)m.From.Position % 8;
-}
-
 std::string Chess::FormatMoveSan(const HistoryMove& m,
                                  const Board& boardAfter,
                                  bool isMate)
@@ -48,13 +36,13 @@ std::string Chess::FormatMoveSan(const HistoryMove& m,
     auto piece      = m.From.Piece;
     const Board& boardBefore = *boardAfter.BeforeLastMove();
 
-    if (IsCastling(m))
+    if (m.IsCastlingMove())
         return ((int)toPos % 8 > (int)fromPos % 8) ? "O-O" : "O-O-O";
 
     std::string result;
 
     if (piece.Type == PAWN) {
-        bool isCapture = m.IsCapturingMove() || IsEnPassant(m);
+        bool isCapture = m.IsCapturingMove() || m.IsEnPassantMove();
         result = isCapture
             ? std::string(1, BoardPositionToString(fromPos)[0]) + "x" + BoardPositionToString(toPos)
             : BoardPositionToString(toPos);

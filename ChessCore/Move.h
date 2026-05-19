@@ -42,6 +42,10 @@ namespace Chess
 
 		bool IsPawnPromotionMove() const;
 
+		bool IsCastlingMove() const;
+
+		bool IsEnPassantMove() const;
+
 		Move ToMove() const;
 
 		std::string ToUciString() const;
