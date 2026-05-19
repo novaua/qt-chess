@@ -227,37 +227,59 @@ void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
 	emit reviewStateChanged();
 }
 
-QVariantList ChessConnector::moveHistory() const
-{
-	const auto& rec = _player ? _player->GetHistory() : _game->GetGameRecord();
-	QVariantList result;
-	if (rec.empty()) return result;
-	result.reserve((int)rec.size() / 2 + 1);
+void ChessConnector::resetMoveHistoryCache() {
+	_moveHistoryCache.clear();
+}
 
+void ChessConnector::appendMoveToHistory() {
+	const auto& rec = _game->GetGameRecord();
+	if (rec.empty()) return;
+	int i = (int)rec.size() - 1;
+	bool isMate = (i % 2 == 0) ? _gameResult.contains("1-0")
+	                            : _gameResult.contains("0-1");
+	const auto& m = rec[i];
+	QString san = toFan(Chess::FormatMoveSan(m, _game->GetCurrentBoard(), isMate),
+		m.From.Piece.Color);
+	if (i % 2 == 0) {
+		QVariantMap row;
+		row["n"] = i / 2 + 1;
+		row["w"] = san;
+		row["b"] = QString();
+		_moveHistoryCache.append(row);
+	} else {
+		auto row = _moveHistoryCache.last().toMap();
+		row["b"] = san;
+		_moveHistoryCache[_moveHistoryCache.size() - 1] = row;
+	}
+}
+
+void ChessConnector::buildFullHistoryCache() {
+	const auto& history = _player ? _player->GetHistory() : _game->GetGameRecord();
+	_moveHistoryCache.clear();
 	Chess::Board board;
 	board.Initialize();
-
-	for (size_t i = 0; i < rec.size(); i += 2) {
+	for (int i = 0; i < (int)history.size(); i += 2) {
 		QVariantMap row;
-		row["n"] = (int)(i / 2) + 1;
-
-		bool wMate = (i == rec.size() - 1) && _gameResult.contains("1-0");
-		applyMove(board, rec[i]);
-		row["w"] = toFan(Chess::FormatMoveSan(rec[i], board, wMate),
-			rec[i].From.Piece.Color);
-
-		if (i + 1 < rec.size()) {
-			bool bMate = (i + 1 == rec.size() - 1) && _gameResult.contains("0-1");
-			applyMove(board, rec[i + 1]);
-			row["b"] = toFan(Chess::FormatMoveSan(rec[i + 1], board, bMate),
-				rec[i + 1].From.Piece.Color);
-		}
-		else {
+		row["n"] = i / 2 + 1;
+		applyMove(board, history[i]);
+		bool wMate = (i == (int)history.size() - 1) && _gameResult.contains("1-0");
+		row["w"] = toFan(Chess::FormatMoveSan(history[i], board, wMate),
+			history[i].From.Piece.Color);
+		if (i + 1 < (int)history.size()) {
+			applyMove(board, history[i + 1]);
+			bool bMate = (i + 1 == (int)history.size() - 1) && _gameResult.contains("0-1");
+			row["b"] = toFan(Chess::FormatMoveSan(history[i + 1], board, bMate),
+				history[i + 1].From.Piece.Color);
+		} else {
 			row["b"] = QString();
 		}
-		result.append(row);
+		_moveHistoryCache.append(row);
 	}
-	return result;
+}
+
+QVariantList ChessConnector::moveHistory() const
+{
+	return _moveHistoryCache;
 }
 
 void ChessConnector::setGameResult(const QString& result)
@@ -305,6 +327,7 @@ void ChessConnector::makeMove(int from, int to)
 	try
 	{
 		_game->DoMove((BoardPosition)from, (BoardPosition)to);
+		appendMoveToHistory();
 		EmitMoveCountUpdates();
 
 		if (!_onlineGameId.isEmpty() && _lichessClient) {
@@ -352,6 +375,7 @@ void ChessConnector::resignOnlineGame()
 
 void ChessConnector::startNewGame()
 {
+	resetMoveHistoryCache();
 	deleteAutoSave();
 	stopEngineThread();
 	_player = nullptr;
@@ -367,6 +391,7 @@ void ChessConnector::startNewGame()
 
 void ChessConnector::startNewGameWithComputer(int level)
 {
+	resetMoveHistoryCache();
 	_config.lastLevel = level;
 	_config.save();
 	deleteAutoSave();
@@ -402,6 +427,7 @@ void ChessConnector::applyMoves(const QString& movesStr)
 			break;
 		}
 	}
+	buildFullHistoryCache();
 	EmitMoveCountUpdates();
 }
 
@@ -486,6 +512,7 @@ void ChessConnector::onEngineMoveComplete()
 		_reviewIndex = -1;
 		emitBoardState((int)_game->GetGameRecord().size());
 	}
+	appendMoveToHistory();
 	EmitMoveCountUpdates();
 }
 
@@ -548,6 +575,7 @@ bool ChessConnector::loadGame()
 			_game->Load(savedGamePath().toStdString());
 			_game->Restart();
 			_player = _game->MakePlayer();
+			buildFullHistoryCache();
 			emit IsOnPlayerModeChanged();
 			EmitMoveCountUpdates();
 			success = true;
@@ -677,6 +705,7 @@ int ChessConnector::IsOnPlayerMode()
 
 void ChessConnector::endGame()
 {
+	resetMoveHistoryCache();
 	if (!_onlineGameId.isEmpty()) {
 		if (_lichessClient) _lichessClient->stopStream();
 		_onlineGameId.clear();
@@ -698,6 +727,7 @@ void ChessConnector::endGame()
 
 bool ChessConnector::continueGame()
 {
+	resetMoveHistoryCache();
 	const auto info = _userManager ? _userManager->autoSaveInfo() : UserManager::GameSaveInfo{};
 	const bool isSingle = info.isSinglePlayer;
 
@@ -713,6 +743,7 @@ bool ChessConnector::continueGame()
 	_gameOver = false;
 
 	deleteAutoSave();
+	buildFullHistoryCache();
 	emit canContinueChanged();
 	EmitMoveCountUpdates();
 

@@ -142,6 +142,9 @@ private:
 	void makeMove(int from, int to);
 	void emitBoardState(int moveIndex);
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
+	void appendMoveToHistory();
+	void buildFullHistoryCache();
+	void resetMoveHistoryCache();
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
 	void autoSaveGame(bool isSinglePlayer);
@@ -169,6 +172,8 @@ private:
 	AppConfig _config;
 	int _reviewIndex = -1;
 	std::array<char, 64> _displayedPieces{};
+
+	QVariantList _moveHistoryCache;
 };
 
 #endif // CHESSCONNECTOR_H
