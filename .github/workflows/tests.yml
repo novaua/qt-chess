@@ -1,0 +1,65 @@
+name: Tests
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+  workflow_call:
+
+env:
+  QT_VERSION: '6.10.2'
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt ${{ env.QT_VERSION }}
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: win64_msvc2022_64
+          modules: qt5compat qtshadertools qtmultimedia
+
+      - name: Setup MSVC (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt VS Tools MSBuild integration
+        id: qtvstools
+        shell: pwsh
+        run: |
+          $vsixUrl = 'https://marketplace.visualstudio.com/_apis/public/gallery/publishers/TheQtCompany/vsextensions/QtVisualStudioTools2022/latest/vspackage'
+          Invoke-WebRequest $vsixUrl -OutFile qt-vstools.vsix -UseBasicParsing
+          Expand-Archive qt-vstools.vsix -DestinationPath qt-vstools -Force
+          $targets = Get-ChildItem qt-vstools -Recurse -Filter 'qt.targets' | Select-Object -First 1
+          if (-not $targets) { throw "qt.targets not found inside VSIX" }
+          "msbuild_dir=$($targets.DirectoryName)" | Out-File $env:GITHUB_OUTPUT -Append
+          $qmake = (Get-Command qmake.exe).Source
+          $qtInstallDir = Split-Path -Parent (Split-Path -Parent $qmake)
+          "qt_install_dir=$qtInstallDir" | Out-File $env:GITHUB_OUTPUT -Append
+
+      - name: Build Debug (all projects)
+        shell: pwsh
+        run: |
+          msbuild ChessCore.sln `
+            /p:Configuration=Debug `
+            /p:Platform=x64 `
+            /p:PlatformToolset=v143 `
+            /p:QtMsBuild="${{ steps.qtvstools.outputs.msbuild_dir }}" `
+            /p:QtInstall="${{ steps.qtvstools.outputs.qt_install_dir }}" `
+            /m /v:minimal
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          $vstest = Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft Visual Studio" `
+            -Recurse -Filter vstest.console.exe -ErrorAction SilentlyContinue |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $vstest) { $vstest = 'vstest.console.exe' }
+          & $vstest x64\Debug\ChessTests.dll
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -10,7 +10,11 @@ env:
   QT_VERSION: '6.10.2'
 
 jobs:
+  test:
+    uses: ./.github/workflows/tests.yml
+
   build-installer:
+    needs: test
     runs-on: windows-latest
 
     steps:

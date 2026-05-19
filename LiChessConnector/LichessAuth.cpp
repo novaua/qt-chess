@@ -76,47 +76,48 @@ void LichessAuth::onNewConnection()
 	QTcpSocket* socket = _server.nextPendingConnection();
 	if (!socket) return;
 
-	_server.close(); // accept only one callback
+	_server.close();
 
-	// Read the HTTP request line (e.g. "GET /callback?code=XXX&state=YYY HTTP/1.1")
-	socket->waitForReadyRead(3000);
-	const QString request = socket->readAll();
-	const QString firstLine = request.left(request.indexOf('\n')).trimmed();
+	connect(socket, &QTcpSocket::readyRead, this, [this, socket]() {
+		// Parse "GET /callback?code=XXX&state=YYY HTTP/1.1" from the first line
+		const QString firstLine = QString::fromUtf8(socket->readAll())
+			.left(256).section('\n', 0, 0).trimmed();
+		const int pathStart = firstLine.indexOf(' ') + 1;
+		const int pathEnd   = firstLine.indexOf(' ', pathStart);
+		const QUrl pathUrl("http://localhost" +
+			firstLine.mid(pathStart, pathEnd - pathStart));
+		QUrlQuery q(pathUrl.query());
+		const QString code  = q.queryItemValue("code");
+		const QString state = q.queryItemValue("state");
 
-	// Parse code and state from the GET path
-	QString code, state;
-	const int pathStart = firstLine.indexOf(' ') + 1;
-	const int pathEnd   = firstLine.indexOf(' ', pathStart);
-	const QString path  = firstLine.mid(pathStart, pathEnd - pathStart);
-	const QUrl pathUrl("http://localhost" + path);
-	QUrlQuery responseQuery(pathUrl.query());
-	code  = responseQuery.queryItemValue("code");
-	state = responseQuery.queryItemValue("state");
+		// Write the success page before processing the code so the browser
+		// sees it while the token exchange happens in the background
+		const QByteArray body =
+			"<!DOCTYPE html><html><body style='font-family:sans-serif;padding:2em'>"
+			"<h2>&#10003; Authorized</h2>"
+			"<p>You can close this tab and return to the app.</p>"
+			"</body></html>";
+		socket->write(
+			"HTTP/1.1 200 OK\r\n"
+			"Content-Type: text/html; charset=utf-8\r\n"
+			"Content-Length: " + QByteArray::number(body.size()) + "\r\n"
+			"Connection: close\r\n\r\n" + body);
+		socket->flush();
 
-	// Send a human-friendly response
-	const QByteArray body = "<!DOCTYPE html><html><body style='font-family:sans-serif;padding:2em'>"
-		"<h2>&#10003; Login successful</h2>"
-		"<p>You can close this tab and return to the app.</p>"
-		"</body></html>";
-	const QByteArray response =
-		"HTTP/1.1 200 OK\r\n"
-		"Content-Type: text/html; charset=utf-8\r\n"
-		"Content-Length: " + QByteArray::number(body.size()) + "\r\n"
-		"Connection: close\r\n\r\n" + body;
-	socket->write(response);
-	socket->disconnectFromHost();
-	socket->deleteLater();
+		// Close gracefully once all bytes are sent
+		connect(socket, &QTcpSocket::disconnected, socket, &QTcpSocket::deleteLater);
+		socket->disconnectFromHost();
 
-	if (code.isEmpty()) {
-		emit loginFailed("No authorization code received");
-		return;
-	}
-	if (state != _state) {
-		emit loginFailed("State mismatch — possible CSRF attempt");
-		return;
-	}
-
-	exchangeCode(code);
+		if (code.isEmpty()) {
+			emit loginFailed("No authorization code received");
+			return;
+		}
+		if (state != _state) {
+			emit loginFailed("State mismatch — possible CSRF attempt");
+			return;
+		}
+		exchangeCode(code);
+	});
 }
 
 void LichessAuth::exchangeCode(const QString& code)
