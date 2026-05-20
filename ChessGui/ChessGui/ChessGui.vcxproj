@@ -413,6 +413,7 @@
   <ItemGroup>
     <None Include="menu_icon.svg" />
     <None Include="pics\chess_icon.svg" />
+    <None Include="qml\ActionButton.qml" />
     <None Include="qml\ApplyMovesDialog.qml" />
     <None Include="qml\Button.qml" />
     <None Include="qml\ChessBoard.qml" />

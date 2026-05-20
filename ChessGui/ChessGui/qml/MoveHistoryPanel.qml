@@ -115,33 +115,6 @@ Rectangle {
         height: visible ? implicitHeight : 0
     }
 
-    // Inline component for action/confirm buttons
-    component ActionBtn: Rectangle {
-        property string label: ""
-        property string tip: ""
-        signal action()
-        width: 36; height: 22; radius: 3
-        color: _btnMa.containsMouse
-            ? (isDarkMode ? "#555" : "#ccc")
-            : (isDarkMode ? "#333" : "#e8e8e8")
-        border.color: isDarkMode ? "#555" : "#ccc"
-        border.width: 1
-        Text {
-            anchors.centerIn: parent
-            text: parent.label
-            font.pixelSize: 13
-            color: isDarkMode ? "#ddd" : "#333"
-        }
-        MouseArea {
-            id: _btnMa
-            anchors.fill: parent
-            hoverEnabled: true
-            onClicked: parent.action()
-            ToolTip.visible: containsMouse && parent.tip !== ""
-            ToolTip.text: parent.tip
-            ToolTip.delay: 400
-        }
-    }
 
     ListView {
         id: listView
@@ -245,18 +218,18 @@ Rectangle {
         }
         spacing: 6
 
-        ActionBtn {
+        ActionButton {
             label: "↩"
             tip: panel.isOnlineGame ? "Propose Takeback" : "Undo Move"
             onAction: chessConnector.requestTakeback()
         }
-        ActionBtn {
+        ActionButton {
             label: "½"
             tip: "Offer Draw"
             visible: panel.isOnlineGame
             onAction: chessConnector.offerDraw()
         }
-        ActionBtn {
+        ActionButton {
             label: "⚑"
             tip: "Resign"
             onAction: resignConfirm.visible = true
@@ -280,11 +253,11 @@ Rectangle {
             font.pixelSize: 12
             anchors.verticalCenter: parent.verticalCenter
         }
-        ActionBtn {
-            label: "Yes"
+        ActionButton {
+            label: "Yes"; danger: true
             onAction: { resignConfirm.visible = false; chessConnector.resignGame() }
         }
-        ActionBtn {
+        ActionButton {
             label: "No"
             onAction: resignConfirm.visible = false
         }

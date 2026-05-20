@@ -165,37 +165,7 @@ ApplicationWindow {
                     anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
                     spacing: 6
 
-                    // Inline component — same style as MoveHistoryPanel.ActionBtn
-                    component TBtn: Rectangle {
-                        property string label: ""
-                        property string tip: ""
-                        signal action()
-                        height: 22; radius: 3
-                        width: label.length === 1 ? 36 : Math.max(36, labelText.implicitWidth + 16)
-                        color: tBtnMa.containsMouse
-                            ? (isDarkMode ? "#555" : "#ccc")
-                            : (isDarkMode ? "#333" : "#e8e8e8")
-                        border.color: isDarkMode ? "#555" : "#ccc"
-                        border.width: 1
-                        Text {
-                            id: labelText
-                            anchors.centerIn: parent
-                            text: parent.label
-                            font.pixelSize: 13
-                            color: isDarkMode ? "#ddd" : "#333"
-                        }
-                        MouseArea {
-                            id: tBtnMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: parent.action()
-                            ToolTip.visible: containsMouse && parent.tip !== ""
-                            ToolTip.text: parent.tip
-                            ToolTip.delay: 400
-                        }
-                    }
-
-                    TBtn {
+                    ActionButton {
                         id: buttonStop; label: "Stop"; tip: "End game"
                         onAction: {
                             gameIsInProgress = false
@@ -204,26 +174,25 @@ ApplicationWindow {
                             chessConnector.endGame()
                         }
                     }
-                    TBtn {
+                    ActionButton {
                         id: buttonSave; label: "Save"; tip: "Save game"
                         onAction: chessConnector.saveGame()
                     }
-                    TBtn {
+                    ActionButton {
                         id: buttonPrev; label: "↩"
                         tip: _onlineGameId !== "" ? "Propose Takeback" : "Undo Move"
                         onAction: chessConnector.requestTakeback()
                     }
-                    TBtn {
+                    ActionButton {
                         id: buttonResign; label: "⚑"; tip: "Resign"
                         onAction: _toolbarResignPending = true
                     }
-                    TBtn {
+                    ActionButton {
                         id: buttonNext; label: "Next"; tip: "Next move"
                         onAction: chessConnector.moveNext()
                     }
                 }
 
-                // Resign confirmation strip (replaces control buttons)
                 Row {
                     id: toolbarResignConfirm
                     visible: _toolbarResignPending
@@ -236,31 +205,11 @@ ApplicationWindow {
                         font.pixelSize: 13
                         anchors.verticalCenter: parent.verticalCenter
                     }
-
-                    Rectangle {
-                        width: 44; height: 22; radius: 3
-                        color: yesMa.containsMouse ? (isDarkMode ? "#6a1a1a" : "#f0cccc")
-                                                   : (isDarkMode ? "#3a1010" : "#fde8e8")
-                        border.color: isDarkMode ? "#883333" : "#cc8888"; border.width: 1
-                        Text { anchors.centerIn: parent; text: "Yes"; font.pixelSize: 13
-                               color: isDarkMode ? "#ffaaaa" : "#880000" }
-                        MouseArea {
-                            id: yesMa; anchors.fill: parent; hoverEnabled: true
-                            onClicked: { _toolbarResignPending = false; chessConnector.resignGame() }
-                        }
+                    ActionButton { label: "Yes"; danger: true
+                        onAction: { _toolbarResignPending = false; chessConnector.resignGame() }
                     }
-
-                    Rectangle {
-                        width: 44; height: 22; radius: 3
-                        color: noMa.containsMouse ? (isDarkMode ? "#555" : "#ccc")
-                                                  : (isDarkMode ? "#333" : "#e8e8e8")
-                        border.color: isDarkMode ? "#555" : "#ccc"; border.width: 1
-                        Text { anchors.centerIn: parent; text: "No"; font.pixelSize: 13
-                               color: isDarkMode ? "#ddd" : "#333" }
-                        MouseArea {
-                            id: noMa; anchors.fill: parent; hoverEnabled: true
-                            onClicked: _toolbarResignPending = false
-                        }
+                    ActionButton { label: "No"
+                        onAction: _toolbarResignPending = false
                     }
                 }
 
@@ -582,6 +531,7 @@ ApplicationWindow {
                     sndCheckmate.play()
             }
             function onCheckMateResult(winner) {
+                _toolbarResignPending = false
                 var isWhite = winner === "White Won"
                 var name = isWhite ? avatarProvider.playerName : avatarProvider.opponentName
                 _checkmateWinner = (isWhite ? "White " : "Black ") + name + " Won"

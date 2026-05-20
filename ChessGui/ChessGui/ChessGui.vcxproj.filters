@@ -182,6 +182,9 @@
     <None Include="qml\LichessGameDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\ActionButton.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="pics\ChessBackground.jpg">
