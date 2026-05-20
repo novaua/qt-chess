@@ -342,14 +342,6 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	}
 }
 
-void ChessConnector::resignOnlineGame()
-{
-	if (!_onlineGameId.isEmpty() && _lichessClient)
-		_lichessClient->resign(_onlineGameId);
-	_onlineGameId.clear();
-	emit isOnlineGameChanged();
-}
-
 void ChessConnector::resignGame()
 {
 	if (!_onlineGameId.isEmpty() && _lichessClient) {

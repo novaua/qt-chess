@@ -49,6 +49,7 @@ signals:
 
 private:
 	QNetworkRequest makeRequest(const QString& path) const;
+	void postGameAction(const QString& path);
 	void handleStreamData(QNetworkReply* reply);
 
 	void handleEventStreamData(QNetworkReply* reply);
@@ -60,7 +61,9 @@ private:
 	QString               _token;
 	QString               _username;
 	QString               _currentGameId;
-	bool                  _playingAsWhite = true;
+	bool                  _playingAsWhite  = true;
+	bool                  _lastOppDraw     = false;
+	bool                  _lastOppTakeback = false;
 	QString               _waitForGameId;
 	QStringList           _lastMovesList;   // tracks moves seen so far in stream
 	QNetworkReply* _streamReply      = nullptr;

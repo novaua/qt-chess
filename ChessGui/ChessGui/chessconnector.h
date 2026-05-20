@@ -122,7 +122,6 @@ public slots:
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
 	Q_INVOKABLE bool continueGame();
 	Q_INVOKABLE void startOnlineGame(const QString& gameId, bool playingAsWhite);
-	Q_INVOKABLE void resignOnlineGame();
 
 	void endGame();
 

@@ -29,6 +29,7 @@ ApplicationWindow {
     property string _onlineGameId:            ""
     property bool   _showDrawOffer:           false
     property bool   _showTakebackOffer:       false
+    property bool   _toolbarResignPending:    false
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     // _panelH is computed analytically to avoid a binding loop:
     //   _boardSize → chessBoard.height → centralItem.height → _panelH → _boardSize
@@ -160,130 +161,155 @@ ApplicationWindow {
 
                 Row {
                     id: controlButtons
+                    visible: !_toolbarResignPending
                     anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
-                    spacing: 10
+                    spacing: 6
 
-                    Button {
-                        id: buttonStop
-                        text: "Stop"
-                        onClicked: {
+                    // Inline component — same style as MoveHistoryPanel.ActionBtn
+                    component TBtn: Rectangle {
+                        property string label: ""
+                        property string tip: ""
+                        signal action()
+                        height: 22; radius: 3
+                        width: label.length === 1 ? 36 : Math.max(36, labelText.implicitWidth + 16)
+                        color: tBtnMa.containsMouse
+                            ? (isDarkMode ? "#555" : "#ccc")
+                            : (isDarkMode ? "#333" : "#e8e8e8")
+                        border.color: isDarkMode ? "#555" : "#ccc"
+                        border.width: 1
+                        Text {
+                            id: labelText
+                            anchors.centerIn: parent
+                            text: parent.label
+                            font.pixelSize: 13
+                            color: isDarkMode ? "#ddd" : "#333"
+                        }
+                        MouseArea {
+                            id: tBtnMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: parent.action()
+                            ToolTip.visible: containsMouse && parent.tip !== ""
+                            ToolTip.text: parent.tip
+                            ToolTip.delay: 400
+                        }
+                    }
+
+                    TBtn {
+                        id: buttonStop; label: "Stop"; tip: "End game"
+                        onAction: {
                             gameIsInProgress = false
+                            _toolbarResignPending = false
                             screen.state = "screen_1"
                             chessConnector.endGame()
-                            console.log("Game ended!")
                         }
                     }
-
-                    Button {
-                        id: buttonSave
-                        text: "Save"
-                        onClicked: {
-                            chessConnector.saveGame()
-                            console.log("Saved!")
-                        }
+                    TBtn {
+                        id: buttonSave; label: "Save"; tip: "Save game"
+                        onAction: chessConnector.saveGame()
                     }
-
-                    Button {
-                        id: buttonPrev
-                        text: "Prev"
-                        onClicked: {
-                            chessConnector.movePrev()
-                            console.log("Moved back")
-                        }
+                    TBtn {
+                        id: buttonPrev; label: "↩"
+                        tip: _onlineGameId !== "" ? "Propose Takeback" : "Undo Move"
+                        onAction: chessConnector.requestTakeback()
                     }
-
-                    Button {
-                        id: buttonNext
-                        text: "Next"
-                        onClicked: {
-                            chessConnector.moveNext()
-                            console.log("Advanced")
-                        }
+                    TBtn {
+                        id: buttonResign; label: "⚑"; tip: "Resign"
+                        onAction: _toolbarResignPending = true
                     }
-
-                    Button {
-                        id: buttonRobotMove
-                        text: "Robot"
-                        enabled: !chessConnector.EngineThinking
-                        onClicked: chessConnector.robotMove()
+                    TBtn {
+                        id: buttonNext; label: "Next"; tip: "Next move"
+                        onAction: chessConnector.moveNext()
                     }
                 }
 
+                // Resign confirmation strip (replaces control buttons)
                 Row {
-                    anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                    id: toolbarResignConfirm
+                    visible: _toolbarResignPending
+                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
                     spacing: 8
 
                     Text {
-                        id: statusNote
-                        height: robotIcon.height
-                        verticalAlignment: Text.AlignVCenter
-                        color: root.isDarkMode ? "#ffffff" : "#000000"
-                        text: chessConnector.MoveCount
-                    }
-
-                    Text {
-                        id: statusNote1
-                        height: robotIcon.height
-                        verticalAlignment: Text.AlignVCenter
-                        color: root.isDarkMode ? "#ffffff" : "#000000"
-                        text: chessConnector.IsWhiteMove ? "white" : "black"
-                    }
-
-                    Text {
-                        id: robotIcon
-                        text: "🤖"
-                        font.pixelSize: 18
-                        verticalAlignment: Text.AlignVCenter
+                        text: "Resign?"
+                        color: isDarkMode ? "#cccccc" : "#444444"
+                        font.pixelSize: 13
+                        anchors.verticalCenter: parent.verticalCenter
                     }
 
                     Rectangle {
-                        id: menuButton
-                        width: 28; height: 28
-                        radius: 6
-                        color:        root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
-                        border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
-                        border.width: 1
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        Image {
-                            id: menuIconImg
-                            anchors.centerIn: parent
-                            width: 16; height: 16
-                            source: "qrc:/app/pics/menu_icon.svg"
-                            visible: false
-                        }
-                        ColorOverlay {
-                            anchors.fill: menuIconImg
-                            source: menuIconImg
-                            color: root.isDarkMode ? "#ffffff" : "#09102B"
-                        }
-
+                        width: 44; height: 22; radius: 3
+                        color: yesMa.containsMouse ? (isDarkMode ? "#6a1a1a" : "#f0cccc")
+                                                   : (isDarkMode ? "#3a1010" : "#fde8e8")
+                        border.color: isDarkMode ? "#883333" : "#cc8888"; border.width: 1
+                        Text { anchors.centerIn: parent; text: "Yes"; font.pixelSize: 13
+                               color: isDarkMode ? "#ffaaaa" : "#880000" }
                         MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: appMenu.popup()
-                        }
-
-                        QQC.Menu {
-                            id: appMenu
-                            QQC.MenuItem {
-                                text: "Settings"
-                                onTriggered: _showSettings = true
-                            }
-                            QQC.MenuItem {
-                                text: "Profile"
-                                onTriggered: _showProfile = true
-                            }
-                            QQC.MenuItem {
-                                text: "Switch User"
-                                onTriggered: {
-                                    chessConnector.endGame()
-                                    userManager.logout()
-                                }
-                            }
+                            id: yesMa; anchors.fill: parent; hoverEnabled: true
+                            onClicked: { _toolbarResignPending = false; chessConnector.resignGame() }
                         }
                     }
 
+                    Rectangle {
+                        width: 44; height: 22; radius: 3
+                        color: noMa.containsMouse ? (isDarkMode ? "#555" : "#ccc")
+                                                  : (isDarkMode ? "#333" : "#e8e8e8")
+                        border.color: isDarkMode ? "#555" : "#ccc"; border.width: 1
+                        Text { anchors.centerIn: parent; text: "No"; font.pixelSize: 13
+                               color: isDarkMode ? "#ddd" : "#333" }
+                        MouseArea {
+                            id: noMa; anchors.fill: parent; hoverEnabled: true
+                            onClicked: _toolbarResignPending = false
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: menuButton
+                    width: 28; height: 28
+                    radius: 6
+                    color:        root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
+                    border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
+                    border.width: 1
+                    anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+
+                    Image {
+                        id: menuIconImg
+                        anchors.centerIn: parent
+                        width: 16; height: 16
+                        source: "qrc:/app/pics/menu_icon.svg"
+                        visible: false
+                    }
+                    ColorOverlay {
+                        anchors.fill: menuIconImg
+                        source: menuIconImg
+                        color: root.isDarkMode ? "#ffffff" : "#09102B"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: appMenu.popup()
+                    }
+
+                    QQC.Menu {
+                        id: appMenu
+                        QQC.MenuItem {
+                            text: "Settings"
+                            onTriggered: _showSettings = true
+                        }
+                        QQC.MenuItem {
+                            text: "Profile"
+                            onTriggered: _showProfile = true
+                        }
+                        QQC.MenuItem {
+                            text: "Switch User"
+                            onTriggered: {
+                                chessConnector.endGame()
+                                userManager.logout()
+                            }
+                        }
+                    }
                 }
             }
 
@@ -597,6 +623,7 @@ ApplicationWindow {
                 _onlineGameId = ""
                 _showDrawOffer = false
                 _showTakebackOffer = false
+                _toolbarResignPending = false
 
                 const winnerName = ({ "white": "White", "black": "Black" })[winner] ?? ""
                 const reason     = ({ "mate": " by Checkmate", "resign": " by Resignation",
@@ -647,6 +674,7 @@ ApplicationWindow {
             onOkClicked: {
                 _showGameResult = false
                 gameIsInProgress = false
+                _toolbarResignPending = false
                 chessConnector.endGame()
                 screen.state = "screen_1"
             }
@@ -886,51 +914,35 @@ ApplicationWindow {
         states: [
             State {
                 name: "screen_1"
-                PropertyChanges { target: buttonStop; visible: false }
-                PropertyChanges { target: buttonSave; visible: false }
-                PropertyChanges { target: buttonNext; visible: false }
-                PropertyChanges { target: buttonPrev; visible: false }
-                PropertyChanges { target: buttonRobotMove; visible: false }
-                PropertyChanges { target: statusNote; visible: false }
-                PropertyChanges { target: statusNote1; visible: false }
-                PropertyChanges { target: robotIcon; visible: false }
-                PropertyChanges { target: menuButton; visible: true }
+                PropertyChanges { target: buttonStop;   visible: false }
+                PropertyChanges { target: buttonSave;   visible: false }
+                PropertyChanges { target: buttonNext;   visible: false }
+                PropertyChanges { target: buttonPrev;   visible: false }
+                PropertyChanges { target: buttonResign; visible: false }
             },
             State {
                 name: "screen_2"
-                PropertyChanges { target: buttonStop; visible: true }
-                PropertyChanges { target: buttonSave; visible: true }
-                PropertyChanges { target: buttonNext; visible: false }
-                PropertyChanges { target: buttonPrev; visible: false }
-                PropertyChanges { target: buttonRobotMove; visible: true }
-                PropertyChanges { target: statusNote; visible: true }
-                PropertyChanges { target: statusNote1; visible: true }
-                PropertyChanges { target: robotIcon; visible: false }
-                PropertyChanges { target: menuButton; visible: false }
+                PropertyChanges { target: buttonStop;   visible: true }
+                PropertyChanges { target: buttonSave;   visible: true }
+                PropertyChanges { target: buttonNext;   visible: false }
+                PropertyChanges { target: buttonPrev;   visible: false }
+                PropertyChanges { target: buttonResign; visible: true }
             },
             State {
                 name: "screen_3"
-                PropertyChanges { target: buttonStop; visible: true }
-                PropertyChanges { target: buttonSave; visible: false }
-                PropertyChanges { target: buttonNext; visible: true }
-                PropertyChanges { target: buttonPrev; visible: true }
-                PropertyChanges { target: buttonRobotMove; visible: false }
-                PropertyChanges { target: statusNote; visible: true }
-                PropertyChanges { target: statusNote1; visible: true }
-                PropertyChanges { target: robotIcon; visible: false }
-                PropertyChanges { target: menuButton; visible: false }
+                PropertyChanges { target: buttonStop;   visible: true }
+                PropertyChanges { target: buttonSave;   visible: false }
+                PropertyChanges { target: buttonNext;   visible: true }
+                PropertyChanges { target: buttonPrev;   visible: true }
+                PropertyChanges { target: buttonResign; visible: true }
             },
             State {
                 name: "screen_4"
-                PropertyChanges { target: buttonStop; visible: true }
-                PropertyChanges { target: buttonSave; visible: true }
-                PropertyChanges { target: buttonNext; visible: false }
-                PropertyChanges { target: buttonPrev; visible: true }
-                PropertyChanges { target: buttonRobotMove; visible: false }
-                PropertyChanges { target: statusNote; visible: true }
-                PropertyChanges { target: statusNote1; visible: true }
-                PropertyChanges { target: robotIcon; visible: true }
-                PropertyChanges { target: menuButton; visible: false }
+                PropertyChanges { target: buttonStop;   visible: true }
+                PropertyChanges { target: buttonSave;   visible: true }
+                PropertyChanges { target: buttonNext;   visible: false }
+                PropertyChanges { target: buttonPrev;   visible: true }
+                PropertyChanges { target: buttonResign; visible: true }
             }
         ]
     }
