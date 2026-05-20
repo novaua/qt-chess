@@ -41,6 +41,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int  ReviewIndex   READ reviewIndex   NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool CanReviewPrev READ canReviewPrev NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
+		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
 public:
 	explicit ChessConnector(QObject* parent = nullptr);
 	~ChessConnector();
@@ -66,6 +67,7 @@ public:
 	int  reviewIndex()   const { return _player ? _player->GetPointer() : _reviewIndex; }
 	bool canReviewPrev() const;
 	bool canReviewNext() const;
+	bool isOnlineGame()  const { return !_onlineGameId.isEmpty(); }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 
@@ -96,6 +98,9 @@ signals:
 	void moveHistoryChanged();
 	void gameResultChanged();
 	void reviewStateChanged();
+	void isOnlineGameChanged();
+	void drawOfferReceived();
+	void takebackRequested();
 	void lichessLoginResult(bool ok, QString username);
 
 	void castlingNotify();
@@ -117,7 +122,6 @@ public slots:
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
 	Q_INVOKABLE bool continueGame();
 	Q_INVOKABLE void startOnlineGame(const QString& gameId, bool playingAsWhite);
-	Q_INVOKABLE void resignOnlineGame();
 
 	void endGame();
 
@@ -136,6 +140,12 @@ public slots:
 	void reviewLast();
 
 	Q_INVOKABLE void loginWithLichess();
+
+	Q_INVOKABLE void resignGame();
+	Q_INVOKABLE void offerDraw();
+	Q_INVOKABLE void respondDraw(bool accept);
+	Q_INVOKABLE void requestTakeback();
+	Q_INVOKABLE void respondTakeback(bool accept);
 
 private slots:
 	void onEngineMoveComplete();

@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
+        <file>qml/ActionButton.qml</file>
         <file>qml/ApplyMovesDialog.qml</file>
         <file>qml/ChallengeDialog.qml</file>
         <file>qml/CreateUserDialog.qml</file>

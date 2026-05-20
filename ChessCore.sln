@@ -32,6 +32,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChessQtTests", "ChessQtTest
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LiChessConnector", "LiChessConnector\LiChessConnector.vcxproj", "{2ED0175F-4DE2-440A-965E-04B2F1E4E3C0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Installer", "Installer", "{AE37CA9D-AD1F-4CE6-ADB0-892AC6863581}"
+	ProjectSection(SolutionItems) = preProject
+		installer\ChessSetup.iss = installer\ChessSetup.iss
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -65,6 +70,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{AE37CA9D-AD1F-4CE6-ADB0-892AC6863581} = {1471DC62-4151-40E3-A46E-270712E02C71}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F536A1AB-71F6-47DB-B03B-9580D5DD76FE}

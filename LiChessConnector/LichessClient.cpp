@@ -282,8 +282,10 @@ void LichessClient::stopEventStream()
 void LichessClient::streamGame(const QString& gameId)
 {
     stopStream();
-    _currentGameId  = gameId;
+    _currentGameId   = gameId;
     _lastMovesList.clear();
+    _lastOppDraw     = false;
+    _lastOppTakeback = false;
 
     QNetworkRequest req = makeRequest(
         QStringLiteral("/api/board/game/stream/") + gameId);
@@ -326,6 +328,7 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
             const QString myColor  = obj.value(QStringLiteral("myColor")).toString();
             const QString whiteId  = white.value(QStringLiteral("id")).toString();
             const bool    isWhite  = resolveIsWhite(myColor, whiteId, _username);
+            _playingAsWhite = isWhite;
             qDebug() << "LichessClient: playing as" << (isWhite ? "white" : "black")
                      << "| myColor=" << myColor << "| whiteId=" << whiteId << "| username=" << _username;
 
@@ -356,6 +359,17 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
             for (int i = _lastMovesList.size(); i < allMoves.size(); ++i)
                 emit opponentMoveReceived(allMoves[i]);
             _lastMovesList = allMoves;
+
+            const bool oppDraw = _playingAsWhite
+                ? obj.value(QStringLiteral("bdraw")).toBool()
+                : obj.value(QStringLiteral("wdraw")).toBool();
+            const bool oppTakeback = _playingAsWhite
+                ? obj.value(QStringLiteral("btakeback")).toBool()
+                : obj.value(QStringLiteral("wtakeback")).toBool();
+            if (oppDraw     && !_lastOppDraw)     emit drawOfferReceived();
+            if (oppTakeback && !_lastOppTakeback) emit takebackRequested();
+            _lastOppDraw     = oppDraw;
+            _lastOppTakeback = oppTakeback;
         }
     }
 }
@@ -377,13 +391,32 @@ void LichessClient::postMove(const QString& gameId, const QString& uciMove)
     });
 }
 
+void LichessClient::postGameAction(const QString& path)
+{
+    auto* reply = _nam.post(makeRequest(path), QByteArray());
+    connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
+}
+
 void LichessClient::resign(const QString& gameId)
 {
-    auto* reply = _nam.post(
-        makeRequest(QStringLiteral("/api/board/game/") + gameId
-                    + QStringLiteral("/resign")),
-        QByteArray());
-    connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
+    postGameAction(QStringLiteral("/api/board/game/") + gameId + QStringLiteral("/resign"));
+}
+
+void LichessClient::offerDraw(const QString& gameId, bool accept)
+{
+    postGameAction(QStringLiteral("/api/board/game/") + gameId
+                   + QStringLiteral("/draw/") + (accept ? QStringLiteral("yes") : QStringLiteral("no")));
+}
+
+void LichessClient::requestTakeback(const QString& gameId, bool accept)
+{
+    postGameAction(QStringLiteral("/api/board/game/") + gameId
+                   + QStringLiteral("/takeback/") + (accept ? QStringLiteral("yes") : QStringLiteral("no")));
+}
+
+void LichessClient::abortGame(const QString& gameId)
+{
+    postGameAction(QStringLiteral("/api/board/game/") + gameId + QStringLiteral("/abort"));
 }
 
 void LichessClient::stopStream()
