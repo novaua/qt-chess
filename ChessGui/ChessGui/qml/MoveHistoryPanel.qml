@@ -6,6 +6,7 @@ Rectangle {
     id: panel
 
     property bool gameInProgress: false
+    property bool isOnlineGame: false
 
     readonly property bool isDarkMode: {
         if (!Window.window) return false
@@ -114,13 +115,42 @@ Rectangle {
         height: visible ? implicitHeight : 0
     }
 
+    // Inline component for action/confirm buttons
+    component ActionBtn: Rectangle {
+        property string label: ""
+        property string tip: ""
+        signal action()
+        width: 36; height: 22; radius: 3
+        color: _btnMa.containsMouse
+            ? (isDarkMode ? "#555" : "#ccc")
+            : (isDarkMode ? "#333" : "#e8e8e8")
+        border.color: isDarkMode ? "#555" : "#ccc"
+        border.width: 1
+        Text {
+            anchors.centerIn: parent
+            text: parent.label
+            font.pixelSize: 13
+            color: isDarkMode ? "#ddd" : "#333"
+        }
+        MouseArea {
+            id: _btnMa
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: parent.action()
+            ToolTip.visible: containsMouse && parent.tip !== ""
+            ToolTip.text: parent.tip
+            ToolTip.delay: 400
+        }
+    }
+
     ListView {
         id: listView
         anchors {
             top: reviewIndicator.bottom; topMargin: 2
             left: parent.left; leftMargin: 3
             right: parent.right; rightMargin: 3
-            bottom: resultBar.visible ? resultBar.top : parent.bottom
+            bottom: actionButtons.visible ? actionButtons.top
+                  : (resultBar.visible ? resultBar.top : parent.bottom)
             bottomMargin: 3
         }
         clip: true
@@ -201,6 +231,62 @@ Rectangle {
                     visible: modelData.b !== ""
                 }
             }
+        }
+    }
+
+    // Action buttons: Undo / Draw / Resign
+    Row {
+        id: actionButtons
+        visible: panel.gameInProgress && chessConnector.GameResult === "" && !resignConfirm.visible
+        anchors {
+            bottom: resultBar.visible ? resultBar.top : parent.bottom
+            bottomMargin: 4
+            horizontalCenter: parent.horizontalCenter
+        }
+        spacing: 6
+
+        ActionBtn {
+            label: "↩"
+            tip: panel.isOnlineGame ? "Propose Takeback" : "Undo Move"
+            onAction: chessConnector.requestTakeback()
+        }
+        ActionBtn {
+            label: "½"
+            tip: "Offer Draw"
+            visible: panel.isOnlineGame
+            onAction: chessConnector.offerDraw()
+        }
+        ActionBtn {
+            label: "⚑"
+            tip: "Resign"
+            onAction: resignConfirm.visible = true
+        }
+    }
+
+    // Resign confirmation strip
+    Row {
+        id: resignConfirm
+        visible: false
+        anchors {
+            bottom: resultBar.visible ? resultBar.top : parent.bottom
+            bottomMargin: 4
+            horizontalCenter: parent.horizontalCenter
+        }
+        spacing: 6
+
+        Text {
+            text: "Resign?"
+            color: isDarkMode ? "#ccc" : "#555"
+            font.pixelSize: 12
+            anchors.verticalCenter: parent.verticalCenter
+        }
+        ActionBtn {
+            label: "Yes"
+            onAction: { resignConfirm.visible = false; chessConnector.resignGame() }
+        }
+        ActionBtn {
+            label: "No"
+            onAction: resignConfirm.visible = false
         }
     }
 

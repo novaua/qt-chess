@@ -326,6 +326,7 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
             const QString myColor  = obj.value(QStringLiteral("myColor")).toString();
             const QString whiteId  = white.value(QStringLiteral("id")).toString();
             const bool    isWhite  = resolveIsWhite(myColor, whiteId, _username);
+            _playingAsWhite = isWhite;
             qDebug() << "LichessClient: playing as" << (isWhite ? "white" : "black")
                      << "| myColor=" << myColor << "| whiteId=" << whiteId << "| username=" << _username;
 
@@ -356,6 +357,15 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
             for (int i = _lastMovesList.size(); i < allMoves.size(); ++i)
                 emit opponentMoveReceived(allMoves[i]);
             _lastMovesList = allMoves;
+
+            const bool oppDraw = _playingAsWhite
+                ? obj.value(QStringLiteral("bdraw")).toBool()
+                : obj.value(QStringLiteral("wdraw")).toBool();
+            const bool oppTakeback = _playingAsWhite
+                ? obj.value(QStringLiteral("btakeback")).toBool()
+                : obj.value(QStringLiteral("wtakeback")).toBool();
+            if (oppDraw)     emit drawOfferReceived();
+            if (oppTakeback) emit takebackRequested();
         }
     }
 }
@@ -382,6 +392,32 @@ void LichessClient::resign(const QString& gameId)
     auto* reply = _nam.post(
         makeRequest(QStringLiteral("/api/board/game/") + gameId
                     + QStringLiteral("/resign")),
+        QByteArray());
+    connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
+}
+
+void LichessClient::offerDraw(const QString& gameId, bool accept)
+{
+    auto* reply = _nam.post(
+        makeRequest(QStringLiteral("/api/board/game/") + gameId
+                    + QStringLiteral("/draw/") + (accept ? QStringLiteral("yes") : QStringLiteral("no"))),
+        QByteArray());
+    connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
+}
+
+void LichessClient::requestTakeback(const QString& gameId, bool accept)
+{
+    auto* reply = _nam.post(
+        makeRequest(QStringLiteral("/api/board/game/") + gameId
+                    + QStringLiteral("/takeback/") + (accept ? QStringLiteral("yes") : QStringLiteral("no"))),
+        QByteArray());
+    connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
+}
+
+void LichessClient::abortGame(const QString& gameId)
+{
+    auto* reply = _nam.post(
+        makeRequest(QStringLiteral("/api/board/game/") + gameId + QStringLiteral("/abort")),
         QByteArray());
     connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
 }

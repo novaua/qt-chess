@@ -27,6 +27,8 @@ ApplicationWindow {
     property string _pendingChallengeId:      ""
     property string _pendingChallengeUrl:     ""
     property string _onlineGameId:            ""
+    property bool   _showDrawOffer:           false
+    property bool   _showTakebackOffer:       false
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     // _panelH is computed analytically to avoid a binding loop:
     //   _boardSize → chessBoard.height → centralItem.height → _panelH → _boardSize
@@ -321,6 +323,7 @@ ApplicationWindow {
                     width: _historyPanelW
                     height: _boardSize
                     gameInProgress: gameIsInProgress
+                    isOnlineGame: _onlineGameId !== ""
                     anchors {
                         verticalCenter: parent.verticalCenter
                         left: parent.left; leftMargin: (parent.width + _boardSize) / 2 + 5
@@ -592,6 +595,8 @@ ApplicationWindow {
             function onGameEnded(status, winner) {
                 lichessClient.stopStream()
                 _onlineGameId = ""
+                _showDrawOffer = false
+                _showTakebackOffer = false
 
                 const winnerName = ({ "white": "White", "black": "Black" })[winner] ?? ""
                 const reason     = ({ "mate": " by Checkmate", "resign": " by Resignation",
@@ -623,6 +628,8 @@ ApplicationWindow {
                 if (gameIsInProgress)
                     chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
             }
+            function onDrawOfferReceived()  { _showDrawOffer = true }
+            function onTakebackRequested()  { _showTakebackOffer = true }
         }
 
         Timer {
@@ -709,6 +716,73 @@ ApplicationWindow {
             MouseArea {
                 anchors.fill: parent
                 onClicked: networkErrorBanner.visible = false
+            }
+        }
+
+        // ── Draw offer banner ────────────────────────────────────────────────
+        Rectangle {
+            id: drawOfferBanner
+            visible: _showDrawOffer && _onlineGameId !== ""
+            anchors {
+                top: networkErrorBanner.bottom; topMargin: 4
+                horizontalCenter: parent.horizontalCenter
+            }
+            width: Math.min(parent.width - 32, 380)
+            height: 44
+            radius: 8
+            color: "#1565c0"
+            z: 30
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 10
+                Text {
+                    text: "Opponent offers a draw"
+                    color: "#ffffff"; font.pixelSize: 13
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                Button {
+                    text: "Accept"; implicitWidth: 70; implicitHeight: 28
+                    onClicked: { chessConnector.respondDraw(true); _showDrawOffer = false }
+                }
+                Button {
+                    text: "Decline"; implicitWidth: 70; implicitHeight: 28
+                    onClicked: { chessConnector.respondDraw(false); _showDrawOffer = false }
+                }
+            }
+        }
+
+        // ── Takeback request banner ──────────────────────────────────────────
+        Rectangle {
+            id: takebackBanner
+            visible: _showTakebackOffer && _onlineGameId !== ""
+            anchors {
+                top: drawOfferBanner.visible ? drawOfferBanner.bottom : networkErrorBanner.bottom
+                topMargin: 4
+                horizontalCenter: parent.horizontalCenter
+            }
+            width: Math.min(parent.width - 32, 380)
+            height: 44
+            radius: 8
+            color: "#5b4a00"
+            z: 30
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 10
+                Text {
+                    text: "Opponent requests a takeback"
+                    color: "#ffffff"; font.pixelSize: 13
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                Button {
+                    text: "Accept"; implicitWidth: 70; implicitHeight: 28
+                    onClicked: { chessConnector.respondTakeback(true); _showTakebackOffer = false }
+                }
+                Button {
+                    text: "Decline"; implicitWidth: 70; implicitHeight: 28
+                    onClicked: { chessConnector.respondTakeback(false); _showTakebackOffer = false }
+                }
             }
         }
 

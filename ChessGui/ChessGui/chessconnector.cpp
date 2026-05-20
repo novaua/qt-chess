@@ -320,6 +320,7 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
 	_engineAutoPlay = false;
 	_onlineGameId = gameId;
+	emit isOnlineGameChanged();
 
 	_config.playerPlaysWhite = playingAsWhite;
 	emit playerPlaysWhiteChanged();
@@ -332,6 +333,12 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 		connect(_lichessClient, &LichessClient::opponentMoveReceived,
 			this, &ChessConnector::applyMoves,
 			Qt::UniqueConnection);
+		connect(_lichessClient, &LichessClient::drawOfferReceived,
+			this, &ChessConnector::drawOfferReceived,
+			Qt::UniqueConnection);
+		connect(_lichessClient, &LichessClient::takebackRequested,
+			this, &ChessConnector::takebackRequested,
+			Qt::UniqueConnection);
 	}
 }
 
@@ -340,6 +347,46 @@ void ChessConnector::resignOnlineGame()
 	if (!_onlineGameId.isEmpty() && _lichessClient)
 		_lichessClient->resign(_onlineGameId);
 	_onlineGameId.clear();
+	emit isOnlineGameChanged();
+}
+
+void ChessConnector::resignGame()
+{
+	if (!_onlineGameId.isEmpty() && _lichessClient) {
+		_lichessClient->resign(_onlineGameId);
+		return;
+	}
+	// Local game: white to move resigns → Black wins, and vice versa
+	_gameOver = true;
+	const QString winner = (IsWhiteMove() == 1) ? QStringLiteral("Black Won")
+	                                              : QStringLiteral("White Won");
+	emit checkMateResult(winner);
+}
+
+void ChessConnector::offerDraw()
+{
+	if (!_onlineGameId.isEmpty() && _lichessClient)
+		_lichessClient->offerDraw(_onlineGameId, true);
+}
+
+void ChessConnector::respondDraw(bool accept)
+{
+	if (!_onlineGameId.isEmpty() && _lichessClient)
+		_lichessClient->offerDraw(_onlineGameId, accept);
+}
+
+void ChessConnector::requestTakeback()
+{
+	if (!_onlineGameId.isEmpty() && _lichessClient)
+		_lichessClient->requestTakeback(_onlineGameId, true);
+	else
+		movePrev();
+}
+
+void ChessConnector::respondTakeback(bool accept)
+{
+	if (!_onlineGameId.isEmpty() && _lichessClient)
+		_lichessClient->requestTakeback(_onlineGameId, accept);
 }
 
 void ChessConnector::startNewGame()
@@ -716,6 +763,7 @@ void ChessConnector::endGame()
 	if (!_onlineGameId.isEmpty()) {
 		if (_lichessClient) _lichessClient->stopStream();
 		_onlineGameId.clear();
+		emit isOnlineGameChanged();
 	}
 	else if (_game->GetMoveCount() > 0 && !IsOnPlayerMode()) {
 		autoSaveGame(_engineWorker != nullptr);

@@ -22,6 +22,9 @@ public:
 	Q_INVOKABLE void waitForGameStart(const QString& gameId);
 	Q_INVOKABLE void postMove(const QString& gameId, const QString& uciMove);
 	Q_INVOKABLE void resign(const QString& gameId);
+	Q_INVOKABLE void offerDraw(const QString& gameId, bool accept);
+	Q_INVOKABLE void requestTakeback(const QString& gameId, bool accept);
+	Q_INVOKABLE void abortGame(const QString& gameId);
 	Q_INVOKABLE void stopStream();
 	Q_INVOKABLE void cancelChallenge(const QString& challengeId);
 
@@ -41,6 +44,8 @@ signals:
 	void gameEnded(QString status, QString winner);
 	void networkError(QString message);
 	void challengeCanceled();
+	void drawOfferReceived();
+	void takebackRequested();
 
 private:
 	QNetworkRequest makeRequest(const QString& path) const;
@@ -55,6 +60,7 @@ private:
 	QString               _token;
 	QString               _username;
 	QString               _currentGameId;
+	bool                  _playingAsWhite = true;
 	QString               _waitForGameId;
 	QStringList           _lastMovesList;   // tracks moves seen so far in stream
 	QNetworkReply* _streamReply      = nullptr;
