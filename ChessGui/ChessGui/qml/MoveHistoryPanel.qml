@@ -7,6 +7,7 @@ Rectangle {
 
     property bool gameInProgress: false
     property bool isOnlineGame: false
+    property bool wasOnlineGame: false
 
     readonly property bool isDarkMode: {
         if (!Window.window) return false
@@ -267,7 +268,7 @@ Rectangle {
     // Rematch button — full width, shown when game is over (local games only)
     Rectangle {
         id: rematchBar
-        visible: chessConnector.GameResult !== "" && !panel.isOnlineGame
+        visible: chessConnector.GameResult !== "" && !panel.wasOnlineGame
         anchors {
             bottom: resultBar.visible ? resultBar.top : parent.bottom
             left: parent.left; leftMargin: 3

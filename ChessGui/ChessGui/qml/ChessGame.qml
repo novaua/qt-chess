@@ -30,6 +30,7 @@ ApplicationWindow {
     property bool   _showDrawOffer:           false
     property bool   _showTakebackOffer:       false
     property bool   _toolbarResignPending:    false
+    property bool   _wasOnlineGame:           false
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     // _panelH is computed analytically to avoid a binding loop:
     //   _boardSize → chessBoard.height → centralItem.height → _panelH → _boardSize
@@ -162,7 +163,7 @@ ApplicationWindow {
                 Row {
                     id: controlButtons
                     visible: !_toolbarResignPending
-                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                    anchors { left: menuButton.right; leftMargin: 6; verticalCenter: parent.verticalCenter }
                     spacing: 6
 
                     ActionButton {
@@ -188,7 +189,7 @@ ApplicationWindow {
                 Row {
                     id: toolbarResignConfirm
                     visible: _toolbarResignPending
-                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                    anchors { left: menuButton.right; leftMargin: 6; verticalCenter: parent.verticalCenter }
                     spacing: 8
 
                     Text {
@@ -212,7 +213,7 @@ ApplicationWindow {
                     color:        root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
                     border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
                     border.width: 1
-                    anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                    anchors { left: parent.left; leftMargin: 1; verticalCenter: parent.verticalCenter }
 
                     Image {
                         id: menuIconImg
@@ -301,6 +302,7 @@ ApplicationWindow {
                     height: _boardSize
                     gameInProgress: gameIsInProgress
                     isOnlineGame: _onlineGameId !== ""
+                    wasOnlineGame: _wasOnlineGame
                     anchors {
                         verticalCenter: parent.verticalCenter
                         left: parent.left; leftMargin: (parent.width + _boardSize) / 2 + 5
@@ -588,6 +590,7 @@ ApplicationWindow {
                 _showDrawOffer = false
                 _showTakebackOffer = false
                 _toolbarResignPending = false
+                _wasOnlineGame = true
 
                 const winnerName = ({ "white": "White", "black": "Black" })[winner] ?? ""
                 const reason     = ({ "mate": " by Checkmate", "resign": " by Resignation",
@@ -597,6 +600,7 @@ ApplicationWindow {
                 else if (winnerName !== "")    _checkmateWinner = winnerName + " Won" + reason
                 else                           _checkmateWinner = "Draw"
 
+                chessConnector.setGameResult(_checkmateWinner)
                 resultDialogTimer.start()
             }
 
@@ -616,6 +620,7 @@ ApplicationWindow {
                 chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
                 _showGameResult = false
                 _toolbarResignPending = false
+                _wasOnlineGame = false
             }
             function onPlayerPlaysWhiteChanged() {
                 if (gameIsInProgress)
