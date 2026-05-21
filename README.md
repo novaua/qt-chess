@@ -2,7 +2,7 @@
 Chess UI made on Qt QML and C++
 Able to connect to a UCI engine to play with a computer.
 
-[Gameplay demo](https://youtu.be/pBiuGpj8seQ)
+[Gameplay demo 2026](https://youtu.be/hlW6xv23fN4) 
 
 Tools required to compile:
 * MS Visual Studio 2022
