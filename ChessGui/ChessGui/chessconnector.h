@@ -146,6 +146,7 @@ public slots:
 	Q_INVOKABLE void respondDraw(bool accept);
 	Q_INVOKABLE void requestTakeback();
 	Q_INVOKABLE void respondTakeback(bool accept);
+	Q_INVOKABLE void rematch();
 
 private slots:
 	void onEngineMoveComplete();
@@ -181,6 +182,7 @@ private:
 	bool _engineThinking = false;
 	bool _engineAutoPlay = false;
 	std::atomic<bool> _gameOver{ false };
+	bool _wasVsComputer = false;
 	QString _gameResult;
 	AppConfig _config;
 	int _reviewIndex = -1;

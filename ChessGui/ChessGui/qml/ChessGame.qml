@@ -166,15 +166,6 @@ ApplicationWindow {
                     spacing: 6
 
                     ActionButton {
-                        id: buttonStop; label: "Stop"; tip: "End game"
-                        onAction: {
-                            gameIsInProgress = false
-                            _toolbarResignPending = false
-                            screen.state = "screen_1"
-                            chessConnector.endGame()
-                        }
-                    }
-                    ActionButton {
                         id: buttonSave; label: "Save"; tip: "Save game"
                         onAction: chessConnector.saveGame()
                     }
@@ -185,6 +176,7 @@ ApplicationWindow {
                     }
                     ActionButton {
                         id: buttonResign; label: "⚑"; tip: "Resign"
+                        visible: !_showGameResult
                         onAction: _toolbarResignPending = true
                     }
                     ActionButton {
@@ -238,7 +230,17 @@ ApplicationWindow {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: appMenu.popup()
+                        onClicked: {
+                            if (gameIsInProgress) {
+                                _showGameResult = false
+                                gameIsInProgress = false
+                                _toolbarResignPending = false
+                                screen.state = "screen_1"
+                                chessConnector.endGame()
+                            } else {
+                                appMenu.popup()
+                            }
+                        }
                     }
 
                     QQC.Menu {
@@ -302,6 +304,18 @@ ApplicationWindow {
                     anchors {
                         verticalCenter: parent.verticalCenter
                         left: parent.left; leftMargin: (parent.width + _boardSize) / 2 + 5
+                    }
+                }
+
+                GameResultDialog {
+                    id: gameResultPanel
+                    visible: _showGameResult && _showHistoryPanel
+                    winner: _checkmateWinner
+                    width: _historyPanelW
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                        right: parent.horizontalCenter
+                        rightMargin: _boardSize / 2 + 5
                     }
                 }
             }
@@ -600,6 +614,8 @@ ApplicationWindow {
             target: chessConnector
             function onNewGameStarted(isComputerGame) {
                 chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
+                _showGameResult = false
+                _toolbarResignPending = false
             }
             function onPlayerPlaysWhiteChanged() {
                 if (gameIsInProgress)
@@ -616,20 +632,6 @@ ApplicationWindow {
             onTriggered: _showGameResult = true
         }
 
-        GameResultDialog {
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -15
-            visible: _showGameResult
-            winner: _checkmateWinner
-            onOkClicked: {
-                _showGameResult = false
-                gameIsInProgress = false
-                _toolbarResignPending = false
-                chessConnector.endGame()
-                screen.state = "screen_1"
-            }
-        }
-
         // ── Settings dialog ───────────────────────────────────────────────
         SettingsDialog {
             id: settingsDialog
@@ -637,6 +639,18 @@ ApplicationWindow {
             visible: _showSettings
             z: 20
             onCloseRequested: _showSettings = false
+        }
+
+        Shortcut {
+            sequence: "Escape"
+            enabled: gameIsInProgress
+            onActivated: {
+                _showGameResult = false
+                gameIsInProgress = false
+                _toolbarResignPending = false
+                screen.state = "screen_1"
+                chessConnector.endGame()
+            }
         }
 
         // ── Move-input cheat dialog (Alt+S in two-player mode) ────────────
@@ -864,7 +878,6 @@ ApplicationWindow {
         states: [
             State {
                 name: "screen_1"
-                PropertyChanges { target: buttonStop;   visible: false }
                 PropertyChanges { target: buttonSave;   visible: false }
                 PropertyChanges { target: buttonNext;   visible: false }
                 PropertyChanges { target: buttonPrev;   visible: false }
@@ -872,7 +885,6 @@ ApplicationWindow {
             },
             State {
                 name: "screen_2"
-                PropertyChanges { target: buttonStop;   visible: true }
                 PropertyChanges { target: buttonSave;   visible: true }
                 PropertyChanges { target: buttonNext;   visible: false }
                 PropertyChanges { target: buttonPrev;   visible: false }
@@ -880,7 +892,6 @@ ApplicationWindow {
             },
             State {
                 name: "screen_3"
-                PropertyChanges { target: buttonStop;   visible: true }
                 PropertyChanges { target: buttonSave;   visible: false }
                 PropertyChanges { target: buttonNext;   visible: true }
                 PropertyChanges { target: buttonPrev;   visible: true }
@@ -888,7 +899,6 @@ ApplicationWindow {
             },
             State {
                 name: "screen_4"
-                PropertyChanges { target: buttonStop;   visible: true }
                 PropertyChanges { target: buttonSave;   visible: true }
                 PropertyChanges { target: buttonNext;   visible: false }
                 PropertyChanges { target: buttonPrev;   visible: true }

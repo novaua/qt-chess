@@ -188,7 +188,7 @@ namespace ChessTests
 
 		TEST_METHOD(PositionPiecedHash_Test)
 		{
-			map<int, PositionPiece> hashPp;
+			map<size_t, PositionPiece> hashPp;
 
 			for (int i = 0; i < 64; ++i)
 			{

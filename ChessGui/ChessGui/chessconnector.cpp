@@ -381,8 +381,17 @@ void ChessConnector::respondTakeback(bool accept)
 		_lichessClient->requestTakeback(_onlineGameId, accept);
 }
 
+void ChessConnector::rematch()
+{
+	if (_wasVsComputer)
+		startNewGameWithComputer(_config.lastLevel);
+	else
+		startNewGame();
+}
+
 void ChessConnector::startNewGame()
 {
+	_wasVsComputer = false;
 	resetMoveHistoryCache();
 	deleteAutoSave();
 	stopEngineThread();
@@ -399,6 +408,7 @@ void ChessConnector::startNewGame()
 
 void ChessConnector::startNewGameWithComputer(int level)
 {
+	_wasVsComputer = true;
 	resetMoveHistoryCache();
 	_config.lastLevel = level;
 	_config.save();

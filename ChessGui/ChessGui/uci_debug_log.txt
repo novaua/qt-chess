@@ -1,0 +1,1876 @@
+[11:01:00.0335196] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:01:00.0347804] Engine response: 'readyok' <<<
+[11:01:00.0351759] >>> Processing command: 'setoption name Skill Level value 20', expecting response: ''
+[11:01:00.0354131] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:01:00.0357011] Engine response: 'readyok' <<<
+[11:01:00.0359466] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[11:01:00.0361571] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:01:02.5368451] Engine response: 'bestmove e7e5 ponder g1f3' <<<
+[11:01:08.7842040] >>> Processing command: 'position startpos moves e2e4 e7e5 g1f3 ', expecting response: ''
+[11:01:08.7900769] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:01:11.2907166] Engine response: 'bestmove b8c6 ponder f1b5' <<<
+[11:01:13.6965727] >>> Processing command: 'position startpos moves e2e4 e7e5 g1f3 b8c6 c2c4 ', expecting response: ''
+[11:01:13.6970763] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:01:16.1980117] Engine response: 'bestmove f8c5 ponder d2d3' <<<
+[11:01:31.2286231] >>> Processing command: 'position startpos moves e2e4 e7e5 g1f3 b8c6 c2c4 f8c5 d2d3 ', expecting response: ''
+[11:01:31.2291011] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:01:33.7292740] Engine response: 'bestmove d7d6 ponder a2a3' <<<
+[11:01:40.5102452] >>> Processing command: 'position fen r1bqk1nr/ppp2ppp/2np4/2b1p3/2P1P3/3P1N2/PP3PPP/RNBQKB1R w KQkq - 0 5 moves h2h3 ', expecting response: ''
+[11:01:40.5106441] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:01:43.0112636] Engine response: 'bestmove g8e7 ponder g2g3' <<<
+[11:01:54.8767814] >>> Processing command: 'position fen r1bqk1nr/ppp2ppp/2np4/2b1p3/2P1P3/3P1N2/PP3PPP/RNBQKB1R w KQkq - 0 5 moves h2h3 g8e7 b2b3 ', expecting response: ''
+[11:01:54.8772006] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:01:57.3780985] Engine response: 'bestmove f7f5 ponder a2a3' <<<
+[11:02:00.4099477] >>> Processing command: 'position fen r1bqk1nr/ppp2ppp/2np4/2b1p3/2P1P3/3P1N2/PP3PPP/RNBQKB1R w KQkq - 0 5 moves h2h3 g8e7 b2b3 f7f5 f3e5 ', expecting response: ''
+[11:02:00.4103625] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:02:02.9108888] Engine response: 'bestmove d6e5 ponder e4f5' <<<
+[11:02:07.4879506] >>> Processing command: 'position fen r1bqk1nr/ppp2ppp/2np4/2b1p3/2P1P3/3P1N2/PP3PPP/RNBQKB1R w KQkq - 0 5 moves h2h3 g8e7 b2b3 f7f5 f3e5 d6e5 e4f5 ', expecting response: ''
+[11:02:07.4883704] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:02:09.9892518] Engine response: 'bestmove e7f5 ponder f1e2' <<<
+[11:02:16.3207844] >>> Processing command: 'position fen r1bqk2r/ppp3pp/2n5/2b1pn2/2P5/1P1P3P/P4PP1/RNBQKB1R w KQkq - 0 9 moves f2f4 ', expecting response: ''
+[11:02:16.3211978] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:02:18.8218841] Engine response: 'bestmove c5b4 ponder d1d2' <<<
+[11:02:24.9338108] >>> Processing command: 'position fen r1bqk2r/ppp3pp/2n5/2b1pn2/2P5/1P1P3P/P4PP1/RNBQKB1R w KQkq - 0 9 moves f2f4 c5b4 b1c3 ', expecting response: ''
+[11:02:24.9342457] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:02:27.4347496] Engine response: 'bestmove b4c3 ponder d1d2' <<<
+[11:02:34.6302361] >>> Processing command: 'position fen r1bqk2r/ppp3pp/2n5/2b1pn2/2P5/1P1P3P/P4PP1/RNBQKB1R w KQkq - 0 9 moves f2f4 c5b4 b1c3 b4c3 c1d2 ', expecting response: ''
+[11:02:34.6306463] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:02:34.6835123] Engine response: 'bestmove d8h4 ponder g2g3' <<<
+[11:02:56.3162599] >>> Processing command: 'position fen r1bqk2r/ppp3pp/2n5/2b1pn2/2P5/1P1P3P/P4PP1/RNBQKB1R w KQkq - 0 9 moves f2f4 c5b4 b1c3 b4c3 c1d2 d8h4 e1e2 ', expecting response: ''
+[11:02:56.3167094] >>> Processing command: 'go movetime 2500', expecting response: 'bestmove'
+[11:02:56.3197500] Engine response: 'bestmove c6d4' <<<
+[11:07:23.1031807] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:07:23.1038352] Engine response: 'readyok' <<<
+[11:07:23.1040800] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[11:07:23.1043111] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:07:23.1045794] Engine response: 'readyok' <<<
+[11:07:23.1047986] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[11:07:23.1049912] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:07:24.6052514] Engine response: 'bestmove c7c5 ponder g1f3' <<<
+[11:07:26.6907153] >>> Processing command: 'position startpos moves e2e4 c7c5 d2d3 ', expecting response: ''
+[11:07:26.6912989] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:07:28.1921670] Engine response: 'bestmove b8c6 ponder g1f3' <<<
+[11:07:50.2311291] >>> Processing command: 'position startpos moves e2e4 c7c5 d2d3 b8c6 f2f3 ', expecting response: ''
+[11:07:50.2316481] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:07:51.7319156] Engine response: 'bestmove g7g6 ponder f1e2' <<<
+[11:07:54.0541614] >>> Processing command: 'position startpos moves e2e4 c7c5 d2d3 b8c6 f2f3 g7g6 g2g4 ', expecting response: ''
+[11:07:54.0546617] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:07:55.5545864] Engine response: 'bestmove e7e5 ponder c1e3' <<<
+[11:08:00.6238537] >>> Processing command: 'position fen r1bqkbnr/pp1p1p1p/2n3p1/2p1p3/4P1P1/3P1P2/PPP4P/RNBQKBNR w KQkq e6 0 5 moves b1a3 ', expecting response: ''
+[11:08:00.6242500] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:08:02.1247687] Engine response: 'bestmove d8h4 ponder e1d2' <<<
+[11:08:11.7054442] >>> Processing command: 'position fen r1bqkbnr/pp1p1p1p/2n3p1/2p1p3/4P1P1/3P1P2/PPP4P/RNBQKBNR w KQkq e6 0 5 moves b1a3 d8h4 e1e2 ', expecting response: ''
+[11:08:11.7059282] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:08:13.2066309] Engine response: 'bestmove c6d4 ponder e2d2' <<<
+[11:08:17.3403825] >>> Processing command: 'position fen r1bqkbnr/pp1p1p1p/2n3p1/2p1p3/4P1P1/3P1P2/PPP4P/RNBQKBNR w KQkq e6 0 5 moves b1a3 d8h4 e1e2 c6d4 e2d2 ', expecting response: ''
+[11:08:17.3408624] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:08:18.8408710] Engine response: 'bestmove f8h6 ponder d2c3' <<<
+[11:08:27.6614061] >>> Processing command: 'position fen r1bqkbnr/pp1p1p1p/2n3p1/2p1p3/4P1P1/3P1P2/PPP4P/RNBQKBNR w KQkq e6 0 5 moves b1a3 d8h4 e1e2 c6d4 e2d2 f8h6 d2c3 ', expecting response: ''
+[11:08:27.6618367] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:08:29.1620988] Engine response: 'bestmove b7b5 ponder b2b3' <<<
+[11:08:32.2838404] >>> Processing command: 'position fen r1b1k1nr/p2p1p1p/6pb/1pp1p3/3nP1Pq/N1KP1P2/PPP4P/R1BQ1BNR w kq b6 0 9 moves a3b5 ', expecting response: ''
+[11:08:32.2842444] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:08:33.7848931] Engine response: 'bestmove d4b5 ponder c3b3' <<<
+[11:08:40.4565371] >>> Processing command: 'position fen r1b1k1nr/p2p1p1p/6pb/1pp1p3/3nP1Pq/N1KP1P2/PPP4P/R1BQ1BNR w kq b6 0 9 moves a3b5 d4b5 c3b3 ', expecting response: ''
+[11:08:40.4569392] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:08:41.9568068] Engine response: 'bestmove b5d4 ponder b3c3' <<<
+[11:08:46.6595461] >>> Processing command: 'position fen r1b1k1nr/p2p1p1p/6pb/1pp1p3/3nP1Pq/N1KP1P2/PPP4P/R1BQ1BNR w kq b6 0 9 moves a3b5 d4b5 c3b3 b5d4 b3c3 ', expecting response: ''
+[11:08:46.6599685] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:08:48.1599081] Engine response: 'bestmove h6c1 ponder a1c1' <<<
+[11:08:54.2224215] >>> Processing command: 'position fen r1b1k1nr/p2p1p1p/6pb/1pp1p3/3nP1Pq/N1KP1P2/PPP4P/R1BQ1BNR w kq b6 0 9 moves a3b5 d4b5 c3b3 b5d4 b3c3 h6c1 d1c1 ', expecting response: ''
+[11:08:54.2228500] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:08:55.7226377] Engine response: 'bestmove h7h5 ponder g4g5' <<<
+[11:09:02.0950325] >>> Processing command: 'position fen r1b1k1nr/p2p1p2/6p1/2p1p2p/3nP1Pq/2KP1P2/PPP4P/R1Q2BNR w kq h6 0 13 moves h2h3 ', expecting response: ''
+[11:09:02.0954788] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:09:03.5962825] Engine response: 'bestmove h5g4 ponder f3g4' <<<
+[11:09:06.2525422] >>> Processing command: 'position fen r1b1k1nr/p2p1p2/6p1/2p1p2p/3nP1Pq/2KP1P2/PPP4P/R1Q2BNR w kq h6 0 13 moves h2h3 h5g4 h3g4 ', expecting response: ''
+[11:09:06.2530223] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:09:07.7539321] Engine response: 'bestmove h4h1 ponder c1e3' <<<
+[11:09:11.7237892] >>> Processing command: 'position fen r1b1k1nr/p2p1p2/6p1/2p1p2p/3nP1Pq/2KP1P2/PPP4P/R1Q2BNR w kq h6 0 13 moves h2h3 h5g4 h3g4 h4h1 g1e2 ', expecting response: ''
+[11:09:11.7242040] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:09:13.2245825] Engine response: 'bestmove h1h7 ponder c1e3' <<<
+[11:09:21.2878583] >>> Processing command: 'position fen r1b1k1nr/p2p1p2/6p1/2p1p2p/3nP1Pq/2KP1P2/PPP4P/R1Q2BNR w kq h6 0 13 moves h2h3 h5g4 h3g4 h4h1 g1e2 h1h7 f1h3 ', expecting response: ''
+[11:09:21.2882694] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:09:22.7886493] Engine response: 'bestmove d4e2 ponder c3c4' <<<
+[11:09:50.3494053] >>> Processing command: 'position fen r1b1k1nr/p2p1p1q/6p1/2p1p3/4P1P1/2KP1P1B/PPP1n3/R1Q5 w kq - 0 17 moves c3d2 ', expecting response: ''
+[11:09:50.3498012] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:09:51.8496524] Engine response: 'bestmove e2c1 ponder a1c1' <<<
+[11:09:53.6741759] >>> Processing command: 'position fen r1b1k1nr/p2p1p1q/6p1/2p1p3/4P1P1/2KP1P1B/PPP1n3/R1Q5 w kq - 0 17 moves c3d2 e2c1 d2c1 ', expecting response: ''
+[11:09:53.6745726] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:09:55.1747303] Engine response: 'bestmove h7h6 ponder c1b1' <<<
+[11:10:15.1437729] >>> Processing command: 'position fen r1b1k1nr/p2p1p1q/6p1/2p1p3/4P1P1/2KP1P1B/PPP1n3/R1Q5 w kq - 0 17 moves c3d2 e2c1 d2c1 h7h6 c1d1 ', expecting response: ''
+[11:10:15.1441894] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:10:16.6448732] Engine response: 'bestmove h6h3 ponder d1d2' <<<
+[11:10:24.7044254] >>> Processing command: 'position fen r1b1k1nr/p2p1p1q/6p1/2p1p3/4P1P1/2KP1P1B/PPP1n3/R1Q5 w kq - 0 17 moves c3d2 e2c1 d2c1 h7h6 c1d1 h6h3 g4g5 ', expecting response: ''
+[11:10:24.7048282] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:10:26.2046039] Engine response: 'bestmove h3f3 ponder d1d2' <<<
+[11:10:32.3628802] >>> Processing command: 'position fen r1b1k1nr/p2p1p2/6p1/2p1p1P1/4P3/3P1q2/PPP5/R2K4 w kq - 0 21 moves d1d2 ', expecting response: ''
+[11:10:32.3632801] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:10:33.8638626] Engine response: 'bestmove f3f2 ponder d2c3' <<<
+[11:10:53.2789137] >>> Processing command: 'position fen r1b1k1nr/p2p1p2/6p1/2p1p1P1/4P3/3P1q2/PPP5/R2K4 w kq - 0 21 moves d1d2 f3f2 d2d1 ', expecting response: ''
+[11:10:53.2792849] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:10:53.2885956] Engine response: 'bestmove h8h2 ponder d1c1' <<<
+[11:11:01.8960500] >>> Processing command: 'position fen r1b1k1nr/p2p1p2/6p1/2p1p1P1/4P3/3P1q2/PPP5/R2K4 w kq - 0 21 moves d1d2 f3f2 d2d1 h8h2 d3d4 ', expecting response: ''
+[11:11:01.8964675] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:11:01.9026600] Engine response: 'bestmove f2f1' <<<
+[11:28:14.8008028] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:28:14.8015540] Engine response: 'readyok' <<<
+[11:28:14.8018457] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[11:28:14.8021050] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:28:14.8023637] Engine response: 'readyok' <<<
+[11:28:14.8025556] >>> Processing command: 'position startpos', expecting response: ''
+[11:28:14.8027540] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:28:16.3029019] Engine response: 'bestmove e2e4 ponder c7c5' <<<
+[11:28:45.9034218] >>> Processing command: 'position startpos moves e2e4 e7e5 ', expecting response: ''
+[11:28:45.9038402] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:28:47.4036189] Engine response: 'bestmove b1c3 ponder g8f6' <<<
+[11:29:23.9116995] >>> Processing command: 'position startpos moves e2e4 e7e5 b1c3 f7f6 ', expecting response: ''
+[11:29:23.9121953] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:29:25.4128714] Engine response: 'bestmove f2f4 ponder f8c5' <<<
+[11:29:30.5015562] >>> Processing command: 'position startpos moves e2e4 e7e5 b1c3 f7f6 f2f4 b8c6 ', expecting response: ''
+[11:29:30.5020034] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:29:32.0020742] Engine response: 'bestmove g1f3 ponder f8c5' <<<
+[11:29:35.9454290] >>> Processing command: 'position startpos moves e2e4 e7e5 b1c3 f7f6 f2f4 b8c6 g1f3 e5f4 ', expecting response: ''
+[11:29:35.9459201] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:29:37.4457667] Engine response: 'bestmove d2d4 ponder f8b4' <<<
+[11:29:39.5978955] >>> Processing command: 'position fen r1bqkbnr/pppp2pp/2n2p2/8/4Pp2/2N2N2/PPPP2PP/R1BQKB1R w KQkq - 0 5 moves d2d4 f8b4 ', expecting response: ''
+[11:29:39.5983171] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:29:41.0989122] Engine response: 'bestmove f1c4 ponder b4c3' <<<
+[11:29:51.9141412] >>> Processing command: 'position fen r1bqkbnr/pppp2pp/2n2p2/8/4Pp2/2N2N2/PPPP2PP/R1BQKB1R w KQkq - 0 5 moves d2d4 f8b4 f1c4 g8e7 ', expecting response: ''
+[11:29:51.9145442] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:29:53.4155095] Engine response: 'bestmove e1g1 ponder b4c3' <<<
+[11:30:07.9922369] >>> Processing command: 'position fen r1bqkbnr/pppp2pp/2n2p2/8/4Pp2/2N2N2/PPPP2PP/R1BQKB1R w KQkq - 0 5 moves d2d4 f8b4 f1c4 g8e7 e1g1 d7d5 ', expecting response: ''
+[11:30:07.9928574] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:30:09.4928377] Engine response: 'bestmove c3d5 ponder e7d5' <<<
+[11:30:17.2207900] >>> Processing command: 'position fen r2qk2r/ppp1n1pp/2n2p2/3N4/1bBPPpb1/5N2/PPP3PP/R1BQ1RK1 w kq - 1 9', expecting response: ''
+[11:30:17.2213007] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:30:18.7218297] Engine response: 'bestmove c2c3 ponder b4d6' <<<
+[11:30:25.9712155] >>> Processing command: 'position fen r2qk2r/ppp1n1pp/2n2p2/3N4/1bBPPpb1/5N2/PPP3PP/R1BQ1RK1 w kq - 1 9 moves c2c3 d8d6 ', expecting response: ''
+[11:30:25.9717173] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:30:27.4720672] Engine response: 'bestmove c1f4 ponder e7d5' <<<
+[11:30:30.1534250] >>> Processing command: 'position fen r2qk2r/ppp1n1pp/2n2p2/3N4/1bBPPpb1/5N2/PPP3PP/R1BQ1RK1 w kq - 1 9 moves c2c3 d8d6 c1f4 d6e6 ', expecting response: ''
+[11:30:30.1538459] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:30:31.6539051] Engine response: 'bestmove d5c7 ponder e8d7' <<<
+[11:31:14.8427516] >>> Processing command: 'position fen r2qk2r/ppp1n1pp/2n2p2/3N4/1bBPPpb1/5N2/PPP3PP/R1BQ1RK1 w kq - 1 9 moves c2c3 d8d6 c1f4 d6f4 ', expecting response: ''
+[11:31:14.8432887] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:31:16.3439011] Engine response: 'bestmove d5f4 ponder e7g6' <<<
+[11:31:23.8664736] >>> Processing command: 'position fen r2qk2r/ppp1n1pp/2n2p2/3N4/1bBPPpb1/5N2/PPP3PP/R1BQ1RK1 w kq - 1 9 moves c2c3 d8d6 c1f4 d6f4 d5f4 e8c8 ', expecting response: ''
+[11:31:23.8669243] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:31:25.3665716] Engine response: 'bestmove c4e6 ponder g4e6' <<<
+[11:31:31.1396723] >>> Processing command: 'position fen 2k4r/ppprn1pp/2n1Bp2/8/1b1PPNb1/2P2N2/PP4PP/R2Q1RK1 w - - 3 13', expecting response: ''
+[11:31:31.1400864] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:31:32.6395720] Engine response: 'bestmove c3b4 ponder g4e6' <<<
+[11:36:57.4915383] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:36:57.4920647] Engine response: 'readyok' <<<
+[11:36:57.4922625] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[11:36:57.4924433] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:36:57.4926563] Engine response: 'readyok' <<<
+[11:36:57.4928236] >>> Processing command: 'position startpos', expecting response: ''
+[11:36:57.4929945] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:36:58.9930752] Engine response: 'bestmove d2d4 ponder g8f6' <<<
+[11:37:15.7685745] >>> Processing command: 'position startpos moves d2d4 e7e6 ', expecting response: ''
+[11:37:15.7690717] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:37:17.2689707] Engine response: 'bestmove e2e4 ponder d7d5' <<<
+[11:37:19.3129635] >>> Processing command: 'position startpos moves d2d4 e7e6 e2e4 b8c6 ', expecting response: ''
+[11:37:19.3134677] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:37:20.8137570] Engine response: 'bestmove g1f3 ponder d7d5' <<<
+[11:37:53.9607814] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:37:53.9612152] Engine response: 'readyok' <<<
+[11:37:53.9614242] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[11:37:53.9616292] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:37:53.9618941] Engine response: 'readyok' <<<
+[11:37:53.9621483] >>> Processing command: 'position startpos', expecting response: ''
+[11:37:53.9623997] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:37:55.4629764] Engine response: 'bestmove e2e4 ponder c7c5' <<<
+[11:37:57.7672183] >>> Processing command: 'position startpos moves e2e4 d7d6 ', expecting response: ''
+[11:37:57.7676935] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:37:59.2677450] Engine response: 'bestmove b1c3 ponder c7c5' <<<
+[11:38:39.6273415] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:38:39.6279288] Engine response: 'readyok' <<<
+[11:38:39.6281642] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[11:38:39.6283672] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:38:39.6286520] Engine response: 'readyok' <<<
+[11:38:39.6288272] >>> Processing command: 'position startpos', expecting response: ''
+[11:38:39.6290293] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:38:41.1288942] Engine response: 'bestmove d2d4 ponder g8f6' <<<
+[12:24:34.0387755] >>> Processing command: 'isready', expecting response: 'readyok'
+[12:24:34.0393586] Engine response: 'readyok' <<<
+[12:24:34.0395506] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[12:24:34.0397299] >>> Processing command: 'isready', expecting response: 'readyok'
+[12:24:34.0400010] Engine response: 'readyok' <<<
+[12:24:34.0401662] >>> Processing command: 'position startpos', expecting response: ''
+[12:24:34.0403393] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:24:35.5405860] Engine response: 'bestmove e2e4 ponder c7c5' <<<
+[12:24:42.8172426] >>> Processing command: 'position startpos moves e2e4 e7e5 ', expecting response: ''
+[12:24:42.8177475] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:24:44.3184937] Engine response: 'bestmove f1c4 ponder g8f6' <<<
+[12:24:46.2165062] >>> Processing command: 'position startpos moves e2e4 e7e5 f1c4 b8c6 ', expecting response: ''
+[12:24:46.2170550] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:24:47.7171746] Engine response: 'bestmove d2d3 ponder g8f6' <<<
+[12:24:50.0269847] >>> Processing command: 'position startpos moves e2e4 e7e5 f1c4 b8c6 d2d3 f7f6 ', expecting response: ''
+[12:24:50.0275157] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:24:51.5284439] Engine response: 'bestmove b1c3 ponder f8c5' <<<
+[12:24:54.1795133] >>> Processing command: 'position startpos moves e2e4 e7e5 f1c4 b8c6 d2d3 f7f6 b1c3 b7b5 ', expecting response: ''
+[12:24:54.1799994] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:24:55.6800416] Engine response: 'bestmove c4b5 ponder f8b4' <<<
+[12:24:57.5575336] >>> Processing command: 'position fen r1bqkbnr/p1pp2pp/2n2p2/1p2p3/2B1P3/2NP4/PPP2PPP/R1BQK1NR w KQkq b6 0 5 moves c4b5 c8a6 ', expecting response: ''
+[12:24:57.5580146] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:24:59.0679336] Engine response: 'bestmove b5a6 ponder f8b4' <<<
+[12:25:58.4402099] >>> Processing command: 'isready', expecting response: 'readyok'
+[12:25:58.4408051] Engine response: 'readyok' <<<
+[12:25:58.4410865] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[12:25:58.4413198] >>> Processing command: 'isready', expecting response: 'readyok'
+[12:25:58.4415556] Engine response: 'readyok' <<<
+[12:25:58.4423177] >>> Processing command: 'position fen r1bqkbnr/p1pp2pp/2n2p2/1p2p3/2B1P3/2NP4/PPP2PPP/R1BQK1NR w KQkq b6 0 5 moves c4b5 c8a6 b5a6 c6d4 ', expecting response: ''
+[12:25:58.4425450] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:25:59.9431841] Engine response: 'bestmove a6c4 ponder f8b4' <<<
+[12:26:02.0337943] >>> Processing command: 'position fen r1bqkbnr/p1pp2pp/2n2p2/1p2p3/2B1P3/2NP4/PPP2PPP/R1BQK1NR w KQkq b6 0 5 moves c4b5 c8a6 b5a6 c6d4 a6c4 a7a6 ', expecting response: ''
+[12:26:02.0342344] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:26:03.5346398] Engine response: 'bestmove g1f3 ponder f8c5' <<<
+[12:26:06.2503969] >>> Processing command: 'position fen r2qkbnr/2pp3p/p4p2/4p1p1/2BnP3/2NP1N2/PPP2PPP/R1BQK2R w KQkq g6 0 9', expecting response: ''
+[12:26:06.2508107] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:26:07.7507131] Engine response: 'bestmove f3e5 ponder d8b8' <<<
+[12:26:09.8357646] >>> Processing command: 'position fen r2qkbnr/2pp3p/p4p2/4p1p1/2BnP3/2NP1N2/PPP2PPP/R1BQK2R w KQkq g6 0 9 moves f3e5 d7d6 ', expecting response: ''
+[12:26:09.8361529] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:26:11.3368122] Engine response: 'bestmove c4f7 ponder e8e7' <<<
+[12:26:56.7733953] >>> Processing command: 'position fen r2qkbnr/2pp3p/p4p2/4p1p1/2BnP3/2NP1N2/PPP2PPP/R1BQK2R w KQkq g6 0 9 moves f3e5 d7d6 c4f7 e8e7 ', expecting response: ''
+[12:26:56.7737993] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:26:58.2739368] Engine response: 'bestmove c3d5' <<<
+[12:27:27.4008575] >>> Processing command: 'isready', expecting response: 'readyok'
+[12:27:27.4013901] Engine response: 'readyok' <<<
+[12:27:27.4016161] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[12:27:27.4018061] >>> Processing command: 'isready', expecting response: 'readyok'
+[12:27:27.4020370] Engine response: 'readyok' <<<
+[12:27:27.4023137] >>> Processing command: 'position startpos moves d2d4 ', expecting response: ''
+[12:27:27.4025100] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:27:28.9028624] Engine response: 'bestmove g8f6 ponder c2c4' <<<
+[12:27:36.1170564] >>> Processing command: 'position startpos moves d2d4 g8f6 b1a3 ', expecting response: ''
+[12:27:36.1175741] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:27:37.6182881] Engine response: 'bestmove c7c5 ponder d4d5' <<<
+[12:27:39.7442074] >>> Processing command: 'position startpos moves d2d4 g8f6 b1a3 c7c5 f2f3 ', expecting response: ''
+[12:27:39.7446045] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:27:41.2447692] Engine response: 'bestmove c5d4 ponder d1d4' <<<
+[12:27:42.7522934] >>> Processing command: 'position startpos moves d2d4 g8f6 b1a3 c7c5 f2f3 c5d4 g2g4 ', expecting response: ''
+[12:27:42.7528051] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:27:44.2529698] Engine response: 'bestmove b8c6 ponder e2e3' <<<
+[12:27:46.9220897] >>> Processing command: 'position fen r1bqkb1r/pp1ppppp/2n2n2/8/3p2P1/N4P2/PPP1P2P/R1BQKBNR w KQkq - 1 5 moves h2h3 ', expecting response: ''
+[12:27:46.9224952] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:27:48.4229528] Engine response: 'bestmove d7d5 ponder e2e3' <<<
+[12:27:50.9489407] >>> Processing command: 'position fen r1bqkb1r/pp1ppppp/2n2n2/8/3p2P1/N4P2/PPP1P2P/R1BQKBNR w KQkq - 1 5 moves h2h3 d7d5 c2c3 ', expecting response: ''
+[12:27:50.9494261] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:27:52.4502249] Engine response: 'bestmove d4c3 ponder b2c3' <<<
+[12:27:54.3664620] >>> Processing command: 'position fen r1bqkb1r/pp1ppppp/2n2n2/8/3p2P1/N4P2/PPP1P2P/R1BQKBNR w KQkq - 1 5 moves h2h3 d7d5 c2c3 d4c3 b2c3 ', expecting response: ''
+[12:27:54.3669533] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:27:55.8670069] Engine response: 'bestmove e7e5 ponder e2e3' <<<
+[12:27:59.3988324] >>> Processing command: 'position fen r1bqkb1r/pp1ppppp/2n2n2/8/3p2P1/N4P2/PPP1P2P/R1BQKBNR w KQkq - 1 5 moves h2h3 d7d5 c2c3 d4c3 b2c3 e7e5 f3f4 ', expecting response: ''
+[12:27:59.3992322] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:28:00.8997983] Engine response: 'bestmove d8a5 ponder a3b1' <<<
+[12:28:05.7921743] >>> Processing command: 'position fen r1b1kb1r/pp3ppp/2n2n2/q2pp3/5PP1/N1P4P/P3P3/R1BQKBNR w KQkq - 1 9 moves a3c4 ', expecting response: ''
+[12:28:05.7926671] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:28:07.2929102] Engine response: 'bestmove a5c3 ponder d1d2' <<<
+[12:28:16.3313145] >>> Processing command: 'position fen r1b1kb1r/pp3ppp/2n2n2/q2pp3/5PP1/N1P4P/P3P3/R1BQKBNR w KQkq - 1 9 moves a3c4 a5c3 c1d2 ', expecting response: ''
+[12:28:16.3318597] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:28:17.8321823] Engine response: 'bestmove c3g3' <<<
+[12:36:02.4021834] >>> Processing command: 'isready', expecting response: 'readyok'
+[12:36:02.4033416] Engine response: 'readyok' <<<
+[12:36:02.4035639] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[12:36:02.4037467] >>> Processing command: 'isready', expecting response: 'readyok'
+[12:36:02.4040091] Engine response: 'readyok' <<<
+[12:36:02.4042631] >>> Processing command: 'position startpos moves d2d4 ', expecting response: ''
+[12:36:02.4045069] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[12:36:03.9052086] Engine response: 'bestmove c7c6 ponder e2e4' <<<
+[20:27:49.7464242] >>> Processing command: 'isready', expecting response: 'readyok'
+[20:27:49.7589358] Engine response: 'readyok' <<<
+[20:27:49.7591770] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[20:27:49.7593699] >>> Processing command: 'isready', expecting response: 'readyok'
+[20:27:49.7596246] Engine response: 'readyok' <<<
+[20:27:49.7598238] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[20:27:49.7600108] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:27:51.2602249] Engine response: 'bestmove c7c5 ponder g1f3' <<<
+[20:27:54.2529351] >>> Processing command: 'position startpos moves e2e4 c7c5 g1f3 ', expecting response: ''
+[20:27:54.2534458] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:27:55.7539312] Engine response: 'bestmove e7e6 ponder d2d4' <<<
+[20:27:59.9121195] >>> Processing command: 'position startpos moves e2e4 c7c5 g1f3 e7e6 b1c3 ', expecting response: ''
+[20:27:59.9126084] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:28:01.4128386] Engine response: 'bestmove a7a6 ponder d2d4' <<<
+[20:28:11.4234594] >>> Processing command: 'position startpos moves e2e4 c7c5 g1f3 e7e6 b1c3 a7a6 a2a4 ', expecting response: ''
+[20:28:11.4239509] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:28:12.9236210] Engine response: 'bestmove d7d5 ponder e4d5' <<<
+[20:28:58.7032700] >>> Processing command: 'isready', expecting response: 'readyok'
+[20:28:58.7038748] Engine response: 'readyok' <<<
+[20:28:58.7041027] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[20:28:58.7042971] >>> Processing command: 'isready', expecting response: 'readyok'
+[20:28:58.7045562] Engine response: 'readyok' <<<
+[20:28:58.7047633] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[20:28:58.7049578] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:29:00.2051086] Engine response: 'bestmove e7e6 ponder d2d4' <<<
+[20:29:01.5168490] >>> Processing command: 'position startpos moves e2e4 e7e6 b2b4 ', expecting response: ''
+[20:29:01.5173379] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:29:03.0180478] Engine response: 'bestmove d8h4 ponder f1d3' <<<
+[20:29:04.5103188] >>> Processing command: 'position startpos moves e2e4 e7e6 b2b4 d8h4 d2d3 ', expecting response: ''
+[20:29:04.5108098] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:29:06.0108005] Engine response: 'bestmove f8b4 ponder c2c3' <<<
+[20:40:28.3789791] >>> Processing command: 'isready', expecting response: 'readyok'
+[20:40:28.3808011] Engine response: 'readyok' <<<
+[20:40:28.3810866] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[20:40:28.3813549] >>> Processing command: 'isready', expecting response: 'readyok'
+[20:40:28.3816663] Engine response: 'readyok' <<<
+[20:40:28.3819059] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[20:40:28.3820983] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:40:29.8819655] Engine response: 'bestmove c7c5 ponder g1f3' <<<
+[20:40:31.7607850] >>> Processing command: 'position startpos moves e2e4 c7c5 g1f3 ', expecting response: ''
+[20:40:31.7612903] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:40:33.2618757] Engine response: 'bestmove d7d6 ponder d2d4' <<<
+[20:40:35.4112290] >>> Processing command: 'position startpos moves e2e4 c7c5 g1f3 d7d6 d2d3 ', expecting response: ''
+[20:40:35.4117135] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:40:36.9119191] Engine response: 'bestmove b8c6 ponder f1e2' <<<
+[20:40:38.9010501] >>> Processing command: 'position startpos moves e2e4 c7c5 g1f3 d7d6 d2d3 b8c6 b2b4 ', expecting response: ''
+[20:40:38.9014682] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:40:40.4024987] Engine response: 'bestmove c5b4 ponder a2a3' <<<
+[20:40:42.2867248] >>> Processing command: 'position fen r1bqkbnr/pp2pppp/2np4/8/1p2P3/3P1N2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves c2c3 ', expecting response: ''
+[20:40:42.2871287] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:40:43.7881164] Engine response: 'bestmove g7g6 ponder c3b4' <<<
+[20:40:50.8410697] >>> Processing command: 'position fen r1bqkbnr/pp2pppp/2np4/8/1p2P3/3P1N2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves c2c3 g7g6 f3d4 ', expecting response: ''
+[20:40:50.8415569] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:40:52.3421822] Engine response: 'bestmove b4c3 ponder d4c6' <<<
+[20:40:54.7416390] >>> Processing command: 'position fen r1bqkbnr/pp2pppp/2np4/8/1p2P3/3P1N2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves c2c3 g7g6 f3d4 b4c3 d4c6 ', expecting response: ''
+[20:40:54.7421524] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:40:56.2428671] Engine response: 'bestmove b7c6 ponder d1c2' <<<
+[20:40:59.4133153] >>> Processing command: 'position fen r1bqkbnr/pp2pppp/2np4/8/1p2P3/3P1N2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves c2c3 g7g6 f3d4 b4c3 d4c6 b7c6 b1c3 ', expecting response: ''
+[20:40:59.4137590] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:41:00.9145662] Engine response: 'bestmove f8g7 ponder d1c2' <<<
+[20:41:05.1417358] >>> Processing command: 'position fen r1bqk1nr/p3ppbp/2pp2p1/8/4P3/2NP4/P4PPP/R1BQKB1R w KQkq - 1 9 moves g2g4 ', expecting response: ''
+[20:41:05.1421530] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:41:06.6428919] Engine response: 'bestmove g7c3 ponder c1d2' <<<
+[20:41:09.5133622] >>> Processing command: 'position fen r1bqk1nr/p3ppbp/2pp2p1/8/4P3/2NP4/P4PPP/R1BQKB1R w KQkq - 1 9 moves g2g4 g7c3 d1d2 ', expecting response: ''
+[20:41:09.5137784] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:41:11.0135317] Engine response: 'bestmove c3a5 ponder d2a5' <<<
+[20:41:13.4963252] >>> Processing command: 'position fen r1bqk1nr/p3ppbp/2pp2p1/8/4P3/2NP4/P4PPP/R1BQKB1R w KQkq - 1 9 moves g2g4 g7c3 d1d2 c3a5 a2a3 ', expecting response: ''
+[20:41:13.4967274] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:41:14.9965343] Engine response: 'bestmove a5d2 ponder c1d2' <<<
+[20:41:20.0207251] >>> Processing command: 'position fen r1bqk1nr/p3ppbp/2pp2p1/8/4P3/2NP4/P4PPP/R1BQKB1R w KQkq - 1 9 moves g2g4 g7c3 d1d2 c3a5 a2a3 a5d2 c1d2 ', expecting response: ''
+[20:41:20.0211260] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:41:21.5217115] Engine response: 'bestmove g8f6 ponder f1e2' <<<
+[20:42:01.8925314] >>> Processing command: 'position fen r1bqk2r/p3pp1p/2pp1np1/8/4P1P1/P2P4/3B1P1P/R3KB1R w KQkq - 1 13 moves h2h3 ', expecting response: ''
+[20:42:01.8929357] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:42:03.3927358] Engine response: 'bestmove c8a6 ponder g4g5' <<<
+[20:42:16.6400177] >>> Processing command: 'position fen r1bqk2r/p3pp1p/2pp1np1/8/4P1P1/P2P4/3B1P1P/R3KB1R w KQkq - 1 13 moves h2h3 c8a6 a3a4 ', expecting response: ''
+[20:42:16.6404849] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:42:18.1406933] Engine response: 'bestmove a8b8 ponder d2e3' <<<
+[20:42:20.5271207] >>> Processing command: 'position fen r1bqk2r/p3pp1p/2pp1np1/8/4P1P1/P2P4/3B1P1P/R3KB1R w KQkq - 1 13 moves h2h3 c8a6 a3a4 a8b8 d3d4 ', expecting response: ''
+[20:42:20.5275321] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:42:22.0277970] Engine response: 'bestmove f6e4 ponder f1a6' <<<
+[20:42:23.9434474] >>> Processing command: 'position fen r1bqk2r/p3pp1p/2pp1np1/8/4P1P1/P2P4/3B1P1P/R3KB1R w KQkq - 1 13 moves h2h3 c8a6 a3a4 a8b8 d3d4 f6e4 f2f3 ', expecting response: ''
+[20:42:23.9438420] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:42:25.4437173] Engine response: 'bestmove d8b6 ponder f3e4' <<<
+[20:42:27.7409777] >>> Processing command: 'position fen 1r2k2r/p3pp1p/bqpp2p1/8/P2Pn1P1/5P1P/3B4/R3KB1R w KQk - 1 17 moves d2c3 ', expecting response: ''
+[20:42:27.7413941] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:42:29.2417613] Engine response: 'bestmove b6b1 ponder a1b1' <<<
+[20:42:45.9115179] >>> Processing command: 'position fen 1r2k2r/p3pp1p/bqpp2p1/8/P2Pn1P1/5P1P/3B4/R3KB1R w KQk - 1 17 moves d2c3 b6b1 a1b1 ', expecting response: ''
+[20:42:45.9119274] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:42:47.4124279] Engine response: 'bestmove b8b1' <<<
+[20:44:16.8326651] >>> Processing command: 'isready', expecting response: 'readyok'
+[20:44:16.8332243] Engine response: 'readyok' <<<
+[20:44:16.8334789] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[20:44:16.8336922] >>> Processing command: 'isready', expecting response: 'readyok'
+[20:44:16.8340056] Engine response: 'readyok' <<<
+[20:44:16.8342157] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[20:44:16.8344000] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:44:18.3347492] Engine response: 'bestmove c7c5 ponder g1f3' <<<
+[20:45:57.4270998] >>> Processing command: 'isready', expecting response: 'readyok'
+[20:45:57.4277950] Engine response: 'readyok' <<<
+[20:45:57.4279860] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[20:45:57.4281752] >>> Processing command: 'isready', expecting response: 'readyok'
+[20:45:57.4284986] Engine response: 'readyok' <<<
+[20:45:57.4287650] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[20:45:57.4289600] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:45:58.9293197] Engine response: 'bestmove e7e6 ponder d2d4' <<<
+[20:46:03.9344925] >>> Processing command: 'position startpos moves e2e4 e7e6 g2g3 ', expecting response: ''
+[20:46:03.9349525] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:46:05.4349277] Engine response: 'bestmove c7c5 ponder f1g2' <<<
+[20:46:08.1857628] >>> Processing command: 'position startpos moves e2e4 e7e6 g2g3 c7c5 b1c3 ', expecting response: ''
+[20:46:08.1862032] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:46:09.6868371] Engine response: 'bestmove d7d5 ponder e4d5' <<<
+[20:46:12.0889943] >>> Processing command: 'position startpos moves e2e4 e7e6 g2g3 c7c5 b1c3 d7d5 f2f4 ', expecting response: ''
+[20:46:12.0893579] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:46:13.5899424] Engine response: 'bestmove f8e7 ponder d2d3' <<<
+[20:46:21.0420864] >>> Processing command: 'position fen rnbqk1nr/pp2bppp/4p3/2pp4/4PP2/2N3P1/PPPP3P/R1BQKBNR w KQkq - 1 5 moves b2b3 ', expecting response: ''
+[20:46:21.0425711] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:46:22.5432145] Engine response: 'bestmove b8c6 ponder d2d3' <<<
+[20:46:25.2769473] >>> Processing command: 'position fen rnbqk1nr/pp2bppp/4p3/2pp4/4PP2/2N3P1/PPPP3P/R1BQKBNR w KQkq - 1 5 moves b2b3 b8c6 g1f3 ', expecting response: ''
+[20:46:25.2774079] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:46:26.7777463] Engine response: 'bestmove g8f6 ponder d2d3' <<<
+[20:46:29.9995753] >>> Processing command: 'position fen rnbqk1nr/pp2bppp/4p3/2pp4/4PP2/2N3P1/PPPP3P/R1BQKBNR w KQkq - 1 5 moves b2b3 b8c6 g1f3 g8f6 e4d5 ', expecting response: ''
+[20:46:30.0000329] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:46:31.5000396] Engine response: 'bestmove c6d4 ponder d5d6' <<<
+[20:46:38.1907243] >>> Processing command: 'position fen rnbqk1nr/pp2bppp/4p3/2pp4/4PP2/2N3P1/PPPP3P/R1BQKBNR w KQkq - 1 5 moves b2b3 b8c6 g1f3 g8f6 e4d5 c6d4 f1b5 ', expecting response: ''
+[20:46:38.1911176] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:46:39.6922109] Engine response: 'bestmove d4b5 ponder c3b5' <<<
+[20:46:50.6411815] >>> Processing command: 'position fen r1bqk2r/pp2bppp/4pn2/1npP4/5P2/1PN2NP1/P1PP3P/R1BQK2R w KQkq - 0 9 moves a2a4 ', expecting response: ''
+[20:46:50.6416006] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:46:52.1416136] Engine response: 'bestmove b5c3 ponder d2c3' <<<
+[20:47:00.5951601] >>> Processing command: 'position fen r1bqk2r/pp2bppp/4pn2/1npP4/5P2/1PN2NP1/P1PP3P/R1BQK2R w KQkq - 0 9 moves a2a4 b5c3 d1e2 ', expecting response: ''
+[20:47:00.5955174] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:47:02.0958614] Engine response: 'bestmove c3e2 ponder e1e2' <<<
+[20:47:46.6817230] >>> Processing command: 'position fen r1bqk2r/pp2bppp/4pn2/1npP4/5P2/1PN2NP1/P1PP3P/R1BQK2R w KQkq - 0 9 moves a2a4 b5c3 d1e2 c3e2 c2c3 ', expecting response: ''
+[20:47:46.6821321] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:47:48.1826766] Engine response: 'bestmove e2c1 ponder a1c1' <<<
+[20:47:52.8618737] >>> Processing command: 'position fen r1bqk2r/pp2bppp/4pn2/1npP4/5P2/1PN2NP1/P1PP3P/R1BQK2R w KQkq - 0 9 moves a2a4 b5c3 d1e2 c3e2 c2c3 e2c1 a1c1 ', expecting response: ''
+[20:47:52.8622970] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:47:54.3629392] Engine response: 'bestmove e8g8 ponder e1g1' <<<
+[20:47:57.9674966] >>> Processing command: 'position fen r1bq1rk1/pp2bppp/4pn2/2pP4/P4P2/1PP2NP1/3P3P/2R1K2R w K - 1 13 moves d5e6 ', expecting response: ''
+[20:47:57.9679332] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:47:59.4675350] Engine response: 'bestmove c5c4 ponder e6f7' <<<
+[20:48:10.5555676] >>> Processing command: 'position fen r1bq1rk1/pp2bppp/4pn2/2pP4/P4P2/1PP2NP1/3P3P/2R1K2R w K - 1 13 moves d5e6 c5c4 b3c4 ', expecting response: ''
+[20:48:10.5559943] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:48:12.0555323] Engine response: 'bestmove d8b6 ponder e6f7' <<<
+[20:48:30.9634590] >>> Processing command: 'position fen r1bq1rk1/pp2bppp/4pn2/2pP4/P4P2/1PP2NP1/3P3P/2R1K2R w K - 1 13 moves d5e6 c5c4 b3c4 d8b6 c4c5 ', expecting response: ''
+[20:48:30.9638943] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:48:32.4637709] Engine response: 'bestmove b6e6 ponder f3e5' <<<
+[20:48:39.8100167] >>> Processing command: 'position fen r1bq1rk1/pp2bppp/4pn2/2pP4/P4P2/1PP2NP1/3P3P/2R1K2R w K - 1 13 moves d5e6 c5c4 b3c4 d8b6 c4c5 b6e6 f3e5 ', expecting response: ''
+[20:48:39.8104471] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:48:41.3108109] Engine response: 'bestmove e6d5 ponder h1f1' <<<
+[20:48:49.6673752] >>> Processing command: 'position fen r1b2rk1/pp2bppp/5n2/2PqN3/P4P2/2P3P1/3P3P/2R1K2R w K - 2 17 moves d2d4 ', expecting response: ''
+[20:48:49.6677627] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:48:51.1678011] Engine response: 'bestmove d5h1 ponder e1f2' <<<
+[20:48:56.1649722] >>> Processing command: 'position fen r1b2rk1/pp2bppp/5n2/2PqN3/P4P2/2P3P1/3P3P/2R1K2R w K - 2 17 moves d2d4 d5h1 e1e2 ', expecting response: ''
+[20:48:56.1653833] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:48:57.6656772] Engine response: 'bestmove h1g2 ponder e2e1' <<<
+[20:49:06.2224364] >>> Processing command: 'position fen r1b2rk1/pp2bppp/5n2/2PqN3/P4P2/2P3P1/3P3P/2R1K2R w K - 2 17 moves d2d4 d5h1 e1e2 h1g2 e2d3 ', expecting response: ''
+[20:49:06.2228468] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:49:07.7227311] Engine response: 'bestmove c8f5 ponder d3c4' <<<
+[20:49:16.7522319] >>> Processing command: 'position fen r1b2rk1/pp2bppp/5n2/2PqN3/P4P2/2P3P1/3P3P/2R1K2R w K - 2 17 moves d2d4 d5h1 e1e2 h1g2 e2d3 c8f5 d3c4 ', expecting response: ''
+[20:49:16.7526572] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:49:18.2526522] Engine response: 'bestmove f5e6 ponder c4d3' <<<
+[20:49:27.2537966] >>> Processing command: 'position fen r4rk1/pp2bppp/4bn2/2P1N3/P1KP1P2/2P3P1/6qP/2R5 w - - 6 21 moves c4b4 ', expecting response: ''
+[20:49:27.2542085] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:49:28.7546348] Engine response: 'bestmove g2a2 ponder e5c6' <<<
+[20:49:44.2103438] >>> Processing command: 'position fen r4rk1/pp2bppp/4bn2/2P1N3/P1KP1P2/2P3P1/6qP/2R5 w - - 6 21 moves c4b4 g2a2 e5d3 ', expecting response: ''
+[20:49:44.2107405] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:49:44.2891817] Engine response: 'bestmove a7a5 ponder b4b5' <<<
+[20:49:52.2634822] >>> Processing command: 'position fen r4rk1/pp2bppp/4bn2/2P1N3/P1KP1P2/2P3P1/6qP/2R5 w - - 6 21 moves c4b4 g2a2 e5d3 a7a5 b4b5 ', expecting response: ''
+[20:49:52.2639518] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:49:52.3211641] Engine response: 'bestmove f6d7 ponder d4d5' <<<
+[20:50:00.7857052] >>> Processing command: 'position fen r4rk1/pp2bppp/4bn2/2P1N3/P1KP1P2/2P3P1/6qP/2R5 w - - 6 21 moves c4b4 g2a2 e5d3 a7a5 b4b5 f6d7 f4f5 ', expecting response: ''
+[20:50:00.7861282] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:50:00.7966620] Engine response: 'bestmove a2b3 ponder d3b4' <<<
+[20:50:11.1178567] >>> Processing command: 'position fen r4rk1/1p1nbppp/4b3/pKP2P2/P2P4/1qPN2P1/7P/2R5 w - - 1 25 moves d3b4 ', expecting response: ''
+[20:50:11.1182775] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:50:11.1271782] Engine response: 'bestmove e6f5 ponder c1d1' <<<
+[20:50:39.1905420] >>> Processing command: 'position fen r4rk1/1p1nbppp/4b3/pKP2P2/P2P4/1qPN2P1/7P/2R5 w - - 1 25 moves d3b4 e6f5 h2h4 ', expecting response: ''
+[20:50:39.1909561] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:50:39.2742983] Engine response: 'bestmove f5e4 ponder d4d5' <<<
+[20:50:54.4473065] >>> Processing command: 'position fen r4rk1/1p1nbppp/4b3/pKP2P2/P2P4/1qPN2P1/7P/2R5 w - - 1 25 moves d3b4 e6f5 h2h4 f5e4 c5c6 ', expecting response: ''
+[20:50:54.4477351] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[20:50:54.4569575] Engine response: 'bestmove b7c6' <<<
+[21:39:17.9016744] >>> Processing command: 'isready', expecting response: 'readyok'
+[21:39:17.9075232] Engine response: 'readyok' <<<
+[21:39:17.9079024] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[21:39:17.9082048] >>> Processing command: 'isready', expecting response: 'readyok'
+[21:39:17.9086392] Engine response: 'readyok' <<<
+[21:39:17.9088497] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[21:39:17.9090364] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:39:19.4087546] Engine response: 'bestmove a7a6 ponder d2d4' <<<
+[21:39:22.1980774] >>> Processing command: 'position startpos moves e2e4 a7a6 b1c3 ', expecting response: ''
+[21:39:22.1984709] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:39:23.6987133] Engine response: 'bestmove c7c5 ponder g1f3' <<<
+[21:39:27.1763630] >>> Processing command: 'position startpos moves e2e4 a7a6 b1c3 c7c5 b2b3 ', expecting response: ''
+[21:39:27.1768697] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:39:28.6770142] Engine response: 'bestmove e7e6 ponder g2g3' <<<
+[21:39:30.9041900] >>> Processing command: 'position startpos moves e2e4 a7a6 b1c3 c7c5 b2b3 e7e6 g2g3 ', expecting response: ''
+[21:39:30.9046680] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:39:32.4051421] Engine response: 'bestmove d7d5 ponder e4d5' <<<
+[21:39:34.9508617] >>> Processing command: 'position fen rnbqkbnr/1p3ppp/p3p3/2pp4/4P3/1PN3P1/P1PP1P1P/R1BQKBNR w KQkq d6 0 5 moves g1f3 ', expecting response: ''
+[21:39:34.9513491] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:39:36.4515815] Engine response: 'bestmove f8e7 ponder e4d5' <<<
+[21:39:38.3814805] >>> Processing command: 'position fen rnbqkbnr/1p3ppp/p3p3/2pp4/4P3/1PN3P1/P1PP1P1P/R1BQKBNR w KQkq d6 0 5 moves g1f3 f8e7 d2d3 ', expecting response: ''
+[21:39:38.3819656] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:39:39.8820575] Engine response: 'bestmove d5d4 ponder c3b1' <<<
+[21:40:48.2134122] >>> Processing command: 'position fen rnbqkbnr/1p3ppp/p3p3/2pp4/4P3/1PN3P1/P1PP1P1P/R1BQKBNR w KQkq d6 0 5 moves g1f3 f8e7 d2d3 d5d4 b3b4 ', expecting response: ''
+[21:40:48.2139039] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:40:49.7142761] Engine response: 'bestmove d4c3 ponder b4c5' <<<
+[21:41:38.7194238] >>> Processing command: 'position fen rnbqkbnr/1p3ppp/p3p3/2pp4/4P3/1PN3P1/P1PP1P1P/R1BQKBNR w KQkq d6 0 5 moves g1f3 f8e7 d2d3 d5d4 b3b4 d4c3 g3g4 ', expecting response: ''
+[21:41:38.7198581] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:41:40.2196766] Engine response: 'bestmove b8c6 ponder g4g5' <<<
+[21:41:43.0386083] >>> Processing command: 'position fen r1bqk1nr/1p2bppp/p1n1p3/2p5/1P2P1P1/2pP1N2/P1P2P1P/R1BQKB1R w KQkq - 1 9 moves d3d4 ', expecting response: ''
+[21:41:43.0390614] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:41:44.5398346] Engine response: 'bestmove h7h5 ponder g4g5' <<<
+[23:00:08.7431045] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:00:08.7439121] Engine response: 'readyok' <<<
+[23:00:08.7444643] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[23:00:08.7448298] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:00:08.7451427] Engine response: 'readyok' <<<
+[23:00:08.7453505] >>> Processing command: 'position startpos moves d2d4 ', expecting response: ''
+[23:00:08.7455561] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:00:10.2459123] Engine response: 'bestmove g8f6 ponder c2c4' <<<
+[23:00:12.3569411] >>> Processing command: 'position startpos moves d2d4 g8f6 g2g4 ', expecting response: ''
+[23:00:12.3574491] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:00:13.8580149] Engine response: 'bestmove c7c6 ponder g4g5' <<<
+[23:00:31.9008282] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:00:31.9013555] Engine response: 'readyok' <<<
+[23:00:31.9015975] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[23:00:31.9018167] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:00:31.9021146] Engine response: 'readyok' <<<
+[23:00:31.9023716] >>> Processing command: 'position startpos moves d2d4 g8f6 g2g4 c7c6 b2b4 ', expecting response: ''
+[23:00:31.9026619] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:00:33.4031112] Engine response: 'bestmove g7g6 ponder g4g5' <<<
+[23:00:35.4263432] >>> Processing command: 'position startpos moves d2d4 g8f6 g2g4 c7c6 b2b4 g7g6 h2h3 ', expecting response: ''
+[23:00:35.4268360] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:00:36.9266622] Engine response: 'bestmove h7h5 ponder g4h5' <<<
+[23:00:39.7798769] >>> Processing command: 'position fen rnbqkb1r/pp1ppp2/2p2np1/7p/1P1P2P1/7P/P1P1PP2/RNBQKBNR w KQkq h6 0 5 moves g1f3 ', expecting response: ''
+[23:00:39.7803787] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:00:41.2806946] Engine response: 'bestmove h5g4 ponder f3g5' <<<
+[23:00:43.1913405] >>> Processing command: 'position fen rnbqkb1r/pp1ppp2/2p2np1/7p/1P1P2P1/7P/P1P1PP2/RNBQKBNR w KQkq h6 0 5 moves g1f3 h5g4 h3g4 ', expecting response: ''
+[23:00:43.1919788] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:00:44.6920270] Engine response: 'bestmove h8h1 ponder g4g5' <<<
+[23:01:05.0548310] >>> Processing command: 'position fen rnbqkb1r/pp1ppp2/2p2np1/7p/1P1P2P1/7P/P1P1PP2/RNBQKBNR w KQkq h6 0 5 moves g1f3 h5g4 h3g4 h8h1 b1c3 ', expecting response: ''
+[23:01:05.0553420] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:01:06.5559716] Engine response: 'bestmove d7d5 ponder c1f4' <<<
+[23:01:09.1373918] >>> Processing command: 'position fen rnbqkb1r/pp1ppp2/2p2np1/7p/1P1P2P1/7P/P1P1PP2/RNBQKBNR w KQkq h6 0 5 moves g1f3 h5g4 h3g4 h8h1 b1c3 d7d5 f3e5 ', expecting response: ''
+[23:01:09.1378987] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:01:10.6379047] Engine response: 'bestmove b8d7 ponder d1d3' <<<
+[23:01:15.8136887] >>> Processing command: 'position fen r1bqkb2/pp1npp2/2p2np1/3pN3/1P1P2P1/2N5/P1P1PP2/R1BQKB1r w KQq - 2 9 moves e5f7 ', expecting response: ''
+[23:01:15.8141382] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:01:17.3146239] Engine response: 'bestmove h1f1 ponder e1f1' <<<
+[23:01:21.3198111] >>> Processing command: 'position fen r1bqkb2/pp1npp2/2p2np1/3pN3/1P1P2P1/2N5/P1P1PP2/R1BQKB1r w KQq - 2 9 moves e5f7 h1f1 e1f1 ', expecting response: ''
+[23:01:21.3202194] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:01:22.8209876] Engine response: 'bestmove e8f7 ponder f2f3' <<<
+[23:01:31.0617420] >>> Processing command: 'position fen r1bqkb2/pp1npp2/2p2np1/3pN3/1P1P2P1/2N5/P1P1PP2/R1BQKB1r w KQq - 2 9 moves e5f7 h1f1 e1f1 e8f7 c1g5 ', expecting response: ''
+[23:01:31.0622667] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:01:32.5630028] Engine response: 'bestmove f8h6 ponder g5h6' <<<
+[23:01:37.0196150] >>> Processing command: 'position fen r1bqkb2/pp1npp2/2p2np1/3pN3/1P1P2P1/2N5/P1P1PP2/R1BQKB1r w KQq - 2 9 moves e5f7 h1f1 e1f1 e8f7 c1g5 f8h6 g5h6 ', expecting response: ''
+[23:01:37.0200327] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:01:38.5196714] Engine response: 'bestmove f6g4 ponder h6f4' <<<
+[23:01:42.7715583] >>> Processing command: 'position fen r1bq4/pp1npk2/2p3pB/3p4/1P1P2n1/2N5/P1P1PP2/R2Q1K2 w - - 0 13 moves h6f4 ', expecting response: ''
+[23:01:42.7719782] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:01:44.2721287] Engine response: 'bestmove e7e5 ponder f4g3' <<<
+[23:01:55.8108018] >>> Processing command: 'position fen r1bq4/pp1npk2/2p3pB/3p4/1P1P2n1/2N5/P1P1PP2/R2Q1K2 w - - 0 13 moves h6f4 e7e5 f4g5 ', expecting response: ''
+[23:01:55.8112161] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:01:57.3124829] Engine response: 'bestmove d8g5 ponder e2e4' <<<
+[23:02:00.4677298] >>> Processing command: 'position fen r1bq4/pp1npk2/2p3pB/3p4/1P1P2n1/2N5/P1P1PP2/R2Q1K2 w - - 0 13 moves h6f4 e7e5 f4g5 d8g5 a2a3 ', expecting response: ''
+[23:02:00.4681348] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:02:01.9686799] Engine response: 'bestmove g5h4 ponder f1e1' <<<
+[23:03:55.1057361] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:03:55.1064988] Engine response: 'readyok' <<<
+[23:03:55.1068708] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[23:03:55.1071235] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:03:55.1074000] Engine response: 'readyok' <<<
+[23:03:55.1076200] >>> Processing command: 'position startpos moves e2e3 ', expecting response: ''
+[23:03:55.1078121] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:03:56.6082704] Engine response: 'bestmove g8f6 ponder d2d4' <<<
+[23:03:59.5896077] >>> Processing command: 'position startpos moves e2e3 g8f6 b1c3 ', expecting response: ''
+[23:03:59.5899639] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:04:01.0896602] Engine response: 'bestmove d7d5 ponder d2d4' <<<
+[23:04:02.9750719] >>> Processing command: 'position startpos moves e2e3 g8f6 b1c3 d7d5 g2g4 ', expecting response: ''
+[23:04:02.9755877] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:04:04.4759822] Engine response: 'bestmove c8g4 ponder f1e2' <<<
+[23:04:06.1910625] >>> Processing command: 'position startpos moves e2e3 g8f6 b1c3 d7d5 g2g4 c8g4 h2h3 ', expecting response: ''
+[23:04:06.1915572] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:04:07.6917988] Engine response: 'bestmove g4d1 ponder e1d1' <<<
+[23:04:10.5070110] >>> Processing command: 'position fen rn1qkb1r/ppp1pppp/5n2/3p4/8/2N1P2P/PPPP1P2/R1BbKBNR w KQkq - 0 5 moves e1d1 ', expecting response: ''
+[23:04:10.5074350] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:04:12.0079824] Engine response: 'bestmove a7a6 ponder b2b3' <<<
+[23:04:14.6113809] >>> Processing command: 'position fen rn1qkb1r/ppp1pppp/5n2/3p4/8/2N1P2P/PPPP1P2/R1BbKBNR w KQkq - 0 5 moves e1d1 a7a6 a2a4 ', expecting response: ''
+[23:04:14.6118068] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:04:16.1117632] Engine response: 'bestmove e7e5 ponder g1f3' <<<
+[23:04:17.0780353] >>> Processing command: 'position fen rn1qkb1r/ppp1pppp/5n2/3p4/8/2N1P2P/PPPP1P2/R1BbKBNR w KQkq - 0 5 moves e1d1 a7a6 a2a4 e7e5 b2b3 ', expecting response: ''
+[23:04:17.0785301] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:04:18.5787325] Engine response: 'bestmove f8b4 ponder g1e2' <<<
+[23:06:21.3632671] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:06:21.3642197] Engine response: 'readyok' <<<
+[23:06:21.3644720] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[23:06:21.3646818] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:06:21.3649390] Engine response: 'readyok' <<<
+[23:06:21.3651631] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[23:06:21.3653689] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:06:22.8664256] Engine response: 'bestmove a7a6 ponder d2d4' <<<
+[23:06:25.3387344] >>> Processing command: 'position startpos moves e2e4 a7a6 g2g4 ', expecting response: ''
+[23:06:25.3392189] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:06:26.8400999] Engine response: 'bestmove d7d5 ponder h2h3' <<<
+[23:10:26.6576021] >>> Processing command: 'position startpos moves e2e4 a7a6 g2g4 d7d5 c2c4 ', expecting response: ''
+[23:10:26.6580917] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:10:28.1588037] Engine response: 'bestmove d5e4 ponder f1g2' <<<
+[23:10:30.5126090] >>> Processing command: 'position startpos moves e2e4 a7a6 g2g4 d7d5 c2c4 d5e4 a2a3 ', expecting response: ''
+[23:10:30.5131098] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:10:32.0136409] Engine response: 'bestmove e7e5 ponder b1c3' <<<
+[23:10:34.3587407] >>> Processing command: 'position fen rnbqkbnr/1pp2ppp/p7/4p3/2P1p1P1/P7/1P1P1P1P/RNBQKBNR w KQkq e6 0 5 moves g1f3 ', expecting response: ''
+[23:10:34.3591393] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:10:35.8599505] Engine response: 'bestmove c8g4 ponder d1a4' <<<
+[23:10:37.6622162] >>> Processing command: 'position fen rnbqkbnr/1pp2ppp/p7/4p3/2P1p1P1/P7/1P1P1P1P/RNBQKBNR w KQkq e6 0 5 moves g1f3 c8g4 h2h3 ', expecting response: ''
+[23:10:37.6626725] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:10:39.1630413] Engine response: 'bestmove g4f3 ponder d1a4' <<<
+[23:10:42.5260880] >>> Processing command: 'position fen rnbqkbnr/1pp2ppp/p7/4p3/2P1p1P1/P7/1P1P1P1P/RNBQKBNR w KQkq e6 0 5 moves g1f3 c8g4 h2h3 g4f3 b2b4 ', expecting response: ''
+[23:10:42.5265061] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:10:44.0266370] Engine response: 'bestmove f3d1 ponder e1d1' <<<
+[23:10:47.9278567] >>> Processing command: 'position fen rnbqkbnr/1pp2ppp/p7/4p3/2P1p1P1/P7/1P1P1P1P/RNBQKBNR w KQkq e6 0 5 moves g1f3 c8g4 h2h3 g4f3 b2b4 f3d1 f2f3 ', expecting response: ''
+[23:10:47.9282594] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:10:49.4288190] Engine response: 'bestmove d1f3 ponder f1e2' <<<
+[23:10:51.1547206] >>> Processing command: 'position fen rn1qkbnr/1pp2ppp/p7/4p3/1PP1p3/P4b1P/3P4/RNB1KB1R w KQkq - 0 9 moves d2d3 ', expecting response: ''
+[23:10:51.1551394] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:10:52.6556873] Engine response: 'bestmove d8h4 ponder e1d2' <<<
+[23:11:05.0917114] >>> Processing command: 'position fen rn1qkbnr/1pp2ppp/p7/4p3/1PP1p3/P4b1P/3P4/RNB1KB1R w KQkq - 0 9 moves d2d3 d8h4 e1d2 ', expecting response: ''
+[23:11:05.0921196] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:11:06.5928058] Engine response: 'bestmove g8f6 ponder b1c3' <<<
+[23:11:09.9989673] >>> Processing command: 'position fen rn1qkbnr/1pp2ppp/p7/4p3/1PP1p3/P4b1P/3P4/RNB1KB1R w KQkq - 0 9 moves d2d3 d8h4 e1d2 g8f6 d3e4 ', expecting response: ''
+[23:11:09.9993851] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:11:11.4998682] Engine response: 'bestmove h4f2 ponder f1e2' <<<
+[23:14:06.6558846] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:14:06.6567721] Engine response: 'readyok' <<<
+[23:14:06.6571301] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[23:14:06.6574133] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:14:06.6576812] Engine response: 'readyok' <<<
+[23:14:06.6579232] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[23:14:06.6581216] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:14:08.1587828] Engine response: 'bestmove c7c5 ponder g1f3' <<<
+[23:16:28.7900313] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:16:28.7906696] Engine response: 'readyok' <<<
+[23:16:28.7908829] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[23:16:28.7910771] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:16:28.7913691] Engine response: 'readyok' <<<
+[23:16:28.7915685] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[23:16:28.7917531] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:16:30.2924651] Engine response: 'bestmove a7a6 ponder d2d4' <<<
+[23:16:34.4975894] >>> Processing command: 'position startpos moves e2e4 a7a6 g2g3 ', expecting response: ''
+[23:16:34.4981772] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:16:35.9985845] Engine response: 'bestmove d7d5 ponder e4d5' <<<
+[23:16:37.0340302] >>> Processing command: 'position startpos moves e2e4 a7a6 g2g3 d7d5 c2c3 ', expecting response: ''
+[23:16:37.0344918] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:16:38.5352439] Engine response: 'bestmove d5e4 ponder f2f3' <<<
+[23:16:39.5290854] >>> Processing command: 'position startpos moves e2e4 a7a6 g2g3 d7d5 c2c3 d5e4 b1a3 ', expecting response: ''
+[23:16:39.5294663] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:16:41.0299671] Engine response: 'bestmove e7e5 ponder a3c4' <<<
+[23:16:42.4613377] >>> Processing command: 'position fen rnbqkbnr/1pp2ppp/p7/4p3/4p3/N1P3P1/PP1P1P1P/R1BQKBNR w KQkq e6 0 5 moves f2f3 ', expecting response: ''
+[23:16:42.4621271] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:16:43.9629337] Engine response: 'bestmove f8a3 ponder b2a3' <<<
+[23:16:50.4093346] >>> Processing command: 'position fen rnbqkbnr/1pp2ppp/p7/4p3/4p3/N1P3P1/PP1P1P1P/R1BQKBNR w KQkq e6 0 5 moves f2f3 f8a3 b2a3 ', expecting response: ''
+[23:16:50.4097419] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:16:51.9100131] Engine response: 'bestmove c8f5 ponder d1e2' <<<
+[23:16:53.1854344] >>> Processing command: 'position fen rnbqkbnr/1pp2ppp/p7/4p3/4p3/N1P3P1/PP1P1P1P/R1BQKBNR w KQkq e6 0 5 moves f2f3 f8a3 b2a3 c8f5 d2d3 ', expecting response: ''
+[23:16:53.1860907] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:16:54.6866343] Engine response: 'bestmove e4d3 ponder g1h3' <<<
+[23:16:57.4114862] >>> Processing command: 'position fen rnbqkbnr/1pp2ppp/p7/4p3/4p3/N1P3P1/PP1P1P1P/R1BQKBNR w KQkq e6 0 5 moves f2f3 f8a3 b2a3 c8f5 d2d3 e4d3 g1e2 ', expecting response: ''
+[23:16:57.4118941] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:16:58.9117701] Engine response: 'bestmove b8c6 ponder e2g1' <<<
+[23:17:43.6549166] >>> Processing command: 'position fen r2qk1nr/1pp2ppp/p1n5/4pb2/8/P1Pp1PP1/P3N2P/R1BQKB1R w KQkq - 2 9 moves e2g1 ', expecting response: ''
+[23:17:43.6553425] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:17:45.1558766] Engine response: 'bestmove d8d7 ponder g3g4' <<<
+[23:17:47.8643386] >>> Processing command: 'position fen r2qk1nr/1pp2ppp/p1n5/4pb2/8/P1Pp1PP1/P3N2P/R1BQKB1R w KQkq - 2 9 moves e2g1 d8d7 f1d3 ', expecting response: ''
+[23:17:47.8647650] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:17:49.3648482] Engine response: 'bestmove f5d3 ponder c1e3' <<<
+[23:17:57.4151539] >>> Processing command: 'position fen r2qk1nr/1pp2ppp/p1n5/4pb2/8/P1Pp1PP1/P3N2P/R1BQKB1R w KQkq - 2 9 moves e2g1 d8d7 f1d3 f5d3 a3a4 ', expecting response: ''
+[23:17:57.4155892] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:17:58.9156654] Engine response: 'bestmove g8e7 ponder c1a3' <<<
+[23:20:22.1525061] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:20:22.1531298] Engine response: 'readyok' <<<
+[23:20:22.1534619] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[23:20:22.1537330] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:20:22.1540840] Engine response: 'readyok' <<<
+[23:20:22.1543192] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[23:20:22.1545385] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:20:23.6551473] Engine response: 'bestmove e7e6 ponder d2d4' <<<
+[23:20:26.5177768] >>> Processing command: 'position startpos moves e2e4 e7e6 f2f3 ', expecting response: ''
+[23:20:26.5182585] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:20:28.0189877] Engine response: 'bestmove c7c5 ponder d2d3' <<<
+[23:20:42.8713877] >>> Processing command: 'position startpos moves e2e4 e7e6 f2f3 c7c5 c2c3 ', expecting response: ''
+[23:20:42.8718702] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:20:44.3715395] Engine response: 'bestmove d7d5 ponder d2d3' <<<
+[23:20:47.1358654] >>> Processing command: 'position startpos moves e2e4 e7e6 f2f3 c7c5 c2c3 d7d5 a2a4 ', expecting response: ''
+[23:20:47.1363156] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:20:48.6372238] Engine response: 'bestmove f8d6 ponder g1h3' <<<
+[23:20:50.9064024] >>> Processing command: 'position fen rnbqk1nr/pp3ppp/3bp3/2pp4/P3P3/2P2P2/1P1P2PP/RNBQKBNR w KQkq - 1 5 moves h2h4 ', expecting response: ''
+[23:20:50.9068769] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:20:52.4066343] Engine response: 'bestmove d6g3 ponder e1e2' <<<
+[23:21:08.3003516] >>> Processing command: 'position fen rnbqk1nr/pp3ppp/3bp3/2pp4/P3P3/2P2P2/1P1P2PP/RNBQKBNR w KQkq - 1 5 moves h2h4 d6g3 e1e2 ', expecting response: ''
+[23:21:08.3007604] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:21:09.8010068] Engine response: 'bestmove g8f6 ponder d2d3' <<<
+[23:21:16.6298058] >>> Processing command: 'position fen rnbqk1nr/pp3ppp/3bp3/2pp4/P3P3/2P2P2/1P1P2PP/RNBQKBNR w KQkq - 1 5 moves h2h4 d6g3 e1e2 g8f6 g1h3 ', expecting response: ''
+[23:21:16.6302115] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:21:18.1305698] Engine response: 'bestmove b8c6 ponder e2d3' <<<
+[23:21:21.9045814] >>> Processing command: 'position fen rnbqk1nr/pp3ppp/3bp3/2pp4/P3P3/2P2P2/1P1P2PP/RNBQKBNR w KQkq - 1 5 moves h2h4 d6g3 e1e2 g8f6 g1h3 b8c6 b1a3 ', expecting response: ''
+[23:21:21.9050605] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:21:23.4052073] Engine response: 'bestmove e8g8 ponder d2d3' <<<
+[23:27:08.2888251] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:27:08.2899027] Engine response: 'readyok' <<<
+[23:27:08.2901661] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[23:27:08.2903644] >>> Processing command: 'isready', expecting response: 'readyok'
+[23:27:08.2906346] Engine response: 'readyok' <<<
+[23:27:08.2908531] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[23:27:08.2910873] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:27:09.7908353] Engine response: 'bestmove a7a6 ponder d2d4' <<<
+[23:27:11.6324229] >>> Processing command: 'position startpos moves e2e4 a7a6 g2g3 ', expecting response: ''
+[23:27:11.6329143] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:27:13.1326475] Engine response: 'bestmove c7c5 ponder f1g2' <<<
+[23:27:27.7873638] >>> Processing command: 'position startpos moves e2e4 a7a6 g2g3 c7c5 f2f3 ', expecting response: ''
+[23:27:27.7878207] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:27:29.2875810] Engine response: 'bestmove e7e6 ponder f1g2' <<<
+[23:27:31.0178188] >>> Processing command: 'position startpos moves e2e4 a7a6 g2g3 c7c5 f2f3 e7e6 b2b3 ', expecting response: ''
+[23:27:31.0183394] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:27:32.5190472] Engine response: 'bestmove b7b5 ponder a2a4' <<<
+[23:27:41.5483810] >>> Processing command: 'position fen rnbqkbnr/3p1ppp/p3p3/1pp5/4P3/1P3PP1/P1PP3P/RNBQKBNR w KQkq b6 0 5 moves d2d3 ', expecting response: ''
+[23:27:41.5488072] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:27:43.0486429] Engine response: 'bestmove d7d5 ponder f1g2' <<<
+[23:27:50.2664803] >>> Processing command: 'position fen rnbqkbnr/3p1ppp/p3p3/1pp5/4P3/1P3PP1/P1PP3P/RNBQKBNR w KQkq b6 0 5 moves d2d3 d7d5 a2a3 ', expecting response: ''
+[23:27:50.2669250] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:27:51.7670413] Engine response: 'bestmove h7h5 ponder a3a4' <<<
+[23:27:56.2078522] >>> Processing command: 'position fen rnbqkbnr/3p1ppp/p3p3/1pp5/4P3/1P3PP1/P1PP3P/RNBQKBNR w KQkq b6 0 5 moves d2d3 d7d5 a2a3 h7h5 e4d5 ', expecting response: ''
+[23:27:56.2082540] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:27:57.7088227] Engine response: 'bestmove e6d5 ponder f1g2' <<<
+[23:28:04.7765563] >>> Processing command: 'position fen rnbqkbnr/3p1ppp/p3p3/1pp5/4P3/1P3PP1/P1PP3P/RNBQKBNR w KQkq b6 0 5 moves d2d3 d7d5 a2a3 h7h5 e4d5 e6d5 a3a4 ', expecting response: ''
+[23:28:04.7772475] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:28:06.2778190] Engine response: 'bestmove d8f6 ponder a1a2' <<<
+[23:28:11.1949444] >>> Processing command: 'position fen rnb1kbnr/5pp1/p4q2/1ppp3p/P7/1P1P1PP1/2P4P/RNBQKBNR w KQkq - 1 9 moves g1h3 ', expecting response: ''
+[23:28:11.1953527] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:28:12.6958059] Engine response: 'bestmove f6a1 ponder c1d2' <<<
+[23:29:13.2930025] >>> Processing command: 'position fen rnb1kbnr/5pp1/p4q2/1ppp3p/P7/1P1P1PP1/2P4P/RNBQKBNR w KQkq - 1 9 moves g1h3 f6a1 b1c3 ', expecting response: ''
+[23:29:13.2934126] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:29:14.7935883] Engine response: 'bestmove a1c3 ponder c1d2' <<<
+[23:29:34.5308951] >>> Processing command: 'position fen rnb1kbnr/5pp1/p4q2/1ppp3p/P7/1P1P1PP1/2P4P/RNBQKBNR w KQkq - 1 9 moves g1h3 f6a1 b1c3 ', expecting response: ''
+[23:29:34.5313021] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:29:36.0318703] Engine response: 'bestmove a1c3 ponder c1d2' <<<
+[23:29:48.5325205] >>> Processing command: 'position fen rnb1kbnr/5pp1/p4q2/1ppp3p/P7/1P1P1PP1/2P4P/RNBQKBNR w KQkq - 1 9 moves g1h3 f6a1 h3f4 ', expecting response: ''
+[23:29:48.5329483] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:29:50.0328114] Engine response: 'bestmove g8e7 ponder f1g2' <<<
+[23:29:52.7491482] >>> Processing command: 'position fen rnb1kbnr/5pp1/p4q2/1ppp3p/P7/1P1P1PP1/2P4P/RNBQKBNR w KQkq - 1 9 moves g1h3 f6a1 h3f4 g8e7 b1a3 ', expecting response: ''
+[23:29:52.7495913] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[23:29:54.2495665] Engine response: 'bestmove a1e5 ponder e1f2' <<<
+[09:31:22.7244883] >>> Processing command: 'isready', expecting response: 'readyok'
+[09:31:22.7371976] Engine response: 'readyok' <<<
+[09:31:22.7375717] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[09:31:22.7378400] >>> Processing command: 'isready', expecting response: 'readyok'
+[09:31:22.7385287] Engine response: 'readyok' <<<
+[09:31:22.7387367] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[09:31:22.7389822] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[09:31:24.2397324] Engine response: 'bestmove e7e5 ponder g1f3' <<<
+[09:31:25.9253706] >>> Processing command: 'position startpos moves e2e4 e7e5 f2f3 ', expecting response: ''
+[09:31:25.9258311] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[09:31:27.4257451] Engine response: 'bestmove f8c5 ponder c2c3' <<<
+[09:31:28.4539542] >>> Processing command: 'position startpos moves e2e4 e7e5 f2f3 f8c5 b1c3 ', expecting response: ''
+[09:31:28.4544123] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[09:31:29.9547414] Engine response: 'bestmove g8f6 ponder c3a4' <<<
+[09:31:32.1294491] >>> Processing command: 'position startpos moves e2e4 e7e5 f2f3 f8c5 b1c3 g8f6 b2b3 ', expecting response: ''
+[09:31:32.1299310] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[09:31:33.6304166] Engine response: 'bestmove d7d5 ponder e4d5' <<<
+[09:34:09.3465717] >>> Processing command: 'position fen rnbqk2r/ppp2ppp/5n2/2bpp3/4P3/1PN2P2/P1PP2PP/R1BQKBNR w KQkq d6 0 5 moves c3d5 ', expecting response: ''
+[09:34:09.3469762] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[09:34:10.8474835] Engine response: 'bestmove f6d5 ponder c1b2' <<<
+[09:34:12.8269562] >>> Processing command: 'position fen rnbqk2r/ppp2ppp/5n2/2bpp3/4P3/1PN2P2/P1PP2PP/R1BQKBNR w KQkq d6 0 5 moves c3d5 f6d5 e4d5 ', expecting response: ''
+[09:34:12.8274328] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[09:34:14.3273769] Engine response: 'bestmove d8h4 ponder g2g3' <<<
+[09:34:33.2905315] >>> Processing command: 'position fen rnbqk2r/ppp2ppp/5n2/2bpp3/4P3/1PN2P2/P1PP2PP/R1BQKBNR w KQkq d6 0 5 moves c3d5 f6d5 e4d5 d8h4 g2g3 ', expecting response: ''
+[09:34:33.2909278] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[09:34:34.7910748] Engine response: 'bestmove h4d4 ponder d1e2' <<<
+[09:34:40.4668401] >>> Processing command: 'position fen rnbqk2r/ppp2ppp/5n2/2bpp3/4P3/1PN2P2/P1PP2PP/R1BQKBNR w KQkq d6 0 5 moves c3d5 f6d5 e4d5 d8h4 g2g3 h4d4 c2c3 ', expecting response: ''
+[09:34:40.4672780] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[09:34:41.9675699] Engine response: 'bestmove d4f2' <<<
+[10:15:07.7344337] >>> Processing command: 'isready', expecting response: 'readyok'
+[10:15:07.7350620] Engine response: 'readyok' <<<
+[10:15:07.7352552] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[10:15:07.7354397] >>> Processing command: 'isready', expecting response: 'readyok'
+[10:15:07.7357177] Engine response: 'readyok' <<<
+[10:15:07.7359088] >>> Processing command: 'position startpos', expecting response: ''
+[10:15:07.7361419] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:15:09.2367283] Engine response: 'bestmove d2d4 ponder g8f6' <<<
+[10:15:13.7630122] >>> Processing command: 'position startpos moves d2d4 d7d5 ', expecting response: ''
+[10:15:13.7634914] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:15:15.2639373] Engine response: 'bestmove c1f4 ponder g8f6' <<<
+[10:15:17.8834435] >>> Processing command: 'position startpos moves d2d4 d7d5 c1f4 b8c6 ', expecting response: ''
+[10:15:17.8839090] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:15:19.3852193] Engine response: 'bestmove c2c4 ponder d5c4' <<<
+[10:15:34.8121819] >>> Processing command: 'position startpos moves d2d4 d7d5 c1f4 b8c6 c2c4 f7f6 ', expecting response: ''
+[10:15:34.8127323] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:15:36.3124738] Engine response: 'bestmove g1f3 ponder d5c4' <<<
+[10:15:45.5253027] >>> Processing command: 'position startpos moves d2d4 d7d5 c1f4 b8c6 c2c4 f7f6 g1f3 e7e5 ', expecting response: ''
+[10:15:45.5257914] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:15:47.0257315] Engine response: 'bestmove f4d2 ponder d5c4' <<<
+[10:16:08.5925589] >>> Processing command: 'position fen r1bqkbnr/ppp3pp/2n2p2/3pp3/2PP1B2/5N2/PP2PPPP/RN1QKB1R w KQkq e6 0 5 moves f4d2 g7g5 ', expecting response: ''
+[10:16:08.5930510] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:16:10.0939747] Engine response: 'bestmove c4d5 ponder d8d5' <<<
+[10:16:29.0005609] >>> Processing command: 'position fen r1bqkbnr/ppp3pp/2n2p2/3pp3/2PP1B2/5N2/PP2PPPP/RN1QKB1R w KQkq e6 0 5 moves f4d2 g7g5 c4d5 h7h6 ', expecting response: ''
+[10:16:29.0009799] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:16:30.5015477] Engine response: 'bestmove d5c6 ponder b7b5' <<<
+[10:16:54.6025772] >>> Processing command: 'position fen r1bqkbnr/ppp3pp/2n2p2/3pp3/2PP1B2/5N2/PP2PPPP/RN1QKB1R w KQkq e6 0 5 moves f4d2 g7g5 c4d5 h7h6 d5c6 h6h5 ', expecting response: ''
+[10:16:54.6030453] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:16:56.1034504] Engine response: 'bestmove b1c3 ponder g5g4' <<<
+[10:25:43.4865292] >>> Processing command: 'isready', expecting response: 'readyok'
+[10:25:43.4871350] Engine response: 'readyok' <<<
+[10:25:43.4874209] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[10:25:43.4931354] >>> Processing command: 'isready', expecting response: 'readyok'
+[10:25:43.4935504] Engine response: 'readyok' <<<
+[10:25:43.4938464] >>> Processing command: 'position startpos', expecting response: ''
+[10:25:43.4941787] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:25:44.9950574] Engine response: 'bestmove e2e4 ponder c7c5' <<<
+[10:25:50.7854795] >>> Processing command: 'position startpos moves e2e4 e7e5 ', expecting response: ''
+[10:25:50.7858867] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:25:52.2855868] Engine response: 'bestmove f1c4 ponder g8f6' <<<
+[10:25:54.2574153] >>> Processing command: 'position startpos moves e2e4 e7e5 f1c4 b8c6 ', expecting response: ''
+[10:25:54.2579289] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:25:55.7589328] Engine response: 'bestmove d2d3 ponder g8f6' <<<
+[10:25:57.8818070] >>> Processing command: 'position startpos moves e2e4 e7e5 f1c4 b8c6 d2d3 f7f6 ', expecting response: ''
+[10:25:57.8822881] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:25:59.3826955] Engine response: 'bestmove a2a3 ponder f8c5' <<<
+[10:26:24.1153810] >>> Processing command: 'position startpos moves e2e4 e7e5 f1c4 b8c6 d2d3 f7f6 a2a3 g7g6 ', expecting response: ''
+[10:26:24.1159091] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:26:25.6167645] Engine response: 'bestmove f2f4 ponder d7d6' <<<
+[10:31:01.1860356] >>> Processing command: 'isready', expecting response: 'readyok'
+[10:31:01.1868749] Engine response: 'readyok' <<<
+[10:31:01.1872924] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[10:31:01.1876708] >>> Processing command: 'isready', expecting response: 'readyok'
+[10:31:01.1879238] Engine response: 'readyok' <<<
+[10:31:01.1997193] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[10:31:01.2002205] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:31:02.7008865] Engine response: 'bestmove a7a6 ponder d2d4' <<<
+[10:31:12.5169181] >>> Processing command: 'position startpos moves e2e4 a7a6 g1f3 ', expecting response: ''
+[10:31:12.5174293] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:31:14.0175607] Engine response: 'bestmove e7e6 ponder d2d4' <<<
+[10:31:58.6603251] >>> Processing command: 'position startpos moves e2e4 a7a6 g1f3 e7e6 c2c3 ', expecting response: ''
+[10:31:58.6608380] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:32:00.1605092] Engine response: 'bestmove h7h6 ponder d2d4' <<<
+[10:32:04.4836830] >>> Processing command: 'position startpos moves e2e4 a7a6 g1f3 e7e6 c2c3 h7h6 b2b4 ', expecting response: ''
+[10:32:04.4841094] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:32:05.9844079] Engine response: 'bestmove d7d5 ponder e4e5' <<<
+[10:35:11.0461341] >>> Processing command: 'isready', expecting response: 'readyok'
+[10:35:11.0467465] Engine response: 'readyok' <<<
+[10:35:11.0469683] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[10:35:11.0471717] >>> Processing command: 'isready', expecting response: 'readyok'
+[10:35:11.0474090] Engine response: 'readyok' <<<
+[10:35:11.0476156] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[10:35:11.0478147] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[10:35:12.5476729] Engine response: 'bestmove c7c5 ponder g1f3' <<<
+[11:15:16.8705086] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:15:16.8713207] Engine response: 'readyok' <<<
+[11:15:16.8715988] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[11:15:16.8718859] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:15:16.8834603] Engine response: 'readyok' <<<
+[11:15:16.8838103] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[11:15:16.8840243] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:15:18.3845009] Engine response: 'bestmove e7e5 ponder g1f3' <<<
+[11:20:00.1670124] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:20:00.1680084] Engine response: 'readyok' <<<
+[11:20:00.1683083] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[11:20:00.1685725] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:20:00.1688846] Engine response: 'readyok' <<<
+[11:20:00.1691073] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[11:20:00.1693000] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:20:01.6699986] Engine response: 'bestmove c7c5 ponder g1f3' <<<
+[11:23:21.8768719] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:23:21.8779424] Engine response: 'readyok' <<<
+[11:23:21.8781787] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[11:23:21.8783807] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:23:21.8786507] Engine response: 'readyok' <<<
+[11:23:21.8788398] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[11:23:21.8790230] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:23:23.3800584] Engine response: 'bestmove e7e5 ponder g1f3' <<<
+[11:24:31.4053797] >>> Processing command: 'position startpos moves e2e4 e7e5 g1f3 ', expecting response: ''
+[11:24:31.4059114] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:24:32.9067079] Engine response: 'bestmove d7d6 ponder d2d4' <<<
+[11:29:00.1761601] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:29:00.1767958] Engine response: 'readyok' <<<
+[11:29:00.1772074] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[11:29:00.1774615] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:29:00.1777833] Engine response: 'readyok' <<<
+[11:29:00.1780126] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[11:29:00.1782475] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:29:01.6786569] Engine response: 'bestmove e7e6 ponder d2d4' <<<
+[11:29:03.5059871] >>> Processing command: 'position startpos moves e2e4 e7e6 g2g3 ', expecting response: ''
+[11:29:03.5064655] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:29:05.0066160] Engine response: 'bestmove d7d5 ponder e4e5' <<<
+[11:29:09.1277285] >>> Processing command: 'position startpos moves e2e4 e7e6 g2g3 d7d5 b2b3 ', expecting response: ''
+[11:29:09.1282095] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:29:10.6283670] Engine response: 'bestmove d5e4 ponder b1c3' <<<
+[11:29:15.6512281] >>> Processing command: 'position startpos moves e2e4 e7e6 g2g3 d7d5 b2b3 d5e4 d2d3 ', expecting response: ''
+[11:29:15.6516850] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:29:17.1517218] Engine response: 'bestmove e4d3 ponder f1d3' <<<
+[11:30:12.0147258] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/4p3/8/8/1P1p2P1/P1P2P1P/RNBQKBNR w KQkq - 0 5 moves c2d3 ', expecting response: ''
+[11:30:12.0151979] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:30:13.5156411] Engine response: 'bestmove d8d4 ponder g1e2' <<<
+[11:30:17.5504383] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/4p3/8/8/1P1p2P1/P1P2P1P/RNBQKBNR w KQkq - 0 5 moves c2d3 d8d4 g1f3 ', expecting response: ''
+[11:30:17.5508331] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:30:19.0507382] Engine response: 'bestmove d4a1 ponder b1d2' <<<
+[11:30:25.8563705] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/4p3/8/8/1P1p2P1/P1P2P1P/RNBQKBNR w KQkq - 0 5 moves c2d3 d8d4 g1f3 d4a1 b1c3 ', expecting response: ''
+[11:30:25.8571045] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:30:27.3576027] Engine response: 'bestmove f8b4 ponder f1e2' <<<
+[11:30:36.3220683] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/4p3/8/8/1P1p2P1/P1P2P1P/RNBQKBNR w KQkq - 0 5 moves c2d3 d8d4 g1f3 d4a1 b1c3 f8b4 c1b2 ', expecting response: ''
+[11:30:36.3225353] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:30:37.8225981] Engine response: 'bestmove a1b2 ponder f1g2' <<<
+[11:30:49.2767187] >>> Processing command: 'position fen rnb1k1nr/ppp2ppp/4p3/8/1b6/1PNP1NP1/Pq3P1P/3QKB1R w KQkq - 0 9 moves f3d4 ', expecting response: ''
+[11:30:49.2771201] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:30:50.7777707] Engine response: 'bestmove b4c3 ponder d1d2' <<<
+[11:30:58.7407021] >>> Processing command: 'position fen rnb1k1nr/ppp2ppp/4p3/8/1b6/1PNP1NP1/Pq3P1P/3QKB1R w KQkq - 0 9 moves f3d4 b4c3 d1d2 ', expecting response: ''
+[11:30:58.7411287] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:31:00.2414662] Engine response: 'bestmove b2d2' <<<
+[11:34:53.1289808] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:34:53.1303287] Engine response: 'readyok' <<<
+[11:34:53.1305691] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[11:34:53.1307897] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:34:53.1310463] Engine response: 'readyok' <<<
+[11:34:53.1312384] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[11:34:53.1314214] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:34:54.6317453] Engine response: 'bestmove e7e6 ponder d2d4' <<<
+[11:34:56.4315945] >>> Processing command: 'position startpos moves e2e4 e7e6 g1f3 ', expecting response: ''
+[11:34:56.4320775] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:34:57.9324657] Engine response: 'bestmove d7d5 ponder e4e5' <<<
+[11:34:59.6262858] >>> Processing command: 'position startpos moves e2e4 e7e6 g1f3 d7d5 b2b4 ', expecting response: ''
+[11:34:59.6267530] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:35:01.1265236] Engine response: 'bestmove d5e4 ponder f3e5' <<<
+[11:35:03.4860278] >>> Processing command: 'position startpos moves e2e4 e7e6 g1f3 d7d5 b2b4 d5e4 d2d3 ', expecting response: ''
+[11:35:03.4865061] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:35:04.9864376] Engine response: 'bestmove e4f3 ponder d1d2' <<<
+[11:35:06.8656697] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/4p3/8/1P6/3P1p2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves g2f3 ', expecting response: ''
+[11:35:06.8660930] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:35:08.3667187] Engine response: 'bestmove g8f6 ponder c1b2' <<<
+[11:35:12.4244474] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/4p3/8/1P6/3P1p2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves g2f3 g8f6 d1e2 ', expecting response: ''
+[11:35:12.4249413] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:35:13.9262516] Engine response: 'bestmove g7g6 ponder h2h4' <<<
+[11:35:16.0423697] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/4p3/8/1P6/3P1p2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves g2f3 g8f6 d1e2 g7g6 f3f4 ', expecting response: ''
+[11:35:16.0428479] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:35:17.5425837] Engine response: 'bestmove b8c6 ponder b1d2' <<<
+[11:35:19.1726521] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/4p3/8/1P6/3P1p2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves g2f3 g8f6 d1e2 g7g6 f3f4 b8c6 b1c3 ', expecting response: ''
+[11:35:19.1730657] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:35:20.6736116] Engine response: 'bestmove a7a5 ponder f1g2' <<<
+[11:35:23.9262602] >>> Processing command: 'position fen r1bqkb1r/1pp2p1p/2n1pnp1/p7/1P3P2/2NP4/P1P1QP1P/R1B1KB1R w KQkq a6 0 9 moves a2a4 ', expecting response: ''
+[11:35:23.9266536] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:35:25.4271114] Engine response: 'bestmove c6d4 ponder e2d1' <<<
+[11:35:32.4758110] >>> Processing command: 'position fen r1bqkb1r/1pp2p1p/2n1pnp1/p7/1P3P2/2NP4/P1P1QP1P/R1B1KB1R w KQkq a6 0 9 moves a2a4 c6d4 e2e3 ', expecting response: ''
+[11:35:32.4762281] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:35:33.9766935] Engine response: 'bestmove f8g7 ponder e1d1' <<<
+[11:35:40.1867276] >>> Processing command: 'position fen r1bqkb1r/1pp2p1p/2n1pnp1/p7/1P3P2/2NP4/P1P1QP1P/R1B1KB1R w KQkq a6 0 9 moves a2a4 c6d4 e2e3 f8g7 e3d4 ', expecting response: ''
+[11:35:40.1871387] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:35:41.6877577] Engine response: 'bestmove d8d4 ponder a1a3' <<<
+[11:35:53.5793578] >>> Processing command: 'position fen r1bqkb1r/1pp2p1p/2n1pnp1/p7/1P3P2/2NP4/P1P1QP1P/R1B1KB1R w KQkq a6 0 9 moves a2a4 c6d4 e2e3 f8g7 e3d4 d8d4 f4f5 ', expecting response: ''
+[11:35:53.5797912] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:35:55.0793886] Engine response: 'bestmove d4c3 ponder e1e2' <<<
+[11:36:24.4216199] >>> Processing command: 'position fen r1b1k2r/1pp2pbp/4pnp1/p4P2/PP6/2qP4/2P2P1P/R1B1KB1R w KQkq - 0 13 moves e1e2 ', expecting response: ''
+[11:36:24.4220320] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:36:25.9224723] Engine response: 'bestmove f6d5 ponder c1g5' <<<
+[11:40:02.0414286] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:40:02.0425826] Engine response: 'readyok' <<<
+[11:40:02.0428200] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[11:40:02.0430205] >>> Processing command: 'isready', expecting response: 'readyok'
+[11:40:02.0432939] Engine response: 'readyok' <<<
+[11:40:02.0435585] >>> Processing command: 'position startpos moves d2d4 ', expecting response: ''
+[11:40:02.0438251] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:40:03.5436705] Engine response: 'bestmove d7d5 ponder c2c4' <<<
+[11:40:05.7487684] >>> Processing command: 'position startpos moves d2d4 d7d5 f2f4 ', expecting response: ''
+[11:40:05.7492639] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:40:07.2494499] Engine response: 'bestmove e7e6 ponder e2e3' <<<
+[11:40:10.3387029] >>> Processing command: 'position startpos moves d2d4 d7d5 f2f4 e7e6 g1f3 ', expecting response: ''
+[11:40:10.3391888] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:40:11.8398496] Engine response: 'bestmove c7c5 ponder c2c3' <<<
+[11:40:14.0062554] >>> Processing command: 'position startpos moves d2d4 d7d5 f2f4 e7e6 g1f3 c7c5 c2c4 ', expecting response: ''
+[11:40:14.0067468] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:40:15.5066068] Engine response: 'bestmove g8f6 ponder e2e3' <<<
+[11:40:21.6578233] >>> Processing command: 'position fen rnbqkb1r/pp3ppp/4pn2/2pp4/2PP1P2/5N2/PP2P1PP/RNBQKB1R w KQkq - 1 5 moves d1b3 ', expecting response: ''
+[11:40:21.6582720] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:40:23.1588310] Engine response: 'bestmove b8c6 ponder e2e3' <<<
+[11:40:25.2826663] >>> Processing command: 'position fen rnbqkb1r/pp3ppp/4pn2/2pp4/2PP1P2/5N2/PP2P1PP/RNBQKB1R w KQkq - 1 5 moves d1b3 b8c6 a2a4 ', expecting response: ''
+[11:40:25.2831510] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:40:26.7839104] Engine response: 'bestmove d5c4 ponder b3c4' <<<
+[11:40:34.5011056] >>> Processing command: 'position fen rnbqkb1r/pp3ppp/4pn2/2pp4/2PP1P2/5N2/PP2P1PP/RNBQKB1R w KQkq - 1 5 moves d1b3 b8c6 a2a4 d5c4 b3c4 ', expecting response: ''
+[11:40:34.5015837] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:40:36.0021194] Engine response: 'bestmove c5d4 ponder c1d2' <<<
+[11:40:43.1278507] >>> Processing command: 'position fen rnbqkb1r/pp3ppp/4pn2/2pp4/2PP1P2/5N2/PP2P1PP/RNBQKB1R w KQkq - 1 5 moves d1b3 b8c6 a2a4 d5c4 b3c4 c5d4 e2e3 ', expecting response: ''
+[11:40:43.1282555] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:40:44.6288564] Engine response: 'bestmove f8b4 ponder c1d2' <<<
+[11:40:48.0987078] >>> Processing command: 'position fen r1bqk2r/pp3ppp/2n1pn2/8/PbQp1P2/4PN2/1P4PP/RNB1KB1R w KQkq - 1 9 moves c1d2 ', expecting response: ''
+[11:40:48.0991166] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:40:49.6001634] Engine response: 'bestmove b4d2 ponder b1d2' <<<
+[11:40:51.7397588] >>> Processing command: 'position fen r1bqk2r/pp3ppp/2n1pn2/8/PbQp1P2/4PN2/1P4PP/RNB1KB1R w KQkq - 1 9 moves c1d2 b4d2 e1d2 ', expecting response: ''
+[11:40:51.7401651] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:40:53.2411563] Engine response: 'bestmove d8a5 ponder d2c1' <<<
+[11:40:56.0849635] >>> Processing command: 'position fen r1bqk2r/pp3ppp/2n1pn2/8/PbQp1P2/4PN2/1P4PP/RNB1KB1R w KQkq - 1 9 moves c1d2 b4d2 e1d2 d8a5 b1c3 ', expecting response: ''
+[11:40:56.0854059] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:40:57.5854254] Engine response: 'bestmove d4c3 ponder d2c2' <<<
+[11:40:59.3367177] >>> Processing command: 'position fen r1bqk2r/pp3ppp/2n1pn2/8/PbQp1P2/4PN2/1P4PP/RNB1KB1R w KQkq - 1 9 moves c1d2 b4d2 e1d2 d8a5 b1c3 d4c3 b2c3 ', expecting response: ''
+[11:40:59.3371445] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:41:00.8383563] Engine response: 'bestmove a5d8 ponder f1d3' <<<
+[11:41:05.2973142] >>> Processing command: 'position fen r1bqk2r/pp3ppp/2n1pn2/8/P1Q2P2/2P1PN2/3K2PP/R4B1R w kq - 1 13 moves d2e1 ', expecting response: ''
+[11:41:05.2977462] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:41:06.7978540] Engine response: 'bestmove e8g8 ponder a1d1' <<<
+[11:41:09.1957388] >>> Processing command: 'position fen r1bqk2r/pp3ppp/2n1pn2/8/P1Q2P2/2P1PN2/3K2PP/R4B1R w kq - 1 13 moves d2e1 e8g8 f1d3 ', expecting response: ''
+[11:41:09.1961696] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:41:10.6967233] Engine response: 'bestmove c6a5 ponder c4b5' <<<
+[11:41:13.3311357] >>> Processing command: 'position fen r1bqk2r/pp3ppp/2n1pn2/8/P1Q2P2/2P1PN2/3K2PP/R4B1R w kq - 1 13 moves d2e1 e8g8 f1d3 c6a5 d3h7 ', expecting response: ''
+[11:41:13.3315475] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:41:14.8314102] Engine response: 'bestmove f6h7 ponder c4b5' <<<
+[11:41:23.1988737] >>> Processing command: 'position fen r1bqk2r/pp3ppp/2n1pn2/8/P1Q2P2/2P1PN2/3K2PP/R4B1R w kq - 1 13 moves d2e1 e8g8 f1d3 c6a5 d3h7 f6h7 e3e4 ', expecting response: ''
+[11:41:23.1992596] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:41:24.6994794] Engine response: 'bestmove a5c4 ponder h2h4' <<<
+[11:41:36.5944606] >>> Processing command: 'position fen r1bq1rk1/pp3ppn/4p3/8/P1n1PP2/2P2N2/6PP/R3K2R w - - 0 17 moves g2g3 ', expecting response: ''
+[11:41:36.5949137] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:41:38.0948565] Engine response: 'bestmove d8d3 ponder f3h4' <<<
+[11:41:43.6436344] >>> Processing command: 'position fen r1bq1rk1/pp3ppn/4p3/8/P1n1PP2/2P2N2/6PP/R3K2R w - - 0 17 moves g2g3 d8d3 e4e5 ', expecting response: ''
+[11:41:43.6440450] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:41:45.1448221] Engine response: 'bestmove d3e3 ponder e1d1' <<<
+[11:42:02.8370139] >>> Processing command: 'position fen r1bq1rk1/pp3ppn/4p3/8/P1n1PP2/2P2N2/6PP/R3K2R w - - 0 17 moves g2g3 d8d3 e4e5 d3e3 e1f1 ', expecting response: ''
+[11:42:02.8374411] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:42:04.3375442] Engine response: 'bestmove e3f3 ponder f1e1' <<<
+[11:42:10.1658740] >>> Processing command: 'position fen r1bq1rk1/pp3ppn/4p3/8/P1n1PP2/2P2N2/6PP/R3K2R w - - 0 17 moves g2g3 d8d3 e4e5 d3e3 e1f1 e3f3 f1e1 ', expecting response: ''
+[11:42:10.1662736] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:42:11.6664866] Engine response: 'bestmove f3e3 ponder e1f1' <<<
+[11:42:20.4251147] >>> Processing command: 'position fen r1b2rk1/pp3ppn/4p3/4P3/P1n2P2/2P1q1P1/7P/R3K2R w - - 2 21 moves e1d1 ', expecting response: ''
+[11:42:20.4255399] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[11:42:21.5284587] Engine response: 'bestmove e3d2' <<<
+[13:06:18.3228689] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:06:18.3296694] Engine response: 'readyok' <<<
+[13:06:18.3299498] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[13:06:18.3301637] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:06:18.3307027] Engine response: 'readyok' <<<
+[13:06:18.3309032] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[13:06:18.3311099] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:06:19.8315716] Engine response: 'bestmove e7e6 ponder d2d4' <<<
+[13:06:23.2015659] >>> Processing command: 'position startpos moves e2e4 e7e6 f1b5 ', expecting response: ''
+[13:06:23.2020336] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:06:24.7026550] Engine response: 'bestmove c7c6 ponder b5e2' <<<
+[13:06:27.4428061] >>> Processing command: 'position startpos moves e2e4 e7e6 f1b5 c7c6 g1f3 ', expecting response: ''
+[13:06:27.4433001] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:06:28.9439380] Engine response: 'bestmove c6b5 ponder e1g1' <<<
+[13:06:31.2362207] >>> Processing command: 'position startpos moves e2e4 e7e6 f1b5 c7c6 g1f3 c6b5 e1g1 ', expecting response: ''
+[13:06:31.2366242] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:06:32.7364111] Engine response: 'bestmove d7d6 ponder d2d4' <<<
+[13:21:07.0051200] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:21:07.0056977] Engine response: 'readyok' <<<
+[13:21:07.0058827] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[13:21:07.0060886] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:21:07.0063526] Engine response: 'readyok' <<<
+[13:21:07.0171444] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[13:21:07.0175284] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:21:08.5174037] Engine response: 'bestmove e7e6 ponder d2d4' <<<
+[13:21:09.6067749] >>> Processing command: 'position startpos moves e2e4 e7e6 g1f3 ', expecting response: ''
+[13:21:09.6072579] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:21:11.1077439] Engine response: 'bestmove c7c5 ponder d2d4' <<<
+[13:21:48.8675361] >>> Processing command: 'position startpos moves e2e4 e7e6 g1f3 c7c5 d2d3 ', expecting response: ''
+[13:21:48.8680266] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:21:50.3683495] Engine response: 'bestmove d7d5 ponder d1e2' <<<
+[13:21:53.2834782] >>> Processing command: 'position startpos moves e2e4 e7e6 g1f3 c7c5 d2d3 d7d5 b2b4 ', expecting response: ''
+[13:21:53.2839759] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:21:54.7843955] Engine response: 'bestmove d5e4 ponder d3e4' <<<
+[13:21:58.7011762] >>> Processing command: 'position fen rnbqkbnr/pp3ppp/4p3/2p5/1P2p3/3P1N2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves f3g5 ', expecting response: ''
+[13:21:58.7016163] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:22:00.2019601] Engine response: 'bestmove f8e7 ponder g5e4' <<<
+[13:22:07.0651324] >>> Processing command: 'position fen rnbqkbnr/pp3ppp/4p3/2p5/1P2p3/3P1N2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves f3g5 f8e7 g5e4 ', expecting response: ''
+[13:22:07.0656657] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:22:08.5654861] Engine response: 'bestmove c5b4 ponder d1g4' <<<
+[13:22:19.7048620] >>> Processing command: 'position fen rnbqkbnr/pp3ppp/4p3/2p5/1P2p3/3P1N2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves f3g5 f8e7 g5e4 c5b4 c2c3 ', expecting response: ''
+[13:22:19.7052922] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:22:21.2059980] Engine response: 'bestmove b8c6 ponder f1e2' <<<
+[13:22:26.5788043] >>> Processing command: 'position fen rnbqkbnr/pp3ppp/4p3/2p5/1P2p3/3P1N2/P1P2PPP/RNBQKB1R w KQkq - 0 5 moves f3g5 f8e7 g5e4 c5b4 c2c3 b8c6 a2a3 ', expecting response: ''
+[13:22:26.5791997] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:22:28.0799112] Engine response: 'bestmove f7f5 ponder e4d2' <<<
+[13:22:32.9476533] >>> Processing command: 'position fen r1bqk1nr/pp2b1pp/2n1p3/5p2/1p2N3/P1PP4/5PPP/RNBQKB1R w KQkq f6 0 9 moves e4c5 ', expecting response: ''
+[13:22:32.9480564] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:22:34.4485211] Engine response: 'bestmove e7c5 ponder a3b4' <<<
+[13:23:53.3283166] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:23:53.3288194] Engine response: 'readyok' <<<
+[13:23:53.3290243] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[13:23:53.3292168] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:23:53.3294629] Engine response: 'readyok' <<<
+[13:23:53.3296485] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[13:23:53.3298303] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:23:54.8302939] Engine response: 'bestmove c7c5 ponder g1f3' <<<
+[13:23:57.1982965] >>> Processing command: 'position startpos moves e2e4 c7c5 g1f3 ', expecting response: ''
+[13:23:57.1987696] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:23:58.6988956] Engine response: 'bestmove d7d6 ponder d2d4' <<<
+[13:24:00.5987387] >>> Processing command: 'position startpos moves e2e4 c7c5 g1f3 d7d6 c2c4 ', expecting response: ''
+[13:24:00.5992165] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:24:02.0996354] Engine response: 'bestmove g8f6 ponder b1c3' <<<
+[13:38:59.2654398] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:38:59.2660659] Engine response: 'readyok' <<<
+[13:38:59.2663106] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[13:38:59.2665456] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:38:59.2720234] Engine response: 'readyok' <<<
+[13:38:59.2724361] >>> Processing command: 'position startpos moves f2f4 ', expecting response: ''
+[13:38:59.2726994] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:39:00.7730536] Engine response: 'bestmove g8f6 ponder e2e3' <<<
+[13:39:02.7264210] >>> Processing command: 'position startpos moves f2f4 g8f6 d2d4 ', expecting response: ''
+[13:39:02.7269137] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:39:04.2277768] Engine response: 'bestmove a7a6 ponder g1f3' <<<
+[13:39:05.2612211] >>> Processing command: 'position startpos moves f2f4 g8f6 d2d4 a7a6 b1c3 ', expecting response: ''
+[13:39:05.2616820] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:39:06.7616516] Engine response: 'bestmove d7d5 ponder g1f3' <<<
+[13:39:11.7989532] >>> Processing command: 'position startpos moves f2f4 g8f6 d2d4 a7a6 b1c3 d7d5 g1f3 ', expecting response: ''
+[13:39:11.7994409] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:39:13.2996906] Engine response: 'bestmove c8f5 ponder e2e3' <<<
+[13:39:25.5388696] >>> Processing command: 'position fen rn1qkb1r/1pp1pppp/p4n2/3p1b2/3P1P2/2N2N2/PPP1P1PP/R1BQKB1R w KQkq - 2 5 moves b2b4 ', expecting response: ''
+[13:39:25.5392692] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:39:27.0401377] Engine response: 'bestmove a6a5 ponder b4b5' <<<
+[13:41:48.1434041] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:41:48.1439467] Engine response: 'readyok' <<<
+[13:41:48.1441593] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[13:41:48.1443816] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:41:48.1446743] Engine response: 'readyok' <<<
+[13:41:48.1448699] >>> Processing command: 'position startpos', expecting response: ''
+[13:41:48.1450513] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:41:49.6459957] Engine response: 'bestmove g1f3 ponder d7d5' <<<
+[13:41:53.4094217] >>> Processing command: 'position startpos moves g1f3 d7d5 ', expecting response: ''
+[13:41:53.4098637] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:41:54.9099353] Engine response: 'bestmove d2d4 ponder g8f6' <<<
+[13:41:56.8618295] >>> Processing command: 'position startpos moves g1f3 d7d5 d2d4 c7c6 ', expecting response: ''
+[13:41:56.8622932] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:41:58.3624198] Engine response: 'bestmove c1f4 ponder c8f5' <<<
+[13:42:12.3313384] >>> Processing command: 'position startpos moves g1f3 d7d5 d2d4 c7c6 c1f4 e7e6 ', expecting response: ''
+[13:42:12.3318799] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:42:13.8325491] Engine response: 'bestmove b1d2 ponder g8f6' <<<
+[13:42:30.0184024] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:42:30.0193856] Engine response: 'readyok' <<<
+[13:42:30.0197171] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[13:42:30.0200703] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:42:30.0204013] Engine response: 'readyok' <<<
+[13:42:30.0207354] >>> Processing command: 'position startpos moves g1f3 d7d5 d2d4 c7c6 c1f4 e7e6 b1d2 c6c5 ', expecting response: ''
+[13:42:30.0210433] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:42:31.5218317] Engine response: 'bestmove c2c3 ponder c5d4' <<<
+[13:49:23.2978866] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:49:23.2984691] Engine response: 'readyok' <<<
+[13:49:23.2987002] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[13:49:23.2989049] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:49:23.2991876] Engine response: 'readyok' <<<
+[13:49:23.2993834] >>> Processing command: 'position startpos', expecting response: ''
+[13:49:23.3068253] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:49:24.8074668] Engine response: 'bestmove g1f3 ponder d7d5' <<<
+[13:51:24.7922180] >>> Processing command: 'position startpos moves g1f3 d7d5 ', expecting response: ''
+[13:51:24.7930858] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:51:26.2943037] Engine response: 'bestmove d2d4 ponder g8f6' <<<
+[13:52:12.9080023] >>> Processing command: 'position startpos moves g1f3 d7d5 d2d4 f7f5 ', expecting response: ''
+[13:52:12.9088756] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:52:14.4095119] Engine response: 'bestmove c2c4 ponder e7e6' <<<
+[13:55:43.9746013] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:55:43.9752009] Engine response: 'readyok' <<<
+[13:55:43.9754814] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[13:55:43.9758337] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:55:43.9763540] Engine response: 'readyok' <<<
+[13:55:43.9767039] >>> Processing command: 'position startpos', expecting response: ''
+[13:55:43.9770664] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:55:45.4774447] Engine response: 'bestmove g1f3 ponder d7d5' <<<
+[13:56:56.7368078] >>> Processing command: 'position startpos moves g1f3 d7d5 ', expecting response: ''
+[13:56:56.7376151] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:56:58.2375280] Engine response: 'bestmove c2c4 ponder d5d4' <<<
+[14:00:25.3503181] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:00:25.3508723] Engine response: 'readyok' <<<
+[14:00:25.3511751] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[14:00:25.3514079] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:00:25.3517322] Engine response: 'readyok' <<<
+[14:00:25.3519617] >>> Processing command: 'position startpos', expecting response: ''
+[14:00:25.3521928] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:00:26.8525049] Engine response: 'bestmove e2e4 ponder c7c5' <<<
+[14:15:14.4045273] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:15:14.4052631] Engine response: 'readyok' <<<
+[14:15:14.4055745] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[14:15:14.4058826] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:15:14.4062350] Engine response: 'readyok' <<<
+[14:15:14.4065252] >>> Processing command: 'position startpos', expecting response: ''
+[14:15:14.4067810] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:15:15.9067327] Engine response: 'bestmove d2d4 ponder g8f6' <<<
+[14:16:33.0020071] >>> Processing command: 'position startpos moves d2d4 d7d5 ', expecting response: ''
+[14:16:33.0027088] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:16:34.5029954] Engine response: 'bestmove c2c4 ponder e7e6' <<<
+[14:22:15.5735195] >>> Processing command: 'position startpos moves d2d4 d7d5 c2c4 f7f6 ', expecting response: ''
+[14:22:15.5744071] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:22:17.0745997] Engine response: 'bestmove c4d5 ponder d8d5' <<<
+[14:25:21.0497447] >>> Processing command: 'position startpos moves d2d4 d7d5 c2c4 f7f6 c4d5 b8c6 ', expecting response: ''
+[14:25:21.0504820] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:25:22.5504727] Engine response: 'bestmove d5c6 ponder e7e5' <<<
+[14:29:10.0037105] >>> Processing command: 'position startpos moves d2d4 d7d5 c2c4 f7f6 c4d5 b8c6 d5c6 g7g5 ', expecting response: ''
+[14:29:10.0044187] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:29:11.5047058] Engine response: 'bestmove c1d2 ponder e7e5' <<<
+[14:38:12.1285415] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:38:12.1292206] Engine response: 'readyok' <<<
+[14:38:12.1294529] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[14:38:12.1296579] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:38:12.1299093] Engine response: 'readyok' <<<
+[14:38:12.1411357] >>> Processing command: 'position startpos', expecting response: ''
+[14:38:12.1415047] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:38:13.6417399] Engine response: 'bestmove e2e4 ponder c7c5' <<<
+[14:38:59.2413564] >>> Processing command: 'position startpos moves e2e4 d7d5 ', expecting response: ''
+[14:38:59.2419550] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:39:00.7427564] Engine response: 'bestmove e4d5 ponder g8f6' <<<
+[14:39:58.6638039] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:39:58.6642293] Engine response: 'readyok' <<<
+[14:39:58.6644595] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[14:39:58.6646691] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:39:58.6649577] Engine response: 'readyok' <<<
+[14:39:58.6651269] >>> Processing command: 'position startpos', expecting response: ''
+[14:39:58.6653580] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:40:00.1657586] Engine response: 'bestmove e2e4 ponder c7c5' <<<
+[14:40:04.2237475] >>> Processing command: 'position startpos moves e2e4 e7e5 ', expecting response: ''
+[14:40:04.2242274] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:40:05.7253950] Engine response: 'bestmove g1f3 ponder b8c6' <<<
+[14:40:07.6571252] >>> Processing command: 'position startpos moves e2e4 e7e5 g1f3 c7c6 ', expecting response: ''
+[14:40:07.6576512] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:40:09.1577728] Engine response: 'bestmove d2d4 ponder e5d4' <<<
+[14:40:10.9318093] >>> Processing command: 'position startpos moves e2e4 e7e5 g1f3 c7c6 d2d4 b7b5 ', expecting response: ''
+[14:40:10.9322949] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:40:12.4328611] Engine response: 'bestmove f3e5 ponder f8e7' <<<
+[14:40:36.1165796] >>> Processing command: 'position startpos moves e2e4 e7e5 g1f3 c7c6 d2d4 b7b5 f3e5 g7g5 ', expecting response: ''
+[14:40:36.1170959] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:40:37.6181733] Engine response: 'bestmove d1f3 ponder g8h6' <<<
+[14:52:40.3644170] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:52:40.3650716] Engine response: 'readyok' <<<
+[14:52:40.3653311] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[14:52:40.3655834] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:52:40.3769659] Engine response: 'readyok' <<<
+[14:52:40.3772828] >>> Processing command: 'position startpos', expecting response: ''
+[14:52:40.3775588] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:52:41.8780680] Engine response: 'bestmove d2d4 ponder g8f6' <<<
+[14:52:58.1864602] >>> Processing command: 'position startpos moves d2d4 d7d5 ', expecting response: ''
+[14:52:58.1869825] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:52:59.6881858] Engine response: 'bestmove g1f3 ponder e7e6' <<<
+[14:53:19.0502132] >>> Processing command: 'position startpos moves d2d4 d7d5 g1f3 c7c6 ', expecting response: ''
+[14:53:19.0507660] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:53:20.5503809] Engine response: 'bestmove g2g3 ponder c8f5' <<<
+[14:54:08.5907242] >>> Processing command: 'position startpos moves d2d4 d7d5 g1f3 c7c6 g2g3 f7f5 ', expecting response: ''
+[14:54:08.5914085] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:54:10.0917645] Engine response: 'bestmove c1f4 ponder e7e6' <<<
+[14:54:39.4280482] >>> Processing command: 'position startpos moves d2d4 d7d5 g1f3 c7c6 g2g3 f7f5 c1f4 g7g6 ', expecting response: ''
+[14:54:39.4285743] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:54:40.9285886] Engine response: 'bestmove h2h4 ponder g8f6' <<<
+[14:55:05.9212852] >>> Processing command: 'position fen rnbqkbnr/pp2p2p/2p3p1/3p1p2/3P1B2/5NP1/PPP1PP1P/RN1QKB1R w KQkq - 0 5 moves h2h4 c6c5 ', expecting response: ''
+[14:55:05.9216878] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:55:07.4222956] Engine response: 'bestmove h4h5 ponder f8g7' <<<
+[14:55:09.2040583] >>> Processing command: 'position fen rnbqkbnr/pp2p2p/2p3p1/3p1p2/3P1B2/5NP1/PPP1PP1P/RN1QKB1R w KQkq - 0 5 moves h2h4 c6c5 h4h5 g6h5 ', expecting response: ''
+[14:55:09.2044451] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:55:10.7044852] Engine response: 'bestmove f4e5 ponder g8f6' <<<
+[14:55:28.9723968] >>> Processing command: 'position fen rnbqkbnr/pp2p2p/2p3p1/3p1p2/3P1B2/5NP1/PPP1PP1P/RN1QKB1R w KQkq - 0 5 moves h2h4 c6c5 h4h5 g6h5 f4e5 a7a6 ', expecting response: ''
+[14:55:28.9727771] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:55:30.4727667] Engine response: 'bestmove e5h8 ponder b8c6' <<<
+[14:55:54.3412334] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:55:54.3418512] Engine response: 'readyok' <<<
+[14:55:54.3421463] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[14:55:54.3423975] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:55:54.3427036] Engine response: 'readyok' <<<
+[14:55:54.3440004] >>> Processing command: 'position fen rnbqkbnB/1p2p2p/8/p1pp1p1p/3P4/5NP1/PPP1PP2/RN1QKB1R w KQkq - 0 9', expecting response: ''
+[14:55:54.3443043] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:55:55.8448256] Engine response: 'bestmove e2e3 ponder g8h6' <<<
+[14:55:58.7510900] >>> Processing command: 'position fen rnbqkbnB/1p2p2p/8/p1pp1p1p/3P4/5NP1/PPP1PP2/RN1QKB1R w KQkq - 0 9 moves e2e3 c5d4 ', expecting response: ''
+[14:55:58.7514991] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:56:00.2520184] Engine response: 'bestmove f3d4 ponder g8h6' <<<
+[14:56:08.9417632] >>> Processing command: 'position fen rnbqkbnB/1p2p2p/8/p1pp1p1p/3P4/5NP1/PPP1PP2/RN1QKB1R w KQkq - 0 9 moves e2e3 c5d4 f3d4 b7b6 ', expecting response: ''
+[14:56:08.9421743] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:56:10.4424377] Engine response: 'bestmove f1b5 ponder d8d7' <<<
+[14:56:19.1146289] >>> Processing command: 'position fen rnbqkbnB/1p2p2p/8/p1pp1p1p/3P4/5NP1/PPP1PP2/RN1QKB1R w KQkq - 0 9 moves e2e3 c5d4 f3d4 b7b6 f1b5 e8f7 ', expecting response: ''
+[14:56:19.1150998] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:56:20.6153782] Engine response: 'bestmove d1h5' <<<
+[15:09:47.7617912] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:09:47.7624648] Engine response: 'readyok' <<<
+[15:09:47.7627438] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[15:09:47.7630221] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:09:47.7633480] Engine response: 'readyok' <<<
+[15:09:47.7636149] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[15:09:47.7638411] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:09:49.2638185] Engine response: 'bestmove e7e5 ponder g1f3' <<<
+[15:10:09.0526611] >>> Processing command: 'position startpos moves e2e4 e7e5 g1f3 ', expecting response: ''
+[15:10:09.0531978] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:10:10.5540740] Engine response: 'bestmove b8c6 ponder f1b5' <<<
+[15:25:33.7689708] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:25:33.7700049] Engine response: 'readyok' <<<
+[15:25:33.7702503] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[15:25:33.7704497] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:25:33.7707142] Engine response: 'readyok' <<<
+[15:25:33.7758357] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[15:25:33.7761474] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:25:35.2770664] Engine response: 'bestmove c7c5 ponder g1f3' <<<
+[15:25:37.1406737] >>> Processing command: 'position startpos moves e2e4 c7c5 f2f3 ', expecting response: ''
+[15:25:37.1411514] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:25:38.6416600] Engine response: 'bestmove g8f6 ponder d2d3' <<<
+[15:25:40.4826909] >>> Processing command: 'position startpos moves e2e4 c7c5 f2f3 g8f6 c2c3 ', expecting response: ''
+[15:25:40.4831769] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:25:41.9834492] Engine response: 'bestmove e7e6 ponder d2d4' <<<
+[15:25:44.8386223] >>> Processing command: 'position startpos moves e2e4 c7c5 f2f3 g8f6 c2c3 e7e6 g1h3 ', expecting response: ''
+[15:25:44.8390934] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:25:46.3394311] Engine response: 'bestmove d7d5 ponder e4e5' <<<
+[15:25:48.2968099] >>> Processing command: 'position fen rnbqkb1r/pp3ppp/4pn2/2pp4/4P3/2P2P1N/PP1P2PP/RNBQKB1R w KQkq d6 0 5 moves b2b4 ', expecting response: ''
+[15:25:48.2972015] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:25:49.7974123] Engine response: 'bestmove e6e5 ponder h3f2' <<<
+[15:25:50.9713432] >>> Processing command: 'position fen rnbqkb1r/pp3ppp/4pn2/2pp4/4P3/2P2P1N/PP1P2PP/RNBQKB1R w KQkq d6 0 5 moves b2b4 e6e5 a2a3 ', expecting response: ''
+[15:25:50.9717793] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:25:52.4716833] Engine response: 'bestmove c5b4 ponder a3b4' <<<
+[15:50:20.2956669] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:50:20.2963380] Engine response: 'readyok' <<<
+[15:50:20.2967687] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[15:50:20.2971534] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:50:20.2975521] Engine response: 'readyok' <<<
+[15:50:20.2977708] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[15:50:20.2979814] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:50:21.7986410] Engine response: 'bestmove e7e6 ponder d2d4' <<<
+[15:50:24.6860110] >>> Processing command: 'position startpos moves e2e4 e7e6 g1f3 ', expecting response: ''
+[15:50:24.6865182] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:50:26.1868039] Engine response: 'bestmove d7d5 ponder e4e5' <<<
+[15:50:28.2087852] >>> Processing command: 'position startpos moves e2e4 e7e6 g1f3 d7d5 d2d3 ', expecting response: ''
+[15:50:28.2092971] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:50:29.7100345] Engine response: 'bestmove c7c5 ponder g2g3' <<<
+[15:50:34.3229755] >>> Processing command: 'position startpos moves e2e4 e7e6 g1f3 d7d5 d2d3 c7c5 a2a4 ', expecting response: ''
+[15:50:34.3234800] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:50:35.8234904] Engine response: 'bestmove h7h6 ponder g2g3' <<<
+[15:50:39.7235986] >>> Processing command: 'position fen rnbqkbnr/pp3pp1/4p2p/2pp4/P3P3/3P1N2/1PP2PPP/RNBQKB1R w KQkq - 0 5 moves c2c4 ', expecting response: ''
+[15:50:39.7239907] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:50:41.2248470] Engine response: 'bestmove d5e4 ponder d3e4' <<<
+[15:50:42.7259708] >>> Processing command: 'position fen rnbqkbnr/pp3pp1/4p2p/2pp4/P3P3/3P1N2/1PP2PPP/RNBQKB1R w KQkq - 0 5 moves c2c4 d5e4 b2b3 ', expecting response: ''
+[15:50:42.7263768] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:50:44.2265810] Engine response: 'bestmove d8f6 ponder d3e4' <<<
+[15:51:28.2586246] >>> Processing command: 'position fen rnbqkbnr/pp3pp1/4p2p/2pp4/P3P3/3P1N2/1PP2PPP/RNBQKB1R w KQkq - 0 5 moves c2c4 d5e4 b2b3 d8f6 d3e4 ', expecting response: ''
+[15:51:28.2591285] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:51:29.7597408] Engine response: 'bestmove f6a1 ponder f1d3' <<<
+[15:52:12.7932085] >>> Processing command: 'position fen rnbqkbnr/pp3pp1/4p2p/2pp4/P3P3/3P1N2/1PP2PPP/RNBQKB1R w KQkq - 0 5 moves c2c4 d5e4 b2b3 d8f6 d3e4 f6a1 g2g3 ', expecting response: ''
+[15:52:12.7936636] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:52:14.2936063] Engine response: 'bestmove a1b1 ponder f1d3' <<<
+[15:52:34.4523406] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:52:34.4528873] Engine response: 'readyok' <<<
+[15:52:34.4532105] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[15:52:34.4535274] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:52:34.4538450] Engine response: 'readyok' <<<
+[15:52:34.4540873] >>> Processing command: 'position startpos', expecting response: ''
+[15:52:34.4543594] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:52:35.9544049] Engine response: 'bestmove d2d4 ponder g8f6' <<<
+[15:52:38.1384623] >>> Processing command: 'position startpos moves d2d4 d7d5 ', expecting response: ''
+[15:52:38.1389618] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:52:39.6393585] Engine response: 'bestmove c2c4 ponder e7e6' <<<
+[15:52:41.5880302] >>> Processing command: 'position startpos moves d2d4 d7d5 c2c4 c7c6 ', expecting response: ''
+[15:52:41.5885134] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:52:43.0889031] Engine response: 'bestmove g1f3 ponder g8f6' <<<
+[15:52:45.2799598] >>> Processing command: 'position startpos moves d2d4 d7d5 c2c4 c7c6 g1f3 g8f6 ', expecting response: ''
+[15:52:45.2804623] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:52:46.7807223] Engine response: 'bestmove e2e3 ponder c8f5' <<<
+[15:52:52.6351475] >>> Processing command: 'position startpos moves d2d4 d7d5 c2c4 c7c6 g1f3 g8f6 e2e3 b8a6 ', expecting response: ''
+[15:52:52.6356431] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:52:54.1355756] Engine response: 'bestmove c1d2 ponder e7e6' <<<
+[15:52:58.9051947] >>> Processing command: 'position fen r1bqkb1r/pp2pppp/n1p2n2/3p4/2PP4/4PN2/PP3PPP/RNBQKB1R w KQkq - 1 5 moves c1d2 h7h5 ', expecting response: ''
+[15:52:58.9056115] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:53:00.4055715] Engine response: 'bestmove h2h3 ponder e7e6' <<<
+[15:53:06.1320372] >>> Processing command: 'position fen r1bqkb1r/pp2pppp/n1p2n2/3p4/2PP4/4PN2/PP3PPP/RNBQKB1R w KQkq - 1 5 moves c1d2 h7h5 h2h3 e7e6 ', expecting response: ''
+[15:53:06.1324258] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:53:07.6326588] Engine response: 'bestmove d1c2 ponder f6e4' <<<
+[15:53:11.7239784] >>> Processing command: 'position fen r1bqkb1r/pp2pppp/n1p2n2/3p4/2PP4/4PN2/PP3PPP/RNBQKB1R w KQkq - 1 5 moves c1d2 h7h5 h2h3 e7e6 d1c2 f8b4 ', expecting response: ''
+[15:53:11.7243738] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:53:13.2250292] Engine response: 'bestmove c4d5 ponder b4d2' <<<
+[15:53:17.4486347] >>> Processing command: 'position fen r1bqk2r/pp3pp1/n3pn2/3p3p/1b1P4/4PN1P/PPQB1PP1/RN2KB1R w KQkq - 0 9', expecting response: ''
+[15:53:17.4490384] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:53:18.9494734] Engine response: 'bestmove f1a6 ponder b4d2' <<<
+[15:53:21.0350071] >>> Processing command: 'position fen r1bqk2r/pp3pp1/n3pn2/3p3p/1b1P4/4PN1P/PPQB1PP1/RN2KB1R w KQkq - 0 9 moves f1a6 b7a6 ', expecting response: ''
+[15:53:21.0354086] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:53:22.5358007] Engine response: 'bestmove d2b4 ponder c8d7' <<<
+[15:53:37.7863602] >>> Processing command: 'position fen r1bqk2r/pp3pp1/n3pn2/3p3p/1b1P4/4PN1P/PPQB1PP1/RN2KB1R w KQkq - 0 9 moves f1a6 b7a6 d2b4 d8b6 ', expecting response: ''
+[15:53:37.7867967] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:53:39.2871403] Engine response: 'bestmove b4a3 ponder c8d7' <<<
+[15:53:50.0316211] >>> Processing command: 'position fen r1bqk2r/pp3pp1/n3pn2/3p3p/1b1P4/4PN1P/PPQB1PP1/RN2KB1R w KQkq - 0 9 moves f1a6 b7a6 d2b4 d8b6 b4a3 b6a5 ', expecting response: ''
+[15:53:50.0320576] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:53:51.5333697] Engine response: 'bestmove c2d2 ponder a5d8' <<<
+[15:54:11.1020264] >>> Processing command: 'position fen r1b1k2r/p4pp1/p3p3/q2p3p/3Pn3/B3PN1P/PP1Q1PP1/RN2K2R w KQkq - 5 13', expecting response: ''
+[15:54:11.1024516] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:54:12.6029084] Engine response: 'bestmove d2a5 ponder f7f6' <<<
+[15:55:26.9364239] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:55:26.9369296] Engine response: 'readyok' <<<
+[15:55:26.9372438] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[15:55:26.9375258] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:55:26.9378835] Engine response: 'readyok' <<<
+[15:55:26.9403343] >>> Processing command: 'position fen r1b1k2r/p4pp1/p3p3/q2p3p/3Pn3/B3PN1P/PP1Q1PP1/RN2K2R w KQkq - 5 13 moves d2a5 f7f6 ', expecting response: ''
+[15:55:26.9405852] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:55:28.4404021] Engine response: 'bestmove a5b4 ponder e8f7' <<<
+[15:55:32.2722759] >>> Processing command: 'position fen r1b1k2r/p4pp1/p3p3/q2p3p/3Pn3/B3PN1P/PP1Q1PP1/RN2K2R w KQkq - 5 13 moves d2a5 f7f6 a5b4 c8d7 ', expecting response: ''
+[15:55:32.2726760] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:55:33.7727937] Engine response: 'bestmove b4e7' <<<
+[15:59:34.3765905] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:59:34.3771470] Engine response: 'readyok' <<<
+[15:59:34.3773625] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[15:59:34.3775564] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:59:34.3778066] Engine response: 'readyok' <<<
+[15:59:34.3780099] >>> Processing command: 'position startpos', expecting response: ''
+[15:59:34.3781985] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:59:35.8785126] Engine response: 'bestmove g1f3 ponder d7d5' <<<
+[16:01:58.3278379] >>> Processing command: 'isready', expecting response: 'readyok'
+[16:01:58.3284691] Engine response: 'readyok' <<<
+[16:01:58.3286867] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[16:01:58.3288730] >>> Processing command: 'isready', expecting response: 'readyok'
+[16:01:58.3291630] Engine response: 'readyok' <<<
+[16:01:58.3294194] >>> Processing command: 'position startpos', expecting response: ''
+[16:01:58.3296155] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:01:59.8295194] Engine response: 'bestmove e2e4 ponder c7c5' <<<
+[16:02:02.7944713] >>> Processing command: 'position startpos moves e2e4 e7e5 ', expecting response: ''
+[16:02:02.7949957] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:02:04.2959553] Engine response: 'bestmove d2d4 ponder e5d4' <<<
+[16:02:07.1131774] >>> Processing command: 'position startpos moves e2e4 e7e5 d2d4 d7d5 ', expecting response: ''
+[16:02:07.1136931] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:02:08.6145653] Engine response: 'bestmove d4e5 ponder d5e4' <<<
+[16:02:11.0277183] >>> Processing command: 'position startpos moves e2e4 e7e5 d2d4 d7d5 d4e5 d5e4 ', expecting response: ''
+[16:02:11.0281978] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:02:12.5285161] Engine response: 'bestmove d1d8 ponder e8d8' <<<
+[16:02:25.5269675] >>> Processing command: 'position startpos moves e2e4 e7e5 d2d4 d7d5 d4e5 d5e4 d1d8 e8d8 ', expecting response: ''
+[16:02:25.5274641] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:02:27.0275541] Engine response: 'bestmove c1e3 ponder b8c6' <<<
+[16:02:30.4002694] >>> Processing command: 'position fen rnbk1bnr/ppp2ppp/8/4P3/4p3/8/PPP2PPP/RNB1KBNR w KQ - 0 5 moves c1e3 b8c6 ', expecting response: ''
+[16:02:30.4006600] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:02:31.9008741] Engine response: 'bestmove b1d2 ponder c6e5' <<<
+[16:02:34.7142758] >>> Processing command: 'position fen rnbk1bnr/ppp2ppp/8/4P3/4p3/8/PPP2PPP/RNB1KBNR w KQ - 0 5 moves c1e3 b8c6 b1d2 a7a5 ', expecting response: ''
+[16:02:34.7146725] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:02:36.2154679] Engine response: 'bestmove a2a3 ponder c6e5' <<<
+[16:03:04.7076818] >>> Processing command: 'position fen rnbk1bnr/ppp2ppp/8/4P3/4p3/8/PPP2PPP/RNB1KBNR w KQ - 0 5 moves c1e3 b8c6 b1d2 a7a5 a2a3 h7h5 ', expecting response: ''
+[16:03:04.7080909] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:03:06.2088942] Engine response: 'bestmove d2e4 ponder c6e5' <<<
+[16:03:09.3107496] >>> Processing command: 'position fen r1bk1bnr/1pp3p1/2n2p2/p3P2p/4N3/P3B3/1PP2PPP/R3KBNR w KQ - 0 9', expecting response: ''
+[16:03:09.3111624] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:03:10.8115302] Engine response: 'bestmove e1c1 ponder d8e8' <<<
+[16:03:22.6405812] >>> Processing command: 'position fen r1bk1bnr/1pp3p1/2n2p2/p3P2p/4N3/P3B3/1PP2PPP/R3KBNR w KQ - 0 9 moves e1c1 f8d6 ', expecting response: ''
+[16:03:22.6409911] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:03:24.1420438] Engine response: 'bestmove e5d6 ponder c8f5' <<<
+[16:03:27.6667876] >>> Processing command: 'position fen r1bk1bnr/1pp3p1/2n2p2/p3P2p/4N3/P3B3/1PP2PPP/R3KBNR w KQ - 0 9 moves e1c1 f8d6 e5d6 c7d6 ', expecting response: ''
+[16:03:27.6672207] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:03:29.1679317] Engine response: 'bestmove h2h4 ponder c8g4' <<<
+[16:03:33.6824355] >>> Processing command: 'position fen r1bk1bnr/1pp3p1/2n2p2/p3P2p/4N3/P3B3/1PP2PPP/R3KBNR w KQ - 0 9 moves e1c1 f8d6 e5d6 c7d6 h2h4 g7g6 ', expecting response: ''
+[16:03:33.6829459] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:03:35.1834398] Engine response: 'bestmove g1e2 ponder g8h6' <<<
+[16:03:38.6851029] >>> Processing command: 'position fen r1bk2nr/1p6/2np2p1/p4p1p/4N2P/P3B3/1PP1NPP1/2KR1B1R w - - 0 13', expecting response: ''
+[16:03:38.6855236] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:03:40.1853827] Engine response: 'bestmove e3g5 ponder d8e8' <<<
+[16:03:48.1034299] >>> Processing command: 'position fen r1bk2nr/1p6/2np2p1/p4p1p/4N2P/P3B3/1PP1NPP1/2KR1B1R w - - 0 13 moves e3g5 g8e7 ', expecting response: ''
+[16:03:48.1038385] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:03:49.6040933] Engine response: 'bestmove e4d6 ponder h8g8' <<<
+[16:04:10.5933441] >>> Processing command: 'position fen r1bk2nr/1p6/2np2p1/p4p1p/4N2P/P3B3/1PP1NPP1/2KR1B1R w - - 0 13 moves e3g5 g8e7 e4d6 b7b5 ', expecting response: ''
+[16:04:10.5937447] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:04:12.0937234] Engine response: 'bestmove d6b5 ponder c8d7' <<<
+[16:04:24.6092209] >>> Processing command: 'position fen r1bk2nr/1p6/2np2p1/p4p1p/4N2P/P3B3/1PP1NPP1/2KR1B1R w - - 0 13 moves e3g5 g8e7 e4d6 b7b5 d6b5 d8e8 ', expecting response: ''
+[16:04:24.6096497] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:04:26.1099510] Engine response: 'bestmove b5c7 ponder e8f7' <<<
+[16:04:30.9237962] >>> Processing command: 'position fen r1b2k1r/2N1n3/2n3p1/p4pBp/7P/P7/1PP1NPP1/2KR1B1R w - - 3 17', expecting response: ''
+[16:04:30.9242362] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:04:32.4244638] Engine response: 'bestmove c7a8 ponder c6e5' <<<
+[16:04:49.5727656] >>> Processing command: 'position fen r1b4r/2N1nk2/2n3p1/p4pBp/7P/P7/1PP1NPP1/2KR1B1R w - - 3 17', expecting response: ''
+[16:04:49.5732082] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:04:51.0735170] Engine response: 'bestmove c7a8 ponder c8b7' <<<
+[16:05:09.8275081] >>> Processing command: 'position fen r1b2k1r/2N1n3/2n3p1/p4pBp/7P/P7/1PP1NPP1/2KR1B1R w - - 3 17', expecting response: ''
+[16:05:09.8279305] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:05:11.3285260] Engine response: 'bestmove c7a8 ponder c8b7' <<<
+[16:05:21.3386892] >>> Processing command: 'position fen r1b4r/2N1nk2/2n3p1/p4pBp/7P/P7/1PP1NPP1/2KR1B1R w - - 3 17', expecting response: ''
+[16:05:21.3391014] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:05:22.8399895] Engine response: 'bestmove c7a8 ponder c8b7' <<<
+[16:05:55.3320537] >>> Processing command: 'position fen r1b4r/2N1nk2/2n3p1/p4pBp/7P/P7/1PP1NPP1/2KR1B1R w - - 3 17 moves c7a8 c6e5 ', expecting response: ''
+[16:05:55.3324612] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:05:56.8325467] Engine response: 'bestmove a8c7 ponder c8b7' <<<
+[16:06:46.8792571] >>> Processing command: 'position fen r1b4r/2N1nk2/2n3p1/p4pBp/7P/P7/1PP1NPP1/2KR1B1R w - - 3 17 moves c7a8 c6e5 a8c7 c8a6 ', expecting response: ''
+[16:06:46.8796358] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:06:48.3793558] Engine response: 'bestmove g5e7 ponder f7e7' <<<
+[16:06:53.9624213] >>> Processing command: 'position fen r1b4r/2N1nk2/2n3p1/p4pBp/7P/P7/1PP1NPP1/2KR1B1R w - - 3 17 moves c7a8 c6e5 a8c7 c8a6 g5e7 f7e7 ', expecting response: ''
+[16:06:53.9628028] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:06:55.4626546] Engine response: 'bestmove e2c3 ponder a6f1' <<<
+[16:07:19.6336886] >>> Processing command: 'position fen 7r/2N1k3/b5p1/4np1p/p6P/P1N5/1PP2PP1/2KR1B1R w - - 0 21', expecting response: ''
+[16:07:19.6341136] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:07:21.1345160] Engine response: 'bestmove c7d5 ponder e7f7' <<<
+[16:07:41.6175632] >>> Processing command: 'position fen 7r/2N1k3/b5p1/4np1p/p6P/P1N5/1PP2PP1/2KR1B1R w - - 0 21 moves c7d5 e7e6 ', expecting response: ''
+[16:07:41.6179640] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:07:43.1184443] Engine response: 'bestmove d5c7 ponder e6f6' <<<
+[16:07:45.9090467] >>> Processing command: 'position fen 7r/2N1k3/b5p1/4np1p/p6P/P1N5/1PP2PP1/2KR1B1R w - - 0 21 moves c7d5 e7e6 d5c7 e6f6 ', expecting response: ''
+[16:07:45.9094584] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:07:47.4096088] Engine response: 'bestmove f1a6 ponder f5f4' <<<
+[16:07:54.5006668] >>> Processing command: 'position fen 7r/2N1k3/b5p1/4np1p/p6P/P1N5/1PP2PP1/2KR1B1R w - - 0 21 moves c7d5 e7e6 d5c7 e6f6 f1a6 f5f4 ', expecting response: ''
+[16:07:54.5010558] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:07:56.0020272] Engine response: 'bestmove d1d6 ponder f6e7' <<<
+[16:08:01.1382832] >>> Processing command: 'position fen 7r/2N1k3/B2R2p1/4n2p/p4p1P/P1N5/1PP2PP1/2K4R w - - 2 25', expecting response: ''
+[16:08:01.1386816] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:08:02.6387063] Engine response: 'bestmove d6e6 ponder e7f7' <<<
+[16:08:06.6033158] >>> Processing command: 'position fen 7r/2N1k3/B2R2p1/4n2p/p4p1P/P1N5/1PP2PP1/2K4R w - - 2 25 moves d6e6 e7f7 ', expecting response: ''
+[16:08:06.6037301] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:08:08.1037991] Engine response: 'bestmove h1d1 ponder f4f3' <<<
+[16:08:12.3356551] >>> Processing command: 'position fen 7r/2N1k3/B2R2p1/4n2p/p4p1P/P1N5/1PP2PP1/2K4R w - - 2 25 moves d6e6 e7f7 h1d1 f7g7 ', expecting response: ''
+[16:08:12.3360649] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:08:13.8363914] Engine response: 'bestmove e6e5 ponder h8f8' <<<
+[16:08:25.9203167] >>> Processing command: 'position fen 7r/2N1k3/B2R2p1/4n2p/p4p1P/P1N5/1PP2PP1/2K4R w - - 2 25 moves d6e6 e7f7 h1d1 f7g7 e6e5 g6g5 ', expecting response: ''
+[16:08:25.9207282] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:08:27.4203667] Engine response: 'bestmove c3e4 ponder h8g8' <<<
+[16:08:33.7403499] >>> Processing command: 'position fen 7r/2N3k1/B7/4R2p/p3Np1p/P7/1PP2PP1/2KR4 w - - 0 29', expecting response: ''
+[16:08:33.7407653] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:08:35.2405001] Engine response: 'bestmove d1d7 ponder g7g6' <<<
+[16:08:38.3046786] >>> Processing command: 'position fen 7r/2N3k1/B7/4R2p/p3Np1p/P7/1PP2PP1/2KR4 w - - 0 29 moves d1d7 g7g6 ', expecting response: ''
+[16:08:38.3050958] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:08:39.8053478] Engine response: 'bestmove d7d6 ponder g6f7' <<<
+[16:08:46.3912290] >>> Processing command: 'position fen 7r/2N3k1/B7/4R2p/p3Np1p/P7/1PP2PP1/2KR4 w - - 0 29 moves d1d7 g7g6 d7d6 g6g7 ', expecting response: ''
+[16:08:46.3916270] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:08:47.8913519] Engine response: 'bestmove d6d7 ponder g7g6' <<<
+[16:09:04.7759740] >>> Processing command: 'position fen 7r/2N3k1/B7/4R2p/p3Np1p/P7/1PP2PP1/2KR4 w - - 0 29 moves d1d7 g7g6 d7d6 g6g7 d6d7 g7h6 ', expecting response: ''
+[16:09:04.7763947] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:09:06.2762715] Engine response: 'bestmove e5e6' <<<
+[16:16:51.6242044] >>> Processing command: 'isready', expecting response: 'readyok'
+[16:16:51.6248135] Engine response: 'readyok' <<<
+[16:16:51.6250476] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[16:16:51.6252565] >>> Processing command: 'isready', expecting response: 'readyok'
+[16:16:51.6255887] Engine response: 'readyok' <<<
+[16:16:51.6258964] >>> Processing command: 'position startpos', expecting response: ''
+[16:16:51.6262411] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:16:53.1267301] Engine response: 'bestmove c2c4 ponder e7e5' <<<
+[16:16:54.1678991] >>> Processing command: 'position startpos moves c2c4 c7c5 ', expecting response: ''
+[16:16:54.1682856] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:16:55.6685312] Engine response: 'bestmove g2g3 ponder g7g6' <<<
+[16:16:57.2167900] >>> Processing command: 'position startpos moves c2c4 c7c5 g2g3 d7d6 ', expecting response: ''
+[16:16:57.2172481] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:16:58.7181666] Engine response: 'bestmove b1c3 ponder g7g6' <<<
+[16:17:00.6514979] >>> Processing command: 'position startpos moves c2c4 c7c5 g2g3 d7d6 b1c3 b7b6 ', expecting response: ''
+[16:17:00.6519950] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:17:02.1528957] Engine response: 'bestmove f1g2 ponder c8d7' <<<
+[16:17:04.1158761] >>> Processing command: 'position startpos moves c2c4 c7c5 g2g3 d7d6 b1c3 b7b6 f1g2 g7g5 ', expecting response: ''
+[16:17:04.1164116] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:17:05.6164282] Engine response: 'bestmove h2h3 ponder f8g7' <<<
+[16:17:18.2227693] >>> Processing command: 'position fen rnbqkbnr/p3pp1p/1p1p4/2p3p1/2P5/2N3P1/PP1PPPBP/R1BQK1NR w KQkq g6 0 5 moves h2h3 f7f6 ', expecting response: ''
+[16:17:18.2232712] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:17:19.7236086] Engine response: 'bestmove d2d3 ponder f8g7' <<<
+[16:17:33.2538109] >>> Processing command: 'isready', expecting response: 'readyok'
+[16:17:33.2542782] Engine response: 'readyok' <<<
+[16:17:33.2544977] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[16:17:33.2546946] >>> Processing command: 'isready', expecting response: 'readyok'
+[16:17:33.2549705] Engine response: 'readyok' <<<
+[16:17:33.2559829] >>> Processing command: 'position fen rnbqkbnr/p3pp1p/1p1p4/2p3p1/2P5/2N3P1/PP1PPPBP/R1BQK1NR w KQkq g6 0 5 moves h2h3 f7f6 d2d3 h7h5 ', expecting response: ''
+[16:17:33.2562900] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:17:34.7565263] Engine response: 'bestmove g2a8 ponder f8g7' <<<
+[16:18:26.6478695] >>> Processing command: 'position fen rnbqkbnr/p3pp1p/1p1p4/2p3p1/2P5/2N3P1/PP1PPPBP/R1BQK1NR w KQkq g6 0 5 moves h2h3 f7f6 d2d3 d6d5 ', expecting response: ''
+[16:18:26.6483352] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:18:28.1487933] Engine response: 'bestmove c1g5 ponder c8b7' <<<
+[16:18:34.5927730] >>> Processing command: 'position fen rnbqkbnr/p3pp1p/1p1p4/2p3p1/2P5/2N3P1/PP1PPPBP/R1BQK1NR w KQkq g6 0 5 moves h2h3 f7f6 d2d3 d6d5 c1g5 e7e6 ', expecting response: ''
+[16:18:34.5932656] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:18:36.0936625] Engine response: 'bestmove g5d2 ponder g8e7' <<<
+[16:53:34.8008095] >>> Processing command: 'isready', expecting response: 'readyok'
+[16:53:34.8015448] Engine response: 'readyok' <<<
+[16:53:34.8018421] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[16:53:34.8021473] >>> Processing command: 'isready', expecting response: 'readyok'
+[16:53:34.8024999] Engine response: 'readyok' <<<
+[16:53:34.8027542] >>> Processing command: 'position startpos', expecting response: ''
+[16:53:34.8029796] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:53:36.3039564] Engine response: 'bestmove e2e4 ponder c7c5' <<<
+[16:53:38.3662143] >>> Processing command: 'position startpos moves e2e4 d7d5 ', expecting response: ''
+[16:53:38.3666794] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:53:39.8669449] Engine response: 'bestmove d2d3 ponder d5e4' <<<
+[16:53:42.2994046] >>> Processing command: 'position startpos moves e2e4 d7d5 d2d3 b8c6 ', expecting response: ''
+[16:53:42.2998799] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:53:43.7997391] Engine response: 'bestmove e4d5 ponder d8d5' <<<
+[16:53:44.8955305] >>> Processing command: 'position startpos moves e2e4 d7d5 d2d3 b8c6 e4d5 f7f6 ', expecting response: ''
+[16:53:44.8960108] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:53:46.3959792] Engine response: 'bestmove d5c6 ponder e7e5' <<<
+[16:53:48.2192492] >>> Processing command: 'position startpos moves e2e4 d7d5 d2d3 b8c6 e4d5 f7f6 d5c6 b7c6 ', expecting response: ''
+[16:53:48.2197853] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:53:49.7199376] Engine response: 'bestmove b1d2 ponder e7e5' <<<
+[16:54:01.8282896] >>> Processing command: 'position fen r1bqkbnr/p1p1p1pp/2p2p2/8/8/3P4/PPP2PPP/RNBQKBNR w KQkq - 0 5 moves b1d2 c6c5 ', expecting response: ''
+[16:54:01.8287204] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:54:03.3283276] Engine response: 'bestmove c2c3 ponder e7e5' <<<
+[16:54:04.7656518] >>> Processing command: 'position fen r1bqkbnr/p1p1p1pp/2p2p2/8/8/3P4/PPP2PPP/RNBQKBNR w KQkq - 0 5 moves b1d2 c6c5 c2c3 f6f5 ', expecting response: ''
+[16:54:04.7661125] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:54:06.2666620] Engine response: 'bestmove g1f3 ponder e7e5' <<<
+[16:54:08.0875477] >>> Processing command: 'position fen r1bqkbnr/p1p1p1pp/2p2p2/8/8/3P4/PPP2PPP/RNBQKBNR w KQkq - 0 5 moves b1d2 c6c5 c2c3 f6f5 g1f3 g8h6 ', expecting response: ''
+[16:54:08.0880241] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:54:09.5885891] Engine response: 'bestmove f3e5 ponder d8d5' <<<
+[16:54:13.5026468] >>> Processing command: 'position fen r1bqkb1r/p1p3pp/4p2n/2p1Np2/8/2PP4/PP1N1PPP/R1BQKB1R w KQkq - 0 9', expecting response: ''
+[16:54:13.5030867] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[16:54:15.0028549] Engine response: 'bestmove h2h4 ponder f8d6' <<<
+[13:37:21.0997036] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:37:21.1013844] Engine response: 'readyok' <<<
+[13:37:21.1017078] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[13:37:21.1019871] >>> Processing command: 'isready', expecting response: 'readyok'
+[13:37:21.1023465] Engine response: 'readyok' <<<
+[13:37:21.1026735] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[13:37:21.1028799] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:37:22.6038488] Engine response: 'bestmove e7e5 ponder g1f3' <<<
+[13:37:39.2709859] >>> Processing command: 'position startpos moves e2e4 e7e5 c2c4 ', expecting response: ''
+[13:37:39.2715261] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:37:40.7719665] Engine response: 'bestmove b8c6 ponder d2d3' <<<
+[13:58:15.8075119] >>> Processing command: 'position startpos moves e2e4 e7e5 c2c3 ', expecting response: ''
+[13:58:15.8080122] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:58:17.3088502] Engine response: 'bestmove d7d5 ponder e4d5' <<<
+[13:58:19.0043951] >>> Processing command: 'position startpos moves e2e4 e7e5 c2c3 d7d5 g1f3 ', expecting response: ''
+[13:58:19.0048815] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:58:20.5058900] Engine response: 'bestmove d5e4 ponder f3e5' <<<
+[13:58:31.0068947] >>> Processing command: 'position startpos moves e2e4 e7e5 c2c3 d7d5 g1f3 d5e4 h2h3 ', expecting response: ''
+[13:58:31.0073955] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:58:32.5074418] Engine response: 'bestmove e4f3 ponder d2d4' <<<
+[13:58:36.8925527] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/8/4p3/8/2P2p1P/PP1P1PP1/RNBQKB1R w KQkq - 0 5 moves a2a3 ', expecting response: ''
+[13:58:36.8929701] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:58:38.3936508] Engine response: 'bestmove f8e7 ponder d2d4' <<<
+[13:58:45.9029115] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/8/4p3/8/2P2p1P/PP1P1PP1/RNBQKB1R w KQkq - 0 5 moves a2a3 f8e7 d2d4 ', expecting response: ''
+[13:58:45.9034006] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:58:47.4035636] Engine response: 'bestmove g8f6 ponder b1d2' <<<
+[13:58:50.4562911] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/8/4p3/8/2P2p1P/PP1P1PP1/RNBQKB1R w KQkq - 0 5 moves a2a3 f8e7 d2d4 g8f6 g2g4 ', expecting response: ''
+[13:58:50.4566853] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:58:51.9566146] Engine response: 'bestmove c8e6 ponder g4g5' <<<
+[13:58:55.1622075] >>> Processing command: 'position fen rnbqkbnr/ppp2ppp/8/4p3/8/2P2p1P/PP1P1PP1/RNBQKB1R w KQkq - 0 5 moves a2a3 f8e7 d2d4 g8f6 g2g4 c8e6 c1g5 ', expecting response: ''
+[13:58:55.1626874] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:58:56.6625251] Engine response: 'bestmove h7h6 ponder g5f6' <<<
+[13:59:01.5170479] >>> Processing command: 'position fen rn1qk2r/ppp1bpp1/4bn1p/4p1B1/3P2P1/P1P2p1P/1P3P2/RN1QKB1R w KQkq - 0 9 moves g5f4 ', expecting response: ''
+[13:59:01.5174515] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[13:59:03.0176815] Engine response: 'bestmove e5f4 ponder b1d2' <<<
+[14:08:04.2408820] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:08:04.2415285] Engine response: 'readyok' <<<
+[14:08:04.2418187] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[14:08:04.2420733] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:08:04.2423693] Engine response: 'readyok' <<<
+[14:08:04.2425797] >>> Processing command: 'position startpos moves f2f3 ', expecting response: ''
+[14:08:04.2427681] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:08:05.7429232] Engine response: 'bestmove e7e5 ponder b1c3' <<<
+[14:08:08.1337738] >>> Processing command: 'position startpos moves f2f3 e7e5 g1h3 ', expecting response: ''
+[14:08:08.1342412] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:08:09.6345205] Engine response: 'bestmove d7d5 ponder h3f2' <<<
+[14:08:14.8338814] >>> Processing command: 'position startpos moves f2f3 e7e5 g1h3 d7d5 c2c3 ', expecting response: ''
+[14:08:14.8343335] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:08:16.3343308] Engine response: 'bestmove c8h3 ponder d2d4' <<<
+[14:08:23.5369811] >>> Processing command: 'position startpos moves f2f3 e7e5 g1h3 d7d5 c2c3 c8h3 f3f4 ', expecting response: ''
+[14:08:23.5374520] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:08:25.0372690] Engine response: 'bestmove h3e6 ponder f4e5' <<<
+[14:08:27.1720452] >>> Processing command: 'position fen rn1qkbnr/ppp2ppp/4b3/3pp3/5P2/2P5/PP1PP1PP/RNBQKB1R w KQkq - 1 5 moves h2h4 ', expecting response: ''
+[14:08:27.1725040] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:08:28.6731180] Engine response: 'bestmove b8d7 ponder e2e4' <<<
+[14:08:37.2047837] >>> Processing command: 'position fen rn1qkbnr/ppp2ppp/4b3/3pp3/5P2/2P5/PP1PP1PP/RNBQKB1R w KQkq - 1 5 moves d2d4 ', expecting response: ''
+[14:08:37.2051786] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:08:38.7054294] Engine response: 'bestmove e5e4 ponder e2e3' <<<
+[14:12:01.0247720] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:12:01.0253672] Engine response: 'readyok' <<<
+[14:12:01.0256092] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[14:12:01.0258059] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:12:01.0376204] Engine response: 'readyok' <<<
+[14:12:01.0379622] >>> Processing command: 'position startpos moves f2f4 ', expecting response: ''
+[14:12:01.0381805] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:12:02.5390923] Engine response: 'bestmove g8f6 ponder e2e3' <<<
+[14:12:05.3167070] >>> Processing command: 'position startpos moves f2f4 g8f6 d2d4 ', expecting response: ''
+[14:12:05.3171828] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:12:06.8174781] Engine response: 'bestmove g7g6 ponder e2e3' <<<
+[14:12:20.7231214] >>> Processing command: 'position startpos moves f2f4 g8f6 e2e3 ', expecting response: ''
+[14:12:20.7236304] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:12:22.2233228] Engine response: 'bestmove g7g6 ponder d2d4' <<<
+[14:22:17.0582765] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:22:17.0591312] Engine response: 'readyok' <<<
+[14:22:17.0594847] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[14:22:17.0597179] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:22:17.0599546] Engine response: 'readyok' <<<
+[14:22:17.0660318] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[14:22:17.0664030] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:22:18.5669410] Engine response: 'bestmove c7c5 ponder g1f3' <<<
+[14:48:30.1780005] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:48:30.1788879] Engine response: 'readyok' <<<
+[14:48:30.1791962] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[14:48:30.1794770] >>> Processing command: 'isready', expecting response: 'readyok'
+[14:48:30.1798283] Engine response: 'readyok' <<<
+[14:48:30.1801184] >>> Processing command: 'position startpos moves f2f3 ', expecting response: ''
+[14:48:30.1803715] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:48:31.6818653] Engine response: 'bestmove c7c5 ponder e2e4' <<<
+[14:48:33.0490182] >>> Processing command: 'position startpos moves f2f3 c7c5 d2d3 ', expecting response: ''
+[14:48:33.0495176] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:48:34.5501516] Engine response: 'bestmove b8c6 ponder f3f4' <<<
+[14:48:38.7766137] >>> Processing command: 'position startpos moves f2f3 c7c5 d2d3 b8c6 c2c4 ', expecting response: ''
+[14:48:38.7771036] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[14:48:40.2773767] Engine response: 'bestmove e7e6 ponder e2e4' <<<
+[15:06:57.1018755] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:06:57.1024995] Engine response: 'readyok' <<<
+[15:06:57.1027373] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[15:06:57.1029633] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:06:57.1032542] Engine response: 'readyok' <<<
+[15:06:57.1035574] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[15:06:57.1038064] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:06:58.6046075] Engine response: 'bestmove e7e5 ponder g1f3' <<<
+[15:07:00.5430596] >>> Processing command: 'position startpos moves e2e4 e7e5 c2c3 ', expecting response: ''
+[15:07:00.5435626] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:07:02.0442767] Engine response: 'bestmove b8c6 ponder d2d4' <<<
+[15:07:20.7577877] >>> Processing command: 'position startpos moves e2e4 e7e5 c2c3 b8c6 d2d4 ', expecting response: ''
+[15:07:20.7582427] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:07:22.2581553] Engine response: 'bestmove e5d4 ponder c3d4' <<<
+[15:07:25.4872199] >>> Processing command: 'position startpos moves e2e4 e7e5 c2c3 b8c6 d2d4 e5d4 c3d4 ', expecting response: ''
+[15:07:25.4877587] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:07:26.9881515] Engine response: 'bestmove d7d5 ponder e4e5' <<<
+[15:07:29.2990541] >>> Processing command: 'position fen r1bqkbnr/ppp2ppp/2n5/3p4/3PP3/8/PP3PPP/RNBQKBNR w KQkq d6 0 5 moves e4d5 ', expecting response: ''
+[15:07:29.2994387] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:07:30.7989828] Engine response: 'bestmove f8b4 ponder b1c3' <<<
+[15:07:37.3379709] >>> Processing command: 'position fen r1bqkbnr/ppp2ppp/2n5/3p4/3PP3/8/PP3PPP/RNBQKBNR w KQkq d6 0 5 moves e4d5 f8b4 c1d2 ', expecting response: ''
+[15:07:37.3384010] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:07:38.8379773] Engine response: 'bestmove d8e7 ponder f1e2' <<<
+[15:07:43.7477465] >>> Processing command: 'position fen r1bqkbnr/ppp2ppp/2n5/3p4/3PP3/8/PP3PPP/RNBQKBNR w KQkq d6 0 5 moves e4d5 f8b4 c1d2 d8e7 g1e2 ', expecting response: ''
+[15:07:43.7481504] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:07:45.2481674] Engine response: 'bestmove c6d4 ponder d2c3' <<<
+[15:07:58.2216269] >>> Processing command: 'position fen r1bqkbnr/ppp2ppp/2n5/3p4/3PP3/8/PP3PPP/RNBQKBNR w KQkq d6 0 5 moves e4d5 f8b4 c1d2 d8e7 g1e2 c6d4 b1c3 ', expecting response: ''
+[15:07:58.2221154] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:07:59.7219118] Engine response: 'bestmove c8g4 ponder a2a3' <<<
+[15:08:03.2888630] >>> Processing command: 'position fen r3k1nr/ppp1qppp/8/3P4/1b1n2b1/2N5/PP1BNPPP/R2QKB1R w KQkq - 2 9 moves h2h3 ', expecting response: ''
+[15:08:03.2892716] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:08:04.7901280] Engine response: 'bestmove g4e2 ponder f1e2' <<<
+[15:08:19.7306003] >>> Processing command: 'position fen r3k1nr/ppp1qppp/8/3P4/1b1n2b1/2N5/PP1BNPPP/R2QKB1R w KQkq - 2 9 moves h2h3 g4e2 d1a4 ', expecting response: ''
+[15:08:19.7310175] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:08:21.2308835] Engine response: 'bestmove e2b5 ponder d2e3' <<<
+[15:08:46.2762399] >>> Processing command: 'position fen r3k1nr/ppp1qppp/8/3P4/1b1n2b1/2N5/PP1BNPPP/R2QKB1R w KQkq - 2 9 moves h2h3 g4e2 d1a4 e2b5 e1d1 ', expecting response: ''
+[15:08:46.2777096] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:08:47.7782911] Engine response: 'bestmove b5a4 ponder b2b3' <<<
+[15:08:50.8619564] >>> Processing command: 'position fen r3k1nr/ppp1qppp/8/3P4/1b1n2b1/2N5/PP1BNPPP/R2QKB1R w KQkq - 2 9 moves h2h3 g4e2 d1a4 e2b5 e1d1 b5a4 b2b3 ', expecting response: ''
+[15:08:50.8623759] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:08:52.3620661] Engine response: 'bestmove a4d7 ponder a2a3' <<<
+[15:27:09.8818954] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:27:09.8962028] Engine response: 'readyok' <<<
+[15:27:09.8965790] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[15:27:09.8967774] >>> Processing command: 'isready', expecting response: 'readyok'
+[15:27:09.8970487] Engine response: 'readyok' <<<
+[15:27:09.8972564] >>> Processing command: 'position startpos moves e2e3 ', expecting response: ''
+[15:27:09.8974363] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:27:11.3982439] Engine response: 'bestmove d7d6 ponder d2d4' <<<
+[15:27:14.1127570] >>> Processing command: 'position startpos moves e2e3 d7d6 g1f3 ', expecting response: ''
+[15:27:14.1132550] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[15:27:15.6131144] Engine response: 'bestmove g8f6 ponder c2c4' <<<
+[21:28:10.8051872] >>> Processing command: 'isready', expecting response: 'readyok'
+[21:28:10.8187508] Engine response: 'readyok' <<<
+[21:28:10.8190056] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[21:28:10.8192129] >>> Processing command: 'isready', expecting response: 'readyok'
+[21:28:10.8194998] Engine response: 'readyok' <<<
+[21:28:10.8198759] >>> Processing command: 'position startpos moves e2e4 ', expecting response: ''
+[21:28:10.8201326] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:28:12.3208357] Engine response: 'bestmove e7e5 ponder g1f3' <<<
+[21:28:18.1575670] >>> Processing command: 'position startpos moves e2e4 e7e5 g2g3 ', expecting response: ''
+[21:28:18.1580072] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:28:19.6590690] Engine response: 'bestmove d7d5 ponder f1g2' <<<
+[21:28:30.6152754] >>> Processing command: 'position startpos moves e2e4 e7e5 g2g3 d7d5 f2f3 ', expecting response: ''
+[21:28:30.6156893] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:28:32.1163715] Engine response: 'bestmove g8f6 ponder d2d3' <<<
+[21:28:34.5039038] >>> Processing command: 'position startpos moves e2e4 e7e5 g2g3 d7d5 f2f3 g8f6 g3g4 ', expecting response: ''
+[21:28:34.5043728] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:28:36.0043148] Engine response: 'bestmove f6g4 ponder h2h4' <<<
+[21:28:41.6355819] >>> Processing command: 'position fen rnbqkb1r/ppp2ppp/8/3pp3/4P1n1/5P2/PPPP3P/RNBQKBNR w KQkq - 0 5 moves h2h3 ', expecting response: ''
+[21:28:41.6360633] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:28:43.1362856] Engine response: 'bestmove d8h4 ponder e1e2' <<<
+[21:28:51.1165429] >>> Processing command: 'position fen rnbqkb1r/ppp2ppp/8/3pp3/4P1n1/5P2/PPPP3P/RNBQKBNR w KQkq - 0 5 moves h2h3 d8h4 e1e2 ', expecting response: ''
+[21:28:51.1169648] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:28:52.6178267] Engine response: 'bestmove h4f2 ponder e2d3' <<<
+[21:28:57.0073337] >>> Processing command: 'position fen rnbqkb1r/ppp2ppp/8/3pp3/4P1n1/5P2/PPPP3P/RNBQKBNR w KQkq - 0 5 moves h2h3 d8h4 e1e2 h4f2 e2d3 ', expecting response: ''
+[21:28:57.0077839] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:28:58.5080645] Engine response: 'bestmove f2d4 ponder d3e2' <<<
+[21:29:04.8408344] >>> Processing command: 'position fen rnbqkb1r/ppp2ppp/8/3pp3/4P1n1/5P2/PPPP3P/RNBQKBNR w KQkq - 0 5 moves h2h3 d8h4 e1e2 h4f2 e2d3 f2d4 d3e2 ', expecting response: ''
+[21:29:04.8413909] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:29:06.3420292] Engine response: 'bestmove d4f2 ponder e2d3' <<<
+[21:29:12.8131758] >>> Processing command: 'position fen rnb1kb1r/ppp2ppp/8/3pp3/4P1n1/5P1P/PPPPKq2/RNBQ1BNR w kq - 7 9 moves e2d3 ', expecting response: ''
+[21:29:12.8135675] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:29:14.3147466] Engine response: 'bestmove b8a6 ponder c2c4' <<<
+[21:29:20.7268767] >>> Processing command: 'position fen rnb1kb1r/ppp2ppp/8/3pp3/4P1n1/5P1P/PPPPKq2/RNBQ1BNR w kq - 7 9 moves e2d3 b8a6 d3c3 ', expecting response: ''
+[21:29:20.7272807] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:29:22.2271371] Engine response: 'bestmove f2c5 ponder c3d3' <<<
+[21:29:26.1361165] >>> Processing command: 'position fen rnb1kb1r/ppp2ppp/8/3pp3/4P1n1/5P1P/PPPPKq2/RNBQ1BNR w kq - 7 9 moves e2d3 b8a6 d3c3 f2c5 c3b3 ', expecting response: ''
+[21:29:26.1365212] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:29:27.6363329] Engine response: 'bestmove c5b6 ponder f1b5' <<<
+[21:29:31.7462542] >>> Processing command: 'position fen rnb1kb1r/ppp2ppp/8/3pp3/4P1n1/5P1P/PPPPKq2/RNBQ1BNR w kq - 7 9 moves e2d3 b8a6 d3c3 f2c5 c3b3 c5b6 b3a4 ', expecting response: ''
+[21:29:31.7466668] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:29:32.4380505] Engine response: 'bestmove b6b4' <<<
+[21:36:12.6097079] >>> Processing command: 'isready', expecting response: 'readyok'
+[21:36:12.6107294] Engine response: 'readyok' <<<
+[21:36:12.6109874] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[21:36:12.6111738] >>> Processing command: 'isready', expecting response: 'readyok'
+[21:36:12.6113945] Engine response: 'readyok' <<<
+[21:36:12.6116024] >>> Processing command: 'position startpos moves f2f3 ', expecting response: ''
+[21:36:12.6118119] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:36:14.1130539] Engine response: 'bestmove e7e6 ponder f3f4' <<<
+[21:36:16.2232816] >>> Processing command: 'position startpos moves f2f3 e7e6 g2g4 ', expecting response: ''
+[21:36:16.2237566] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[21:36:17.7246950] Engine response: 'bestmove d8h4' <<<
+[22:18:34.6595722] >>> Processing command: 'isready', expecting response: 'readyok'
+[22:18:34.6604758] Engine response: 'readyok' <<<
+[22:18:34.6607428] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[22:18:34.6609775] >>> Processing command: 'isready', expecting response: 'readyok'
+[22:18:34.6612823] Engine response: 'readyok' <<<
+[22:18:34.6728616] >>> Processing command: 'position startpos moves e2e3 ', expecting response: ''
+[22:18:34.6732622] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:18:36.1735804] Engine response: 'bestmove c7c5 ponder d2d4' <<<
+[22:18:38.2712941] >>> Processing command: 'position startpos moves e2e3 c7c5 f2f4 ', expecting response: ''
+[22:18:38.2717896] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:18:39.7726710] Engine response: 'bestmove g7g6 ponder d2d4' <<<
+[22:18:42.5106402] >>> Processing command: 'position startpos moves e2e3 c7c5 f2f4 g7g6 g2g4 ', expecting response: ''
+[22:18:42.5110623] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:18:44.0118974] Engine response: 'bestmove b8c6 ponder b1c3' <<<
+[22:18:45.8877057] >>> Processing command: 'position startpos moves e2e3 c7c5 f2f4 g7g6 g2g4 b8c6 a2a4 ', expecting response: ''
+[22:18:45.8883032] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:18:47.3889144] Engine response: 'bestmove d7d5 ponder g4g5' <<<
+[22:18:48.5069629] >>> Processing command: 'position fen r1bqkbnr/pp2pp1p/2n3p1/2pp4/P4PP1/4P3/1PPP3P/RNBQKBNR w KQkq d6 0 5 moves b1c3 ', expecting response: ''
+[22:18:48.5079938] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:18:50.0175890] Engine response: 'bestmove d5d4 ponder c3e4' <<<
+[22:18:51.7650497] >>> Processing command: 'position fen r1bqkbnr/pp2pp1p/2n3p1/2pp4/P4PP1/4P3/1PPP3P/RNBQKBNR w KQkq d6 0 5 moves b1c3 d5d4 d2d3 ', expecting response: ''
+[22:18:51.7655419] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:18:53.2660394] Engine response: 'bestmove d4c3 ponder b2c3' <<<
+[22:18:55.6102429] >>> Processing command: 'position fen r1bqkbnr/pp2pp1p/2n3p1/2pp4/P4PP1/4P3/1PPP3P/RNBQKBNR w KQkq d6 0 5 moves b1c3 d5d4 d2d3 d4c3 b2c3 ', expecting response: ''
+[22:18:55.6107438] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:18:57.1109707] Engine response: 'bestmove e7e5 ponder g1f3' <<<
+[22:18:58.4978925] >>> Processing command: 'position fen r1bqkbnr/pp2pp1p/2n3p1/2pp4/P4PP1/4P3/1PPP3P/RNBQKBNR w KQkq d6 0 5 moves b1c3 d5d4 d2d3 d4c3 b2c3 e7e5 f4e5 ', expecting response: ''
+[22:18:58.4982997] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:18:59.9985773] Engine response: 'bestmove d8h4 ponder e1d2' <<<
+[22:19:04.9479521] >>> Processing command: 'position fen r1b1kbnr/pp3p1p/2n3p1/2p1P3/P5Pq/2PPP3/2P4P/R1BQKBNR w KQkq - 1 9 moves e1e2 ', expecting response: ''
+[22:19:04.9484038] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:19:06.4484549] Engine response: 'bestmove c8g4 ponder e2d2' <<<
+[22:19:13.9892883] >>> Processing command: 'position fen r1b1kbnr/pp3p1p/2n3p1/2p1P3/P5Pq/2PPP3/2P4P/R1BQKBNR w KQkq - 1 9 moves e1e2 c8g4 e2d2 ', expecting response: ''
+[22:19:13.9896953] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:19:15.4901347] Engine response: 'bestmove g4d1 ponder d2d1' <<<
+[22:19:18.9115004] >>> Processing command: 'position fen r1b1kbnr/pp3p1p/2n3p1/2p1P3/P5Pq/2PPP3/2P4P/R1BQKBNR w KQkq - 1 9 moves e1e2 c8g4 e2d2 g4d1 g1e2 ', expecting response: ''
+[22:19:18.9119090] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:19:20.4120191] Engine response: 'bestmove d1e2 ponder f1e2' <<<
+[22:19:22.0269395] >>> Processing command: 'position fen r1b1kbnr/pp3p1p/2n3p1/2p1P3/P5Pq/2PPP3/2P4P/R1BQKBNR w KQkq - 1 9 moves e1e2 c8g4 e2d2 g4d1 g1e2 d1e2 f1e2 ', expecting response: ''
+[22:19:22.0273873] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:19:23.5276689] Engine response: 'bestmove g8h6 ponder a4a5' <<<
+[22:19:26.9589568] >>> Processing command: 'position fen r3kb1r/pp3p1p/2n3pn/2p1P3/P6q/2PPP3/2PKB2P/R1B4R w kq - 1 13 moves h2h3 ', expecting response: ''
+[22:19:26.9594000] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:19:28.4602603] Engine response: 'bestmove a8b8 ponder h1f1' <<<
+[22:19:31.0064079] >>> Processing command: 'position fen r3kb1r/pp3p1p/2n3pn/2p1P3/P6q/2PPP3/2PKB2P/R1B4R w kq - 1 13 moves h2h3 a8b8 a4a5 ', expecting response: ''
+[22:19:31.0068153] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:19:32.5068899] Engine response: 'bestmove a7a6 ponder c1b2' <<<
+[22:19:34.8637464] >>> Processing command: 'position fen r3kb1r/pp3p1p/2n3pn/2p1P3/P6q/2PPP3/2PKB2P/R1B4R w kq - 1 13 moves h2h3 a8b8 a4a5 a7a6 c3c4 ', expecting response: ''
+[22:19:34.8641912] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:19:36.3638511] Engine response: 'bestmove h4e7 ponder c1a3' <<<
+[22:19:39.5949747] >>> Processing command: 'position fen r3kb1r/pp3p1p/2n3pn/2p1P3/P6q/2PPP3/2PKB2P/R1B4R w kq - 1 13 moves h2h3 a8b8 a4a5 a7a6 c3c4 h4e7 d3d4 ', expecting response: ''
+[22:19:39.5954892] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:19:41.0958200] Engine response: 'bestmove g6g5 ponder e2d3' <<<
+[22:19:45.0351193] >>> Processing command: 'position fen 1r2kb1r/1p2qp1p/p1n4n/P1p1P1p1/2PP4/4P2P/2PKB3/R1B4R w k - 0 17 moves e2h5 ', expecting response: ''
+[22:19:45.0355511] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:19:46.5360194] Engine response: 'bestmove c5d4 ponder e3d4' <<<
+[22:19:52.8531366] >>> Processing command: 'position fen 1r2kb1r/1p2qp1p/p1n4n/P1p1P1p1/2PP4/4P2P/2PKB3/R1B4R w k - 0 17 moves e2h5 c5d4 h5g4 ', expecting response: ''
+[22:19:52.8536301] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:19:54.3539259] Engine response: 'bestmove e7e5 ponder d2e2' <<<
+[22:19:58.8815736] >>> Processing command: 'position fen 1r2kb1r/1p2qp1p/p1n4n/P1p1P1p1/2PP4/4P2P/2PKB3/R1B4R w k - 0 17 moves e2h5 c5d4 h5g4 e7e5 e3d4 ', expecting response: ''
+[22:19:58.8820230] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:20:00.3819832] Engine response: 'bestmove e5d4 ponder d2e2' <<<
+[22:20:04.8972574] >>> Processing command: 'position fen 1r2kb1r/1p2qp1p/p1n4n/P1p1P1p1/2PP4/4P2P/2PKB3/R1B4R w k - 0 17 moves e2h5 c5d4 h5g4 e7e5 e3d4 e5d4 d2e2 ', expecting response: ''
+[22:20:04.8976870] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:20:06.3980829] Engine response: 'bestmove d4c4 ponder e2e1' <<<
+[22:20:13.0937775] >>> Processing command: 'position fen 1r2kb1r/1p3p1p/p1n4n/P5p1/2q3B1/7P/2P1K3/R1B4R w k - 0 21 moves e2f3 ', expecting response: ''
+[22:20:13.0942941] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:20:14.5942082] Engine response: 'bestmove c6e5 ponder f3g3' <<<
+[22:20:18.9986189] >>> Processing command: 'position fen 1r2kb1r/1p3p1p/p1n4n/P5p1/2q3B1/7P/2P1K3/R1B4R w k - 0 21 moves e2f3 c6e5 f3g3 ', expecting response: ''
+[22:20:18.9990390] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:20:20.4992296] Engine response: 'bestmove c4c3 ponder g3h2' <<<
+[22:20:23.1025101] >>> Processing command: 'position fen 1r2kb1r/1p3p1p/p1n4n/P5p1/2q3B1/7P/2P1K3/R1B4R w k - 0 21 moves e2f3 c6e5 f3g3 c4c3 g3f2 ', expecting response: ''
+[22:20:23.1029826] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:20:24.6036663] Engine response: 'bestmove h6g4 ponder h3g4' <<<
+[22:20:26.4842818] >>> Processing command: 'position fen 1r2kb1r/1p3p1p/p1n4n/P5p1/2q3B1/7P/2P1K3/R1B4R w k - 0 21 moves e2f3 c6e5 f3g3 c4c3 g3f2 h6g4 h3g4 ', expecting response: ''
+[22:20:26.4847055] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:20:27.9857623] Engine response: 'bestmove c3f3 ponder f2e1' <<<
+[22:20:32.1821725] >>> Processing command: 'position fen 1r2kb1r/1p3p1p/p7/P3n1p1/6P1/5q2/2P2K2/R1B4R w k - 1 25 moves f2g1 ', expecting response: ''
+[22:20:32.1825978] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:20:33.6822897] Engine response: 'bestmove f8c5 ponder c1e3' <<<
+[22:20:39.5015802] >>> Processing command: 'position fen 1r2kb1r/1p3p1p/p7/P3n1p1/6P1/5q2/2P2K2/R1B4R w k - 1 25 moves f2g1 f8c5 g1h2 ', expecting response: ''
+[22:20:39.5020334] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:20:39.5881461] Engine response: 'bestmove h7h5 ponder c1e3' <<<
+[22:20:47.9290433] >>> Processing command: 'position fen 1r2kb1r/1p3p1p/p7/P3n1p1/6P1/5q2/2P2K2/R1B4R w k - 1 25 moves f2g1 f8c5 g1h2 h7h5 g4h5 ', expecting response: ''
+[22:20:47.9295275] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:20:47.9402626] Engine response: 'bestmove f3e2 ponder h2h3' <<<
+[22:20:51.5083078] >>> Processing command: 'position fen 1r2kb1r/1p3p1p/p7/P3n1p1/6P1/5q2/2P2K2/R1B4R w k - 1 25 moves f2g1 f8c5 g1h2 h7h5 g4h5 f3e2 h2g3 ', expecting response: ''
+[22:20:51.5087359] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:20:51.5810636] Engine response: 'bestmove h8h5 ponder h1h5' <<<
+[22:21:12.6285585] >>> Processing command: 'position fen 1r2k3/1p3p2/p7/P1b1n1pr/8/6K1/2P1q3/R1B4R w - - 0 29 moves c1g5 ', expecting response: ''
+[22:21:12.6290314] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:21:12.6365439] Engine response: 'bestmove e2f2' <<<
+[22:24:03.5345598] >>> Processing command: 'isready', expecting response: 'readyok'
+[22:24:03.5350887] Engine response: 'readyok' <<<
+[22:24:03.5353561] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[22:24:03.5359683] >>> Processing command: 'isready', expecting response: 'readyok'
+[22:24:03.5418825] Engine response: 'readyok' <<<
+[22:24:03.5422524] >>> Processing command: 'position startpos moves f2f3 ', expecting response: ''
+[22:24:03.5425425] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:24:05.0428084] Engine response: 'bestmove e7e5 ponder b1c3' <<<
+[22:24:06.7079256] >>> Processing command: 'position startpos moves f2f3 e7e5 g2g3 ', expecting response: ''
+[22:24:06.7085406] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:24:08.2083573] Engine response: 'bestmove b8c6 ponder c2c3' <<<
+[22:24:09.6860178] >>> Processing command: 'position startpos moves f2f3 e7e5 g2g3 b8c6 b2b3 ', expecting response: ''
+[22:24:09.6864426] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:24:11.1862864] Engine response: 'bestmove d7d5 ponder c1b2' <<<
+[22:24:12.8822302] >>> Processing command: 'position startpos moves f2f3 e7e5 g2g3 b8c6 b2b3 d7d5 g3g4 ', expecting response: ''
+[22:24:12.8826639] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:24:14.3828134] Engine response: 'bestmove d8h4' <<<
+[22:24:20.8769576] >>> Processing command: 'isready', expecting response: 'readyok'
+[22:24:20.8774962] Engine response: 'readyok' <<<
+[22:24:20.8777105] >>> Processing command: 'setoption name Skill Level value 10', expecting response: ''
+[22:24:20.8779048] >>> Processing command: 'isready', expecting response: 'readyok'
+[22:24:20.8781795] Engine response: 'readyok' <<<
+[22:24:20.8784809] >>> Processing command: 'position startpos moves f2f3 ', expecting response: ''
+[22:24:20.8787265] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:24:22.3787513] Engine response: 'bestmove e7e5 ponder b1c3' <<<
+[22:24:23.4822614] >>> Processing command: 'position startpos moves f2f3 e7e5 b1c3 ', expecting response: ''
+[22:24:23.4827203] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:24:24.9824659] Engine response: 'bestmove b8c6 ponder e2e4' <<<
+[22:24:27.3551898] >>> Processing command: 'position startpos moves f2f3 e7e5 b1c3 b8c6 g2g4 ', expecting response: ''
+[22:24:27.3556652] >>> Processing command: 'go movetime 1500', expecting response: 'bestmove'
+[22:24:28.8557935] Engine response: 'bestmove d8h4' <<<
