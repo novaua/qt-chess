@@ -396,6 +396,7 @@ void ChessConnector::startNewGame()
 	deleteAutoSave();
 	stopEngineThread();
 	_player = nullptr;
+	_reviewIndex = -1;
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
 	_game->Restart();
@@ -415,6 +416,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	deleteAutoSave();
 	stopEngineThread();
 	_player = nullptr;
+	_reviewIndex = -1;
 	_game->EndGame();
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }

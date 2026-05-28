@@ -208,6 +208,7 @@ ApplicationWindow {
 
                 Rectangle {
                     id: menuButton
+                    visible: gameIsInProgress
                     width: 28; height: 28
                     radius: 6
                     color:        root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
@@ -232,16 +233,35 @@ ApplicationWindow {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (gameIsInProgress) {
-                                _showGameResult = false
-                                gameIsInProgress = false
-                                _toolbarResignPending = false
-                                screen.state = "screen_1"
-                                chessConnector.endGame()
-                            } else {
-                                appMenu.popup()
-                            }
+                            _showGameResult = false
+                            gameIsInProgress = false
+                            _toolbarResignPending = false
+                            screen.state = "screen_1"
+                            chessConnector.endGame()
                         }
+                    }
+                }
+
+                Rectangle {
+                    id: settingsButton
+                    width: 28; height: 28
+                    radius: 6
+                    color:        root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
+                    border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
+                    border.width: 1
+                    anchors { right: parent.right; rightMargin: 1; verticalCenter: parent.verticalCenter }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "⚙"
+                        font.pixelSize: 16
+                        color: root.isDarkMode ? "#ffffff" : "#09102B"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: appMenu.popup()
                     }
 
                     QQC.Menu {
