@@ -381,12 +381,22 @@ void ChessConnector::respondTakeback(bool accept)
 		_lichessClient->requestTakeback(_onlineGameId, accept);
 }
 
+void ChessConnector::rematch()
+{
+	if (_wasVsComputer)
+		startNewGameWithComputer(_config.lastLevel);
+	else
+		startNewGame();
+}
+
 void ChessConnector::startNewGame()
 {
+	_wasVsComputer = false;
 	resetMoveHistoryCache();
 	deleteAutoSave();
 	stopEngineThread();
 	_player = nullptr;
+	_reviewIndex = -1;
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
 	_game->Restart();
@@ -399,12 +409,14 @@ void ChessConnector::startNewGame()
 
 void ChessConnector::startNewGameWithComputer(int level)
 {
+	_wasVsComputer = true;
 	resetMoveHistoryCache();
 	_config.lastLevel = level;
 	_config.save();
 	deleteAutoSave();
 	stopEngineThread();
 	_player = nullptr;
+	_reviewIndex = -1;
 	_game->EndGame();
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }

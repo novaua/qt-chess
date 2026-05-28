@@ -297,13 +297,17 @@ void LichessClient::streamGame(const QString& gameId)
         handleStreamData(_streamReply);
     });
 
-    connect(_streamReply, &QNetworkReply::errorOccurred, this,
-            [this](QNetworkReply::NetworkError code) {
-                const int status = _streamReply->attribute(
+    auto* sr = _streamReply;
+    connect(sr, &QNetworkReply::errorOccurred, this,
+            [this, sr](QNetworkReply::NetworkError code) {
+                const int status = sr->attribute(
                     QNetworkRequest::HttpStatusCodeAttribute).toInt();
                 qDebug() << "LichessClient: stream error | HTTP" << status << "| code:" << code
-                         << "|" << _streamReply->errorString();
-                emit networkError(_streamReply->errorString());
+                         << "|" << sr->errorString();
+                // OperationCanceledError is expected when the server closes the stream
+                // normally (game over) or when we call stopStream() ourselves — not an error.
+                if (code != QNetworkReply::OperationCanceledError)
+                    emit networkError(sr->errorString());
             });
 }
 

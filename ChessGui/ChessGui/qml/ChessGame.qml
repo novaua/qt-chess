@@ -30,6 +30,7 @@ ApplicationWindow {
     property bool   _showDrawOffer:           false
     property bool   _showTakebackOffer:       false
     property bool   _toolbarResignPending:    false
+    property bool   _wasOnlineGame:           false
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     // _panelH is computed analytically to avoid a binding loop:
     //   _boardSize → chessBoard.height → centralItem.height → _panelH → _boardSize
@@ -162,18 +163,9 @@ ApplicationWindow {
                 Row {
                     id: controlButtons
                     visible: !_toolbarResignPending
-                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                    anchors { left: menuButton.right; leftMargin: 6; verticalCenter: parent.verticalCenter }
                     spacing: 6
 
-                    ActionButton {
-                        id: buttonStop; label: "Stop"; tip: "End game"
-                        onAction: {
-                            gameIsInProgress = false
-                            _toolbarResignPending = false
-                            screen.state = "screen_1"
-                            chessConnector.endGame()
-                        }
-                    }
                     ActionButton {
                         id: buttonSave; label: "Save"; tip: "Save game"
                         onAction: chessConnector.saveGame()
@@ -185,6 +177,7 @@ ApplicationWindow {
                     }
                     ActionButton {
                         id: buttonResign; label: "⚑"; tip: "Resign"
+                        visible: !_showGameResult
                         onAction: _toolbarResignPending = true
                     }
                     ActionButton {
@@ -196,7 +189,7 @@ ApplicationWindow {
                 Row {
                     id: toolbarResignConfirm
                     visible: _toolbarResignPending
-                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                    anchors { left: menuButton.right; leftMargin: 6; verticalCenter: parent.verticalCenter }
                     spacing: 8
 
                     Text {
@@ -215,12 +208,13 @@ ApplicationWindow {
 
                 Rectangle {
                     id: menuButton
+                    visible: gameIsInProgress
                     width: 28; height: 28
                     radius: 6
                     color:        root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
                     border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
                     border.width: 1
-                    anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                    anchors { left: parent.left; leftMargin: 1; verticalCenter: parent.verticalCenter }
 
                     Image {
                         id: menuIconImg
@@ -232,6 +226,35 @@ ApplicationWindow {
                     ColorOverlay {
                         anchors.fill: menuIconImg
                         source: menuIconImg
+                        color: root.isDarkMode ? "#ffffff" : "#09102B"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            _showGameResult = false
+                            gameIsInProgress = false
+                            _toolbarResignPending = false
+                            screen.state = "screen_1"
+                            chessConnector.endGame()
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: settingsButton
+                    width: 28; height: 28
+                    radius: 6
+                    color:        root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
+                    border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
+                    border.width: 1
+                    anchors { right: parent.right; rightMargin: 1; verticalCenter: parent.verticalCenter }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "⚙"
+                        font.pixelSize: 16
                         color: root.isDarkMode ? "#ffffff" : "#09102B"
                     }
 
@@ -299,9 +322,22 @@ ApplicationWindow {
                     height: _boardSize
                     gameInProgress: gameIsInProgress
                     isOnlineGame: _onlineGameId !== ""
+                    wasOnlineGame: _wasOnlineGame
                     anchors {
                         verticalCenter: parent.verticalCenter
                         left: parent.left; leftMargin: (parent.width + _boardSize) / 2 + 5
+                    }
+                }
+
+                GameResultDialog {
+                    id: gameResultPanel
+                    visible: _showGameResult && _showHistoryPanel
+                    winner: _checkmateWinner
+                    width: _historyPanelW
+                    anchors {
+                        verticalCenter: parent.verticalCenter
+                        right: parent.horizontalCenter
+                        rightMargin: _boardSize / 2 + 5
                     }
                 }
             }
@@ -574,6 +610,7 @@ ApplicationWindow {
                 _showDrawOffer = false
                 _showTakebackOffer = false
                 _toolbarResignPending = false
+                _wasOnlineGame = true
 
                 const winnerName = ({ "white": "White", "black": "Black" })[winner] ?? ""
                 const reason     = ({ "mate": " by Checkmate", "resign": " by Resignation",
@@ -583,6 +620,7 @@ ApplicationWindow {
                 else if (winnerName !== "")    _checkmateWinner = winnerName + " Won" + reason
                 else                           _checkmateWinner = "Draw"
 
+                chessConnector.setGameResult(_checkmateWinner)
                 resultDialogTimer.start()
             }
 
@@ -600,6 +638,9 @@ ApplicationWindow {
             target: chessConnector
             function onNewGameStarted(isComputerGame) {
                 chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
+                _showGameResult = false
+                _toolbarResignPending = false
+                _wasOnlineGame = false
             }
             function onPlayerPlaysWhiteChanged() {
                 if (gameIsInProgress)
@@ -616,20 +657,6 @@ ApplicationWindow {
             onTriggered: _showGameResult = true
         }
 
-        GameResultDialog {
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -15
-            visible: _showGameResult
-            winner: _checkmateWinner
-            onOkClicked: {
-                _showGameResult = false
-                gameIsInProgress = false
-                _toolbarResignPending = false
-                chessConnector.endGame()
-                screen.state = "screen_1"
-            }
-        }
-
         // ── Settings dialog ───────────────────────────────────────────────
         SettingsDialog {
             id: settingsDialog
@@ -637,6 +664,18 @@ ApplicationWindow {
             visible: _showSettings
             z: 20
             onCloseRequested: _showSettings = false
+        }
+
+        Shortcut {
+            sequence: "Escape"
+            enabled: gameIsInProgress
+            onActivated: {
+                _showGameResult = false
+                gameIsInProgress = false
+                _toolbarResignPending = false
+                screen.state = "screen_1"
+                chessConnector.endGame()
+            }
         }
 
         // ── Move-input cheat dialog (Alt+S in two-player mode) ────────────
@@ -864,7 +903,6 @@ ApplicationWindow {
         states: [
             State {
                 name: "screen_1"
-                PropertyChanges { target: buttonStop;   visible: false }
                 PropertyChanges { target: buttonSave;   visible: false }
                 PropertyChanges { target: buttonNext;   visible: false }
                 PropertyChanges { target: buttonPrev;   visible: false }
@@ -872,7 +910,6 @@ ApplicationWindow {
             },
             State {
                 name: "screen_2"
-                PropertyChanges { target: buttonStop;   visible: true }
                 PropertyChanges { target: buttonSave;   visible: true }
                 PropertyChanges { target: buttonNext;   visible: false }
                 PropertyChanges { target: buttonPrev;   visible: false }
@@ -880,7 +917,6 @@ ApplicationWindow {
             },
             State {
                 name: "screen_3"
-                PropertyChanges { target: buttonStop;   visible: true }
                 PropertyChanges { target: buttonSave;   visible: false }
                 PropertyChanges { target: buttonNext;   visible: true }
                 PropertyChanges { target: buttonPrev;   visible: true }
@@ -888,7 +924,6 @@ ApplicationWindow {
             },
             State {
                 name: "screen_4"
-                PropertyChanges { target: buttonStop;   visible: true }
                 PropertyChanges { target: buttonSave;   visible: true }
                 PropertyChanges { target: buttonNext;   visible: false }
                 PropertyChanges { target: buttonPrev;   visible: true }

@@ -38,7 +38,7 @@ std::string Piece::ToSANString() const
 {
 	if (Type == EMPTY) return {};
 	auto ch = ToString();
-	ch[0] = std::toupper(ch[0]);
+	ch[0] = (char)std::toupper(ch[0]);
 	return ch;
 }
 

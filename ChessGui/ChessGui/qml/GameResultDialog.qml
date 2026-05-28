@@ -11,10 +11,9 @@ Rectangle {
     }
 
     property string winner: ""
-    signal okClicked()
 
-    width: 340
-    height: dialogContent.implicitHeight + 48
+    width: 160
+    height: dialogContent.implicitHeight + 24
     color: isDarkMode ? "#cc252525" : "#ccf4f4f4"
     border.color: isDarkMode ? "#555555" : "#cccccc"
     border.width: 1
@@ -23,15 +22,18 @@ Rectangle {
     Column {
         id: dialogContent
         anchors.centerIn: parent
-        spacing: 14
-        width: parent.width - 48
+        spacing: 10
+        width: parent.width - 24
 
         Text {
             text: dialog.winner
-            font.pixelSize: 26
+            font.pixelSize: 18
             font.bold: true
             color: isDarkMode ? "#ffffff" : "#000000"
             anchors.horizontalCenter: parent.horizontalCenter
+            wrapMode: Text.WordWrap
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
         }
 
         Rectangle {
@@ -43,38 +45,41 @@ Rectangle {
         Text {
             text: "Games played: " + userManager.gamesPlayed
             color: isDarkMode ? "#dddddd" : "#222222"
-            font.pixelSize: 16
+            font.pixelSize: 13
             anchors.horizontalCenter: parent.horizontalCenter
+            wrapMode: Text.WordWrap
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
         }
 
         Text {
             text: "Human won: " + userManager.humanWins
             color: isDarkMode ? "#dddddd" : "#222222"
-            font.pixelSize: 16
+            font.pixelSize: 13
             anchors.horizontalCenter: parent.horizontalCenter
+            wrapMode: Text.WordWrap
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
         }
 
         Text {
             text: "Robot won: " + userManager.computerWins
             color: isDarkMode ? "#dddddd" : "#222222"
-            font.pixelSize: 16
+            font.pixelSize: 13
             anchors.horizontalCenter: parent.horizontalCenter
+            wrapMode: Text.WordWrap
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
         }
 
         Text {
             text: "Since: " + userManager.statsCreatedDate
             color: isDarkMode ? "#888888" : "#888888"
-            font.pixelSize: 13
+            font.pixelSize: 11
             anchors.horizontalCenter: parent.horizontalCenter
-        }
-
-        Button {
-            text: "Ok"
-            implicitHeight: 36
-            implicitWidth: 110
-            anchors.horizontalCenter: parent.horizontalCenter
-            font.bold: true
-            onClicked: dialog.okClicked()
+            wrapMode: Text.WordWrap
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
         }
     }
 }

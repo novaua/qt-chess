@@ -7,6 +7,7 @@ Rectangle {
 
     property bool gameInProgress: false
     property bool isOnlineGame: false
+    property bool wasOnlineGame: false
 
     readonly property bool isDarkMode: {
         if (!Window.window) return false
@@ -123,7 +124,8 @@ Rectangle {
             left: parent.left; leftMargin: 3
             right: parent.right; rightMargin: 3
             bottom: actionButtons.visible ? actionButtons.top
-                  : (resultBar.visible ? resultBar.top : parent.bottom)
+                  : rematchBar.visible    ? rematchBar.top
+                  : (resultBar.visible    ? resultBar.top : parent.bottom)
             bottomMargin: 3
         }
         clip: true
@@ -260,6 +262,37 @@ Rectangle {
         ActionButton {
             label: "No"
             onAction: resignConfirm.visible = false
+        }
+    }
+
+    // Rematch button — full width, shown when game is over (local games only)
+    Rectangle {
+        id: rematchBar
+        visible: chessConnector.GameResult !== "" && !panel.wasOnlineGame
+        anchors {
+            bottom: resultBar.visible ? resultBar.top : parent.bottom
+            left: parent.left; leftMargin: 3
+            right: parent.right; rightMargin: 3
+        }
+        height: 28
+        radius: 4
+        color: rematchMa.containsMouse
+            ? (isDarkMode ? "#2a3a2a" : "#c8ebc8")
+            : (isDarkMode ? "#1e2e1e" : "#e0f0e0")
+        border.color: isDarkMode ? "#4a6a4a" : "#88bb88"
+        border.width: 1
+
+        Text {
+            anchors.centerIn: parent
+            text: "Rematch"
+            font.pixelSize: 13; font.bold: true
+            color: isDarkMode ? "#aaddaa" : "#2a5a2a"
+        }
+        MouseArea {
+            id: rematchMa
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: chessConnector.rematch()
         }
     }
 
