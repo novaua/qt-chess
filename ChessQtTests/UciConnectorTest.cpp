@@ -71,23 +71,25 @@ namespace ConnectorTests
 
 		TEST_METHOD(SetDifficulty_Boundaries_Test)
 		{
-			_connector->SetDifficulty(0);
-			Assert::AreEqual(string("0"), _connector->GetOption("Skill Level"),
-				L"Difficulty 0 should be reflected by GetOption");
+			_connector->SetDifficulty(1000); // below supported range, should clamp to 1320
+			Assert::AreEqual(string("true"), _connector->GetOption("UCI_LimitStrength"),
+				L"Setting difficulty should enable UCI_LimitStrength");
+			Assert::AreEqual(string("1320"), _connector->GetOption("UCI_Elo"),
+				L"Elo below the supported range should clamp to 1320");
 
-			_connector->SetDifficulty(20);
-			Assert::AreEqual(string("20"), _connector->GetOption("Skill Level"),
-				L"Difficulty 20 should be reflected by GetOption");
+			_connector->SetDifficulty(5000); // above supported range, should clamp to 3190
+			Assert::AreEqual(string("3190"), _connector->GetOption("UCI_Elo"),
+				L"Elo above the supported range should clamp to 3190");
 
-			_connector->SetDifficulty(10);
-			Assert::AreEqual(string("10"), _connector->GetOption("Skill Level"),
-				L"Difficulty 10 should be reflected by GetOption");
+			_connector->SetDifficulty(2255);
+			Assert::AreEqual(string("2255"), _connector->GetOption("UCI_Elo"),
+				L"Elo within the supported range should be reflected by GetOption");
 		}
 
 		TEST_METHOD(MakeMove_AfterDifficultySet_Test)
 		{
-			_connector->SetDifficulty(1);
-			Assert::AreEqual(string("1"), _connector->GetOption("Skill Level"));
+			_connector->SetDifficulty(1320);
+			Assert::AreEqual(string("1320"), _connector->GetOption("UCI_Elo"));
 
 			auto response = _connector->GetEngineMove({ {}, { "e2e4", "e7e5", "b1c3" } }, chrono::milliseconds(2000));
 
@@ -97,8 +99,8 @@ namespace ConnectorTests
 
 		TEST_METHOD(Checkmate_Detection_Test)
 		{
-			_connector->SetDifficulty(1);
-			Assert::AreEqual(string("1"), _connector->GetOption("Skill Level"));
+			_connector->SetDifficulty(1320);
+			Assert::AreEqual(string("1320"), _connector->GetOption("UCI_Elo"));
 
 			auto response = _connector->GetEngineMove({ {}, { "f2f3", "e7e6", "g2g4", "d8h4"} }, chrono::milliseconds(500));
 
@@ -108,8 +110,8 @@ namespace ConnectorTests
 
 		TEST_METHOD(PawnPromotion_Detection_Test)
 		{
-			_connector->SetDifficulty(1);
-			Assert::AreEqual(string("1"), _connector->GetOption("Skill Level"));
+			_connector->SetDifficulty(1320);
+			Assert::AreEqual(string("1320"), _connector->GetOption("UCI_Elo"));
 
 			auto moves1 = std::vector<std::string>{
 				 "e2f1", "h2h3",

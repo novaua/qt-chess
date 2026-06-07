@@ -63,15 +63,21 @@ ApplicationWindow {
 
     Settings {
         id: appSettings
-        property bool darkMode:     false
-        property bool musicEnabled: true
+        property bool darkMode:        false
+        property bool musicEnabled:    true
+        property int  soundVolume:     3   // 0-5; 0 = muted
+        property int  lastSoundVolume: 3   // remembers last non-zero level for restore
     }
 
-    SoundEffect { id: sndMove;         source: "qrc:/sounds/move.wav" }
-    SoundEffect { id: sndMoveOpponent; source: "qrc:/sounds/move_opponent.wav" }
-    SoundEffect { id: sndCheck;     source: "qrc:/sounds/check.wav" }
-    SoundEffect { id: sndCheckmate; source: "qrc:/sounds/checkmate.wav" }
-    SoundEffect { id: sndWin;       source: "qrc:/sounds/win.wav" }
+    // Perceptual loudness curve: linear 0-5 feels far too loud at level 1,
+    // since human hearing perceives volume roughly logarithmically.
+    readonly property real _sfxVolume: Math.pow(appSettings.soundVolume / 5.0, 2)
+
+    SoundEffect { id: sndMove;         source: "qrc:/sounds/move.wav";          volume: _sfxVolume }
+    SoundEffect { id: sndMoveOpponent; source: "qrc:/sounds/move_opponent.wav"; volume: _sfxVolume }
+    SoundEffect { id: sndCheck;     source: "qrc:/sounds/check.wav";     volume: _sfxVolume }
+    SoundEffect { id: sndCheckmate; source: "qrc:/sounds/checkmate.wav"; volume: _sfxVolume }
+    SoundEffect { id: sndWin;       source: "qrc:/sounds/win.wav";       volume: _sfxVolume }
 
     component Button: QQC.Button {
         id: self

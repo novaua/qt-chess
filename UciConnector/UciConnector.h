@@ -45,7 +45,7 @@ public:
 	std::vector<std::string> GetOptions();
 	EngineMoveResponse GetEngineMove(const StartPosMoveRequest& req,
 	                                 std::chrono::milliseconds moveTime);
-	void SetDifficulty(int level);
+	void SetDifficulty(int elo); // target Elo strength (clamped to Stockfish's supported 1320-3190 range)
 	void Kill();
 	~UciConnector();
 };
