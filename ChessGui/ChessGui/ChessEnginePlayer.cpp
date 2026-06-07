@@ -9,7 +9,7 @@ ChessEnginePlayer::ChessEnginePlayer(const GameAptr& game, EngineLevel level, Po
 {
 	_connector = std::make_shared<UciConnector>();
 	_connector->Init();
-	_connector->SetDifficulty(_level.SkillLevel());
+	_connector->SetDifficulty(_level.Elo());
 }
 
 void ChessEnginePlayer::DoMove()

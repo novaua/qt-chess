@@ -23,7 +23,8 @@ const std::string ReadyCommand = "isready";
 const std::string ReadyOkCommand = "readyok";
 const std::string BestMoveCommand = "bestmove";
 const std::string QuitCommand = "quit";
-const std::string SkillLevelOption = "Skill Level";
+const std::string LimitStrengthOption = "UCI_LimitStrength";
+const std::string EloOption = "UCI_Elo";
 
 const std::regex IdNameRegex("id name (.*)");
 const std::regex OptionNameRegex("option name (.*) type (.*)");
@@ -183,10 +184,13 @@ void UciConnector::SetOption(const std::string& op, const std::string& value)
 	_opt[op] = value;
 }
 
-void UciConnector::SetDifficulty(int level)
+void UciConnector::SetDifficulty(int elo)
 {
-	level = std::max(0, std::min(20, level));
-	SetOption(SkillLevelOption, std::to_string(level));
+	// Skill Level alone barely affects Stockfish's actual strength; UCI_LimitStrength
+	// + UCI_Elo is the documented way to make the engine genuinely play weaker.
+	elo = std::max(1320, std::min(3190, elo));
+	SetOption(LimitStrengthOption, "true");
+	SetOption(EloOption, std::to_string(elo));
 }
 
 std::vector<std::string> UciConnector::GetOptions()
