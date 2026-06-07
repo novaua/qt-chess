@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Window
+import QtMultimedia
 
 Rectangle {
     id: dialog
@@ -12,6 +13,13 @@ Rectangle {
         var c = Window.window.color
         return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) <= 0.5
     }
+
+    // Same perceptual curve as ChessGame.qml's _sfxVolume, so the preview
+    // matches what the player will actually hear in-game.
+    readonly property real _previewVolume: Math.pow(appSettings.soundVolume / 5.0, 2)
+
+    SoundEffect { id: sndPreviewMove;     source: "qrc:/sounds/move.wav";          volume: dialog._previewVolume }
+    SoundEffect { id: sndPreviewOpponent; source: "qrc:/sounds/move_opponent.wav"; volume: dialog._previewVolume }
 
     width: 300
     height: settingsCol.implicitHeight + 48
@@ -64,7 +72,7 @@ Rectangle {
                 Row {
                     width: parent.width
                     Text {
-                        text: "Music"
+                        text: "Sound"
                         color: isDarkMode ? "#dddddd" : "#222222"
                         font.pixelSize: 15
                         width: parent.width - musicSwitch.width
@@ -73,7 +81,42 @@ Rectangle {
                     Controls.Switch {
                         id: musicSwitch
                         checked: appSettings.musicEnabled
-                        onToggled: appSettings.musicEnabled = checked
+                        onToggled: {
+                            appSettings.musicEnabled = checked
+                            if (checked && appSettings.soundVolume === 0)
+                                appSettings.soundVolume = appSettings.lastSoundVolume > 0
+                                    ? appSettings.lastSoundVolume : 3
+                        }
+                    }
+                }
+
+                Row {
+                    width: parent.width
+                    Text {
+                        text: "Loudness"
+                        color: isDarkMode ? "#dddddd" : "#222222"
+                        font.pixelSize: 15
+                        width: parent.width - volumeSlider.width
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    CustomSlider {
+                        id: volumeSlider
+                        width: 150
+                        from: 0; to: 5; stepSize: 1
+                        value: appSettings.soundVolume
+                        enabled: appSettings.musicEnabled
+                        anchors.verticalCenter: parent.verticalCenter
+                        onMoved: {
+                            appSettings.soundVolume = value
+                            if (value > 0)
+                                appSettings.lastSoundVolume = value
+                            else
+                                appSettings.musicEnabled = false
+
+                            var snd = (value % 2 === 0) ? sndPreviewOpponent : sndPreviewMove
+                            if (value > 0 && snd.status === SoundEffect.Ready)
+                                snd.play()
+                        }
                     }
                 }
 
