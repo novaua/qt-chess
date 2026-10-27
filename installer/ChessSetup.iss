@@ -23,8 +23,11 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
+#ifndef NoSign
+; CI passes /S"MySignTool=..."; local builds pass /DNoSign=1 (see Build-Installer.ps1)
 SignTool=MySignTool
 SignedUninstaller=yes
+#endif
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

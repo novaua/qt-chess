@@ -67,3 +67,4 @@ Thumbs.db
 .vs/*
 vcpkg_installed/*
 
+installer/Output/
