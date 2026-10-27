@@ -37,3 +37,9 @@ Add the content of `Base64Cert.txt` to the GitHub repository secret `PFX_CERT_BA
 > **Note:** Self-signed certificates trigger a Windows SmartScreen warning ("Windows protected your PC") on first run.
 > Users click **More info → Run anyway**. This is expected for a personal project.
 > A commercial release would use a CA-signed EV certificate to avoid this warning.
+
+## License
+Copyright (C) 2015-2026 Vitaly German
+
+Chess++ is free software, licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-only).
+It comes with NO WARRANTY, to the extent permitted by law. Derived works must be released under the same license with their source.
