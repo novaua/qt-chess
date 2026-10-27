@@ -62,12 +62,33 @@ jobs:
           Write-Host "Qt install dir: $qtInstallDir  (qmake: $qmake)"
           "qt_install_dir=$qtInstallDir" | Out-File $env:GITHUB_OUTPUT -Append
 
+      - name: Compute version string
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $v = "${{ github.ref_name }}" -replace '^v', ''
+            if ($v -notmatch '^\d+\.\d+\.\d+') {
+              throw "Tag '${{ github.ref_name }}' must look like vMAJOR.MINOR.PATCH[-suffix]"
+            }
+            # Stamped into the exe/dll version resources (see Directory.Build.props)
+            "build=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            $v = "pr-${{ github.event.pull_request.number }}"
+          }
+          "value=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
       - name: Build (MSBuild Release|x64)
         shell: pwsh
         run: |
+          # PR builds keep the AppVersion default from Directory.Build.props
+          # (an empty /p:AppVersion= would override it, so only pass it for tags).
+          $versionArgs = @()
+          if ("${{ steps.version.outputs.build }}") { $versionArgs += "/p:AppVersion=${{ steps.version.outputs.build }}" }
           msbuild ChessCore.sln `
             /p:Configuration=Release `
             /p:Platform=x64 `
+            $versionArgs `
             /p:PlatformToolset=v143 `
             /p:QtMsBuild="${{ steps.qtvstools.outputs.msbuild_dir }}" `
             /p:QtInstall="${{ steps.qtvstools.outputs.qt_install_dir }}" `
@@ -83,16 +104,21 @@ jobs:
           Write-Host "=== deploy folder contents ==="
           Get-ChildItem deploy -Recurse | Select-Object FullName
 
-      - name: Compute version string
-        id: version
+      - name: Verify version metadata
         shell: pwsh
         run: |
-          if ("${{ github.ref_type }}" -eq "tag") {
-            $v = "${{ github.ref_name }}" -replace '^v', ''
-          } else {
-            $v = "pr-${{ github.event.pull_request.number }}"
+          $expected = "${{ steps.version.outputs.build }}"
+          foreach ($f in 'deploy\ChessGui.exe', 'deploy\LiChessConnector.dll') {
+            $vi = (Get-Item $f).VersionInfo
+            Write-Host "$f : $($vi.ProductName) $($vi.ProductVersion) / $($vi.CompanyName)"
+            if ($vi.ProductName -ne 'Chess++' -or [string]::IsNullOrEmpty($vi.CompanyName)) {
+              throw "$f is missing product metadata"
+            }
+            $core = ($expected -split '-')[0]
+            if ($expected -and $vi.ProductVersion -ne "$core.0") {
+              throw "$f version '$($vi.ProductVersion)' does not match tag version '$core'"
+            }
           }
-          "value=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Decode Certificate
         shell: pwsh
