@@ -197,3 +197,25 @@ begin
     WizardForm.StatusLabel.Caption := 'Done.';
   end;
 end;
+
+// Offer to remove per-user app data (logs, saved games, user profiles, settings)
+// after uninstall. The question defaults to Yes. Silent uninstalls keep the data
+// unless /DELETEDATA=1 is passed, so scripted reinstalls don't wipe saved games.
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  DataDir: String;
+begin
+  if CurUninstallStep <> usPostUninstall then
+    Exit;
+
+  DataDir := ExpandConstant('{localappdata}\ChessPlusPlus_Inc');
+  if not DirExists(DataDir) then
+    Exit;
+
+  if (ExpandConstant('{param:DELETEDATA|0}') = '1') or
+     (SuppressibleMsgBox(
+        'Also delete Chess++ user data (logs, saved games, user profiles and settings)?' + #13#10 + #13#10 +
+        DataDir,
+        mbConfirmation, MB_YESNO or MB_DEFBUTTON1, IDNO) = IDYES) then
+    DelTree(DataDir, True, True, True);
+end;
