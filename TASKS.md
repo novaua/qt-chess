@@ -1,30 +1,23 @@
 # Tasks
 
-## Branch: feMakeInstaller_0430a — CMake Installer Pipeline
+## Branch: feRelease010_271026 — Release 0.1.0
 
 ### In Progress
 
-- [ ] Fix CMake build so `cmake --build build --config Release` produces `ChessGui.exe`
-  - CMakeLists.txt added (commit e463983) but build is still failing (commits 360efa3–9ee0a48)
-  - Check that all four VS projects (ChessCore, UciConnector, ChessConnector, ChessGui) are wired in CMakeLists.txt
-  - Verify Qt6 find_package paths and windeployqt invocation
+- [ ] Merge release-prep PR to `develop` (CI green)
+- [ ] Tag `v0.1.0` on `develop` and push; verify GitHub Release + `ChessSetup-0.1.0.exe`
+- [ ] Smoke-test installer on a clean machine
 
-- [ ] Validate GitHub Actions workflow (`.github/workflows/release.yml`)
-  - Workflow builds with CMake + Ninja on `windows-latest`
-  - Runs `windeployqt` then packages with Inno Setup (`installer/ChessSetup.iss`)
-  - Test by opening a PR against `develop` — artifact should appear under the run
+### Done
 
-- [ ] Create / verify Inno Setup script (`installer/ChessSetup.iss`)
-  - Script must pick up `deploy/` folder produced by the workflow
-  - Output file should match `installer/Output/ChessSetup-*.exe`
+- [x] CI/CD build pipeline (MSBuild + windeployqt + signing + Inno Setup) — working since #33/#34
+- [x] Release notes `docs/release-notes/v0.1.0.md`, wired into `release.yml`
 
 ### Backlog
 
 - [ ] **User profiles** — per-user config (display name, settings, stats); `AppConfig` is designed to extend
 - [ ] **chess.com account** — save/restore user chess.com credentials and data when connected
 
-- [ ] Merge `feMakeInstaller_0430a` → `develop` once CI passes green
-- [ ] Tag a release (`v*`) to trigger the GitHub Release publish step
 - [x] Engine Difficulty setting — implemented
   - `UciConnector::SetDifficulty(int)` sets "Skill Level" via `setoption`; `SetOption` now updates `_opt` so `GetOption` reflects it
   - `ChessEnginePlayer(game, difficulty)` calls `SetDifficulty` after `Init()`

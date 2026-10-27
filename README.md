@@ -4,6 +4,10 @@ Able to connect to a UCI engine to play with a computer.
 
 [Gameplay demo 2026](https://youtu.be/hlW6xv23fN4) 
 
+## Download
+Latest installer: [Releases](https://github.com/novaua/qt-chess/releases/latest).
+First release: [v0.1.0](https://github.com/novaua/qt-chess/releases/tag/v0.1.0) — see the [release notes](docs/release-notes/v0.1.0.md).
+
 Tools required to compile:
 * MS Visual Studio 2022
 * Qt 6.10+ with [Qt VS Tools](https://marketplace.visualstudio.com/items?itemName=TheQtCompany.QtVisualStudioTools2022)
