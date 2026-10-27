@@ -8,8 +8,8 @@ Chess++ is a free, open-source chess game for Windows with a Qt QML interface an
 [Gameplay demo 2026](https://youtu.be/hlW6xv23fN4) 
 
 ## Download
-Latest installer: [Releases](https://github.com/novaua/qt-chess/releases/latest).
-First release: [v0.1.0](https://github.com/novaua/qt-chess/releases/tag/v0.1.0) — see the [release notes](docs/release-notes/v0.1.0.md).
+Latest installer: [download the newest release](https://github.com/novaua/qt-chess/releases/latest) (Windows 10/11, x64).
+All versions: [Releases](https://github.com/novaua/qt-chess/releases). Release notes for each version are in [docs/release-notes](docs/release-notes).
 
 Tools required to compile:
 * MS Visual Studio 2022
