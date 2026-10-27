@@ -201,24 +201,94 @@ begin
   end;
 end;
 
-// Offer to remove per-user app data (logs, saved games, user profiles, settings)
-// after uninstall. The question defaults to Yes. Silent uninstalls keep the data
-// unless /DELETEDATA=1 is passed, so scripted reinstalls don't wipe saved games.
-procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+
+// ---- Uninstall: optional removal of per-user app data ----
+// Inno Setup shows its own "Are you sure?" box AFTER InitializeUninstall and it cannot
+// hold a checkbox, so the data question is a small custom dialog shown first
+// (nothing has been removed yet; Cancel aborts the uninstall). The choice is applied
+// after the files are removed. Silent uninstalls keep the data unless /DELETEDATA=1
+// is passed, so scripted reinstalls don't wipe saved games.
 var
-  DataDir: String;
+  DeleteUserData: Boolean;
+
+function UserDataDir(): String;
 begin
-  if CurUninstallStep <> usPostUninstall then
+  Result := ExpandConstant('{localappdata}\ChessPlusPlus_Inc');
+end;
+
+// Returns False if the user cancelled the uninstall.
+function AskDeleteUserData(var DeleteData: Boolean): Boolean;
+var
+  Form: TSetupForm;
+  Msg: TNewStaticText;
+  Check: TNewCheckBox;
+  OkButton, CancelButton: TNewButton;
+begin
+  Form := CreateCustomForm(ScaleX(420), ScaleY(150), False, True);
+  try
+    Form.Caption := 'Uninstall Chess++';
+
+    Msg := TNewStaticText.Create(Form);
+    Msg.Parent := Form;
+    Msg.Left := ScaleX(16);
+    Msg.Top := ScaleY(16);
+    Msg.Width := Form.ClientWidth - ScaleX(32);
+    Msg.AutoSize := True;
+    Msg.WordWrap := True;
+    Msg.Caption := 'Chess++ will be removed from this computer.';
+
+    Check := TNewCheckBox.Create(Form);
+    Check.Parent := Form;
+    Check.Left := ScaleX(16);
+    Check.Top := ScaleY(56);
+    Check.Width := Form.ClientWidth - ScaleX(32);
+    Check.Height := ScaleY(34);
+    Check.Caption := 'Also delete my saved games, user profiles, settings and logs' + #13#10 +
+                     '(' + UserDataDir() + ')';
+    Check.Checked := True;
+
+    OkButton := TNewButton.Create(Form);
+    OkButton.Parent := Form;
+    OkButton.Width := ScaleX(90);
+    OkButton.Height := ScaleY(26);
+    OkButton.Left := Form.ClientWidth - ScaleX(16) - ScaleX(90) - ScaleX(8) - ScaleX(90);
+    OkButton.Top := Form.ClientHeight - ScaleY(16) - ScaleY(26);
+    OkButton.Caption := 'Uninstall';
+    OkButton.ModalResult := mrOk;
+    OkButton.Default := True;
+
+    CancelButton := TNewButton.Create(Form);
+    CancelButton.Parent := Form;
+    CancelButton.Width := ScaleX(90);
+    CancelButton.Height := ScaleY(26);
+    CancelButton.Left := Form.ClientWidth - ScaleX(16) - ScaleX(90);
+    CancelButton.Top := OkButton.Top;
+    CancelButton.Caption := 'Cancel';
+    CancelButton.ModalResult := mrCancel;
+    CancelButton.Cancel := True;
+
+    Result := Form.ShowModal = mrOk;
+    DeleteData := Check.Checked;
+  finally
+    Form.Free;
+  end;
+end;
+
+function InitializeUninstall(): Boolean;
+begin
+  Result := True;
+  DeleteUserData := False;
+  if not DirExists(UserDataDir()) then
     Exit;
 
-  DataDir := ExpandConstant('{localappdata}\ChessPlusPlus_Inc');
-  if not DirExists(DataDir) then
-    Exit;
+  if UninstallSilent then
+    DeleteUserData := ExpandConstant('{param:DELETEDATA|0}') = '1'
+  else
+    Result := AskDeleteUserData(DeleteUserData);
+end;
 
-  if (ExpandConstant('{param:DELETEDATA|0}') = '1') or
-     (SuppressibleMsgBox(
-        'Also delete Chess++ user data (logs, saved games, user profiles and settings)?' + #13#10 + #13#10 +
-        DataDir,
-        mbConfirmation, MB_YESNO or MB_DEFBUTTON1, IDNO) = IDYES) then
-    DelTree(DataDir, True, True, True);
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if (CurUninstallStep = usPostUninstall) and DeleteUserData then
+    DelTree(UserDataDir(), True, True, True);
 end;
