@@ -18,8 +18,15 @@ param(
 $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$StockfishUrl = 'https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip'
-$tmpDir       = Join-Path $env:TEMP "sf_test_$(Get-Random)"
+# Keep in sync with the candidate list in ChessSetup.iss (tried in this order).
+$latest = 'https://github.com/official-stockfish/Stockfish/releases/latest/download/'
+$Candidates = @(
+    @{ Url = "${latest}stockfish-windows-x86-64-universal.zip"; Sha256 = '' },
+    @{ Url = "${latest}stockfish-windows-x86-64-avx2.zip";      Sha256 = '' },
+    @{ Url = 'https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-windows-x86-64-universal.zip';
+       Sha256 = '3c8bf1f9ea66a09350a40df4f632288285ac206d99f33ab5842c408fc30b48a7' }
+)
+$tmpDir      = Join-Path $env:TEMP "sf_test_$(Get-Random)"
 $sfDir        = "$tmpDir\sf"
 
 function Log($msg) {
@@ -38,9 +45,23 @@ try {
         Log "Skipping download, using existing zip: $ZipPath"
         Copy-Item $ZipPath "$tmpDir\sf.zip"
     } else {
-        Log "Downloading : $StockfishUrl"
-        $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        (New-Object System.Net.WebClient).DownloadFile($StockfishUrl, "$tmpDir\sf.zip")
+        $ok = $false
+        foreach ($c in $Candidates) {
+            Log "Downloading : $($c.Url)"
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            try {
+                (New-Object System.Net.WebClient).DownloadFile($c.Url, "$tmpDir\sf.zip")
+                if ($c.Sha256 -and (Get-FileHash "$tmpDir\sf.zip" -Algorithm SHA256).Hash -ne $c.Sha256) {
+                    throw "SHA-256 mismatch"
+                }
+                $ok = $true
+                break
+            } catch {
+                Log "  failed    : $($_.Exception.Message)"
+                Remove-Item "$tmpDir\sf.zip" -Force -ErrorAction SilentlyContinue
+            }
+        }
+        if (-not $ok) { throw "All Stockfish download candidates failed" }
         $sw.Stop()
         $sizeMB = [math]::Round((Get-Item "$tmpDir\sf.zip").Length / 1MB, 1)
         Log "Download OK : $sizeMB MB in $($sw.Elapsed.TotalSeconds.ToString('0.0'))s"

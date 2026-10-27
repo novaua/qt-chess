@@ -47,11 +47,20 @@ Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: 
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-// Download URL: GitHub's /releases/latest/download/ redirect always points
+// Download URLs: GitHub's /releases/latest/download/ redirect always points
 // to the current release — no API call needed to resolve the tag.
+// Stockfish renamed its Windows assets in sf_19 (avx2 -> universal), which broke
+// a single hard-coded name, so several candidates are tried in order:
+//   0. latest, current naming  (stockfish-windows-x86-64-universal.zip)
+//   1. latest, pre-sf_19 naming (stockfish-windows-x86-64-avx2.zip)
+//   2. pinned known-good release, verified by SHA-256 (works if "latest" changes again)
 const
-  StockfishUrl = 'https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip';
   StockfishZip = 'stockfish.zip';
+  StockfishCandidates = 3;
+  StockfishLatest = 'https://github.com/official-stockfish/Stockfish/releases/latest/download/';
+  StockfishPinnedUrl = 'https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-windows-x86-64-universal.zip';
+  StockfishPinnedSha256 = '3c8bf1f9ea66a09350a40df4f632288285ac206d99f33ab5842c408fc30b48a7';
+  StockfishManualUrl = 'https://stockfishchess.org/download/windows/';
 
 var
   DownloadPage: TDownloadWizardPage;
@@ -64,25 +73,61 @@ begin
     nil);
 end;
 
-// Queue the Stockfish download when the user clicks Next on the Ready page.
+procedure StockfishCandidate(Index: Integer; var Url, Sha256: String);
+begin
+  Sha256 := '';
+  case Index of
+    0: Url := StockfishLatest + 'stockfish-windows-x86-64-universal.zip';
+    1: Url := StockfishLatest + 'stockfish-windows-x86-64-avx2.zip';
+  else
+    begin
+      Url := StockfishPinnedUrl;
+      Sha256 := StockfishPinnedSha256;
+    end;
+  end;
+end;
+
+// Try each candidate URL until one downloads. Returns False if all fail.
+function DownloadStockfish(): Boolean;
+var
+  I: Integer;
+  Url, Sha256, Errors: String;
+begin
+  Result := False;
+  Errors := '';
+  for I := 0 to StockfishCandidates - 1 do
+  begin
+    StockfishCandidate(I, Url, Sha256);
+    DownloadPage.Clear;
+    DownloadPage.Add(Url, StockfishZip, Sha256);
+    try
+      DownloadPage.Download;
+      Result := True;
+      Break;
+    except
+      Errors := Errors + Url + #13#10 + '    ' + GetExceptionMessage + #13#10;
+      DeleteFile(ExpandConstant('{tmp}\' + StockfishZip));
+    end;
+  end;
+
+  if not Result then
+    MsgBox('The Stockfish engine could not be downloaded:' + #13#10 + #13#10 + Errors + #13#10 +
+           'The app will still be installed. To play against the computer, download' + #13#10 +
+           'Stockfish from ' + StockfishManualUrl + #13#10 +
+           'and place stockfish.exe in: ' + ExpandConstant('{app}\engines\'),
+           mbError, MB_OK);
+end;
+
+// Download Stockfish when the user clicks Next on the Ready page.
 // Uses Inno Setup''s built-in WinHTTP download (no PowerShell, native progress bar).
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
   if (CurPageID = wpReady) and WizardIsTaskSelected('stockfish') then
   begin
-    DownloadPage.Clear;
-    DownloadPage.Add(StockfishUrl, StockfishZip, '');
     DownloadPage.Show;
     try
-      try
-        DownloadPage.Download;
-      except
-        MsgBox('Stockfish download failed:' + #13#10 + GetExceptionMessage + #13#10 + #13#10 +
-               'The app will still be installed. You can place stockfish.exe' + #13#10 +
-               'manually in: ' + ExpandConstant('{app}\engines\'),
-               mbError, MB_OK);
-      end;
+      DownloadStockfish();
     finally
       DownloadPage.Hide;
     end;
