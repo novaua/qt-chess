@@ -1,0 +1,21 @@
+<Project>
+  <!--
+    Single source of the product version for every binary (exe/dll version resources).
+    Local builds use the default below; the release workflow overrides it from the
+    git tag:  msbuild ... /p:AppVersion=0.1.0
+    Only the numeric major.minor.patch part is used (a suffix like -rc1 is ignored).
+  -->
+  <PropertyGroup>
+    <AppVersion Condition="'$(AppVersion)' == ''">0.1.0</AppVersion>
+    <AppVersionCore>$(AppVersion.Split('-')[0])</AppVersionCore>
+    <AppVersionMajor>$(AppVersionCore.Split('.')[0])</AppVersionMajor>
+    <AppVersionMinor>$(AppVersionCore.Split('.')[1])</AppVersionMinor>
+    <AppVersionPatch>$(AppVersionCore.Split('.')[2])</AppVersionPatch>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ResourceCompile>
+      <PreprocessorDefinitions>APP_VERSION_MAJOR=$(AppVersionMajor);APP_VERSION_MINOR=$(AppVersionMinor);APP_VERSION_PATCH=$(AppVersionPatch);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+</Project>

@@ -1,1 +1,6 @@
 IDI_ICON1 ICON "chess.ico"
+
+#define VI_FILE_DESCRIPTION "Chess++"
+#define VI_ORIGINAL_FILENAME "ChessGui.exe"
+#define VI_FILE_TYPE VFT_APP
+#include "VersionInfo.rc"

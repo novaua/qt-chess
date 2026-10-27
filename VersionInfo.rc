@@ -1,0 +1,37 @@
+// Shared VERSIONINFO block. Include from a project's .rc after defining:
+//   VI_FILE_DESCRIPTION, VI_ORIGINAL_FILENAME, VI_FILE_TYPE (VFT_APP or VFT_DLL)
+// APP_VERSION_MAJOR/MINOR/PATCH come from Directory.Build.props.
+#include <winver.h>
+
+#define VI_STR_(x) #x
+#define VI_STR(x) VI_STR_(x)
+#define VI_VERSION_STR VI_STR(APP_VERSION_MAJOR) "." VI_STR(APP_VERSION_MINOR) "." VI_STR(APP_VERSION_PATCH) ".0"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION APP_VERSION_MAJOR,APP_VERSION_MINOR,APP_VERSION_PATCH,0
+ PRODUCTVERSION APP_VERSION_MAJOR,APP_VERSION_MINOR,APP_VERSION_PATCH,0
+ FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+ FILEFLAGS 0x0L
+ FILEOS VOS_NT_WINDOWS32
+ FILETYPE VI_FILE_TYPE
+ FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Vitaly German"
+            VALUE "FileDescription", VI_FILE_DESCRIPTION
+            VALUE "FileVersion", VI_VERSION_STR
+            VALUE "InternalName", VI_ORIGINAL_FILENAME
+            VALUE "LegalCopyright", "Copyright (C) 2015-2026 Vitaly German. GPL-3.0-only."
+            VALUE "OriginalFilename", VI_ORIGINAL_FILENAME
+            VALUE "ProductName", "Chess++"
+            VALUE "ProductVersion", VI_VERSION_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

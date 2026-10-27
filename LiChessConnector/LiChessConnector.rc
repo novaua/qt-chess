@@ -1,0 +1,4 @@
+#define VI_FILE_DESCRIPTION "Chess++ Lichess connector"
+#define VI_ORIGINAL_FILENAME "LiChessConnector.dll"
+#define VI_FILE_TYPE VFT_DLL
+#include "VersionInfo.rc"
