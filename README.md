@@ -15,6 +15,15 @@ Tools required to compile:
 * MS Visual Studio 2022
 * Qt 6.10+ with [Qt VS Tools](https://marketplace.visualstudio.com/items?itemName=TheQtCompany.QtVisualStudioTools2022)
 
+## Build the installer locally
+Needs the tools above plus [Inno Setup 6](https://jrsoftware.org/isdl.php) and `windeployqt` on `PATH` (or pass `-QtBinDir`):
+```powershell
+.\installer\Build-Installer.ps1                 # version = latest git tag + "-local"
+.\installer\Build-Installer.ps1 -Version 0.2.0  # explicit version
+.\installer\Build-Installer.ps1 -SkipBuild      # repackage existing x64\Release binaries
+```
+The result is `installer\Output\ChessSetup-<version>.exe`. Local installers are unsigned; releases are built and signed by CI.
+
 # Generate self-signed Code Signing certificate (run once, locally)
 # 1. Create the certificate in your personal store
 ```powershell
