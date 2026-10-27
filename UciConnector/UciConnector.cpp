@@ -60,18 +60,35 @@ UciConnector::UciConnector() : _initOk(false)
 
 void UciConnector::Init()
 {
-	QString sfPath = QStandardPaths::findExecutable(UciEngineProgrammExe);
-	if (sfPath.isEmpty()) {
-		QString enginesDir = QCoreApplication::applicationDirPath() + "/engines";
-		sfPath = QStandardPaths::findExecutable(UciEngineProgrammExe, { enginesDir });
+	// Prefer the engine installed next to the app (./engines/), then fall back
+	// to one on the system PATH. A candidate that is found but fails to start
+	// (e.g. a corrupt download) also falls through to the next one.
+	const QString enginesDir = QCoreApplication::applicationDirPath() + "/engines";
+	const QString candidates[] = {
+		QStandardPaths::findExecutable(UciEngineProgrammExe, { enginesDir }),
+		QStandardPaths::findExecutable(UciEngineProgrammExe),
+	};
+
+	bool found = false;
+	bool started = false;
+	for (const QString& sfPath : candidates) {
+		if (sfPath.isEmpty())
+			continue;
+		found = true;
+
+		_uciEngine->start(sfPath, QStringList());
+		if (_uciEngine->waitForStarted(5000)) {
+			started = true;
+			break;
+		}
+		_uciEngine->kill();
+		_uciEngine->waitForFinished(1000);
 	}
 
-	if (sfPath.isEmpty())
+	if (!found)
 		throw std::runtime_error(
-			"UciConnector: stockfish.exe not found on PATH or in ./engines/");
-
-	_uciEngine->start(sfPath, QStringList());
-	if (!_uciEngine->waitForStarted(5000))
+			"UciConnector: stockfish.exe not found in ./engines/ or on PATH");
+	if (!started)
 		throw std::runtime_error("UciConnector: failed to start stockfish");
 
 	sendLine(_uciEngine.get(), UciInitCommand);
