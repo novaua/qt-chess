@@ -22,6 +22,13 @@ void EngineWorker::doMove()
         _enginePlayer->DoMove();
         emit moveComplete();
     } catch (const std::exception& e) {
-        emit moveError(QString::fromStdString(e.what()));
+        QString details;
+        try {
+            if (_enginePlayer)
+                details = QString::fromStdString(_enginePlayer->DebugDump());
+        } catch (const std::exception& dumpError) {
+            details = QString("(debug dump failed: %1)").arg(dumpError.what());
+        }
+        emit moveError(QString::fromStdString(e.what()), details);
     }
 }

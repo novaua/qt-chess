@@ -24,6 +24,9 @@ namespace Chess {
 
 		void DoMove();
 		void KillEngine();
+
+		// Position, move list and engine state as text, to log when a move request fails.
+		std::string DebugDump();
 	};
 
 	typedef std::shared_ptr<ChessEnginePlayer> ChessEnginePlayerAptr;

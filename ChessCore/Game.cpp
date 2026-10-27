@@ -213,27 +213,41 @@ namespace Chess
 		{
 			auto pawnPromotionEvent = PawnPromotionEvent(EtPawnPromotion, ppIndex, (int)side);
 
-			pawnPromotionEvent.OnPromoted = [this](const PositionPiece& positionPiece)
+			pawnPromotionEvent.OnPromoted = [this, side](const PositionPiece& positionPiece)
 				{
 					_historyAptr->rbegin()->PromotedTo = positionPiece.Piece;
 
 					_boardAptr->Place(positionPiece.Position, positionPiece.Piece);
 					NotifyBoardChangesListeners({ positionPiece.Position });
+
+					// The promoted piece may give check or mate; that is only known now.
+					NotifyCheckState(side);
 				};
 
 			NotifyActionsListeners(pawnPromotionEvent);
 		}
-		else if (check.IsInCheck(OppositeSideOf(side)))
+		else
 		{
-			if (check.IsCheckMate(OppositeSideOf(side)))
-			{
-				NotifyActionsListeners(EtCheckMate);
-				_checkMate = true;
-			}
-			else
-			{
-				NotifyActionsListeners(EtCheck);
-			}
+			NotifyCheckState(side);
+		}
+	}
+
+	// Raises EtCheck / EtCheckMate if the side opposite to `movedSide` is in check.
+	void Game::NotifyCheckState(PieceColors movedSide)
+	{
+		GameChecks check(_gameState);
+		auto opponent = OppositeSideOf(movedSide);
+		if (!check.IsInCheck(opponent))
+			return;
+
+		if (check.IsCheckMate(opponent))
+		{
+			NotifyActionsListeners(EtCheckMate);
+			_checkMate = true;
+		}
+		else
+		{
+			NotifyActionsListeners(EtCheck);
 		}
 	}
 

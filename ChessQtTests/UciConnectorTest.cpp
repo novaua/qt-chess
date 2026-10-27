@@ -111,6 +111,28 @@ namespace ConnectorTests
 			Assert::IsFalse(response.BestMove.empty(), L"Restarted engine must answer");
 		}
 
+		TEST_METHOD(DebugState_AfterEngineDied_DescribesRequestAndProcess_Test)
+		{
+			_connector->Kill();
+			bool threw = false;
+			try {
+				_connector->GetEngineMove({ {}, { "e2e4" } }, chrono::milliseconds(200));
+			}
+			catch (const std::logic_error&) {
+				threw = true;
+			}
+			Assert::IsTrue(threw, L"A dead engine cannot answer");
+
+			auto state = _connector->DebugState();
+			Logger::WriteMessage(state.c_str());
+
+			Assert::IsTrue(state.find("engine: ") != string::npos);
+			Assert::IsTrue(state.find("process: not running") != string::npos);
+			Assert::IsTrue(state.find(">> position startpos moves e2e4") != string::npos,
+				L"The failed request must be in the traffic log");
+			Assert::IsTrue(state.find("engine process is not running") != string::npos);
+		}
+
 		TEST_METHOD(Checkmate_Detection_Test)
 		{
 			_connector->SetDifficulty(1320);

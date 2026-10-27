@@ -150,7 +150,7 @@ public slots:
 
 private slots:
 	void onEngineMoveComplete();
-	void onEngineMoveError(const QString& message);
+	void onEngineMoveError(const QString& message, const QString& details);
 
 private:
 	void makeMove(int from, int to);

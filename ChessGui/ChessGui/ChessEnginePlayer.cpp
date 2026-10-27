@@ -71,3 +71,35 @@ void ChessEnginePlayer::KillEngine()
 {
 	_connector->Kill();
 }
+
+std::string ChessEnginePlayer::DebugDump()
+{
+	static const char* modeNames[] = { "StartPos", "PureFen", "FenWindow" };
+	auto history = _game->GetGameRecord();
+
+	std::string out = std::string("mode: ") + modeNames[static_cast<int>(_mode)]
+		+ ", Elo " + std::to_string(_level.Elo())
+		+ ", movetime " + std::to_string(_level.MoveTime().count()) + " ms\n";
+	out += std::string("side to move: ") + (_game->IsWhiteMove() ? "white" : "black")
+		+ ", plies played: " + std::to_string(history.size()) + "\n";
+	out += "fen: " + _game->MakeFen() + "\n";
+
+	out += "moves:";
+	for (const auto& m : history)
+		out += " " + m.ToUciString();
+	out += "\n";
+
+	out += "board (white at the bottom, '.' = empty):\n";
+	for (int rank = 7; rank >= 0; --rank) {
+		out += "  " + std::to_string(rank + 1) + " ";
+		for (int file = 0; file < 8; ++file) {
+			auto piece = _game->GetPieceAt(rank * 8 + file);
+			out += piece.IsEmpty() ? "." : piece.ToString();
+			out += " ";
+		}
+		out += "\n";
+	}
+	out += "    a b c d e f g h\n";
+
+	return out + _connector->DebugState();
+}

@@ -27,5 +27,5 @@ public slots:
 
 signals:
     void moveComplete();
-    void moveError(QString message);
+    void moveError(QString message, QString details); // details: multi-line DebugDump(), may be empty
 };

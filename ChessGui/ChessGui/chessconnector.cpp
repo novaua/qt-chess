@@ -560,11 +560,15 @@ void ChessConnector::onEngineMoveComplete()
 	EmitMoveCountUpdates();
 }
 
-void ChessConnector::onEngineMoveError(const QString& message)
+void ChessConnector::onEngineMoveError(const QString& message, const QString& details)
 {
 	_engineThinking = false;
 	emit engineThinkingChanged();
 	qDebug() << "[Engine] move error:" << message;
+
+	// One log line per dump line so the board and the move list stay readable in the log file.
+	for (const auto& line : details.split('\n', Qt::SkipEmptyParts))
+		qDebug().noquote() << "[Engine]" << line;
 }
 
 QString ChessConnector::autoSavePath() const

@@ -420,6 +420,43 @@ namespace ChessTests
 			Assert::IsTrue(d6 == game->ElPasantPosition());
 		}
 
+		// Moves a white pawn to c8 (capturing the bishop); once the promotion piece is chosen
+		// the new piece checks the king along the 8th rank.
+		static std::vector<EventType> PlayPromotionWithCheck(PieceTypes promoteTo)
+		{
+			auto game = std::make_unique<Game>();
+			std::vector<EventType> events;
+			game->RegisterGameActionsListeners([&](const EventBase& ev) {
+				events.push_back(ev.GetType());
+				if (ev.GetType() == EtPawnPromotion) {
+					auto& pp = static_cast<const PawnPromotionEvent&>(ev);
+					pp.OnPromoted({ (BoardPosition)pp.GetIndex(), Piece{ promoteTo, (PieceColors)pp.GetColor() } });
+				}
+				});
+
+			for (auto m : { "b2b4", "c7c5", "b4c5", "b7b6", "c5b6", "b8c6", "b6b7", "d7d6", "a2a3", "d8d7" })
+				game->DoMove(Move::Parse(m));
+			events.clear();
+
+			game->DoMove({ b7, c8 });
+			return events;
+		}
+
+		TEST_METHOD(PawnPromotionGivingCheck_RaisesCheck_Test) {
+			auto events = PlayPromotionWithCheck(QUEEN);
+
+			Assert::AreEqual<size_t>(2, events.size());
+			Assert::IsTrue(EtPawnPromotion == events[0]);
+			Assert::IsTrue(EtCheck == events[1], L"Promoted queen checks the king on e8");
+		}
+
+		TEST_METHOD(PawnPromotionNotGivingCheck_NoCheckEvent_Test) {
+			auto events = PlayPromotionWithCheck(KNIGHT); // a knight on c8 does not attack e8
+
+			Assert::AreEqual<size_t>(1, events.size());
+			Assert::IsTrue(EtPawnPromotion == events[0]);
+		}
+
 		TEST_METHOD(PawnPromotionSerializationDark_Test) {
 			auto move = Move{ e7, e8, false, { QUEEN, PieceColors::Dark } };
 			auto historyMove = HistoryMove::FromMove(move, Piece{ PAWN, PieceColors::Dark }, Piece{ QUEEN, PieceColors::Dark });
