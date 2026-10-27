@@ -1,6 +1,9 @@
 # qt-chess
-Chess UI made on Qt QML and C++
-Able to connect to a UCI engine to play with a computer.
+Chess++ is a free, open-source chess game for Windows with a Qt QML interface and a C++ chess core.
+
+* Play locally against another person, or against a computer using any UCI engine (Stockfish recommended) with five difficulty levels
+* Play online through your Lichess account
+* Local user profiles with saved games and settings, move history, captured pieces, sound effects
 
 [Gameplay demo 2026](https://youtu.be/hlW6xv23fN4) 
 
@@ -43,3 +46,21 @@ Copyright (C) 2015-2026 Vitaly German
 
 Chess++ is free software, licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-only).
 It comes with NO WARRANTY, to the extent permitted by law. Derived works must be released under the same license with their source.
+
+## Code signing policy
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+This applies to releases once the SignPath Foundation certificate is active; earlier releases are signed with a self-signed certificate (see the note above).
+
+* **Build:** installers are built from the source in this repository by the [GitHub Actions workflow](.github/workflows/release.yml) on `v*` tags. Only binaries built this way are signed.
+* **Roles:** committer, reviewer and approver: [Vitaly German](https://github.com/novaua). Changes from other contributors are reviewed by the maintainer before merging. Every release is approved manually before signing.
+* **Scope:** only Chess++'s own binaries (`ChessGui.exe`, `LiChessConnector.dll`) and the installer. Qt libraries and the optional Stockfish engine are third-party and are not signed by this project.
+
+## Privacy
+Chess++ does not collect analytics or telemetry, and has no accounts of its own. Network access happens only in these cases:
+
+* **Lichess (only if you use online play):** when you log in or play online, the app talks to `lichess.org` (OAuth login, account name, games and moves). Your Lichess access token is stored encrypted in your local user profile and can be removed by disconnecting Lichess in the app.
+* **QR code for challenges (only when you create a Lichess challenge):** the dialog shows a QR code rendered by `api.qrserver.com`; the challenge link is sent to that service to produce the image.
+* **Stockfish download (optional, installer only):** if you tick the option in the installer, it downloads Stockfish from `github.com/official-stockfish/Stockfish` releases.
+* **Local data:** profiles, settings and saved games stay on your computer.
+
+Playing locally or against a local UCI engine uses no network connection.
