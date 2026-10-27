@@ -15,6 +15,7 @@ AppPublisherURL=https://github.com/novaua/qt-chess
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 OutputDir=Output
+LicenseFile=..icense
 OutputBaseFilename=ChessSetup-{#MyAppVersion}
 SetupIconFile=..\ChessGui\ChessGui\chess.ico
 UninstallDisplayIcon={app}\ChessGui.exe
