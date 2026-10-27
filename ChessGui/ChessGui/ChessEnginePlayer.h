@@ -15,6 +15,8 @@ namespace Chess {
 		EngineLevel _level;
 		PositionMode _mode;
 
+		void StartEngine();
+
 	public:
 		ChessEnginePlayer(const GameAptr& game,
 		                  EngineLevel level = EngineLevel{3},

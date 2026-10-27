@@ -154,6 +154,7 @@ private slots:
 
 private:
 	void makeMove(int from, int to);
+	void onHumanMoveDone();
 	void emitBoardState(int moveIndex);
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
 	void appendMoveToHistory();
@@ -181,6 +182,7 @@ private:
 	EngineWorker* _engineWorker = nullptr;
 	bool _engineThinking = false;
 	bool _engineAutoPlay = false;
+	bool _promotionPending = false; // a pawn is on the last rank, waiting for pawnPromote()
 	std::atomic<bool> _gameOver{ false };
 	bool _wasVsComputer = false;
 	QString _gameResult;

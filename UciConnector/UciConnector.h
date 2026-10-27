@@ -38,6 +38,7 @@ public:
 	UciConnector();
 	void Init();
 	bool IsInitialized();
+	bool IsRunning() const; // false once the engine process has exited; Init() starts a fresh one
 	bool CheckReady();
 	bool NewGame();
 	std::string GetOption(const std::string& op);

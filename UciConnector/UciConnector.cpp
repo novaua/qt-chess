@@ -60,6 +60,15 @@ UciConnector::UciConnector() : _initOk(false)
 
 void UciConnector::Init()
 {
+	// Init() is also the restart path after the engine exited (Stockfish 18+ quits on
+	// an illegal move in "position ... moves"), so drop any previous process state.
+	if (_uciEngine->state() != QProcess::NotRunning) {
+		_uciEngine->kill();
+		_uciEngine->waitForFinished(1000);
+	}
+	_opt.clear();
+	_initOk = false;
+
 	// Prefer the engine installed next to the app (./engines/), then fall back
 	// to one on the system PATH. A candidate that is found but fails to start
 	// (e.g. a corrupt download) also falls through to the next one.
@@ -148,6 +157,11 @@ std::string UciConnector::ProcessCommand(const Command& comm)
 bool UciConnector::IsInitialized()
 {
 	return _initOk;
+}
+
+bool UciConnector::IsRunning() const
+{
+	return _uciEngine && _uciEngine->state() == QProcess::Running;
 }
 
 bool UciConnector::CheckReady()

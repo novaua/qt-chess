@@ -97,6 +97,20 @@ namespace ConnectorTests
 				L"Engine must return a move at low difficulty");
 		}
 
+		TEST_METHOD(Init_AfterEngineKilled_RestartsEngine_Test)
+		{
+			// Stockfish 18+ exits on an illegal move in "position ... moves"; Init() must be
+			// able to bring up a fresh process on the same connector.
+			_connector->Kill();
+			_connector->Init();
+
+			Assert::IsTrue(_connector->IsRunning());
+			Assert::IsTrue(_connector->IsInitialized());
+
+			auto response = _connector->GetEngineMove({ {}, { "e2e4", "e7e5" } }, chrono::milliseconds(500));
+			Assert::IsFalse(response.BestMove.empty(), L"Restarted engine must answer");
+		}
+
 		TEST_METHOD(Checkmate_Detection_Test)
 		{
 			_connector->SetDifficulty(1320);
@@ -110,11 +124,14 @@ namespace ConnectorTests
 
 		TEST_METHOD(PawnPromotion_Detection_Test)
 		{
-			_connector->SetDifficulty(1320);
-			Assert::AreEqual(string("1320"), _connector->GetOption("UCI_Elo"));
+			// Black to move with a pawn on e2 that can promote (e1 or exf1). The move list
+			// must be legal: a promotion without its piece letter ("e2f1") is rejected, and
+			// Stockfish 18+ exits on it instead of ignoring it.
+			_connector->SetDifficulty(3190);
+			Assert::AreEqual(string("3190"), _connector->GetOption("UCI_Elo"));
 
 			auto moves1 = std::vector<std::string>{
-				 "e2f1", "h2h3",
+				 "h2h3",
 				 "e3e2", "b3b4",
 				 "f4e3", "e2e3",
 				 "e5f4", "h3f4",
