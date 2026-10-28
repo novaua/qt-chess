@@ -27,7 +27,8 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
 		Q_PROPERTY(bool CanContinue READ canContinue NOTIFY canContinueChanged)
 		Q_PROPERTY(bool CanLoad READ canLoad NOTIFY canLoadChanged)
-		Q_PROPERTY(int LastLevel    READ lastLevel    CONSTANT)
+		Q_PROPERTY(int LastLevel    READ lastLevel    NOTIFY lastLevelChanged)
+		Q_PROPERTY(QVariantList Levels READ levels CONSTANT)
 		Q_PROPERTY(int LastMoveFrom READ lastMoveFrom NOTIFY lastMoveChanged)
 		Q_PROPERTY(int LastMoveTo   READ lastMoveTo   NOTIFY lastMoveChanged)
 		Q_PROPERTY(QStringList CapturedByDark  READ capturedByDark  NOTIFY capturedChanged)
@@ -56,6 +57,7 @@ public:
 	bool canContinue() const;
 	bool canLoad() const;
 	int lastLevel()        const { return _config.lastLevel; }
+	QVariantList levels()  const; // computer levels 1-5: { level, name, elo, eloEstimated, hint }
 	int  lastMoveFrom()   const;
 	int  lastMoveTo()     const;
 	bool engineThinking()    const { return _engineThinking; }
@@ -84,6 +86,7 @@ signals:
 	void IsOnPlayerModeChanged();
 	void canContinueChanged();
 	void canLoadChanged();
+	void lastLevelChanged();
 
 	void checkNotify();
 	void checkMateNotify();

@@ -8,6 +8,7 @@
         <file>qml/LichessGameDialog.qml</file>
         <file>qml/Button.qml</file>
         <file>qml/SettingsDialog.qml</file>
+        <file>qml/LevelsHelpDialog.qml</file>
         <file>qml/CapturedPanel.qml</file>
         <file>qml/GameResultDialog.qml</file>
         <file>qml/ChessBoard.qml</file>

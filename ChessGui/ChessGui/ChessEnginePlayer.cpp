@@ -14,7 +14,8 @@ ChessEnginePlayer::ChessEnginePlayer(const GameAptr& game, EngineLevel level, Po
 void ChessEnginePlayer::StartEngine()
 {
 	_connector->Init();
-	_connector->SetDifficulty(_level.Elo());
+	if (_level.UsesEngineElo())
+		_connector->SetDifficulty(_level.Elo());
 }
 
 // A pawn that reached the last rank but has no piece chosen yet. Sent to the engine
@@ -63,8 +64,15 @@ void ChessEnginePlayer::DoMove()
 			req.Moves.push_back(m.ToUciString());
 	}
 
-	auto moveResponse = _connector->GetEngineMove(req, _level.MoveTime());
-	_game->DoMove(Move::Parse(moveResponse.BestMove));
+	std::string move;
+	if (_level.UsesEngineElo()) {
+		move = _connector->GetEngineMove(req, _level.MoveTime()).BestMove;
+	}
+	else {
+		auto candidates = _connector->GetCandidateMoves(req, _level.CandidateCount(), _level.SearchDepth());
+		move = PickWeakMove(candidates, _level.TemperatureCp(), _rng);
+	}
+	_game->DoMove(Move::Parse(move));
 }
 
 void ChessEnginePlayer::KillEngine()
@@ -78,8 +86,14 @@ std::string ChessEnginePlayer::DebugDump()
 	auto history = _game->GetGameRecord();
 
 	std::string out = std::string("mode: ") + modeNames[static_cast<int>(_mode)]
-		+ ", Elo " + std::to_string(_level.Elo())
-		+ ", movetime " + std::to_string(_level.MoveTime().count()) + " ms\n";
+		+ ", level " + std::to_string(_level.Level());
+	if (_level.UsesEngineElo())
+		out += ", Elo " + std::to_string(_level.Elo())
+			+ ", movetime " + std::to_string(_level.MoveTime().count()) + " ms\n";
+	else
+		out += ", weak picker: " + std::to_string(_level.CandidateCount()) + " candidates"
+			+ ", depth " + std::to_string(_level.SearchDepth())
+			+ ", temperature " + std::to_string(_level.TemperatureCp()) + " cp\n";
 	out += std::string("side to move: ") + (_game->IsWhiteMove() ? "white" : "black")
 		+ ", plies played: " + std::to_string(history.size()) + "\n";
 	out += "fen: " + _game->MakeFen() + "\n";

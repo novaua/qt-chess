@@ -29,6 +29,7 @@
 ######################
 *.log
 *.tlog
+uci_debug_log.txt
 *.sql
 *.sqlite
 

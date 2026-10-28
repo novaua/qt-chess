@@ -4,6 +4,7 @@
 #include <chrono>
 #include <deque>
 #include <map>
+#include <random>
 #include <vector>
 
 class QProcess;
@@ -26,6 +27,21 @@ struct EngineMoveResponse
 	std::string Ponder;
 };
 
+// One line of a MultiPV search: a root move and its score from the side to move's view.
+struct EngineCandidate
+{
+	std::string Move;
+	int ScoreCp = 0; // mate in N is reported as ±(MateScoreCp - N)
+};
+
+constexpr int MateScoreCp = 100000;
+
+// Picks one of the candidates at random, weighting each by exp(-loss / temperatureCp), where
+// loss is how many centipawns it is worse than the best one. A forced mate counts as only a
+// fixed margin better than the best ordinary move, so a weak player can still miss it.
+std::string PickWeakMove(const std::vector<EngineCandidate>& candidates, int temperatureCp,
+                         std::mt19937& rng);
+
 class UciConnector
 {
 	bool _initOk = false;
@@ -37,7 +53,8 @@ class UciConnector
 	void Trace(const std::string& line);
 
 protected:
-	std::string ProcessCommand(const Command& comm);
+	// Lines received before the expected response are appended to 'lines' when it is given.
+	std::string ProcessCommand(const Command& comm, std::vector<std::string>* lines = nullptr);
 
 public:
 	UciConnector();
@@ -52,6 +69,10 @@ public:
 	EngineMoveResponse GetEngineMove(const StartPosMoveRequest& req,
 	                                 std::chrono::milliseconds moveTime);
 	void SetDifficulty(int elo); // target Elo strength (clamped to Stockfish's supported 1320-3190 range)
+
+	// The engine's 'count' best moves after a full-strength search to 'depth', best first.
+	// For a finished game it returns the single "(none)" move, like GetEngineMove().
+	std::vector<EngineCandidate> GetCandidateMoves(const StartPosMoveRequest& req, int count, int depth);
 	void Kill();
 
 	// Multi-line, human-readable engine state for bug reports: executable, process state /

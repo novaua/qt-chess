@@ -7,7 +7,10 @@
 #include <QProcess>
 #include <QStandardPaths>
 #include <QString>
+#include <algorithm>
 #include <chrono>
+#include <climits>
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -25,8 +28,10 @@ const std::string BestMoveCommand = "bestmove";
 const std::string QuitCommand = "quit";
 const std::string LimitStrengthOption = "UCI_LimitStrength";
 const std::string EloOption = "UCI_Elo";
+const std::string MultiPvOption = "MultiPV";
 
 const std::regex IdNameRegex("id name (.*)");
+const std::regex InfoPvRegex("\\bmultipv (\\d+)\\b.*\\bscore (cp|mate) (-?\\d+)\\b.*\\bpv (\\S+)");
 const std::regex OptionNameRegex("option name (.*) type (.*)");
 const std::regex BestMoveRegex("bestmove (\\S+) ponder (\\S+)");
 const std::regex BestMoveRegex1("bestmove (\\S+)");
@@ -134,7 +139,7 @@ static void Log(const std::string& line)
 #endif // DEBUG
 }
 
-std::string UciConnector::ProcessCommand(const Command& comm)
+std::string UciConnector::ProcessCommand(const Command& comm, std::vector<std::string>* lines)
 {
 	Log(std::format(">>> Processing command: '{0}', expecting response: '{1}'",
 		comm.Request, comm.Response));
@@ -144,15 +149,35 @@ std::string UciConnector::ProcessCommand(const Command& comm)
 	if (comm.Response.empty())
 		return "";
 
-	std::string line;
+	// A search prints an "info depth" line per depth (times MultiPV). Keep them out of the
+	// short trace buffer, which must still hold the position/go commands when a request
+	// fails; trace only how many there were and the last one.
+	std::string line, lastSearchInfo;
+	int searchInfoCount = 0;
+	auto traceSearchInfo = [&] {
+		if (searchInfoCount > 0)
+			Trace(std::format("<< ({} search info lines, last:) {}", searchInfoCount, lastSearchInfo));
+		searchInfoCount = 0;
+	};
+
 	while (_uciEngine->state() == QProcess::Running) {
 		line = readLineBlocking(_uciEngine.get(), 10000);
 		if (line.empty())
 			break;
-		Trace("<< " + line);
+		if (line.rfind("info depth", 0) == 0) {
+			lastSearchInfo = line;
+			++searchInfoCount;
+		}
+		else {
+			traceSearchInfo();
+			Trace("<< " + line);
+		}
 		if (line.find(comm.Response) != std::string::npos)
 			break;
+		if (lines)
+			lines->push_back(line);
 	}
+	traceSearchInfo();
 
 	if (line.empty())
 		Trace(_uciEngine->state() == QProcess::Running
@@ -241,7 +266,10 @@ UciConnector::~UciConnector()
 
 std::string UciConnector::GetOption(const std::string& op)
 {
-	return _opt[op];
+	// find(), not operator[]: inserting the key would make SetOption() accept an option
+	// the engine doesn't have.
+	auto it = _opt.find(op);
+	return it == _opt.end() ? std::string() : it->second;
 }
 
 void UciConnector::SetOption(const std::string& op, const std::string& value)
@@ -274,8 +302,7 @@ std::vector<std::string> UciConnector::GetOptions()
 	return res;
 }
 
-EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req,
-	std::chrono::milliseconds moveTime)
+static std::string PositionCommand(const StartPosMoveRequest& req)
 {
 	std::string posCmd = req.Fen.empty()
 		? "position startpos"
@@ -285,11 +312,11 @@ EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req,
 		for (const auto& move : req.Moves) moves += move + " ";
 		posCmd += " moves " + moves;
 	}
-	ProcessCommand({ posCmd, "" });
+	return posCmd;
+}
 
-	auto moveMs = static_cast<int>(moveTime.count());
-	auto resp = ProcessCommand({ "go movetime " + std::to_string(moveMs), BestMoveCommand });
-
+static EngineMoveResponse ParseBestMove(const std::string& resp)
+{
 	std::cmatch m;
 	if (std::regex_match(resp.c_str(), m, BestMoveRegex))
 		return { m[1], m[2] };
@@ -300,4 +327,92 @@ EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req,
 	//c7c8q for a Queen or c7c8n for a Knight)
 
 	throw std::logic_error("Engine move failed, response: '" + resp + "'");
+}
+
+EngineMoveResponse UciConnector::GetEngineMove(const StartPosMoveRequest& req,
+	std::chrono::milliseconds moveTime)
+{
+	ProcessCommand({ PositionCommand(req), "" });
+
+	auto moveMs = static_cast<int>(moveTime.count());
+	return ParseBestMove(ProcessCommand({ "go movetime " + std::to_string(moveMs), BestMoveCommand }));
+}
+
+std::vector<EngineCandidate> UciConnector::GetCandidateMoves(const StartPosMoveRequest& req,
+	int count, int depth)
+{
+	// SetOption() throws for an engine without MultiPV, rather than silently returning a
+	// single (best) candidate.
+	if (GetOption(MultiPvOption) != std::to_string(count))
+		SetOption(MultiPvOption, std::to_string(count));
+
+	ProcessCommand({ PositionCommand(req), "" });
+
+	std::vector<std::string> info;
+	auto best = ParseBestMove(ProcessCommand({ "go depth " + std::to_string(depth), BestMoveCommand }, &info));
+
+	// Each depth reports every MultiPV line again; later lines overwrite earlier ones,
+	// so what is left is the deepest result for each rank.
+	std::map<int, EngineCandidate> byRank;
+	std::smatch m;
+	for (const auto& line : info) {
+		if (line.find("lowerbound") != std::string::npos || line.find("upperbound") != std::string::npos)
+			continue; // aspiration-window result, not a final score
+		if (!std::regex_search(line, m, InfoPvRegex))
+			continue;
+		int score = std::stoi(m[3].str());
+		if (m[2] == "mate")
+			score = score > 0 ? MateScoreCp - score : -MateScoreCp - score;
+		byRank[std::stoi(m[1].str())] = { m[4].str(), score };
+	}
+
+	std::vector<EngineCandidate> res;
+	for (const auto& [rank, c] : byRank)
+		res.push_back(c);
+	if (res.empty())
+		res.push_back({ best.BestMove, 0 });
+	return res;
+}
+
+std::string PickWeakMove(const std::vector<EngineCandidate>& candidates, int temperatureCp,
+	std::mt19937& rng)
+{
+	if (candidates.empty())
+		throw std::invalid_argument("PickWeakMove: no candidate moves");
+
+	auto isMate = [](int cp) { return std::abs(cp) > MateScoreCp / 2; };
+
+	// Ordinary scores are used as they are, so even far ahead the picker still prefers the
+	// moves that win fastest. Mate scores are replaced by "the best ordinary move plus a
+	// margin" (or "the worst minus a margin" when being mated), so a mate is very likely but
+	// not certain to be found; shorter mates rank slightly higher.
+	static constexpr int MateMarginCp = 600, PerMoveCp = 10;
+	int bestCp = INT_MIN, worstCp = INT_MAX;
+	for (const auto& c : candidates) {
+		if (isMate(c.ScoreCp))
+			continue;
+		bestCp = std::max(bestCp, c.ScoreCp);
+		worstCp = std::min(worstCp, c.ScoreCp);
+	}
+	if (bestCp == INT_MIN)
+		bestCp = worstCp = 0; // every candidate is a mate
+
+	auto effective = [&](int cp) {
+		if (!isMate(cp))
+			return cp;
+		int moves = MateScoreCp - std::abs(cp);
+		return cp > 0 ? bestCp + MateMarginCp - PerMoveCp * moves
+		              : worstCp - MateMarginCp + PerMoveCp * moves;
+	};
+
+	int top = INT_MIN;
+	for (const auto& c : candidates)
+		top = std::max(top, effective(c.ScoreCp));
+
+	std::vector<double> weights;
+	for (const auto& c : candidates)
+		weights.push_back(std::exp(-double(top - effective(c.ScoreCp)) / std::max(1, temperatureCp)));
+
+	std::discrete_distribution<size_t> pick(weights.begin(), weights.end());
+	return candidates[pick(rng)].Move;
 }

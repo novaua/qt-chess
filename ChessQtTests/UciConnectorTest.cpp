@@ -97,6 +97,90 @@ namespace ConnectorTests
 				L"Engine must return a move at low difficulty");
 		}
 
+		TEST_METHOD(GetCandidateMoves_ReturnsRequestedCount_BestFirst_Test)
+		{
+			auto candidates = _connector->GetCandidateMoves({ {}, { "e2e4", "e7e5" } }, 8, 6);
+
+			Assert::AreEqual(size_t(8), candidates.size());
+			for (size_t i = 1; i < candidates.size(); ++i)
+				Assert::IsTrue(candidates[i - 1].ScoreCp >= candidates[i].ScoreCp,
+					L"Candidates must be ordered best first");
+		}
+
+		TEST_METHOD(GetCandidateMoves_MateInOne_ScoredAsMate_Test)
+		{
+			// White to move: Qh5xf7# after 1.e4 e5 2.Qh5 Nc6 3.Bc4 Nf6??
+			auto candidates = _connector->GetCandidateMoves(
+				{ {}, { "e2e4", "e7e5", "d1h5", "b8c6", "f1c4", "g8f6" } }, 4, 6);
+
+			Assert::AreEqual(string("h5f7"), candidates[0].Move);
+			Assert::AreEqual(MateScoreCp - 1, candidates[0].ScoreCp);
+		}
+
+		TEST_METHOD(GetCandidateMoves_GameOver_ReturnsNone_Test)
+		{
+			auto candidates = _connector->GetCandidateMoves({ {}, { "f2f3", "e7e6", "g2g4", "d8h4" } }, 4, 6);
+
+			Assert::AreEqual(size_t(1), candidates.size());
+			Assert::AreEqual(string("(none)"), candidates[0].Move);
+		}
+
+		TEST_METHOD(PickWeakMove_LowTemperature_AlwaysPicksBest_Test)
+		{
+			std::mt19937 rng(42);
+			std::vector<EngineCandidate> candidates = { { "a", 50 }, { "b", -250 }, { "c", -900 } };
+
+			for (int i = 0; i < 200; ++i)
+				Assert::AreEqual(string("a"), PickWeakMove(candidates, 1, rng));
+		}
+
+		TEST_METHOD(PickWeakMove_HighTemperature_SometimesBlunders_Test)
+		{
+			std::mt19937 rng(42);
+			std::vector<EngineCandidate> candidates = { { "a", 50 }, { "b", 30 }, { "c", -300 } };
+
+			int blunders = 0;
+			for (int i = 0; i < 1000; ++i)
+				blunders += PickWeakMove(candidates, 250, rng) == "c";
+
+			// weight of "c" is exp(-350/250) ≈ 0.25 against ≈ 1.92 for the other two: ~11%
+			Assert::IsTrue(blunders > 50 && blunders < 200);
+		}
+
+		TEST_METHOD(PickWeakMove_FarAhead_StillPrefersBest_Test)
+		{
+			// Scores far above any clamp must still be told apart, or a winning robot plays aimlessly.
+			std::mt19937 rng(42);
+			std::vector<EngineCandidate> candidates = { { "a", 2500 }, { "b", 1600 } };
+
+			int best = 0;
+			for (int i = 0; i < 1000; ++i)
+				best += PickWeakMove(candidates, 100, rng) == "a";
+
+			Assert::IsTrue(best >= 990);
+		}
+
+		TEST_METHOD(PickWeakMove_PrefersShorterMate_Test)
+		{
+			std::mt19937 rng(42);
+			std::vector<EngineCandidate> candidates = { { "mate5", MateScoreCp - 5 }, { "mate1", MateScoreCp - 1 } };
+
+			for (int i = 0; i < 200; ++i)
+				Assert::AreEqual(string("mate1"), PickWeakMove(candidates, 1, rng));
+		}
+
+		TEST_METHOD(PickWeakMove_CanMissMate_Test)
+		{
+			std::mt19937 rng(42);
+			std::vector<EngineCandidate> candidates = { { "mate", MateScoreCp - 1 }, { "quiet", 1000 } };
+
+			int missed = 0;
+			for (int i = 0; i < 1000; ++i)
+				missed += PickWeakMove(candidates, 250, rng) == "quiet";
+
+			Assert::IsTrue(missed > 0, L"Mate is clamped to a big advantage, so a weak player can miss it");
+		}
+
 		TEST_METHOD(Init_AfterEngineKilled_RestartsEngine_Test)
 		{
 			// Stockfish 18+ exits on an illegal move in "position ... moves"; Init() must be
