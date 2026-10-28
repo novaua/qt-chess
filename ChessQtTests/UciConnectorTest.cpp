@@ -43,17 +43,22 @@ namespace ConnectorTests
 			_connector->Init();
 		}
 
+		// Every UciConnector (its QProcess and the engine process) must be gone before
+		// TEST_MODULE_CLEANUP destroys the QCoreApplication; a QProcess that outlives it makes
+		// the test host crash with an access violation.
 		TEST_METHOD_CLEANUP(teardownTests)
-		{}
+		{
+			_connector.reset();
+		}
 
 		TEST_METHOD(MainInit_IsGoood_Test)
 		{
-			auto conn = new UciConnector();
+			UciConnector conn;
 
-			conn->Init();
+			conn.Init();
 
-			Assert::IsTrue(conn->IsInitialized());
-			Assert::IsTrue(conn->GetOption("id").find("Stockfish") != string::npos);
+			Assert::IsTrue(conn.IsInitialized());
+			Assert::IsTrue(conn.GetOption("id").find("Stockfish") != string::npos);
 		}
 
 		TEST_METHOD(MainInit_Options_Test)

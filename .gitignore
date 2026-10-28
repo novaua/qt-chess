@@ -30,6 +30,7 @@
 *.log
 *.tlog
 uci_debug_log.txt
+.runsettings
 *.sql
 *.sqlite
 
