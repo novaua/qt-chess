@@ -8,16 +8,12 @@
 
 ; Stockfish downloads, resolved at build time by Resolve-Stockfish.ps1: the newest stable
 ; release and the previous one as fallback, each with the SHA-256 GitHub publishes.
-; Builds that don't pass them (/DSfPrimaryUrl=... etc.) use these known-good defaults.
-#ifndef SfPrimaryUrl
-  #define SfPrimaryTag    "sf_19"
-  #define SfPrimaryUrl    "https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-windows-x86-64-universal.zip"
-  #define SfPrimarySha256 "3c8bf1f9ea66a09350a40df4f632288285ac206d99f33ab5842c408fc30b48a7"
-#endif
-#ifndef SfFallbackUrl
-  #define SfFallbackTag    "sf_18"
-  #define SfFallbackUrl    "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-windows-x86-64-sse41-popcnt.zip"
-  #define SfFallbackSha256 "f25830a4567e2bac843d029d3113e6e34ba0cd2f95b9c0bb49afc871fe722a10"
+; Nothing is hard-coded here: build with installer\Build-Installer.ps1 (or release.yml),
+; which pass /DSfPrimaryTag=... /DSfPrimaryUrl=... /DSfPrimarySha256=... and the same
+; for SfFallback*. A future asset rename then fails the build, not users' installs.
+#if !Defined(SfPrimaryTag) || !Defined(SfPrimaryUrl) || !Defined(SfPrimarySha256) || \
+    !Defined(SfFallbackTag) || !Defined(SfFallbackUrl) || !Defined(SfFallbackSha256)
+  #error Stockfish download not set: build with installer\Build-Installer.ps1 (runs Resolve-Stockfish.ps1)
 #endif
 
 [Setup]

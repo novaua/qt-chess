@@ -107,14 +107,11 @@ try {
     }
 
     # --- Stockfish download to pin ---------------------------------------------
+    # Required: ChessSetup.iss has no built-in Stockfish URL, so a build that can't reach
+    # GitHub (or finds the assets renamed) fails here instead of shipping stale values.
     Step "Resolve Stockfish (newest stable release + fallback)"
-    try {
-        $stockfishArgs = @(& "$PSScriptRoot\Resolve-Stockfish.ps1" -AsIsccArgs)
-        $stockfishArgs | ForEach-Object { Write-Host "  $_" }
-    } catch {
-        Write-Warning "Could not query GitHub ($($_.Exception.Message)); using the defaults in ChessSetup.iss"
-        $stockfishArgs = @()
-    }
+    $stockfishArgs = @(& "$PSScriptRoot\Resolve-Stockfish.ps1" -AsIsccArgs)
+    $stockfishArgs | ForEach-Object { Write-Host "  $_" }
 
     # --- Inno Setup (unsigned) -------------------------------------------------
     # /DNoSign=1 turns off the SignTool/SignedUninstaller directives in ChessSetup.iss.
