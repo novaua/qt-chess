@@ -74,7 +74,8 @@ public:
 	bool isOnlineGame()  const { return !_onlineGameId.isEmpty(); }
 	// Local games can always be replayed; a Lichess game needs its settings and a token.
 	bool canRematch()    const { return !_lastGameOnline || (_lichessClient && _lichessClient->canRematch()); }
-	int  flaggedKing()   const { return _flaggedKing; }
+	// Hidden while reviewing earlier moves: the king may not be on that square then.
+	int  flaggedKing()   const { return reviewMode() ? -1 : _flaggedKing; }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 

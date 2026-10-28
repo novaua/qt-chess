@@ -715,8 +715,11 @@ ApplicationWindow {
             function onCheckMateResult(winner) {
                 _toolbarResignPending = false
                 var isWhite = winner === "White Won"
-                var name = isWhite ? avatarProvider.playerName : avatarProvider.opponentName
+                var playerWon = isWhite === chessConnector.PlayerPlaysWhite
+                var name = playerWon ? avatarProvider.playerName : avatarProvider.opponentName
                 _checkmateWinner = (isWhite ? "White " : "Black ") + name + " Won"
+                if (chessConnector.GameResult.indexOf("resignation") >= 0)
+                    chessBoard.showNotification((isWhite ? "Black" : "White") + " resigned")
                 _resultCardHidden = false
                 resultDialogTimer.start()
                 if (appSettings.musicEnabled) 
@@ -843,6 +846,13 @@ ApplicationWindow {
             function onPlayerPlaysWhiteChanged() {
                 if (gameIsInProgress)
                     chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
+            }
+            // Undo after mate / resign vs Robot resumes the game: drop the result display.
+            function onGameResultChanged() {
+                if (chessConnector.GameResult === "") {
+                    resultDialogTimer.stop()
+                    _showGameResult = false
+                }
             }
             function onDrawOfferReceived()  { _showDrawOffer = true }
             function onTakebackRequested()  { _showTakebackOffer = true }

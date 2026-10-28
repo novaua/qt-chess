@@ -48,6 +48,7 @@ ChessConnector::ChessConnector(QObject* parent)
 				emit checkMateNotify();
 				if (_player) return;
 				_gameOver = true;
+				flagKing(_game->IsWhiteMove()); // the side to move is mated
 				if (_userManager) {
 					bool humanWon = _game->IsWhiteMove() != _config.playerPlaysWhite;
 					_userManager->recordResult(humanWon, _engineWorker != nullptr);
@@ -77,6 +78,8 @@ ChessConnector::ChessConnector(QObject* parent)
 		});
 
 	ClearBoard(_possibleMoves);
+
+	connect(this, &ChessConnector::reviewStateChanged, this, &ChessConnector::flaggedKingChanged);
 }
 
 int ChessConnector::MoveCount()
@@ -399,12 +402,14 @@ void ChessConnector::resignGame()
 		_lichessClient->resign(_onlineGameId);
 		return;
 	}
-	// Local game: white to move resigns → Black wins, and vice versa
+	// vs Robot the human resigns, even while the robot is thinking. Two players on one
+	// device: the side to move resigns.
+	const bool whiteResigns = _wasVsComputer ? _config.playerPlaysWhite : IsWhiteMove() == 1;
 	_gameOver = true;
-	flagKing(IsWhiteMove() == 1);
-	const QString winner = (IsWhiteMove() == 1) ? QStringLiteral("Black Won")
-	                                              : QStringLiteral("White Won");
-	emit checkMateResult(winner);
+	flagKing(whiteResigns);
+	_gameResult = whiteResigns ? "0-1 Black won by resignation" : "1-0 White won by resignation";
+	emit gameResultChanged();
+	emit checkMateResult(whiteResigns ? QStringLiteral("Black Won") : QStringLiteral("White Won"));
 }
 
 void ChessConnector::offerDraw()
@@ -743,6 +748,12 @@ void ChessConnector::movePrev()
 			int movesToUndo = count >= 2 ? 2 : 1;
 			for (int i = 0; i < movesToUndo; i++)
 				_game->UndoMove();
+			// Taking back the last moves of a finished game (mate or resign) resumes it.
+			if (_gameOver) {
+				_gameOver = false;
+				setFlaggedKing(-1);
+				if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
+			}
 			if (!_moveHistoryCache.isEmpty())
 				_moveHistoryCache.removeLast();
 			ClearBoard(_possibleMoves);

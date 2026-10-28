@@ -16,6 +16,11 @@ Plan: [`docs/LichessRematchPlan.md`](docs/LichessRematchPlan.md)
   - Board frozen after an online game ends (`_gameOver`); reason texts for `timeout` / `noStart` / `stalemate`
   - `opponentGone` banner with countdown and **Claim victory** (`LichessClient::claimVictory`)
   - `gameFull` of an already finished game ends it (`state.status`)
+- [x] 4c. Red flag + result for local game ends too
+  - Checkmate flags the mated king (all modes); resign vs Robot always flags the human (also while the robot thinks)
+  - Local resign sets `GameResult`, so Rematch / result card appear; flag hidden while reviewing earlier moves
+  - Undo after mate / resign vs Robot resumes the game (clears flag, result, `_gameOver`)
+  - Winner name fixed when the player plays Black
 - [ ] 5. Manual test against Lichess (scenarios in plan §5) — Debug + Release build ✅, app starts without QML errors ✅, live Lichess scenarios pending
 
 ### Done
