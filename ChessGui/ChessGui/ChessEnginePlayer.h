@@ -14,6 +14,7 @@ namespace Chess {
 		UciConnectorAPtr _connector;
 		EngineLevel _level;
 		PositionMode _mode;
+		std::mt19937 _rng{ std::random_device{}() };
 
 		void StartEngine();
 

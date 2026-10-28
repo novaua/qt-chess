@@ -1,13 +1,17 @@
 import QtQuick
 import QtQuick.Window
+import QtQuick.Controls
 
 Rectangle {
     id: panel
     color: "transparent"
 
     property string avatarUrl: ""
+    property string avatarTip: ""      // hover tooltip; empty = none, and the avatar is not clickable
     property var    pieces:    []
     property bool   isActive:  false
+
+    signal avatarClicked()
 
     readonly property bool _dark: {
         if (!Window.window) return false
@@ -53,6 +57,18 @@ Rectangle {
                     NumberAnimation { to: 0.22; duration: 850; easing.type: Easing.InOutSine }
                     NumberAnimation { to: 0.0;  duration: 850; easing.type: Easing.InOutSine }
                 }
+            }
+
+            MouseArea {
+                id: avatarMouse
+                anchors.fill: parent
+                enabled: panel.avatarTip !== ""
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: panel.avatarClicked()
+                ToolTip.visible: containsMouse
+                ToolTip.text: panel.avatarTip
+                ToolTip.delay: 300
             }
         }
 

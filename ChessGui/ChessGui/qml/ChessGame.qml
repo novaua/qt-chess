@@ -31,6 +31,7 @@ ApplicationWindow {
     property bool   _showTakebackOffer:       false
     property bool   _toolbarResignPending:    false
     property bool   _wasOnlineGame:           false
+    property bool   _showLevelsHelp:          false
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     // _panelH is computed analytically to avoid a binding loop:
     //   _boardSize → chessBoard.height → centralItem.height → _panelH → _boardSize
@@ -46,6 +47,31 @@ ApplicationWindow {
     }
     readonly property real _historyPanelW: 160
     readonly property bool _showHistoryPanel: gameIsInProgress && (root.width > root.height * 1.15)
+
+    // ── Computer level helpers (data comes from chessConnector.Levels) ──
+    readonly property var  _levels: chessConnector.Levels
+    function _levelIndex(level) {
+        return Math.max(1, Math.min(_levels.length, level)) - 1
+    }
+    function levelInfo(level) {
+        return _levels[_levelIndex(level)]
+    }
+    function levelRatingText(info) {
+        return (info.eloEstimated ? "≈" : "") + info.elo + " Elo"
+    }
+    // Green (weakest) → red (strongest), spread over however many levels there are.
+    function levelColor(level) {
+        var t = _levels.length > 1 ? _levelIndex(level) / (_levels.length - 1) : 0
+        return Qt.hsla((1 - t) * 0.36, 0.65, 0.45, 1)
+    }
+
+    // Any modal-style dialog other than the levels help is open.
+    readonly property bool _otherDialogOpen: _showSettings || _showMoveInput || _showProfile
+        || _showPlayerPicker || _showOnlineDialog || _showChallengeDialog || !userManager.isLoggedIn
+    function showLevelsHelp() {
+        if (!_otherDialogOpen)
+            _showLevelsHelp = true
+    }
 
     function clearPendingChallenge() {
         userManager.clearPendingChallenge()
@@ -281,6 +307,11 @@ ApplicationWindow {
                             onTriggered: _showProfile = true
                         }
                         QQC.MenuItem {
+                            text: "Computer Levels…"
+                            enabled: !_otherDialogOpen
+                            onTriggered: showLevelsHelp()
+                        }
+                        QQC.MenuItem {
                             text: "Switch User"
                             onTriggered: {
                                 chessConnector.endGame()
@@ -298,6 +329,15 @@ ApplicationWindow {
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: gameIsInProgress
                 avatarUrl: avatarProvider.opponentUrl
+                // The robot only plays in single-player games (screen_4).
+                avatarTip: {
+                    if (screen.state !== "screen_4") return ""
+                    var info = levelInfo(chessConnector.LastLevel)
+                    return "Robot · Level " + info.level + " — " + info.name + "\n"
+                        + levelRatingText(info) + "\n"
+                        + "Click for level info"
+                }
+                onAvatarClicked: showLevelsHelp()
                 pieces: chessConnector.PlayerPlaysWhite ? chessConnector.CapturedByDark : chessConnector.CapturedByLight
                 isActive: gameIsInProgress && (chessConnector.IsWhiteMove === 1) !== chessConnector.PlayerPlaysWhite
             }
@@ -459,21 +499,59 @@ ApplicationWindow {
 
                 // Difficulty
                 Column {
+                    id: difficultyBox
                     spacing: 6
                     anchors.horizontalCenter: parent.horizontalCenter
                     opacity: btnSingle.checked ? 1.0 : 0.35
 
-                    Text {
-                        text: "Level: " + difficultySlider.value.toFixed(0)
-                        color: root.isDarkMode ? "#ffffff" : "#000000"
+                    readonly property var info: levelInfo(Math.round(difficultySlider.value))
+
+                    Row {
+                        spacing: 8
                         anchors.horizontalCenter: parent.horizontalCenter
+
+                        Text {
+                            text: "Level " + difficultyBox.info.level + " · " + difficultyBox.info.name
+                            color: root.isDarkMode ? "#ffffff" : "#000000"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Rectangle {
+                            width: 18; height: 18; radius: 9
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: levelHelpMouse.containsMouse
+                                ? "#0078d4"
+                                : (root.isDarkMode ? "#3c3c3c" : "#e0e0e0")
+                            border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
+                            Text {
+                                anchors.centerIn: parent
+                                text: "?"
+                                font.pixelSize: 12
+                                font.bold: true
+                                color: levelHelpMouse.containsMouse ? "#ffffff"
+                                    : (root.isDarkMode ? "#ffffff" : "#09102B")
+                            }
+                            MouseArea {
+                                id: levelHelpMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: showLevelsHelp()
+                                ToolTip.visible: containsMouse
+                                ToolTip.text: "What do the levels mean? (F1)"
+                                ToolTip.delay: 400
+                            }
+                        }
                     }
                     CustomSlider {
                         id: difficultySlider
-                        from: 1; to: 5; value: chessConnector.LastLevel; stepSize: 1
+                        from: 1; to: _levels.length; value: chessConnector.LastLevel; stepSize: 1
                         width: 260
                         enabled: btnSingle.checked
                         anchors.horizontalCenter: parent.horizontalCenter
+                        ToolTip.visible: pressed
+                        ToolTip.text: "Level " + difficultyBox.info.level + " — "
+                            + difficultyBox.info.name + " (" + levelRatingText(difficultyBox.info) + ")"
                     }
                 }
 
@@ -672,9 +750,40 @@ ApplicationWindow {
             onCloseRequested: _showSettings = false
         }
 
+        // ── Computer levels help ─────────────────────────────────────────
+        LevelsHelpDialog {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -15
+            visible: _showLevelsHelp
+            z: 20
+            // From the start menu, rows pick a level; in a game, highlight the robot's level.
+            selectable: screen.state === "screen_1"
+            currentLevel: screen.state === "screen_1" ? Math.round(difficultySlider.value)
+                        : screen.state === "screen_4" ? chessConnector.LastLevel
+                        : 0
+            onLevelPicked: function(level) {
+                difficultySlider.value = level
+                btnSingle.checked = true
+                _showLevelsHelp = false
+            }
+            onCloseRequested: _showLevelsHelp = false
+        }
+
+        Shortcut {
+            sequence: "F1"
+            enabled: _showLevelsHelp || !_otherDialogOpen
+            onActivated: _showLevelsHelp = !_showLevelsHelp
+        }
+
         Shortcut {
             sequence: "Escape"
-            enabled: gameIsInProgress
+            enabled: _showLevelsHelp
+            onActivated: _showLevelsHelp = false
+        }
+
+        Shortcut {
+            sequence: "Escape"
+            enabled: gameIsInProgress && !_showLevelsHelp
             onActivated: {
                 _showGameResult = false
                 gameIsInProgress = false

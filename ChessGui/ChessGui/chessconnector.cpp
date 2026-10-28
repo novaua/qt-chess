@@ -434,7 +434,10 @@ void ChessConnector::startNewGameWithComputer(int level)
 {
 	_wasVsComputer = true;
 	resetMoveHistoryCache();
-	_config.lastLevel = level;
+	if (_config.lastLevel != level) {
+		_config.lastLevel = level;
+		emit lastLevelChanged();
+	}
 	_config.save();
 	deleteAutoSave();
 	stopEngineThread();
@@ -454,6 +457,25 @@ void ChessConnector::startNewGameWithComputer(int level)
 		emit engineThinkingChanged();
 		emit requestEngineMove();
 	}
+}
+
+QVariantList ChessConnector::levels() const
+{
+	static const QVariantList list = [] {
+		QVariantList res;
+		for (int i = 1; i <= Chess::EngineLevel::Count; ++i) {
+			Chess::EngineLevel level(i);
+			res.append(QVariantMap{
+				{ "level",        i },
+				{ "name",         QString::fromUtf8(level.Name()) },
+				{ "elo",          level.DisplayElo() },
+				{ "eloEstimated", !level.UsesEngineElo() },
+				{ "hint",         QString::fromUtf8(level.Hint()) },
+			});
+		}
+		return res;
+	}();
+	return list;
 }
 
 void ChessConnector::applyMoves(const QString& movesStr)
@@ -819,6 +841,7 @@ bool ChessConnector::continueGame()
 	resetMoveHistoryCache();
 	const auto info = _userManager ? _userManager->autoSaveInfo() : UserManager::GameSaveInfo{};
 	const bool isSingle = info.isSinglePlayer;
+	_wasVsComputer = isSingle;
 
 	_config.playerPlaysWhite = info.playerPlaysWhite;
 	emit playerPlaysWhiteChanged();
