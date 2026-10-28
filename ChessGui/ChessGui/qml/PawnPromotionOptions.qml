@@ -3,8 +3,8 @@ import QtQuick
 Rectangle{
     id:pawnPromotionRec
     radius: 0.125*height
-    border.color: lightChessBoxColor
-    color: darkChessBoxColor
+    border.color: Theme.squareLight
+    color: Theme.squareDark
 
     Behavior on opacity  {
         NumberAnimation {
@@ -26,7 +26,7 @@ Rectangle{
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         fontSizeMode: Text.Fit
-        color: lightChessBoxColor
+        color: Theme.squareLight
         minimumPixelSize: 2
         font.pixelSize: 50
     }

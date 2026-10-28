@@ -24,7 +24,7 @@ cannot reliably click or drag inside it; coordinate-based input is fragile.
 | Layer | Tool | Runs | Purpose |
 |---|---|---|---|
 | 1. Behaviour | **Qt Quick Test** (part of Qt) | in-process, `QT_QPA_PLATFORM=offscreen` | Main suite: click, drag pieces, check state. Local + CI |
-| 2. Visual | Screenshot hook + golden-image diff | in-process, offscreen | Catch layout/look regressions. **Local only** |
+| 2. Visual | Screenshot hook + golden-image diff | in-process, transparent real window (not offscreen, see §9) | Catch layout/look regressions. **Local only** |
 | 3. Smoke | **pywinauto** (Windows UI Automation) | real exe on the desktop | Catch packaging/deploy breakage. Before releases only |
 
 ### Why not UI Automation (pywinauto/FlaUI) as the main suite
@@ -106,8 +106,12 @@ this is acceptable under that rule before starting.
      `scripts\Take-Screenshot.ps1`; `run-chess-app` skill. The board scene fixes the opponent avatar
      instead of seeding the random one.
    - Open: stub UCI engine (for a single-player scene), Lichess scenes.
-   - Offscreen rendering leaves Qt5Compat shader effects (`ColorOverlay`, e.g. the ☰ icon) blank —
-     visual baselines must be taken windowed, or those effects replaced (see BL-01).
+   - Since BL-02 P1 (FluentWinUI3) screenshots don't use `-platform offscreen`: it can't force a
+     light/dark colour scheme and FluentWinUI3 then falls back to its dark palette (white text on
+     our light surfaces). Screenshot mode uses a real window that is transparent, frameless,
+     ignores input and has no taskbar button, at 100% scale (`QT_ENABLE_HIGHDPI_SCALING=0`).
+     Behaviour tests (Layer 1) can still run offscreen, but don't trust their colours.
+   - Scenes `online` (Lichess dialog, not connected) and `players` (second-player picker) added in P1.
 2. `objectName`s + `ChessGuiTests` project with scenarios 1, 2 and 5.
 3. `scripts\ui-tests.ps1` local runner.
 4. Golden-image baselines and diff.

@@ -32,7 +32,7 @@ Test files are in `ChessTests/` — `BasicTest.cpp` (board logic) and `UciConnec
 
 ## Seeing the UI
 
-`scripts\Take-Screenshot.ps1 -Scene all` saves offscreen screenshots of the app's views to
+`scripts\Take-Screenshot.ps1 -Scene all` saves screenshots of the app's views (invisible window) to
 `test-results\screens\` on a throwaway profile. Details: the `run-chess-app` skill
 (`.claude/skills/run-chess-app/SKILL.md`).
 

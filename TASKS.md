@@ -2,10 +2,11 @@
 
 ## In Progress
 
-- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there. **Next: P1** (see `PROGRESS.md`).
+- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there. **Next: P2** (see `PROGRESS.md`).
   - [x] Review of all screens, plan, design kit (`pics/icons/*.svg`, [`docs/design/ThemeTokens.md`](docs/design/ThemeTokens.md)), mockups (#77)
   - [x] Decide the QML access rule (plan §9 Q1): game flows through `ChessConnector`, services stay separate typed singletons (CLAUDE.md "Key Conventions")
-  - [ ] P1 Foundation: FluentWinUI3, `Theme.qml`, System/Light/Dark, icons in qrc, `AppDialog`; remove Qt5Compat effects and `NetworkPlayers.qml` (closes BL-01)
+  - [x] P1 Foundation (`fluentFoundation_281026`): FluentWinUI3, `Theme.qml`, System/Light/Dark, icons in qrc, `AppDialog`; removed Qt5Compat effects and `NetworkPlayers.qml` (closes BL-01)
+    - [ ] Manual check with a connected Lichess account: Lichess dialog (connected), Challenge dialog, draw/takeback banners
   - [ ] P2 Shell and navigation: `StackView` pages, command bar, account menu, Home, setup dialogs, InfoBar; services as typed singletons; game flows into `ChessConnector` (`startLocalGame`, `switchUser`, Lichess game start/end)
   - [ ] P3 Users and Lichess: welcome, profile picker, Profile page (ratings, Reconnect, OAuth Cancel: closes BL-08), Guest, statistics, `QSaveFile`, backups, export/import
   - [ ] P4 Game chrome: player cards, captured strip with +N, responsive side panel or sheet, result card, move list with PGN
@@ -46,7 +47,7 @@ Manual checks, no code (do any time):
 
 ### Backlog
 
-- [ ] BL-01 Remove obsolete QT QML components, used for chess glow for example [Easy] → part of BL-02 P1
+- [x] BL-01 Remove obsolete QT QML components, used for chess glow for example [Easy] → done in BL-02 P1
 - [ ] BL-02 Review and modernize all game screens [Hard] → In Progress (plan done)
 - [ ] BL-03 Remove user handling relay on adopting LiChess more, need more reserch here before or togather with BL-02 [Medium] → In Progress, BL-02 P3 (decided: local profiles + linked Lichess account)
 - [ ] BL-04 Improve game UI making pice move and dragged by hands, use latest QLM techniques [Medium]

@@ -44,15 +44,14 @@ Grid {
 
             Rectangle{
                 id:navigationLayerRec
-                color: chessFigureGlow
+                color: Theme.legalMoveDot
 
                 anchors.centerIn: navigationLayerItm
                 smooth: true
                 antialiasing:true
-                height:0.2*parent.height
+                height:0.3*parent.height
                 width:height
                 radius: 0.5*height
-                opacity: 0.5
                 scale:0
                 visible: modelData!==" "?true:false
             }

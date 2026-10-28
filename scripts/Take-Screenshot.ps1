@@ -5,8 +5,9 @@
 .DESCRIPTION
     Runs ChessGui.exe in screenshot mode (--screenshot, see main.cpp) once per scene. Each run uses
     a fresh temporary profile (no users, settings or saves of yours are read or changed), opens the
-    scene, saves <OutDir>\<scene>[-black][-dark][-Name].png and exits. Offscreen by default: no window
-    appears and the mouse is never touched.
+    scene, saves <OutDir>\<scene>[-black][-dark][-Name].png and exits. The app window is transparent,
+    has no taskbar button and ignores the mouse, so nothing appears on screen. Screenshots are at 100%
+    scale (one pixel per QML pixel), whatever the monitor's scaling.
 
 .EXAMPLE
     .\scripts\Take-Screenshot.ps1
@@ -22,7 +23,7 @@
 #>
 [CmdletBinding()]
 param(
-    # create-user, login, menu, board, settings, levels, profile, or all
+    # create-user, login, menu, board, settings, levels, profile, online, players, or all
     [string[]]$Scene = @('menu'),
     # board scene: UCI moves to play first, e.g. "e2e4 e7e5"
     [string]$Moves,
@@ -39,14 +40,12 @@ param(
     [ValidateSet('Release', 'Debug')]
     [string]$Configuration = 'Release',
     # Build ChessGui first (MSBuild found with vswhere)
-    [switch]$Build,
-    # Use a real (visible) window instead of -platform offscreen
-    [switch]$Windowed
+    [switch]$Build
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
-$allScenes = 'create-user', 'login', 'menu', 'board', 'settings', 'levels', 'profile'
+$allScenes = 'create-user', 'login', 'menu', 'board', 'settings', 'levels', 'profile', 'online', 'players'
 if ($Scene -contains 'all') { $Scene = $allScenes }
 foreach ($s in $Scene) {
     if ($s -notin $allScenes) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
@@ -71,9 +70,7 @@ $failed = 0
 foreach ($s in $Scene) {
     $baseName = ($s, $(if ($Black) { 'black' }), $(if ($Dark) { 'dark' }), $Name | Where-Object { $_ }) -join '-'
     $file = Join-Path $OutDir "$baseName.png"
-    $argList = @()
-    if (-not $Windowed) { $argList += '-platform', 'offscreen' }
-    $argList += '--screenshot', "`"$file`"", '--scene', $s, '--delay', $Delay
+    $argList = @('--screenshot', "`"$file`"", '--scene', $s, '--delay', $Delay)
     if ($Moves) { $argList += '--moves', "`"$Moves`"" }
     if ($Black) { $argList += '--black' }
     if ($Dark)  { $argList += '--dark' }

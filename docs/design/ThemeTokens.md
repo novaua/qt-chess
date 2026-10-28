@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-28 |
-| **Status** | Spec for the Phase 1 `Theme.qml` singleton ([`AppModernizationPlan.md`](../AppModernizationPlan.md) §6) |
+| **Status** | Implemented in P1 as `ChessGui/ChessGui/qml/Theme.qml` ([`AppModernizationPlan.md`](../AppModernizationPlan.md) §6); differences noted in §8 |
 
 The app moves to the **FluentWinUI3** Qt Quick Controls style. Controls (buttons, switches,
 sliders, text fields, menus, dialogs) take their colours from the style and the Windows theme. So
@@ -55,7 +55,7 @@ picker can come later (out of scope).
 | `squareLight` | `#ECF0F1` | `lightChessBoxColor` |
 | `squareDark` | `#2F4F4F` | `darkChessBoxColor` (`darkslategray`) |
 | `lastMove` | `#A8D8EA` at 70% | `ChessBoxes.qml:40` |
-| `selected` | accent at 45% | the blue `Glow` in `ChessFigures.qml` (Qt5Compat, removed in P1) |
+| `selected` | accent at 45% | the blue `Glow` in `ChessFigures.qml` (Qt5Compat, removed in P1; now a tint on the selected piece's square) |
 | `legalMoveDot` | `#000000` at 22% | `NavigationLayer.qml` markers |
 | `checkSquare` | `critical` at 55% | `ChessBoxes.qml:51` (`#e74c3c`) |
 | `flaggedKing` | `critical` | the red flag on the losing king |
@@ -125,3 +125,21 @@ QtObject {
 It is registered through `qmldir` (`singleton Theme 1.0 Theme.qml`) and listed in `qml.qrc`. Every
 `readonly property bool isDarkMode: { … Window.window.color … }` block (15 files today) becomes
 `Theme.dark`.
+
+## 8. As implemented (P1)
+
+- **Setting:** `appSettings.theme` in `ChessGame.qml` (0 System, 1 Light, 2 Dark). While it is unset
+  (-1), the old `darkMode` bool decides (Dark or System), so existing users keep their choice.
+  `ChessGame.qml` binds `Theme.scheme` to it and `Theme.systemAccent` to the window's
+  `palette.accent`; Settings shows the choice as "App theme".
+- **Extra tokens:** `selectedBg` (accent at 15% light / 25% dark: selected avatar, current level,
+  reviewed move), `textOnColor` (`#FFFFFF` on saturated fills such as the level badges),
+  `iconSize` 20 / `iconSizeDense` 16, `radiusCard` / `radiusAvatar`, and `Theme.icon(name)` →
+  `qrc:/icons/<name>.svg`.
+- **Board:** `flaggedKing` and `checkSquare` use a fixed red (`#C42B1C`, the light `critical`) in
+  both modes; the dark `critical` pink looked washed out on the board.
+- **Type ramp:** the tokens are `font` values (`font: Theme.bodyStrong`) with size and weight only;
+  the family stays the app font.
+- **Colour scheme and `-platform offscreen`:** the offscreen platform can't force a colour scheme
+  (it stays Unknown) and FluentWinUI3 then uses its dark palette, so screenshots use a transparent
+  real window instead (`run-chess-app` skill).

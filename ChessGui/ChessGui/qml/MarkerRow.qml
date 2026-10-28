@@ -27,11 +27,9 @@ Row {
                 text:modelData
                 anchors.fill: parent
                 fontSizeMode: Text.Fit
-                color: markersOfChessBoxColor
+                color: Theme.textSecondary
                 minimumPixelSize: 2
                 font.pixelSize: 50
-
-                opacity:0.8
             }
         }
     }

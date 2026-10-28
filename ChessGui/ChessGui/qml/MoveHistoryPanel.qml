@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Window
 import QtQuick.Controls
 
 Rectangle {
@@ -9,29 +8,17 @@ Rectangle {
     property bool isOnlineGame: false
     property bool rematchPending: false // a rematch challenge is waiting for the opponent
 
-    readonly property bool isDarkMode: {
-        if (!Window.window) return false
-        var c = Window.window.color
-        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) <= 0.5
-    }
+    color: Theme.layerBg
+    border.color: Theme.cardStroke
+    border.width: 1
+    radius: Theme.radiusCard
 
-    color: isDarkMode ? "#1a1a1a" : "#f2f2f2"
-    border.color: isDarkMode ? "#444" : "#ccc"
-    border.width: 5
-    radius: 6
-
-    Rectangle {
+    Text {
         id: header
-        width: parent.width; height: 24
-        color: isDarkMode ? "#2d2d2d" : "#e0e0e0"
-        radius: parent.radius
-        Rectangle { width: parent.width; height: parent.radius; anchors.bottom: parent.bottom; color: parent.color }
-        Text {
-            anchors.centerIn: parent
-            text: "Move History"
-            font.pixelSize: 13; font.bold: true
-            color: isDarkMode ? "#cccccc" : "#555555"
-        }
+        anchors { top: parent.top; topMargin: Theme.s2; horizontalCenter: parent.horizontalCenter }
+        text: "Moves"
+        font: Theme.bodyStrong
+        color: Theme.textPrimary
     }
 
     Timer {
@@ -46,58 +33,27 @@ Rectangle {
     Row {
         id: navButtons
         anchors {
-            top: header.bottom; topMargin: 3
+            top: header.bottom; topMargin: Theme.s1
             horizontalCenter: parent.horizontalCenter
         }
-        spacing: 3
 
         Repeater {
-            model: ["|<<", "<", ">", ">>|"]
-            delegate: Rectangle {
+            model: ["first", "prev", "next", "last"]
+            delegate: IconButton { dense: true
                 required property string modelData
                 required property int index
 
-                readonly property bool canDo: index < 2 ? chessConnector.CanReviewPrev
-                                                        : chessConnector.CanReviewNext
-                readonly property string tipText: [
-                    "First move", "Previous move", "Next move", "Last move"][index]
-                readonly property bool shouldBlink: index === 3
-                                                 && chessConnector.ReviewMode
-                                                 && panel.gameInProgress
-
-                width: 30; height: 20
-                radius: 3
-                opacity: shouldBlink ? (blinkTimer.blinkOn ? 1.0 : 0.25) : 1.0
-                color: canDo
-                    ? (navMa.containsMouse
-                        ? (isDarkMode ? "#555" : "#ccc")
-                        : (isDarkMode ? "#333" : "#e8e8e8"))
-                    : (isDarkMode ? "#222" : "#f5f5f5")
-                border.color: isDarkMode ? "#555" : "#ccc"
-                border.width: 1
-
-                Text {
-                    anchors.centerIn: parent
-                    text: modelData
-                    font.pixelSize: 12; font.family: "Helvetica"
-                    color: canDo ? (isDarkMode ? "#ddd" : "#333")
-                                 : (isDarkMode ? "#444" : "#bbb")
-                }
-
-                MouseArea {
-                    id: navMa
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    enabled: canDo
-                    onClicked: {
-                        if      (index === 0) chessConnector.reviewFirst()
-                        else if (index === 1) chessConnector.reviewPrev()
-                        else if (index === 2) chessConnector.reviewNext()
-                        else                  chessConnector.reviewLast()
-                    }
-                    ToolTip.visible: containsMouse
-                    ToolTip.text: tipText
-                    ToolTip.delay: 400
+                icon.source: Theme.icon(modelData)
+                tip: ["First move", "Previous move", "Next move", "Last move"][index]
+                enabled: index < 2 ? chessConnector.CanReviewPrev : chessConnector.CanReviewNext
+                // While reviewing, "Last move" blinks to show the way back to the game.
+                opacity: index === 3 && chessConnector.ReviewMode && panel.gameInProgress
+                         && !blinkTimer.blinkOn ? 0.25 : 1.0
+                onClicked: {
+                    if      (index === 0) chessConnector.reviewFirst()
+                    else if (index === 1) chessConnector.reviewPrev()
+                    else if (index === 2) chessConnector.reviewNext()
+                    else                  chessConnector.reviewLast()
                 }
             }
         }
@@ -107,12 +63,12 @@ Rectangle {
         id: reviewIndicator
         visible: chessConnector.ReviewMode
         anchors {
-            top: navButtons.bottom; topMargin: 2
+            top: navButtons.bottom
             horizontalCenter: parent.horizontalCenter
         }
-        text: "— reviewing —"
-        font.pixelSize: 9; font.italic: true
-        color: isDarkMode ? "#888" : "#aaa"
+        text: "Reviewing"
+        font: Theme.caption
+        color: Theme.textSecondary
         height: visible ? implicitHeight : 0
     }
 
@@ -120,17 +76,16 @@ Rectangle {
     ListView {
         id: listView
         anchors {
-            top: reviewIndicator.bottom; topMargin: 2
-            left: parent.left; leftMargin: 3
-            right: parent.right; rightMargin: 3
+            top: reviewIndicator.bottom; topMargin: Theme.s1
+            left: parent.left; leftMargin: Theme.s1
+            right: parent.right; rightMargin: Theme.s1
             bottom: actionButtons.visible ? actionButtons.top
-                  : rematchBar.visible    ? rematchBar.top
+                  : rematchButton.visible ? rematchButton.top
                   : (resultBar.visible    ? resultBar.top : parent.bottom)
-            bottomMargin: 3
+            bottomMargin: Theme.s1
         }
         clip: true
         model: chessConnector.MoveHistory
-        spacing: 1
         onCountChanged: Qt.callLater(function() { listView.positionViewAtEnd() })
 
         Connections {
@@ -148,10 +103,7 @@ Rectangle {
             required property var modelData
             required property int index
             width: listView.width; height: 26
-            color: index % 2 === 0
-                ? (isDarkMode ? "#252525" : "#f8f8f8")
-                : (isDarkMode ? "#2d2d2d" : "#eeeeee")
-            radius: 2
+            color: "transparent"
 
             readonly property int ri: chessConnector.ReviewIndex
             readonly property int reviewRow: ri > 0 ? Math.floor((ri - 1) / 2) : -1
@@ -159,51 +111,50 @@ Rectangle {
             readonly property bool hlB: reviewRow === index && ri % 2 === 0
 
             Rectangle {
+                anchors.bottom: parent.bottom
+                width: parent.width; height: 1
+                color: Theme.divider
+            }
+
+            Rectangle {
                 visible: hlW
-                x: 29; y: 1; width: 60; height: parent.height - 2
-                color: isDarkMode ? "#2a4a2a" : "#c8ebc8"
-                radius: 2
+                x: whiteMove.x; y: 2; width: whiteMove.width; height: parent.height - 4
+                color: Theme.selectedBg
+                radius: 4
             }
             Rectangle {
                 visible: hlB
-                x: 101; y: 1; width: 60; height: parent.height - 2
-                color: isDarkMode ? "#2a4a2a" : "#c8ebc8"
-                radius: 2
+                x: blackMove.x; y: 2; width: blackMove.width; height: parent.height - 4
+                color: Theme.selectedBg
+                radius: 4
             }
 
             Row {
-                anchors.fill: parent; anchors.leftMargin: 3; anchors.rightMargin: 3; spacing: 0
-                z: 1
+                anchors.fill: parent; anchors.leftMargin: Theme.s1; anchors.rightMargin: Theme.s1
                 Text {
-                    width: 26; height: parent.height
+                    width: 30; height: parent.height
                     text: modelData.n + "."
-                    font.pixelSize: 13
-                    color: isDarkMode ? "#888" : "#999"
+                    font: Theme.caption
+                    color: Theme.textSecondary
                     verticalAlignment: Text.AlignVCenter
                 }
                 Text {
-                    width: 60; height: parent.height
+                    id: whiteMove
+                    width: (parent.width - 30) / 2; height: parent.height
+                    leftPadding: Theme.s1
                     text: modelData.w
-                    font.pixelSize: 13; font.family: "Courier New"
-                    color: isDarkMode ? "#ffffff" : "#111111"
+                    font.pixelSize: Theme.body.pixelSize; font.features: { "tnum": 1 }
+                    color: Theme.textPrimary
                     verticalAlignment: Text.AlignVCenter
                 }
                 Text {
-                    width: 12; height: parent.height
-                    text: "|"
-                    font.pixelSize: 13
-                    color: isDarkMode ? "#555" : "#bbb"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    visible: modelData.b !== ""
-                }
-                Text {
-                    width: 60; height: parent.height
+                    id: blackMove
+                    width: (parent.width - 30) / 2; height: parent.height
+                    leftPadding: Theme.s1
                     text: modelData.b
-                    font.pixelSize: 13; font.family: "Courier New"
-                    color: isDarkMode ? "#ffffff" : "#111111"
+                    font.pixelSize: Theme.body.pixelSize; font.features: { "tnum": 1 }
+                    color: Theme.textPrimary
                     verticalAlignment: Text.AlignVCenter
-                    visible: modelData.b !== ""
                 }
             }
         }
@@ -215,100 +166,88 @@ Rectangle {
         visible: panel.gameInProgress && chessConnector.GameResult === "" && !resignConfirm.visible
         anchors {
             bottom: resultBar.visible ? resultBar.top : parent.bottom
-            bottomMargin: 4
+            bottomMargin: Theme.s1
             horizontalCenter: parent.horizontalCenter
         }
-        spacing: 6
+        spacing: Theme.s1
 
-        ActionButton {
-            label: "↩"
-            tip: panel.isOnlineGame ? "Propose Takeback" : "Undo Move"
-            onAction: chessConnector.requestTakeback()
+        IconButton { dense: true
+            icon.source: Theme.icon("undo")
+            tip: panel.isOnlineGame ? "Propose takeback" : "Undo move"
+            onClicked: chessConnector.requestTakeback()
         }
-        ActionButton {
-            label: "½"
-            tip: "Offer Draw"
+        IconButton { dense: true
+            icon.source: Theme.icon("draw")
+            tip: "Offer draw"
             visible: panel.isOnlineGame
-            onAction: chessConnector.offerDraw()
+            onClicked: chessConnector.offerDraw()
         }
-        ActionButton {
-            label: "⚑"
+        IconButton { dense: true
+            icon.source: Theme.icon("flag")
             tip: "Resign"
-            onAction: resignConfirm.visible = true
+            onClicked: resignConfirm.visible = true
         }
     }
 
     // Resign confirmation strip
-    Row {
+    Column {
         id: resignConfirm
         visible: false
         anchors {
             bottom: resultBar.visible ? resultBar.top : parent.bottom
-            bottomMargin: 4
+            bottomMargin: Theme.s1
             horizontalCenter: parent.horizontalCenter
         }
-        spacing: 6
+        spacing: Theme.s1
 
         Text {
-            text: "Resign?"
-            color: isDarkMode ? "#ccc" : "#555"
-            font.pixelSize: 12
-            anchors.verticalCenter: parent.verticalCenter
+            text: "Resign this game?"
+            color: Theme.textPrimary
+            font: Theme.caption
+            anchors.horizontalCenter: parent.horizontalCenter
         }
-        ActionButton {
-            label: "Yes"; danger: true
-            onAction: { resignConfirm.visible = false; chessConnector.resignGame() }
-        }
-        ActionButton {
-            label: "No"
-            onAction: resignConfirm.visible = false
+        Row {
+            spacing: Theme.s1
+            // The panel is only 160 px wide: two equal halves.
+            Button {
+                width: (panel.width - 3 * Theme.s1) / 2
+                text: "Resign"
+                highlighted: true
+                onClicked: { resignConfirm.visible = false; chessConnector.resignGame() }
+            }
+            Button {
+                width: (panel.width - 3 * Theme.s1) / 2
+                text: "Cancel"
+                onClicked: resignConfirm.visible = false
+            }
         }
     }
 
-    // Rematch button — full width, shown when game is over. For a Lichess game it sends the
-    // opponent a new challenge (ChessConnector::rematch()).
-    Rectangle {
-        id: rematchBar
+    // Rematch — shown when the game is over. For a Lichess game it sends the opponent a new
+    // challenge (ChessConnector::rematch()).
+    Button {
+        id: rematchButton
         visible: chessConnector.GameResult !== "" && chessConnector.CanRematch && !panel.rematchPending
         anchors {
             bottom: resultBar.visible ? resultBar.top : parent.bottom
-            left: parent.left; leftMargin: 3
-            right: parent.right; rightMargin: 3
+            left: parent.left; leftMargin: Theme.s1
+            right: parent.right; rightMargin: Theme.s1
         }
-        height: 28
-        radius: 4
-        color: rematchMa.containsMouse
-            ? (isDarkMode ? "#2a3a2a" : "#c8ebc8")
-            : (isDarkMode ? "#1e2e1e" : "#e0f0e0")
-        border.color: isDarkMode ? "#4a6a4a" : "#88bb88"
-        border.width: 1
-
-        Text {
-            anchors.centerIn: parent
-            text: "Rematch"
-            font.pixelSize: 13; font.bold: true
-            color: isDarkMode ? "#aaddaa" : "#2a5a2a"
-        }
-        MouseArea {
-            id: rematchMa
-            anchors.fill: parent
-            hoverEnabled: true
-            onClicked: chessConnector.rematch()
-        }
+        text: "Rematch"
+        icon.source: Theme.icon("rematch")
+        highlighted: true
+        onClicked: chessConnector.rematch()
     }
 
-    Rectangle {
+    Text {
         id: resultBar
         visible: chessConnector.GameResult !== ""
-        width: parent.width; height: 22
-        anchors.bottom: parent.bottom
-        color: isDarkMode ? "#2a2a2a" : "#e8e8e8"
-        radius: 4
-        Text {
-            anchors.centerIn: parent
-            text: chessConnector.GameResult
-            font.pixelSize: 12; font.bold: true
-            color: isDarkMode ? "#f0c040" : "#8B6914"
-        }
+        anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
+        padding: Theme.s2
+        text: chessConnector.GameResult
+        font: Theme.bodyStrong
+        color: Theme.textPrimary
+        wrapMode: Text.WordWrap
+        horizontalAlignment: Text.AlignHCenter
     }
 }

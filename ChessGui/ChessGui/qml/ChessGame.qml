@@ -1,19 +1,13 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Controls as QQC
+import QtQuick.Layouts
 import QtCore
 import QtMultimedia
-import Qt5Compat.GraphicalEffects
 
 ApplicationWindow {
     id: root
 
-    property string lightChessBoxColor: "#ecf0f1"
-    property string darkChessBoxColor:"darkslategray"
-    property string markersOfChessBoxColor:"#34495e"
-    property string chessFigureGlow: "blue"
     property bool   gameIsInProgress: false
-    property bool   isDarkMode: appSettings.darkMode
     property variant win
     property string _checkmateWinner: ""
     property bool   _showGameResult:    false
@@ -35,15 +29,16 @@ ApplicationWindow {
     property bool   _toolbarResignPending:    false
     property bool   _wasOnlineGame:           false
     property bool   _showLevelsHelp:          false
+    readonly property int _toolbarH: 48
     property real   _boardSize: Math.min(chessBoard.width, chessBoard.height) * 0.95
     // _panelH is computed analytically to avoid a binding loop:
     //   _boardSize → chessBoard.height → centralItem.height → _panelH → _boardSize
     // Portrait (width-limited):  panelH = rootW * 0.95 / 16
-    // Landscape (height-limited): solving panelH = (rootH-30-2*panelH)*0.95/16
-    //   gives panelH = (rootH-30)*0.95 / (16*(1+0.95/8)) = (rootH-30)*0.95/17.9
+    // Landscape (height-limited): solving panelH = (rootH-toolbarH-2*panelH)*0.95/16
+    //   gives panelH = (rootH-toolbarH)*0.95 / (16*(1+0.95/8)) = (rootH-toolbarH)*0.95/17.9
     property real   _panelH: {
         if (!gameIsInProgress) return 0
-        var effH = root.height - 30
+        var effH = root.height - _toolbarH
         return (root.width * 1.11875 < effH)
             ? root.width * 0.95 / 16    // portrait: board is width-limited
             : effH * 0.95 / 17.9        // landscape: board is height-limited
@@ -101,7 +96,7 @@ ApplicationWindow {
     function setUpScreenshotScene() {
         if (_shot.width)  root.width  = _shot.width
         if (_shot.height) root.height = _shot.height
-        appSettings.darkMode = _shot.dark
+        appSettings.theme = _shot.dark ? 2 : 1   // not "system": stable screenshots
 
         if (_shot.scene === "create-user" || _shot.scene === "login") {
             if (_shot.scene === "login" && !userManager.hasUsers)
@@ -116,6 +111,14 @@ ApplicationWindow {
         if (_shot.scene === "settings") _showSettings = true
         if (_shot.scene === "levels")   _showLevelsHelp = true
         if (_shot.scene === "profile")  _showProfile = true
+        if (_shot.scene === "online")   _showOnlineDialog = true
+        if (_shot.scene === "players") {
+            if (userManager.userCount < 2) {
+                userManager.createUser("Bob", "fox")
+                userManager.login(userManager.users[0].id)
+            }
+            _showPlayerPicker = true
+        }
         if (_shot.scene === "board") {
             chessConnector.setPlayerPlaysWhite(!_shot.black)
             screen.state = "screen_2"
@@ -146,11 +149,18 @@ ApplicationWindow {
 
     Settings {
         id: appSettings
-        property bool darkMode:        false
+        property int  theme:           -1  // 0 system, 1 light, 2 dark; -1 = not set yet, see darkMode
+        property bool darkMode:        false // before the theme setting: only read, to migrate it
         property bool musicEnabled:    true
         property int  soundVolume:     3   // 0-5; 0 = muted
         property int  lastSoundVolume: 3   // remembers last non-zero level for restore
     }
+
+    Binding {
+        target: Theme; property: "scheme"
+        value: appSettings.theme >= 0 ? appSettings.theme : (appSettings.darkMode ? 2 : 0)
+    }
+    Binding { target: Theme; property: "systemAccent"; value: root.palette.accent }
 
     // Perceptual loudness curve: linear 0-5 feels far too loud at level 1,
     // since human hearing perceives volume roughly logarithmically.
@@ -162,217 +172,170 @@ ApplicationWindow {
     SoundEffect { id: sndCheckmate; source: "qrc:/sounds/checkmate.wav"; volume: _sfxVolume }
     SoundEffect { id: sndWin;       source: "qrc:/sounds/win.wav";       volume: _sfxVolume }
 
-    component Button: QQC.Button {
-        id: self
-        contentItem: Text {
-            text: self.text
-            color: root.isDarkMode ? "#ffffff" : "#000000"
-            font: self.font
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-        }
-        background: Rectangle {
-            implicitHeight: 24
-            color: self.down
-                ? (root.isDarkMode ? "#282828" : "#c0c0c0")
-                : (root.isDarkMode ? "#3c3c3c" : "#e0e0e0")
-            border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
-            radius: 4
-        }
+    // Leave the game for the start menu (Home button / Escape).
+    function leaveGame() {
+        _showGameResult = false
+        gameIsInProgress = false
+        _toolbarResignPending = false
+        screen.state = "screen_1"
+        chessConnector.endGame()
     }
 
-    component ModeButton: QQC.Button {
-        id: mb
+    // Start menu: game types and actions, one checked at a time.
+    component ModeButton: Button {
         checkable: true
-        implicitWidth: 150
-        implicitHeight: 38
-        contentItem: Text {
-            text: mb.text
-            color: !mb.enabled
-                ? (root.isDarkMode ? "#666666" : "#aaaaaa")
-                : (root.isDarkMode ? "#ffffff" : "#000000")
-            font: mb.font
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-        }
-        background: Rectangle {
-            radius: 6
-            color: mb.checked
-                ? "#0078d4"
-                : mb.down
-                    ? (root.isDarkMode ? "#282828" : "#c0c0c0")
-                    : (root.isDarkMode ? "#3c3c3c" : "#e0e0e0")
-            border.color: mb.checked ? "#005a9e"
-                : (root.isDarkMode ? "#555555" : "#bbbbbb")
-        }
+        Layout.fillWidth: true
+        Layout.preferredWidth: 1   // equal columns
     }
 
-    title: qsTr("Chess ++")
-    color: isDarkMode ? "#1e1e1e" : "#f0f0f0"
-
-    palette: Palette {
-        window:          root.isDarkMode ? "#1e1e1e" : "#f0f0f0"
-        windowText:      root.isDarkMode ? "#ffffff" : "#000000"
-        button:          root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
-        buttonText:      root.isDarkMode ? "#ffffff" : "#000000"
-        base:            root.isDarkMode ? "#2d2d2d" : "#ffffff"
-        text:            root.isDarkMode ? "#ffffff" : "#000000"
-        mid:             root.isDarkMode ? "#555555" : "#a0a0a0"
-        light:           root.isDarkMode ? "#505050" : "#f8f8f8"
-        dark:            root.isDarkMode ? "#282828" : "#c0c0c0"
-        highlight:       "#0078d4"
-        highlightedText: "#ffffff"
-    }
+    title: qsTr("Chess++")
+    color: Theme.windowBg
 
     width: 768
     height: 1054
     visible: true
+    // --screenshot: a real window (so the Fluent style gets the forced light/dark palette, which
+    // -platform offscreen can't do) that the user never sees or clicks; grabWindow() still
+    // captures the rendered scene.
+    opacity: _shot.scene ? 0 : 1
+    flags: _shot.scene ? Qt.Tool | Qt.FramelessWindowHint | Qt.WindowTransparentForInput
+                         | Qt.WindowDoesNotAcceptFocus
+                       : Qt.Window
 
     Rectangle {
         id: screen
         state: "screen_1"
         anchors.fill: parent
+        color: Theme.windowBg
 
+        // The glass-pieces photo, faint, behind the start menu only.
         Image {
             id: background
             anchors.fill: parent
             source: "qrc:/app/pics/ChessBackground.jpg"
             fillMode: Image.PreserveAspectCrop
+            opacity: Theme.homeBackdropOpacity
+            visible: screen.state === "screen_1"
         }
 
         Column {
             anchors.fill: parent
 
+            // ── Command bar ─────────────────────────────────────────────────
             Rectangle {
                 id: toolBar
                 width: parent.width
-                height: 30
-                color: root.isDarkMode ? "#1e1e1e" : "#f0f0f0"
-
-                Row {
-                    id: controlButtons
-                    visible: !_toolbarResignPending
-                    anchors { left: menuButton.right; leftMargin: 6; verticalCenter: parent.verticalCenter }
-                    spacing: 6
-
-                    ActionButton {
-                        id: buttonSave; label: "Save"; tip: "Save game"
-                        onAction: chessConnector.saveGame()
-                    }
-                    ActionButton {
-                        id: buttonPrev; label: "↩"
-                        tip: _onlineGameId !== "" ? "Propose Takeback" : "Undo Move"
-                        onAction: chessConnector.requestTakeback()
-                    }
-                    ActionButton {
-                        id: buttonResign; label: "⚑"; tip: "Resign"
-                        visible: !_showGameResult
-                        onAction: _toolbarResignPending = true
-                    }
-                    ActionButton {
-                        id: buttonNext; label: "Next"; tip: "Next move"
-                        onAction: chessConnector.moveNext()
-                    }
-                }
-
-                Row {
-                    id: toolbarResignConfirm
-                    visible: _toolbarResignPending
-                    anchors { left: menuButton.right; leftMargin: 6; verticalCenter: parent.verticalCenter }
-                    spacing: 8
-
-                    Text {
-                        text: "Resign?"
-                        color: isDarkMode ? "#cccccc" : "#444444"
-                        font.pixelSize: 13
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    ActionButton { label: "Yes"; danger: true
-                        onAction: { _toolbarResignPending = false; chessConnector.resignGame() }
-                    }
-                    ActionButton { label: "No"
-                        onAction: _toolbarResignPending = false
-                    }
-                }
+                height: _toolbarH
+                color: Theme.layerBg
 
                 Rectangle {
-                    id: menuButton
-                    visible: gameIsInProgress
-                    width: 28; height: 28
-                    radius: 6
-                    color:        root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
-                    border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
-                    border.width: 1
-                    anchors { left: parent.left; leftMargin: 1; verticalCenter: parent.verticalCenter }
-
-                    Image {
-                        id: menuIconImg
-                        anchors.centerIn: parent
-                        width: 16; height: 16
-                        source: "qrc:/app/pics/menu_icon.svg"
-                        visible: false
-                    }
-                    ColorOverlay {
-                        anchors.fill: menuIconImg
-                        source: menuIconImg
-                        color: root.isDarkMode ? "#ffffff" : "#09102B"
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            _showGameResult = false
-                            gameIsInProgress = false
-                            _toolbarResignPending = false
-                            screen.state = "screen_1"
-                            chessConnector.endGame()
-                        }
-                    }
+                    anchors.bottom: parent.bottom
+                    width: parent.width; height: 1
+                    color: Theme.divider
                 }
 
-                Rectangle {
-                    id: settingsButton
-                    width: 28; height: 28
-                    radius: 6
-                    color:        root.isDarkMode ? "#3c3c3c" : "#e0e0e0"
-                    border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
-                    border.width: 1
-                    anchors { right: parent.right; rightMargin: 1; verticalCenter: parent.verticalCenter }
+                RowLayout {
+                    anchors { fill: parent; leftMargin: Theme.s1; rightMargin: Theme.s1 }
+                    spacing: Theme.s1
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: "⚙"
-                        font.pixelSize: 16
-                        color: root.isDarkMode ? "#ffffff" : "#09102B"
+                    IconButton {
+                        id: menuButton
+                        visible: gameIsInProgress
+                        icon.source: Theme.icon("home")
+                        tip: "Back to the menu (Esc)"
+                        onClicked: leaveGame()
                     }
 
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: appMenu.popup()
+                    Rectangle {
+                        visible: menuButton.visible
+                        Layout.preferredWidth: 1; Layout.preferredHeight: 24
+                        color: Theme.divider
                     }
 
-                    QQC.Menu {
-                        id: appMenu
-                        QQC.MenuItem {
-                            text: "Settings"
-                            onTriggered: _showSettings = true
+                    RowLayout {
+                        id: controlButtons
+                        visible: !_toolbarResignPending
+                        spacing: Theme.s1
+
+                        IconButton {
+                            id: buttonSave
+                            icon.source: Theme.icon("save"); tip: "Save game"
+                            onClicked: chessConnector.saveGame()
                         }
-                        QQC.MenuItem {
-                            text: "Profile"
-                            onTriggered: _showProfile = true
+                        IconButton {
+                            id: buttonPrev
+                            icon.source: Theme.icon("undo")
+                            tip: _onlineGameId !== "" ? "Propose takeback" : "Undo move"
+                            onClicked: chessConnector.requestTakeback()
                         }
-                        QQC.MenuItem {
-                            text: "Computer Levels…"
-                            enabled: !_otherDialogOpen
-                            onTriggered: showLevelsHelp()
+                        IconButton {
+                            id: buttonResign
+                            icon.source: Theme.icon("flag"); tip: "Resign"
+                            visible: !_showGameResult
+                            onClicked: _toolbarResignPending = true
                         }
-                        QQC.MenuItem {
-                            text: "Switch User"
-                            onTriggered: {
-                                chessConnector.endGame()
-                                userManager.logout()
+                        IconButton {
+                            id: buttonNext
+                            icon.source: Theme.icon("next"); tip: "Next move"
+                            onClicked: chessConnector.moveNext()
+                        }
+                    }
+
+                    RowLayout {
+                        id: toolbarResignConfirm
+                        visible: _toolbarResignPending
+                        spacing: Theme.s2
+
+                        Label {
+                            text: "Resign this game?"
+                            Layout.leftMargin: Theme.s2
+                        }
+                        Button {
+                            text: "Resign"
+                            highlighted: true
+                            onClicked: { _toolbarResignPending = false; chessConnector.resignGame() }
+                        }
+                        Button {
+                            text: "Cancel"
+                            onClicked: _toolbarResignPending = false
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    IconButton {
+                        id: settingsButton
+                        icon.source: Theme.icon("settings")
+                        tip: "Settings and profile"
+                        onClicked: appMenu.popup(settingsButton, settingsButton.width - appMenu.width,
+                                                 settingsButton.height)
+
+                        Menu {
+                            id: appMenu
+                            MenuItem {
+                                text: "Settings"
+                                icon.source: Theme.icon("settings")
+                                onTriggered: _showSettings = true
+                            }
+                            MenuItem {
+                                text: "Profile"
+                                icon.source: Theme.icon("person")
+                                onTriggered: _showProfile = true
+                            }
+                            MenuItem {
+                                text: "Computer levels"
+                                icon.source: Theme.icon("robot")
+                                enabled: !_otherDialogOpen
+                                onTriggered: showLevelsHelp()
+                            }
+                            MenuSeparator {}
+                            MenuItem {
+                                text: "Switch user"
+                                icon.source: Theme.icon("sign-out")
+                                onTriggered: {
+                                    chessConnector.endGame()
+                                    userManager.logout()
+                                }
                             }
                         }
                     }
@@ -401,7 +364,7 @@ ApplicationWindow {
 
             Item {
                 width: parent.width
-                height: parent.height - 30 - (gameIsInProgress ? 2 * _panelH : 0)
+                height: parent.height - _toolbarH - (gameIsInProgress ? 2 * _panelH : 0)
 
                 ChessBoard {
                     id: chessBoard
@@ -477,178 +440,141 @@ ApplicationWindow {
             anchors.centerIn: parent
             anchors.verticalCenterOffset: -15
             width: 360
-            height: menuContent.implicitHeight + 48
+            height: menuContent.implicitHeight + 2 * Theme.s5
             visible: screen.state === "screen_1"
-            color: root.isDarkMode ? "#252525" : "#f4f4f4"
-            border.color: root.isDarkMode ? "#555555" : "#cccccc"
+            color: Theme.cardBg
+            border.color: Theme.cardStroke
             border.width: 1
-            radius: 12
+            radius: Theme.radiusCard
 
-            Column {
+            ColumnLayout {
                 id: menuContent
                 anchors.centerIn: parent
-                spacing: 20
-                width: parent.width - 48
+                spacing: Theme.s4
+                width: parent.width - 2 * Theme.s5
 
                 Text {
-                    text: "Chess ++"
-                    font.pixelSize: 26
-                    font.bold: true
-                    color: root.isDarkMode ? "#ffffff" : "#000000"
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Chess++"
+                    font: Theme.title
+                    color: Theme.textPrimary
+                    Layout.alignment: Qt.AlignHCenter
                 }
 
                 // Game mode radio group
-                ButtonGroup { id: gameModeGroup }
+                ButtonGroup { id: gameModeGroup; buttons: modeGrid.children }
 
-                Column {
-                    spacing: 10
-                    anchors.horizontalCenter: parent.horizontalCenter
-
-                    Row {
-                        spacing: 10
-                        ModeButton {
-                            id: btnSingle
-                            text: "Single Player"
-                            ButtonGroup.group: gameModeGroup
-                            checked: true
-                        }
-                        ModeButton {
-                            id: btnTwo
-                            text: "Two Player"
-                            ButtonGroup.group: gameModeGroup
-                        }
-                    }
+                GridLayout {
+                    id: modeGrid
+                    columns: 2
+                    columnSpacing: Theme.s2
+                    rowSpacing: Theme.s2
+                    Layout.fillWidth: true
 
                     ModeButton {
-                        id: btnOnline
-                        text: "Online ♟"
-                        implicitWidth: 310
-                        ButtonGroup.group: gameModeGroup
+                        id: btnSingle
+                        text: "Single player"
+                        icon.source: Theme.icon("robot")
+                        checked: true
                     }
-
-                    Row {
-                        spacing: 10
-                        ModeButton {
-                            id: btnContinue
-                            text: "Continue"
-                            ButtonGroup.group: gameModeGroup
-                            enabled: chessConnector.CanContinue
-                        }
-                        ModeButton {
-                            id: btnLoad
-                            text: "Load"
-                            ButtonGroup.group: gameModeGroup
-                            enabled: chessConnector.CanLoad
-                        }
+                    ModeButton {
+                        id: btnTwo
+                        text: "Two players"
+                        icon.source: Theme.icon("two-players")
+                    }
+                    ModeButton {
+                        id: btnOnline
+                        text: "Online"
+                        icon.source: Theme.icon("globe")
+                        Layout.columnSpan: 2
+                    }
+                    ModeButton {
+                        id: btnContinue
+                        text: "Continue"
+                        icon.source: Theme.icon("play")
+                        enabled: chessConnector.CanContinue
+                    }
+                    ModeButton {
+                        id: btnLoad
+                        text: "Load"
+                        icon.source: Theme.icon("folder-open")
+                        enabled: chessConnector.CanLoad
                     }
                 }
 
                 // Color selection
-                Row {
-                    spacing: 10
-                    anchors.horizontalCenter: parent.horizontalCenter
+                RowLayout {
+                    spacing: Theme.s2
+                    Layout.fillWidth: true
                     visible: btnSingle.checked || btnTwo.checked
 
                     ButtonGroup { id: colorGroup }
 
-                    ModeButton {
+                    Button {
                         id: btnColorWhite
                         text: "White ♔"
-                        implicitWidth: 120
+                        checkable: true
                         ButtonGroup.group: colorGroup
                         checked: chessConnector.PlayerPlaysWhite
+                        Layout.fillWidth: true; Layout.preferredWidth: 1
                     }
-                    ModeButton {
+                    Button {
                         id: btnColorBlack
                         text: "Black ♚"
-                        implicitWidth: 120
+                        checkable: true
                         ButtonGroup.group: colorGroup
                         checked: !chessConnector.PlayerPlaysWhite
+                        Layout.fillWidth: true; Layout.preferredWidth: 1
                     }
                 }
 
-                // Difficulty
-                Column {
+                // Difficulty (single player only)
+                ColumnLayout {
                     id: difficultyBox
-                    spacing: 6
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    opacity: btnSingle.checked ? 1.0 : 0.35
+                    spacing: 0
+                    Layout.fillWidth: true
+                    visible: btnSingle.checked
 
                     readonly property var info: levelInfo(Math.round(difficultySlider.value))
 
-                    Row {
-                        spacing: 8
-                        anchors.horizontalCenter: parent.horizontalCenter
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.s1
 
-                        Text {
+                        Label {
                             text: "Level " + difficultyBox.info.level + " · " + difficultyBox.info.name
-                            color: root.isDarkMode ? "#ffffff" : "#000000"
-                            anchors.verticalCenter: parent.verticalCenter
+                            font: Theme.bodyStrong
                         }
-
-                        Rectangle {
-                            width: 18; height: 18; radius: 9
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: levelHelpMouse.containsMouse
-                                ? "#0078d4"
-                                : (root.isDarkMode ? "#3c3c3c" : "#e0e0e0")
-                            border.color: root.isDarkMode ? "#555555" : "#bbbbbb"
-                            Text {
-                                anchors.centerIn: parent
-                                text: "?"
-                                font.pixelSize: 12
-                                font.bold: true
-                                color: levelHelpMouse.containsMouse ? "#ffffff"
-                                    : (root.isDarkMode ? "#ffffff" : "#09102B")
-                            }
-                            MouseArea {
-                                id: levelHelpMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: showLevelsHelp()
-                                ToolTip.visible: containsMouse
-                                ToolTip.text: "What do the levels mean? (F1)"
-                                ToolTip.delay: 400
-                            }
+                        Label {
+                            text: levelRatingText(difficultyBox.info)
+                            color: Theme.textSecondary
+                            Layout.fillWidth: true
+                        }
+                        IconButton {
+                            dense: true
+                            icon.source: Theme.icon("info")
+                            tip: "What do the levels mean? (F1)"
+                            onClicked: showLevelsHelp()
                         }
                     }
-                    CustomSlider {
+                    Slider {
                         id: difficultySlider
                         from: 1; to: _levels.length; value: chessConnector.LastLevel; stepSize: 1
-                        width: 260
-                        enabled: btnSingle.checked
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        ToolTip.visible: pressed
-                        ToolTip.text: "Level " + difficultyBox.info.level + " — "
-                            + difficultyBox.info.name + " (" + levelRatingText(difficultyBox.info) + ")"
+                        snapMode: Slider.SnapAlways
+                        Layout.fillWidth: true
+                        Accessible.name: "Computer level"
                     }
                 }
 
                 // Action buttons
-                Row {
-                    spacing: 16
-                    anchors.horizontalCenter: parent.horizontalCenter
+                RowLayout {
+                    spacing: Theme.s2
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: Theme.s2
 
                     Button {
-                        text: "Start Game"
-                        implicitHeight: 32
-                        implicitWidth: 110
+                        text: "Start game"
+                        highlighted: true
                         focus: true
-                        font.bold: true
-                        background: Rectangle {
-                            radius: 4
-                            color: parent.down ? "#005a9e" : "#0078d4"
-                            border.color: "#005a9e"
-                        }
-                        contentItem: Text {
-                            text: parent.text
-                            color: "#ffffff"
-                            font: parent.font
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
                         onClicked: {
                             if (btnOnline.checked) {
                                 if (userManager.hasPendingChallenge) {
@@ -694,8 +620,6 @@ ApplicationWindow {
 
                     Button {
                         text: "Exit"
-                        implicitHeight: 32
-                        implicitWidth: 80
                         onClicked: Qt.quit()
                     }
                 }
@@ -878,18 +802,14 @@ ApplicationWindow {
         // ── Settings dialog ───────────────────────────────────────────────
         SettingsDialog {
             id: settingsDialog
-            anchors.centerIn: parent
             visible: _showSettings
-            z: 20
-            onCloseRequested: _showSettings = false
+            onClosed: _showSettings = false
         }
 
         // ── Computer levels help ─────────────────────────────────────────
         LevelsHelpDialog {
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -15
             visible: _showLevelsHelp
-            z: 20
+            onClosed: _showLevelsHelp = false
             // From the start menu, rows pick a level; in a game, highlight the robot's level.
             selectable: screen.state === "screen_1"
             currentLevel: screen.state === "screen_1" ? Math.round(difficultySlider.value)
@@ -900,50 +820,32 @@ ApplicationWindow {
                 btnSingle.checked = true
                 _showLevelsHelp = false
             }
-            onCloseRequested: _showLevelsHelp = false
         }
 
+        // An open dialog blocks these (Esc then closes the dialog instead).
         Shortcut {
             sequence: "F1"
-            enabled: _showLevelsHelp || !_otherDialogOpen
-            onActivated: _showLevelsHelp = !_showLevelsHelp
+            enabled: !_otherDialogOpen
+            onActivated: showLevelsHelp()
         }
 
         Shortcut {
             sequence: "Escape"
-            enabled: _showLevelsHelp
-            onActivated: _showLevelsHelp = false
-        }
-
-        Shortcut {
-            sequence: "Escape"
-            enabled: gameIsInProgress && !_showLevelsHelp
-            onActivated: {
-                _showGameResult = false
-                gameIsInProgress = false
-                _toolbarResignPending = false
-                screen.state = "screen_1"
-                chessConnector.endGame()
-            }
+            enabled: gameIsInProgress && !_showLevelsHelp && !_otherDialogOpen
+            onActivated: leaveGame()
         }
 
         // ── Move-input cheat dialog (Alt+S in two-player mode) ────────────
         Shortcut {
             sequence: "Alt+S"
             enabled: screen.state === "screen_2"
-            onActivated: {
-                _showMoveInput = true
-                applyMovesDialog.focusInput()
-            }
+            onActivated: _showMoveInput = true
         }
 
         ApplyMovesDialog {
             id: applyMovesDialog
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -15
             visible: _showMoveInput
-            z: 20
-            onCloseRequested: _showMoveInput = false
+            onClosed: _showMoveInput = false
         }
 
         // ── Lichess network error banner ─────────────────────────────────────
@@ -951,9 +853,10 @@ ApplicationWindow {
             id: networkErrorBanner
             anchors { top: parent.top; topMargin: 8; horizontalCenter: parent.horizontalCenter }
             width: Math.min(parent.width - 32, 420)
-            height: bannerText.implicitHeight + 20
-            radius: 8
-            color: "#c0392b"
+            height: bannerText.implicitHeight + 2 * Theme.s3
+            radius: Theme.radiusCard
+            color: Theme.criticalBg
+            border.color: Theme.critical
             visible: false
             z: 30
 
@@ -965,10 +868,10 @@ ApplicationWindow {
 
             Text {
                 id: bannerText
-                anchors { centerIn: parent; margins: 10 }
-                width: parent.width - 20
-                color: "#ffffff"
-                font.pixelSize: 13
+                anchors.centerIn: parent
+                width: parent.width - 2 * Theme.s4
+                color: Theme.textPrimary
+                font: Theme.body
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -993,26 +896,28 @@ ApplicationWindow {
                 top: networkErrorBanner.bottom; topMargin: 4
                 horizontalCenter: parent.horizontalCenter
             }
-            width: Math.min(parent.width - 32, 380)
-            height: 44
-            radius: 8
-            color: "#1565c0"
+            width: Math.min(parent.width - 32, 420)
+            height: drawOfferRow.implicitHeight + 2 * Theme.s2
+            radius: Theme.radiusCard
+            color: Theme.cardBg
+            border.color: Theme.accent
             z: 30
 
             Row {
+                id: drawOfferRow
                 anchors.centerIn: parent
-                spacing: 10
+                spacing: Theme.s3
                 Text {
-                    text: "Opponent offers a draw"
-                    color: "#ffffff"; font.pixelSize: 13
+                    text: "Your opponent offers a draw"
+                    color: Theme.textPrimary; font: Theme.body
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 Button {
-                    text: "Accept"; implicitWidth: 70; implicitHeight: 28
+                    text: "Accept"; highlighted: true
                     onClicked: { chessConnector.respondDraw(true); _showDrawOffer = false }
                 }
                 Button {
-                    text: "Decline"; implicitWidth: 70; implicitHeight: 28
+                    text: "Decline"
                     onClicked: { chessConnector.respondDraw(false); _showDrawOffer = false }
                 }
             }
@@ -1027,26 +932,28 @@ ApplicationWindow {
                 topMargin: 4
                 horizontalCenter: parent.horizontalCenter
             }
-            width: Math.min(parent.width - 32, 380)
-            height: 44
-            radius: 8
-            color: "#5b4a00"
+            width: Math.min(parent.width - 32, 420)
+            height: takebackRow.implicitHeight + 2 * Theme.s2
+            radius: Theme.radiusCard
+            color: Theme.cardBg
+            border.color: Theme.accent
             z: 30
 
             Row {
+                id: takebackRow
                 anchors.centerIn: parent
-                spacing: 10
+                spacing: Theme.s3
                 Text {
-                    text: "Opponent requests a takeback"
-                    color: "#ffffff"; font.pixelSize: 13
+                    text: "Your opponent asks to take back a move"
+                    color: Theme.textPrimary; font: Theme.body
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 Button {
-                    text: "Accept"; implicitWidth: 70; implicitHeight: 28
+                    text: "Accept"; highlighted: true
                     onClicked: { chessConnector.respondTakeback(true); _showTakebackOffer = false }
                 }
                 Button {
-                    text: "Decline"; implicitWidth: 70; implicitHeight: 28
+                    text: "Decline"
                     onClicked: { chessConnector.respondTakeback(false); _showTakebackOffer = false }
                 }
             }
@@ -1068,19 +975,15 @@ ApplicationWindow {
 
         // ── Lichess online dialog ────────────────────────────────────────────
         LichessGameDialog {
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -15
             visible: _showOnlineDialog
-            z: 20
+            onClosed: _showOnlineDialog = false
             onCloseRequested: _showOnlineDialog = false
         }
 
         // ── Pending challenge dialog ─────────────────────────────────────────
         ChallengeDialog {
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -15
             visible: _showChallengeDialog
-            z: 20
+            onClosed: _showChallengeDialog = false
             challengeId:  _pendingChallengeId
             challengeUrl: _pendingChallengeUrl
             opponentName: _pendingOpponentName
@@ -1089,26 +992,20 @@ ApplicationWindow {
 
         // ── Profile dialog ───────────────────────────────────────────────────
         CreateUserDialog {
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -15
             visible: _showProfile
-            z: 20
+            onClosed: _showProfile = false
             editMode: true
             initialName:   userManager.activeUserName
             initialAvatar: userManager.activeUserAvatar
             onConfirmed: function(name, avatar) {
                 userManager.updateProfile(name, avatar)
-                _showProfile = false
             }
-            onCancelled: _showProfile = false
         }
 
         // ── Second-player picker (two-player with ≥2 users) ─────────────────
         SelectPlayerDialog {
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -15
             visible: _showPlayerPicker
-            z: 20
+            onClosed: _showPlayerPicker = false
             onConfirmed: function(opponentAvatarName) {
                 _showPlayerPicker = false
                 chessConnector.setPlayerPlaysWhite(_pendingPlayerPlaysWhite)
@@ -1119,7 +1016,6 @@ ApplicationWindow {
                 gameIsInProgress = true
                 chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
             }
-            onCloseRequested: _showPlayerPicker = false
         }
 
         // ── Login / Create-user overlay (shown when not logged in) ──────────
@@ -1138,30 +1034,27 @@ ApplicationWindow {
                 onAddUserRequested: authOverlay._showCreate = true
             }
 
-            Item {
+            Rectangle {
                 anchors.fill: parent
                 visible: authOverlay._showCreate
-
-                Rectangle {
+                color: Theme.windowBg
+                Image {
                     anchors.fill: parent
-                    color: root.isDarkMode ? "#1e1e1e" : "#f0f0f0"
-                    Image {
-                        anchors.fill: parent
-                        source: "qrc:/app/pics/ChessBackground.jpg"
-                        fillMode: Image.PreserveAspectCrop
-                        opacity: 0.35
-                    }
+                    source: "qrc:/app/pics/ChessBackground.jpg"
+                    fillMode: Image.PreserveAspectCrop
+                    opacity: Theme.homeBackdropOpacity
                 }
+            }
 
-                CreateUserDialog {
-                    anchors.centerIn: parent
-                    anchors.verticalCenterOffset: -20
-                    editMode: false
-                    onConfirmed: function(name, avatar) {
-                        userManager.createUser(name, avatar)
-                        authOverlay._showCreate = false
-                    }
+            CreateUserDialog {
+                visible: authOverlay.visible && authOverlay._showCreate
+                editMode: false
+                canCancel: userManager.hasUsers   // back to the profile list
+                onConfirmed: function(name, avatar) {
+                    userManager.createUser(name, avatar)
+                    authOverlay._showCreate = false
                 }
+                onCancelled: authOverlay._showCreate = false
             }
         }
 

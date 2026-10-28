@@ -1,27 +1,25 @@
 import QtQuick
-import QtQuick.Controls as QQC
-import QtQuick.Window
+import QtQuick.Controls
+import QtQuick.Layouts
 
-Rectangle {
+AppDialog {
     id: dialog
-
-    readonly property bool isDarkMode: {
-        if (!Window.window) return false
-        var c = Window.window.color
-        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) <= 0.5
-    }
 
     property bool   _busy:       false
     property string _statusText: ""
 
     signal closeRequested()
 
-    width: 380
-    height: dialogContent.implicitHeight + 48
-    color:        isDarkMode ? "#252525" : "#f4f4f4"
-    border.color: isDarkMode ? "#555555" : "#cccccc"
-    border.width: 1
-    radius: 12
+    title: "Play on Lichess"
+    width: 420
+    acceptEnabled: false   // two different actions (create / join): no default for Enter
+
+    onRejected: {
+        lichessClient.stopStream()
+        dialog._busy       = false
+        dialog._statusText = ""
+        dialog.closeRequested()
+    }
 
     Connections {
         target: lichessClient
@@ -40,40 +38,44 @@ Rectangle {
         }
     }
 
-    Column {
-        id: dialogContent
-        anchors.centerIn: parent
-        width: parent.width - 40
-        spacing: 16
-
-        Text {
-            text: "Lichess Online"
-            font.pixelSize: 20
-            font.bold: true
-            color: isDarkMode ? "#ffffff" : "#000000"
-            anchors.horizontalCenter: parent.horizontalCenter
+    // A row of mutually exclusive option buttons (time control, side).
+    component ChoiceRow: Row {
+        id: choiceRow
+        property var options: []          // [{ label, ... }]
+        property int checkedIndex: 0
+        spacing: Theme.s1
+        Repeater {
+            model: choiceRow.options
+            delegate: Button {
+                required property var modelData
+                required property int index
+                text: modelData.label
+                checked: index === choiceRow.checkedIndex   // not checkable: a click can't uncheck it
+                onClicked: choiceRow.checkedIndex = index
+            }
         }
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: Theme.s3
 
         // ── No token configured ─────────────────────────────────────────────
-        Column {
+        ColumnLayout {
             visible: !userManager.lichessConnected
-            width: parent.width
-            spacing: 10
+            Layout.fillWidth: true
+            spacing: Theme.s3
 
-            Text {
-                text: "Connect your Lichess account in Profile to play online."
-                color: isDarkMode ? "#dddddd" : "#444444"
-                font.pixelSize: 14
+            Label {
+                text: "Connect your Lichess account in your profile to play online."
                 wrapMode: Text.WordWrap
-                width: parent.width
-                horizontalAlignment: Text.AlignHCenter
+                Layout.fillWidth: true
             }
 
             Button {
-                text: "Open Profile"
-                anchors.horizontalCenter: parent.horizontalCenter
-                implicitWidth: 120
-                implicitHeight: 32
+                text: "Open profile"
+                icon.source: Theme.icon("person")
+                highlighted: true
                 onClicked: {
                     _showProfile = true
                     dialog.closeRequested()
@@ -82,337 +84,113 @@ Rectangle {
         }
 
         // ── Connected — create + join ────────────────────────────────────────
-        Column {
+        ColumnLayout {
             visible: userManager.lichessConnected
-            width: parent.width
-            spacing: 16
+            Layout.fillWidth: true
+            spacing: Theme.s2
 
-            // ── Challenge a Friend ──────────────────────────────────────────
-            Column {
-                width: parent.width
-                spacing: 8
+            Label { text: "Challenge a friend"; font: Theme.bodyStrong }
 
-                Text {
-                    text: "Game setup"
-                    font.pixelSize: 15
-                    font.bold: true
-                    color: isDarkMode ? "#ffffff" : "#000000"
+            Label { text: "Game type"; color: Theme.textSecondary; font: Theme.caption }
+            ComboBox {
+                id: comboVariant
+                model: ["Standard", "Chess960"]
+                Layout.preferredWidth: 160
+            }
+
+            Label { text: "Time control"; color: Theme.textSecondary; font: Theme.caption }
+            ChoiceRow {
+                id: tcType
+                options: [{ label: "Unlimited" }, { label: "Real time" }]
+            }
+
+            // Preset time controls — shown only for Real time
+            ChoiceRow {
+                id: tcPreset
+                visible: tcType.checkedIndex === 1
+                checkedIndex: 2
+                options: [{ label: "1+0",   min: 1,  inc: 0 },
+                          { label: "3+2",   min: 3,  inc: 2 },
+                          { label: "5+3",   min: 5,  inc: 3 },
+                          { label: "10+0",  min: 10, inc: 0 },
+                          { label: "15+10", min: 15, inc: 10 }]
+            }
+
+            Label { text: "Side"; color: Theme.textSecondary; font: Theme.caption }
+            ChoiceRow {
+                id: side
+                options: [{ label: "Random", value: "random" },
+                          { label: "White",  value: "white"  },
+                          { label: "Black",  value: "black"  }]
+            }
+
+            Button {
+                text: "Create challenge"
+                icon.source: Theme.icon("link")
+                highlighted: true
+                enabled: !dialog._busy
+                Layout.topMargin: Theme.s1
+                onClicked: {
+                    var preset = tcType.checkedIndex === 1 ? tcPreset.options[tcPreset.checkedIndex]
+                                                           : { min: 0, inc: 0 }
+                    var variantValues = ["standard", "chess960"]
+                    var chosenVariant = variantValues[comboVariant.currentIndex] || "standard"
+                    dialog._busy = true
+                    lichessClient.createOpenChallenge(preset.min, preset.inc,
+                                                      side.options[side.checkedIndex].value, chosenVariant)
                 }
+            }
 
-                // Game type
-                Text {
-                    text: "Game type"
-                    font.pixelSize: 12
-                    color: isDarkMode ? "#aaaaaa" : "#666666"
-                }
+            Label {
+                visible: dialog._statusText !== ""
+                text: dialog._statusText
+                color: Theme.critical
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+            }
 
-                QQC.ComboBox {
-                    id: comboVariant
-                    model: ["Standard", "Chess960"]
-                    implicitWidth: 140
-                    implicitHeight: 30
-                    contentItem: Text {
-                        leftPadding: 8
-                        text: comboVariant.displayText
-                        font: comboVariant.font
-                        color: isDarkMode ? "#ffffff" : "#000000"
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle {
-                        radius: 4
-                        color: isDarkMode ? "#3c3c3c" : "#ffffff"
-                        border.color: isDarkMode ? "#555555" : "#cccccc"
-                        border.width: 1
-                    }
-                    popup: QQC.Popup {
-                        y: comboVariant.height
-                        width: comboVariant.width
-                        padding: 1
-                        contentItem: ListView {
-                            clip: true
-                            implicitHeight: contentHeight
-                            model: comboVariant.delegateModel
-                        }
-                        background: Rectangle {
-                            color: isDarkMode ? "#3c3c3c" : "#ffffff"
-                            border.color: isDarkMode ? "#555555" : "#cccccc"
-                            border.width: 1
-                            radius: 4
-                        }
-                    }
-                }
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.topMargin: Theme.s2; Layout.bottomMargin: Theme.s2
+                implicitHeight: 1
+                color: Theme.divider
+            }
 
-                // Time control
-                Text {
-                    text: "Time control"
-                    font.pixelSize: 12
-                    color: isDarkMode ? "#aaaaaa" : "#666666"
-                }
+            Label { text: "Join a game"; font: Theme.bodyStrong }
 
-                Row {
-                    spacing: 6
-                    QQC.ButtonGroup { id: tcTypeGroup }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.s2
 
-                    Repeater {
-                        model: [{ label: "Unlimited", realTime: false },
-                                { label: "Real time",  realTime: true  }]
-                        delegate: QQC.Button {
-                            text: modelData.label
-                            checkable: true
-                            checked: index === 0
-                            QQC.ButtonGroup.group: tcTypeGroup
-                            implicitWidth: 84
-                            implicitHeight: 28
-                            background: Rectangle {
-                                radius: 4
-                                color: parent.checked ? "#0078d4"
-                                     : parent.down ? (isDarkMode ? "#282828" : "#c0c0c0")
-                                     : (isDarkMode ? "#3c3c3c" : "#e0e0e0")
-                                border.color: parent.checked ? "#005a9e"
-                                            : (isDarkMode ? "#555555" : "#bbbbbb")
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                color: parent.checked ? "#ffffff"
-                                     : (isDarkMode ? "#ffffff" : "#000000")
-                                font.pixelSize: 12
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment:   Text.AlignVCenter
-                            }
-                        }
-                    }
-                }
-
-                // Preset time controls — shown only for Real time
-                Row {
-                    visible: tcTypeGroup.checkedButton !== null
-                             && tcTypeGroup.checkedButton.text === "Real time"
-                    spacing: 6
-                    QQC.ButtonGroup { id: tcGroup }
-
-                    Repeater {
-                        id: tcChips
-                        model: [{ label: "1+0",   min: 1,  inc: 0 },
-                                { label: "3+2",   min: 3,  inc: 2 },
-                                { label: "5+3",   min: 5,  inc: 3 },
-                                { label: "10+0",  min: 10, inc: 0 },
-                                { label: "15+10", min: 15, inc: 10 }]
-                        delegate: QQC.Button {
-                            text: modelData.label
-                            checkable: true
-                            checked: index === 2
-                            QQC.ButtonGroup.group: tcGroup
-                            implicitWidth: 54
-                            implicitHeight: 28
-                            background: Rectangle {
-                                radius: 4
-                                color: parent.checked ? "#0078d4"
-                                     : parent.down ? (isDarkMode ? "#282828" : "#c0c0c0")
-                                     : (isDarkMode ? "#3c3c3c" : "#e0e0e0")
-                                border.color: parent.checked ? "#005a9e"
-                                            : (isDarkMode ? "#555555" : "#bbbbbb")
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                color: parent.checked ? "#ffffff"
-                                     : (isDarkMode ? "#ffffff" : "#000000")
-                                font.pixelSize: 12
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment:   Text.AlignVCenter
-                            }
-                        }
-                    }
-                }
-
-                // Side selection
-                Text {
-                    text: "Side"
-                    font.pixelSize: 12
-                    color: isDarkMode ? "#aaaaaa" : "#666666"
-                }
-
-                Row {
-                    spacing: 6
-                    QQC.ButtonGroup { id: colorGroup }
-
-                    Repeater {
-                        id: colorChips
-                        model: [{ label: "Random ⇄", value: "random" },
-                                { label: "White ♔",  value: "white"  },
-                                { label: "Black ♚",  value: "black"  }]
-                        delegate: QQC.Button {
-                            text: modelData.label
-                            checkable: true
-                            checked: index === 0
-                            QQC.ButtonGroup.group: colorGroup
-                            implicitWidth: 80
-                            implicitHeight: 28
-                            background: Rectangle {
-                                radius: 4
-                                color: parent.checked ? "#0078d4"
-                                     : parent.down ? (isDarkMode ? "#282828" : "#c0c0c0")
-                                     : (isDarkMode ? "#3c3c3c" : "#e0e0e0")
-                                border.color: parent.checked ? "#005a9e"
-                                            : (isDarkMode ? "#555555" : "#bbbbbb")
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                color: parent.checked ? "#ffffff"
-                                     : (isDarkMode ? "#ffffff" : "#000000")
-                                font.pixelSize: 12
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment:   Text.AlignVCenter
-                            }
-                        }
-                    }
+                TextField {
+                    id: joinUrlField
+                    Layout.fillWidth: true
+                    placeholderText: "Paste a Lichess link or game ID"
                 }
 
                 Button {
-                    text: "Challenge a Friend"
-                    implicitWidth: 160
-                    implicitHeight: 32
-                    enabled: !dialog._busy
-                    font.bold: true
-                    background: Rectangle {
-                        radius: 4
-                        color: parent.enabled
-                            ? (parent.down ? "#005a9e" : "#0078d4")
-                            : (isDarkMode ? "#2a2a2a" : "#cccccc")
-                        border.color: parent.enabled ? "#005a9e" : "transparent"
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.enabled ? "#ffffff" : (isDarkMode ? "#666" : "#aaa")
-                        font: parent.font
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment:   Text.AlignVCenter
-                    }
+                    text: "Join"
+                    highlighted: true
+                    enabled: joinUrlField.text.trim() !== "" && !dialog._busy
                     onClicked: {
-                        var isRealTime = tcTypeGroup.checkedButton !== null
-                                        && tcTypeGroup.checkedButton.text === "Real time"
-                        var mins = 0
-                        var inc  = 0
-                        if (isRealTime) {
-                            var minsArr = [1, 3, 5, 10, 15]
-                            var incArr  = [0, 2, 3,  0, 10]
-                            for (var i = 0; i < tcGroup.buttons.length; i++) {
-                                if (tcGroup.buttons[i].checked) {
-                                    mins = minsArr[i]
-                                    inc  = incArr[i]
-                                    break
-                                }
-                            }
+                        var gameId = lichessClient.gameIdFromUrl(joinUrlField.text.trim())
+                        if (gameId === "") {
+                            dialog._statusText = "Invalid URL or game ID"
+                            return
                         }
-                        var colorValues = ["random", "white", "black"]
-                        var chosenColor = "random"
-                        for (var j = 0; j < colorGroup.buttons.length; j++) {
-                            if (colorGroup.buttons[j].checked) {
-                                chosenColor = colorValues[j]
-                                break
-                            }
-                        }
-                        var variantValues = ["standard", "chess960"]
-                        var chosenVariant = variantValues[comboVariant.currentIndex] || "standard"
-                        dialog._busy = true
-                        lichessClient.createOpenChallenge(mins, inc, chosenColor, chosenVariant)
-                    }
-                }
-
-                Text {
-                    visible: dialog._statusText !== ""
-                    text: dialog._statusText
-                    color: "#e74c3c"
-                    font.pixelSize: 13
-                    width: parent.width
-                    wrapMode: Text.WordWrap
-                }
-            }
-
-            // ── Divider ──────────────────────────────────────────────────────
-            Rectangle {
-                width: parent.width; height: 1
-                color: isDarkMode ? "#444444" : "#dddddd"
-            }
-
-            // ── Join game ────────────────────────────────────────────────────
-            Column {
-                width: parent.width
-                spacing: 8
-
-                Text {
-                    text: "Join Game"
-                    font.pixelSize: 15
-                    font.bold: true
-                    color: isDarkMode ? "#ffffff" : "#000000"
-                }
-
-                Row {
-                    width: parent.width
-                    spacing: 6
-
-                    QQC.TextField {
-                        id: joinUrlField
-                        width: parent.width - joinBtn.width - 6
-                        placeholderText: "Paste Lichess URL or game ID"
-                        color: isDarkMode ? "#ffffff" : "#000000"
-                        placeholderTextColor: isDarkMode ? "#888" : "#aaa"
-                        background: Rectangle {
-                            radius: 4
-                            color:        isDarkMode ? "#3c3c3c" : "#ffffff"
-                            border.color: joinUrlField.activeFocus ? "#0078d4"
-                                        : (isDarkMode ? "#555555" : "#cccccc")
-                            border.width: 1
-                        }
-                    }
-
-                    Button {
-                        id: joinBtn
-                        text: "Join"
-                        implicitWidth: 56
-                        implicitHeight: joinUrlField.height
-                        enabled: joinUrlField.text.trim() !== "" && !dialog._busy
-                        font.bold: true
-                        background: Rectangle {
-                            radius: 4
-                            color: parent.enabled
-                                ? (parent.down ? "#005a9e" : "#0078d4")
-                                : (isDarkMode ? "#2a2a2a" : "#cccccc")
-                            border.color: parent.enabled ? "#005a9e" : "transparent"
-                        }
-                        contentItem: Text {
-                            text: parent.text
-                            color: parent.enabled ? "#ffffff" : (isDarkMode ? "#666" : "#aaa")
-                            font: parent.font
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment:   Text.AlignVCenter
-                        }
-                        onClicked: {
-                            var gameId = lichessClient.gameIdFromUrl(joinUrlField.text.trim())
-                            if (gameId === "") {
-                                dialog._statusText = "Invalid URL or game ID"
-                                return
-                            }
-                            dialog._busy       = true
-                            dialog._statusText = ""
-                            lichessClient.acceptChallenge(gameId)
-                        }
+                        dialog._busy       = true
+                        dialog._statusText = ""
+                        lichessClient.acceptChallenge(gameId)
                     }
                 }
             }
         }
+    }
 
-        // ── Close button ─────────────────────────────────────────────────────
+    footer: DialogButtonBox {
         Button {
             text: "Cancel"
-            implicitWidth: 90
-            implicitHeight: 32
-            anchors.horizontalCenter: parent.horizontalCenter
-            onClicked: {
-                lichessClient.stopStream()
-                dialog._busy       = false
-                dialog._statusText = ""
-                dialog.closeRequested()
-            }
+            DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
         }
     }
 }

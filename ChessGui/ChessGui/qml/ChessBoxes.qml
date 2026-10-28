@@ -31,14 +31,14 @@ Grid {
             property int rowIndex: Math.floor(index/8)
             property int columnIndex: index%8
             color: ((Math.floor(index / 8) % 2) === 0)
-                       ? (index % 2  === 1 ? darkChessBoxColor : lightChessBoxColor)
-                       : (index % 2  === 0 ? darkChessBoxColor : lightChessBoxColor)
+                       ? (index % 2  === 1 ? Theme.squareDark : Theme.squareLight)
+                       : (index % 2  === 0 ? Theme.squareDark : Theme.squareLight)
 
             //highlighting last move
             Rectangle {
                 anchors.fill: parent
-                color: "#A8D8EA"
-                opacity: index === chessConnector.LastMoveTo ? 0.75 : 0.5
+                color: Theme.lastMove
+                opacity: index === chessConnector.LastMoveTo ? 1 : 0.7
                 visible: index === chessConnector.LastMoveFrom
                          || index === chessConnector.LastMoveTo
                 z: 1
@@ -48,7 +48,7 @@ Grid {
             Rectangle {
                 anchors.fill: parent
                 visible: index === chessConnector.FlaggedKing
-                color: "#e74c3c"
+                color: Theme.flaggedKing
                 opacity: 0.6
                 z: 2
             }

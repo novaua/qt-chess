@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 
 // Lichess "opponentGone": the opponent left the game. Counts down until Lichess allows
 // claiming the win, then enables "Claim victory".
@@ -22,9 +23,10 @@ Rectangle {
 
     visible: _active
     width: 420
-    height: 44
-    radius: 8
-    color: "#7a3b00"
+    height: bannerRow.implicitHeight + 2 * Theme.s2
+    radius: Theme.radiusCard
+    color: Theme.cardBg
+    border.color: Theme.caution
 
     Timer {
         interval: 1000
@@ -34,17 +36,19 @@ Rectangle {
     }
 
     Row {
+        id: bannerRow
         anchors.centerIn: parent
-        spacing: 10
+        spacing: Theme.s3
         Text {
             text: banner._secondsLeft > 0
                 ? "Opponent left the game. Claim victory in " + banner._secondsLeft + " s"
                 : "Opponent left the game"
-            color: "#ffffff"; font.pixelSize: 13
+            color: Theme.textPrimary; font: Theme.body
             anchors.verticalCenter: parent.verticalCenter
         }
         Button {
-            text: "Claim victory"; implicitWidth: 100; implicitHeight: 28
+            text: "Claim victory"
+            highlighted: true
             enabled: banner._secondsLeft <= 0
             onClicked: banner.claimVictoryRequested()
         }
