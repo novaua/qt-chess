@@ -2,6 +2,18 @@
 
 ## In Progress
 
+- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there. **Next: P1** (see `PROGRESS.md`).
+  - [x] Review of all screens, plan, design kit (`pics/icons/*.svg`, [`docs/design/ThemeTokens.md`](docs/design/ThemeTokens.md)), mockups (#77)
+  - [x] Decide the QML access rule (plan §9 Q1): game flows through `ChessConnector`, services stay separate typed singletons (CLAUDE.md "Key Conventions")
+  - [ ] P1 Foundation: FluentWinUI3, `Theme.qml`, System/Light/Dark, icons in qrc, `AppDialog`; remove Qt5Compat effects and `NetworkPlayers.qml` (closes BL-01)
+  - [ ] P2 Shell and navigation: `StackView` pages, command bar, account menu, Home, setup dialogs, InfoBar; services as typed singletons; game flows into `ChessConnector` (`startLocalGame`, `switchUser`, Lichess game start/end)
+  - [ ] P3 Users and Lichess: welcome, profile picker, Profile page (ratings, Reconnect, OAuth Cancel: closes BL-08), Guest, statistics, `QSaveFile`, backups, export/import
+  - [ ] P4 Game chrome: player cards, captured strip with +N, responsive side panel or sheet, result card, move list with PGN
+  - [ ] P5 Settings and About pages
+  - [ ] P6 Polish: keyboard and accessibility, high contrast, motion, app icon, screenshot baselines (with BL-05)
+
+Manual checks, no code (do any time):
+
 - [ ] Installer: install the Microsoft VC++ runtime when missing (branch `fixVcRedistInstall_281026`)
   - [x] `vc_redist.x64.exe` no longer copied into `{app}`; unpacked to `{tmp}` and run (`/install /quiet /norestart`) only if the installed runtime (registry `VC\Runtimes\x64`) is missing or older than the bundled one; exit codes 0/1638 OK, 3010 → restart offered, others → warning with download link
   - [x] `Build-Installer.ps1` sets `VCINSTALLDIR` so local builds bundle it too; the build fails if it's missing
@@ -11,15 +23,6 @@
   - [x] Per candidate: download (checksum) → unzip → UCI check (`Prepare-Stockfish.ps1`, `uci` → `uciok`, version logged); fallback only if a step fails
   - [x] `{app}\engines\stockfish-install.log` (+ Inno `/LOG`); `Test-StockfishDownload.ps1` mirrors the flow — normal and fallback paths verified
   - [ ] Run the built installer once (normal install) and check `engines\stockfish-install.log`
-- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there.
-  - [x] Review of all screens, plan, design kit (`pics/icons/*.svg`, [`docs/design/ThemeTokens.md`](docs/design/ThemeTokens.md)), mockups (branch `appModernizationPlan_281026`)
-  - [x] Decide the QML access rule (plan §9 Q1): game flows through `ChessConnector`, services stay separate typed singletons (CLAUDE.md "Key Conventions")
-  - [ ] P1 Foundation: FluentWinUI3, `Theme.qml`, System/Light/Dark, icons in qrc, `AppDialog`; remove Qt5Compat effects and `NetworkPlayers.qml` (closes BL-01)
-  - [ ] P2 Shell and navigation: `StackView` pages, command bar, account menu, Home, setup dialogs, InfoBar; services as typed singletons; game flows into `ChessConnector` (`startLocalGame`, `switchUser`, Lichess game start/end)
-  - [ ] P3 Users and Lichess: welcome, profile picker, Profile page (ratings, Reconnect, OAuth Cancel: closes BL-08), Guest, statistics, `QSaveFile`, backups, export/import
-  - [ ] P4 Game chrome: player cards, captured strip with +N, responsive side panel or sheet, result card, move list with PGN
-  - [ ] P5 Settings and About pages
-  - [ ] P6 Polish: keyboard and accessibility, high contrast, motion, app icon, screenshot baselines (with BL-05)
 - [ ] Lichess rematch: live test with two Lichess accounts — direct rematch accept / decline / cancel, `opponentGone` + Claim victory (scenarios in [`docs/LichessRematchPlan.md`](docs/LichessRematchPlan.md) §5)
 
 ### Done
