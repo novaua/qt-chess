@@ -12,7 +12,7 @@ Qt-chess is a chess application with a Qt QML frontend and C++ backend, supporti
 
 **Qt GUI project** also has a `.pro` file for Qt Creator: `ChessGui/ChessGui/ChessGui.pro`
 
-**Dependencies**: Qt 6.10+ only — no third-party C++ libraries. `vcpkg.json` is present but has no dependencies.
+**Dependencies**: Qt 6.10+ only — no third-party C++ libraries and no package manager (vcpkg was removed once Boost was replaced by Qt).
 
 **Build configurations**: Debug|x64 and Release|x64 are the relevant targets.
 
@@ -91,3 +91,9 @@ At the start of a new session, read these two files to get full context:
 2. `TASKS.md` — full task checklist; find first unchecked item under "In Progress"
 
 Then confirm the current branch with `git branch` and `git log --oneline -5` before making any changes.
+
+## Branching Workflow
+
+- Start every task on a **new branch from the latest `origin/develop`** (`git fetch` first). Name it `<camelCaseTask>_<ddmmyy>`, e.g. `removeVcpkg_281026`.
+- Never continue a new task on the branch of a previous task.
+- Exception: if the task depends on changes that are not merged into `develop` yet, stop and ask the user to either merge them first (then wait and branch from the updated `develop`) or explicitly approve branching from the unmerged branch.
