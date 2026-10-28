@@ -67,6 +67,5 @@ Thumbs.db
 *.db
 *testlog*
 .vs/*
-vcpkg_installed/*
 
 installer/Output/
