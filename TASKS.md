@@ -27,7 +27,9 @@ Plan: [`docs/LichessRematchPlan.md`](docs/LichessRematchPlan.md)
   - Resign while the robot thinks is applied after its move; pieces frozen after any game end
   - '#' only for checkmate results (not resignations); outoftime draw notice fixed
   - Lichess: in-flight open-challenge request aborted on leaving; direct challenge stream ending without `done` / after `accepted` handled; shared `apiErrorMessage`; Claim victory via `ChessConnector`
-- [ ] 5. Manual test against Lichess (scenarios in plan §5) — Debug + Release build ✅, app starts without QML errors ✅, live Lichess scenarios pending
+- [ ] 5. Manual test against Lichess (scenarios in plan §5) — Debug + Release build ✅, app starts without QML errors ✅
+  - ✅ 2026-10-28: resign from the app and from an anonymous Lichess opponent (result card, flag, Rematch)
+  - [ ] Direct rematch with two Lichess accounts (accept / decline / cancel), `opponentGone` + Claim victory
 
 ### Done
 

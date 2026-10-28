@@ -14,10 +14,12 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - Testing showed an opponent's resignation was received (`status:"resign"`) but nothing was shown: result and Rematch lived only in the landscape side panels. Added step 4b (result card, notification, red flag on the losing king, frozen board, `opponentGone` + Claim victory).
 - Note for testers: resigning on lichess.org needs the flag **and** the ✓ confirm within ~3 s; otherwise nothing reaches the server.
 
+- Code review fixes (step 4d) and PR #70 opened. Live check OK for resign from the app and from an anonymous Lichess opponent.
+
 ### Where to continue
 1. Step 5: play a game against a second Lichess account and run the manual scenarios in plan §5 (accept, decline, cancel, anonymous link, vs Robot unchanged, restart, leave while pending).
 2. Watch the log for `LichessClient: challenge stream line:`. It confirms the keep-alive challenge JSON and the final `{"done":...}` shape this code expects.
-3. Then open a PR to `develop`.
+3. Merge PR #70 to `develop` once reviewed.
 
 ### Notes
 - If the opponent clicks Rematch in their browser, the Board API client probably never sees it; the app must send the challenge.
