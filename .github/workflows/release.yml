@@ -138,8 +138,14 @@ jobs:
         shell: pwsh
         run: |
           $pfxPath = "${{ github.workspace }}\certificate.pfx"
+          # Full path: setup-msbuild doesn't put the Windows SDK on PATH. Newest SDK, x64 build.
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+            Where-Object { $_.Directory.Parent.Name -match '^\d+(\.\d+)+$' } |
+            Sort-Object { [version]$_.Directory.Parent.Name } -Descending | Select-Object -First 1
+          if (-not $signtool) { throw "signtool.exe not found in the Windows SDK" }
+          Write-Host "signtool: $($signtool.FullName)"
           # Use %PFX_PASS% so the password is resolved by CMD at call time, not stored in the file.
-          $signScript = "@signtool.exe sign /v /f `"$pfxPath`" /p %PFX_PASS% /tr http://timestamp.sectigo.com /td sha256 /fd sha256 %1"
+          $signScript = "@`"$($signtool.FullName)`" sign /v /f `"$pfxPath`" /p %PFX_PASS% /tr http://timestamp.sectigo.com /td sha256 /fd sha256 %1"
           $signScript | Out-File -FilePath "${{ github.workspace }}\sign_tool.bat" -Encoding ascii
 
       - name: Sign Binaries (EXE only)
