@@ -11,11 +11,11 @@
 
 .EXAMPLE
     .\scripts\Take-Screenshot.ps1
-    Start menu -> test-results\screens\menu.png
+    Home -> test-results\screens\home.png
 
 .EXAMPLE
-    .\scripts\Take-Screenshot.ps1 -Scene board -Moves "f2f3 e7e5 g2g4 d8h4" -Name foolsmate
-    Board after Fool's mate, with the result card.
+    .\scripts\Take-Screenshot.ps1 -Scene game -Moves "f2f3 e7e5 g2g4 d8h4" -Name foolsmate
+    Two-player game after Fool's mate, with the result card.
 
 .EXAMPLE
     .\scripts\Take-Screenshot.ps1 -Scene all -Dark -Build
@@ -23,18 +23,19 @@
 #>
 [CmdletBinding()]
 param(
-    # create-user, login, menu, board, settings, levels, profile, online, players, or all
-    [string[]]$Scene = @('menu'),
-    # board scene: UCI moves to play first, e.g. "e2e4 e7e5"
+    # create-user, login, home, continue, game, settings, levels, profile, online, computer, players, or all
+    # (menu and board: the older names of home and game)
+    [string[]]$Scene = @('home'),
+    # game scene: UCI moves to play first, e.g. "e2e4 e7e5"
     [string]$Moves,
-    # board scene: play Black (board turned around)
+    # game scene: play Black (board turned around)
     [switch]$Black,
     [switch]$Dark,
     # Window size WxH, e.g. 1400x900 (landscape shows the move-history panel). Default 768x1054.
     [string]$Size,
     # Extra wait in ms before the screenshot (default 1000)
     [int]$Delay = 1000,
-    # Suffix for the file name, e.g. -Name foolsmate -> board-foolsmate.png
+    # Suffix for the file name, e.g. -Name foolsmate -> game-foolsmate.png
     [string]$Name,
     [string]$OutDir = (Join-Path $PSScriptRoot '..\test-results\screens'),
     [ValidateSet('Release', 'Debug')]
@@ -45,10 +46,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
-$allScenes = 'create-user', 'login', 'menu', 'board', 'settings', 'levels', 'profile', 'online', 'players'
+$allScenes = 'create-user', 'login', 'home', 'continue', 'game', 'settings', 'levels', 'profile', 'online', 'computer', 'players'
 if ($Scene -contains 'all') { $Scene = $allScenes }
 foreach ($s in $Scene) {
-    if ($s -notin $allScenes) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
+    if ($s -notin ($allScenes + 'menu', 'board')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
 }
 
 if ($Build) {

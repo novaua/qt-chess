@@ -1,4 +1,5 @@
 import QtQuick
+import ChessPlusPlus
 
 Grid {
 
@@ -17,7 +18,7 @@ Grid {
     Repeater{
         id:navigationLayerRptr
         objectName: "navigationLayerRptr"
-        model: chessConnector.PossibleMoves
+        model: ChessConnector.PossibleMoves
         delegate:
             Item{
             id:navigationLayerItm

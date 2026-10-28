@@ -1,4 +1,5 @@
 import QtQuick
+import ChessPlusPlus
 
 Grid{
 
@@ -61,7 +62,6 @@ Grid{
             Image{
                 id:chessPiecesImg
                 anchors.centerIn: chessPiecesItm
-                visible: gameIsInProgress
                 smooth: true
                 antialiasing:true
                 height:0.9*parent.height
@@ -75,7 +75,7 @@ Grid{
 
             // Red flag on the king that resigned / lost on time
             Text {
-                visible: index === chessConnector.FlaggedKing
+                visible: index === ChessConnector.FlaggedKing
                 anchors { top: parent.top; right: parent.right; margins: parent.width * 0.04 }
                 text: "⚑"
                 color: Theme.flaggedKing
@@ -104,19 +104,22 @@ Grid{
                     chessPiecesRptr.chessfigureSelected(index)
 
                     //connect using signal
-                    chessConnector.figureSelected(index);
+                    ChessConnector.figureSelected(index);
                 }
             }
         }
     }
 
     Connections {
-        target: chessConnector
+        target: ChessConnector
         function onBoardChanged(position, newValue) {
             chessPiecesRptr.selectedIndex = -1   // a move was made: nothing is selected any more
             updateChessFiguresModel(position, newValue)
         }
     }
+
+    // The game page is created when a game starts or continues: fill in the current position.
+    Component.onCompleted: ChessConnector.refreshBoard()
 
     function updateChessFiguresModel(index, value)
     {

@@ -30,13 +30,15 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
 
 ```powershell
 .\scripts\Take-Screenshot.ps1 -Scene all                                    # every scene
-.\scripts\Take-Screenshot.ps1 -Scene board -Moves "e2e4 e7e5 g1f3"          # position after moves
-.\scripts\Take-Screenshot.ps1 -Scene board -Moves "f2f3 e7e5 g2g4 d8h4" -Name foolsmate  # game end
-.\scripts\Take-Screenshot.ps1 -Scene board -Black -Dark -Size 1400x900      # flipped, dark, landscape
+.\scripts\Take-Screenshot.ps1 -Scene game -Moves "e2e4 e7e5 g1f3"           # position after moves
+.\scripts\Take-Screenshot.ps1 -Scene game -Moves "f2f3 e7e5 g2g4 d8h4" -Name foolsmate   # game end
+.\scripts\Take-Screenshot.ps1 -Scene game -Black -Dark -Size 1400x900       # flipped, dark, landscape
 ```
 
-- Scenes: `create-user`, `login`, `menu`, `board` (two-player game), `settings`, `levels`, `profile`,
-  `online` (Lichess dialog, not connected), `players` (second-player picker), `all`.
+- Scenes: `create-user`, `login`, `home`, `continue` (Home with an autosaved game), `game` (two-player
+  game, Tester vs Bob), `settings`, `levels`, `profile`, `online` (Lichess dialog, not connected),
+  `computer` (vs-computer setup dialog), `players` (two-player setup dialog), `all`. `menu` and `board`
+  still work as the old names of `home` and `game`.
 - To review many shots at once, tile them into one contact sheet (System.Drawing) and Read that.
 - Output: `test-results\screens\<scene>[-black][-dark][-<Name>].png` (git-ignored). Exit code = number of failed scenes.
 - `-Size WxH`: default 768x1054 (portrait). Wider than 1.15 × height shows the move-history panel
@@ -50,8 +52,9 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
 style then uses its dark palette (white text on our light surfaces, invisible buttons). Fine for
 checking that QML loads without errors, not for colours.
 
-Not covered yet: single-player vs the robot (needs Stockfish; a stub engine is planned), a
-connected Lichess account and the challenge dialog. Plan for the full UI test suite: `docs/UiTestSuitePlan.md`.
+Not covered yet: a game vs the robot (needs Stockfish; a stub engine is planned), a
+connected Lichess account and the challenge dialog. Sending keys to an interactive window
+(SendKeys) doesn't reach the Qt controls reliably and takes over the user's desktop: add a scene instead. Plan for the full UI test suite: `docs/UiTestSuitePlan.md`.
 
 ## The underlying switches (ChessGui.exe)
 

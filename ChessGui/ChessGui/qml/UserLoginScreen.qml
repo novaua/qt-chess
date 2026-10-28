@@ -1,9 +1,11 @@
 import QtQuick
+import ChessPlusPlus
 import QtQuick.Controls
 
+// The profile list ("Who's playing?"): the page shown while nobody is logged in.
 Rectangle {
     id: loginScreen
-    anchors.fill: parent
+    objectName: "login"
 
     color: Theme.windowBg
 
@@ -40,9 +42,9 @@ Rectangle {
             width: parent.width
 
             Repeater {
-                model: userManager.users
+                model: UserManager.users
                 delegate: Rectangle {
-                    readonly property bool isActive: modelData.id === userManager.activeUserId
+                    readonly property bool isActive: modelData.id === UserManager.activeUserId
 
                     width: 96
                     height: 116
@@ -79,7 +81,7 @@ Rectangle {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
-                        onClicked: userManager.login(modelData.id)
+                        onClicked: UserManager.login(modelData.id)
                     }
                 }
             }

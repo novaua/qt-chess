@@ -137,9 +137,6 @@
     <None Include="qml\EmptyBoardModel.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
-    <None Include="qml\SelectPlayerDialog.qml">
-      <Filter>Source Files\Qml</Filter>
-    </None>
     <None Include="qml\MarkerColumn.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
@@ -147,9 +144,6 @@
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\NavigationLayer.qml">
-      <Filter>Source Files\Qml</Filter>
-    </None>
-    <None Include="qml\Notificator.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\PawnPromotionOptions.qml">
@@ -174,6 +168,33 @@
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\IconButton.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\CommandBar.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\InfoBar.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\HomeCard.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ConfirmDialog.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ChoiceRow.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ComputerGameDialog.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\TwoPlayerDialog.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\HomePage.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\GamePage.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\qmldir">

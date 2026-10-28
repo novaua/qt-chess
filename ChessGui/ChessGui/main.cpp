@@ -3,7 +3,7 @@
 #include <QApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
-#include <QQmlContext>
+#include <QtQml/qqml.h>
 #include "chessconnector.h"
 #include "AvatarProvider.h"
 #include "UserManager.h"
@@ -69,8 +69,10 @@ int main(int argc, char* argv[])
 	// It runs on a fresh temporary profile unless --data-dir is given. The window is real but
 	// transparent and ignores input (ChessGame.qml). Not -platform offscreen: it can't force the
 	// light/dark colour scheme, so the Fluent controls would get the wrong palette.
+	// "menu" and "board" are the older names of "home" and "game".
 	static const QStringList screenshotScenes = {
-		"create-user", "login", "menu", "board", "settings", "levels", "profile", "online", "players"
+		"create-user", "login", "home", "continue", "game", "settings", "levels", "profile", "online",
+		"computer", "players", "menu", "board"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -80,10 +82,10 @@ int main(int argc, char* argv[])
 		"Open --scene, save a screenshot of the window to <file.png> and exit "
 		"(exit code 0 = saved). Log: <file.png>.log", "file.png");
 	const QCommandLineOption sceneOption("scene",
-		"Screenshot scene: " + screenshotScenes.join(", ") + " (default: menu).", "name", "menu");
+		"Screenshot scene: " + screenshotScenes.join(", ") + " (default: home).", "name", "home");
 	const QCommandLineOption movesOption("moves",
-		"board scene: moves to play first, e.g. \"e2e4 e7e5\".", "moves");
-	const QCommandLineOption blackOption("black", "board scene: play Black (board turned around).");
+		"game scene: moves to play first, e.g. \"e2e4 e7e5\".", "moves");
+	const QCommandLineOption blackOption("black", "game scene: play Black (board turned around).");
 	const QCommandLineOption darkOption("dark", "Screenshot in dark mode.");
 	const QCommandLineOption sizeOption("size", "Screenshot window size (default 768x1054).", "WxH");
 	const QCommandLineOption delayOption("delay",
@@ -129,12 +131,13 @@ int main(int argc, char* argv[])
 	}
 	qInstallMessageHandler(customLogMessageHandler);
 
-	QQmlApplicationEngine engine;
+	// The QML singletons below must outlive the engine: children of the app, not of the engine.
+	auto* connector = new ChessConnector(&app);
+	auto* avatarProvider = new AvatarProvider(&app);
+	auto* userManager = new UserManager(&app);
+	auto* lichessClient = new LichessClient(&app);
 
-	auto* connector = new ChessConnector(&engine);
-	auto* avatarProvider = new AvatarProvider(&engine);
-	auto* userManager = new UserManager(&engine);
-	auto* lichessClient = new LichessClient(&engine);
+	QQmlApplicationEngine engine;
 
 	connector->setAvatarProvider(avatarProvider);
 	connector->setUserManager(userManager);
@@ -171,9 +174,6 @@ int main(int argc, char* argv[])
 		});
 	}
 
-	QObject::connect(connector, &ChessConnector::newGameStarted,
-		avatarProvider, &AvatarProvider::randomize);
-
 	auto updateLichessToken = [=]() {
 		lichessClient->setToken(LichessClient::decryptToken(userManager->lichessTokenEncrypted()));
 		lichessClient->setUsername(userManager->lichessUsername());
@@ -185,10 +185,11 @@ int main(int argc, char* argv[])
 	QObject::connect(userManager, &UserManager::lichessChanged, updateLichessToken);
 	updateLichessToken(); // load() sets the active user silently — seed the token now
 
-	engine.rootContext()->setContextProperty("chessConnector", connector);
-	engine.rootContext()->setContextProperty("avatarProvider", avatarProvider);
-	engine.rootContext()->setContextProperty("userManager", userManager);
-	engine.rootContext()->setContextProperty("lichessClient", lichessClient);
+	// QML: `import ChessPlusPlus`, then e.g. ChessConnector.startLocalGame(…), UserManager.login(…).
+	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "ChessConnector", connector);
+	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "AvatarProvider", avatarProvider);
+	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "UserManager", userManager);
+	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "LichessClient", lichessClient);
 
 	engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
 	if (screenshotMode && engine.rootObjects().isEmpty())

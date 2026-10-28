@@ -4,6 +4,15 @@
         <file>qml/Theme.qml</file>
         <file>qml/AppDialog.qml</file>
         <file>qml/IconButton.qml</file>
+        <file>qml/CommandBar.qml</file>
+        <file>qml/InfoBar.qml</file>
+        <file>qml/HomeCard.qml</file>
+        <file>qml/ConfirmDialog.qml</file>
+        <file>qml/ChoiceRow.qml</file>
+        <file>qml/ComputerGameDialog.qml</file>
+        <file>qml/TwoPlayerDialog.qml</file>
+        <file>qml/HomePage.qml</file>
+        <file>qml/GamePage.qml</file>
         <file>qml/ApplyMovesDialog.qml</file>
         <file>qml/ChallengeDialog.qml</file>
         <file>qml/CreateUserDialog.qml</file>
@@ -12,7 +21,6 @@
         <file>qml/SettingsDialog.qml</file>
         <file>qml/LevelsHelpDialog.qml</file>
         <file>qml/GameResultCard.qml</file>
-        <file>qml/OpponentGoneBanner.qml</file>
         <file>qml/CapturedPanel.qml</file>
         <file>qml/GameResultDialog.qml</file>
         <file>qml/ChessBoard.qml</file>
@@ -24,9 +32,7 @@
         <file>qml/MoveHistoryPanel.qml</file>
         <file>qml/MarkerRow.qml</file>
         <file>qml/NavigationLayer.qml</file>
-        <file>qml/Notificator.qml</file>
         <file>qml/PawnPromotionOptions.qml</file>
-        <file>qml/SelectPlayerDialog.qml</file>
     </qresource>
     <qresource prefix="/piece">
         <file>pics/black/B.png</file>

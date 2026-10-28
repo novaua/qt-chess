@@ -71,11 +71,15 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
 - **`chessconnector.h/cpp`** — the C++/QML bridge for the chess game; exposes `Q_PROPERTY` bindings and slots that QML calls
 - **`UserManager`**, **`LichessClient`** (LiChessConnector project), **`AvatarProvider`** — app services without chess logic, also visible to QML (see Key Conventions)
 - QML files in `ChessGui/ChessGui/qml/`:
-  - `ChessGame.qml` — top-level window, game state machine
+  - `ChessGame.qml` — the window: a `StackView` with one page (`UserLoginScreen`, `HomePage`,
+    `GamePage`; `route()` picks it from `UserManager.isLoggedIn` and `ChessConnector.InGame`), the
+    InfoBars and every dialog. Pages ask for dialogs through signals.
+  - `HomePage.qml` (account menu, Continue, action cards), `GamePage.qml` (command bar, board, side panels)
   - `ChessBoard.qml` — board rendering
   - `ChessFigures.qml` — piece rendering and drag/drop animation
   - `ChessBoxes.qml` — square highlights (legal moves, last move)
-  - `PawnPromotionOptions.qml`, `SelectPlayerDialog.qml`, `NavigationLayer.qml`
+  - Shared: `Theme.qml` (singleton), `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`
+  - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog`, `LichessGameDialog`
 - Image assets live in `ChessGui/ChessGui/pics/`
 - Resources bundled via `qml.qrc`
 
@@ -90,7 +94,7 @@ Builds as a DLL consumed by the VS test runner. Tests exercise `Game`, `Board`, 
 - QML ↔ C++ boundary:
   1. Anything that reads or changes the game — including flows that combine the game with users or Lichess (start a local or online game, game end, rematch, switch user during a game) — goes through `ChessConnector`, as **one call per user action**. QML never strings game steps together itself, and never sees `Chess::` types (`Game`, `Board`, engine).
   2. `UserManager` and `LichessClient` stay separate services. QML may call them directly for non-game work: profiles, login, Lichess account and challenge setup, ratings. Don't forward their API through `ChessConnector`.
-  3. Expose QML-visible services as typed singletons (`qmlRegisterSingletonInstance`), not context properties. Today they are still context properties (`chessConnector`, `userManager`, `lichessClient`, `avatarProvider` in `main.cpp`); the switch is part of BL-02 P2 (`docs/AppModernizationPlan.md`).
+  3. Expose QML-visible services as typed singletons (`qmlRegisterSingletonInstance`), not context properties: `ChessConnector`, `UserManager`, `LichessClient` and `AvatarProvider` in module `ChessPlusPlus` (`main.cpp`). A QML file that uses them has `import ChessPlusPlus`.
 - `PieceColor` is an `enum class` (Light/Dark); use scoped references (`PieceColor::Light`)
 
 ## Resuming Work After a Session Break

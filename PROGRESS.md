@@ -4,6 +4,28 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-29 — BL-02 P2 Shell and navigation done (branch: shellNavigation_291026); next: P3 or P4
+
+### What was done
+- **Pages:** `ChessGame.qml` (986 → 491 lines) is the window: a `StackView` holding `UserLoginScreen`, `HomePage` or `GamePage`. `route()` picks the page from `UserManager.isLoggedIn` and `ChessConnector.InGame`. All dialogs live in the window and are opened with `open()`; pages emit signals for them. The `_show*` flags and `screen_1…4` states are gone.
+- **Home:** an account button (avatar and name; menu with Profile and Switch user), Settings, a **Continue game** card (`ChessConnector.ContinueDescription`, e.g. "vs Bob"), and cards for Play vs computer, Two players, Play online (dimmed until Lichess is linked; then it opens Profile) and Open saved game (always enabled; it explains when there is nothing to open). The Exit button is gone.
+- **Setup dialogs:** `ComputerGameDialog` (White/Black/Random and level; its info button swaps to the levels help and back, so dialogs never stack) and `TwoPlayerDialog` (side, and the opponent picked by profile **id** or Guest). Both use the new shared `ChoiceRow`.
+- **Game command bar:** Home, title (`ChessConnector.GameTitle`: "vs Robot · Level 3", "Alice vs Bob", "Lichess · vs X", "Saved game · …"), Prev/Next (replay), Undo/Takeback, **Flip board** (new), Save, Offer draw, Resign (with `ConfirmDialog`), More (Computer levels, Settings, Profile, Switch user). Undo, Draw and Resign are no longer duplicated in the move panel.
+- **InfoBar** replaces `Notificator` and the three banners: one message bar (Check, Game saved, errors, rematch declined) plus bars bound to `ChessConnector.PendingOffer` (draw or takeback) and `OpponentGone`/`ClaimWinSeconds`. Castling is no longer announced.
+- **Game flows in C++:** `startComputerGame(level, side)`, `startLocalGame(white, opponentUserId)`, `switchUser()` (autosave, end the game, log out) and `refreshBoard()` (a new board view fills itself in). Lichess game start and end are handled in `ChessConnector`, which sets the result text, flags the king and sets the opponent's avatar. Game-end text is now `ResultText`, with names: "Bob wins by checkmate", "Alice resigned". `GameSaveInfo.opponentName` is stored for Continue and the title. The avatar is set per mode (the `newGameStarted → randomize` connection in `main.cpp` is gone), so a rematch keeps the opponent's avatar.
+- **Typed singletons:** `qmlRegisterSingletonInstance("ChessPlusPlus", …)` for `ChessConnector`, `UserManager`, `LichessClient` and `AvatarProvider`, parented to the app so they outlive the engine. No `setContextProperty` is left.
+- **Shortcuts** (off while a dialog is open): Esc Home, F flip, Ctrl+S, Ctrl+Z, ←/→/Home/End review, F1 levels, Ctrl+, settings, Alt+S move input. Minimum window size 640×560; the window title shows the game.
+- **Scenes:** `home`, `continue`, `game` (Tester vs Bob), `computer`; `menu` and `board` still work as aliases. After shots: `docs/design/after-p2/`. Debug and Release builds OK; `ChessTests` 67/67; no QML warnings in the scene logs.
+
+### Not checked live
+- Keyboard shortcuts and Enter/Esc in a real window. Driving the window with SendKeys didn't reach the Qt controls, so the skill now says to add a scene instead.
+- Lichess flows (challenge, game start and end, draw/takeback InfoBars, opponent gone) need a connected account. Add them to the Lichess live test in TASKS.
+
+### Where to continue
+P3 (Users and Lichess) and P4 (Game chrome) can run in parallel; each needs a new branch from `origin/develop` once this PR is merged. P3 replaces `UserLoginScreen` with the Welcome page and profile picker, and moves `CreateUserDialog`'s Lichess part to a Profile page. P4 replaces `CapturedPanel`, `GameResultDialog`/`GameResultCard` and `MoveHistoryPanel`.
+
+---
+
 ## 2026-10-29 — BL-02 P1 Foundation done (branch: fluentFoundation_281026); next: P2
 
 ### What was done

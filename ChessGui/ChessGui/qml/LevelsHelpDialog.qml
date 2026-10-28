@@ -1,4 +1,5 @@
 import QtQuick
+import ChessPlusPlus
 import QtQuick.Controls
 import QtQuick.Layouts
 
@@ -30,7 +31,7 @@ AppDialog {
         }
 
         Repeater {
-            model: chessConnector.Levels
+            model: ChessConnector.Levels
 
             Rectangle {
                 id: row
@@ -76,7 +77,7 @@ AppDialog {
                                 Layout.fillWidth: true
                             }
                             Label {
-                                text: root.levelRatingText(row.modelData)
+                                text: row.modelData.rating
                                 color: Theme.textSecondary
                             }
                         }

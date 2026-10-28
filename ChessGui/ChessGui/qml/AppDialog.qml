@@ -5,7 +5,7 @@ import QtQuick.Controls
 // accept() and Esc runs reject(). Give it a `footer: DialogButtonBox { … }`; the box's
 // Accept/Reject role buttons are wired to accept()/reject() by Dialog itself.
 //
-// Shown through a bound flag, e.g. `visible: _showSettings; onClosed: _showSettings = false`.
+// Opened with open(). The dialogs live in ChessGame.qml; pages ask for them through signals.
 Dialog {
     id: dialog
 
