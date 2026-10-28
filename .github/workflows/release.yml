@@ -19,19 +19,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Qt ${{ env.QT_VERSION }}
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
           arch: win64_msvc2022_64
           modules: qt5compat qtshadertools qtmultimedia
 
-      - name: Setup MSVC (x64)
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
+      # Puts msbuild on PATH (ilammy/msvc-dev-cmd has no Node 24 release yet).
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
 
       # Qt VS Tools supplies the MSBuild targets that process moc/rcc and set
       # Qt include/link paths from the <QtModules> property in the .vcxproj.
@@ -100,7 +99,12 @@ jobs:
           New-Item -Path deploy -ItemType Directory -Force
           Copy-Item x64\Release\ChessGui.exe       deploy\
           Copy-Item x64\Release\LiChessConnector.dll deploy\
+          # windeployqt bundles vc_redist.x64.exe only when VCINSTALLDIR is set
+          # (setup-msbuild, unlike a VS dev prompt, doesn't set it).
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $env:VCINSTALLDIR = "$vs\VC\"
           windeployqt --release --verbose 2 --qmldir ChessGui\ChessGui deploy\ChessGui.exe
+          if (-not (Test-Path deploy\vc_redist.x64.exe)) { throw "windeployqt did not deploy vc_redist.x64.exe" }
           Write-Host "=== deploy folder contents ==="
           Get-ChildItem deploy -Recurse | Select-Object FullName
 
@@ -170,7 +174,7 @@ jobs:
       # PR builds: upload installer as a downloadable artifact (14-day retention)
       - name: Upload installer artifact (PR)
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ChessSetup-${{ steps.version.outputs.value }}
           path: installer/Output/ChessSetup-*.exe
@@ -190,7 +194,7 @@ jobs:
       # Tag pushes: publish a GitHub Release
       - name: Create GitHub Release
         if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: "Chess++ ${{ github.ref_name }}"
           files: installer/Output/ChessSetup-*.exe
