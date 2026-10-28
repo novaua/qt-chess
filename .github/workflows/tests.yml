@@ -56,9 +56,10 @@ jobs:
       - name: Run tests
         shell: pwsh
         run: |
-          $vstest = Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft Visual Studio" `
-            -Recurse -Filter vstest.console.exe -ErrorAction SilentlyContinue |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $vstest) { $vstest = 'vstest.console.exe' }
+          # vswhere finds VS wherever it is installed (VS 18 lives under Program Files, not
+          # Program Files (x86)); setup-msbuild doesn't put vstest on PATH.
+          $vstest = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+            -latest -products * -find '**\vstest.console.exe' | Select-Object -First 1
+          if (-not $vstest) { throw "vstest.console.exe not found" }
           & $vstest x64\Debug\ChessTests.dll
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
