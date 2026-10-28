@@ -81,15 +81,19 @@ QString lastOpponentName() const;
   already emits `challengeCreated(gameId, joinUrl)` and calls `waitForGameStart()`.
 
 Waiting for a direct challenge:
+- A direct challenge **expires after 20 s** unless it is created with `keepAliveStream=true`.
+  With it, the POST response stays open as an ndjson stream: the first line is the challenge, and
+  the challenge lives until the connection closes. When it ends, the server sends
+  `{"done":"accepted"|"declined"|"canceled"}`. The client keeps that reply open
+  (`_directChallengeReply`); closing it, or `cancelChallenge()`, cancels the challenge.
+  - `declined`: emit **`challengeDeclined(opponentName)`**, stop waiting.
+  - `canceled` (server side, e.g. expired): emit the existing `challengeCanceled()`.
+  - `accepted`: probe the game stream right away.
 - `waitForGameStart()` currently POSTs `/accept` on the challenge so the creator is registered for
   the Board API. That is needed for open challenges, but for a direct challenge we are the challenger and can't
-  accept our own. Add a flag, e.g. `waitForGameStart(gameId, bool registerAsPlayer = true)`, and
-  pass `false` for direct challenges.
-- Handle new event-stream types in `handleEventStreamData()`:
-  - `challengeDeclined` (matching id): emit **`challengeDeclined(reason)`**, stop waiting.
-  - `challengeCanceled` (matching id): emit the existing `challengeCanceled()`.
-- `gameStart` already works: it calls `onGameStartDetected()`, then `streamGame()`, which emits
-  `gameStarted`.
+  accept our own. It now takes a flag, `waitForGameStart(gameId, bool registerAsPlayer = true)`, and
+  direct challenges pass `false`. The existing event stream + probe then detect the game start and
+  call `streamGame()`, which emits `gameStarted`.
 
 ### 3.2 ChessConnector (`ChessGui/ChessGui/chessconnector.*`)
 
@@ -154,7 +158,7 @@ Waiting for a direct challenge:
   challenge. Check this in manual testing and, if confirmed, mention it in the UI tooltip.
 - **Direct-challenge restrictions.** The opponent's Lichess settings may block challenges (e.g.
   "only friends", rating range). The API then returns an error, which we show via `networkError`.
-- **Challenge expiry.** Direct challenges expire if not accepted. That probably arrives as
-  `challengeCanceled` / `challengeDeclined` on the event stream; verify in testing.
+- **Challenge expiry.** Without `keepAliveStream` a direct challenge expires after 20 s; with it the
+  challenge waits as long as the app keeps the request open.
 - **Board API time-control limits.** The Board API rejects very fast clocks for some accounts.
   This is not new, but a rematch can hit it too; the error is shown as today.

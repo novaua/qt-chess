@@ -6,8 +6,8 @@ Plan: [`docs/LichessRematchPlan.md`](docs/LichessRematchPlan.md)
 
 ### In Progress
 
-- [ ] 1. `LichessClient`: `RematchInfo`, `parseRematchInfo()`, keep last game's settings from `gameFull` + unit tests
-- [ ] 2. `LichessClient`: `createRematch()` (direct challenge to a registered opponent / open challenge for anonymous), `waitForGameStart(…, registerAsPlayer)`, `challengeDeclined` / `challengeCanceled` events
+- [x] 1. `LichessClient`: `RematchInfo`, `parseRematchInfo()`, keep last game's settings from `gameFull` + unit tests (4 tests in `LichessStaticTests`)
+- [x] 2. `LichessClient`: `createRematch()` (direct challenge with `keepAliveStream` to a registered opponent / open challenge for anonymous), `waitForGameStart(…, registerAsPlayer)`, `directChallengeSent` / `challengeDeclined` signals
 - [ ] 3. `ChessConnector`: track online games in C++, `CanRematch` property, `rematch()` routing
 - [ ] 4. QML: Rematch button for online games, `ChallengeDialog` direct-challenge mode, `ChessGame.qml` handlers
 - [ ] 5. Manual test against Lichess (scenarios in plan §5); Debug + Release build

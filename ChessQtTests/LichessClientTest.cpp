@@ -1,5 +1,7 @@
 #include <QObject>
 #include <QEventLoop>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTimer>
 #include <CppUnitTest.h>
 #include "LichessClient.h"
@@ -133,6 +135,72 @@ namespace LichessTests
 		{
 			// Username matches white.id but myColor says black — myColor wins
 			Assert::IsFalse(LichessClient::resolveIsWhite("black", "me", "me"));
+		}
+
+		// parseRematchInfo ——————————————————————————————————————————————————
+
+		static QJsonObject Json(const char* text)
+		{
+			return QJsonDocument::fromJson(QByteArray(text)).object();
+		}
+
+		TEST_METHOD(ParseRematchInfo_RegisteredOpponent_IdNameClockVariant)
+		{
+			auto info = LichessClient::parseRematchInfo(Json(R"({
+				"type": "gameFull", "id": "AbCdEfGh",
+				"variant": { "key": "chess960", "name": "Chess960" },
+				"clock": { "initial": 300000, "increment": 3000 },
+				"white": { "id": "me", "name": "Me" },
+				"black": { "id": "friend", "name": "Friend" }
+			})"), "me");
+
+			Assert::IsTrue(info.valid);
+			Assert::IsTrue(info.playedAsWhite);
+			Assert::AreEqual(QString("friend"), info.opponentId);
+			Assert::AreEqual(QString("Friend"), info.opponentName);
+			Assert::AreEqual(300, info.clockLimitSec);
+			Assert::AreEqual(3, info.clockIncrementSec);
+			Assert::AreEqual(0, info.days);
+			Assert::AreEqual(QString("chess960"), info.variant);
+		}
+
+		TEST_METHOD(ParseRematchInfo_AnonymousOpponent_EmptyId_Test)
+		{
+			auto info = LichessClient::parseRematchInfo(Json(R"({
+				"variant": { "key": "standard" },
+				"clock": { "initial": 600000, "increment": 0 },
+				"white": {},
+				"black": { "id": "me", "name": "Me" }
+			})"), "me");
+
+			Assert::IsTrue(info.valid);
+			Assert::IsFalse(info.playedAsWhite);
+			Assert::IsTrue(info.opponentId.isEmpty(), L"Anonymous player has no id");
+			Assert::AreEqual(QString("Anonymous"), info.opponentName);
+		}
+
+		TEST_METHOD(ParseRematchInfo_Correspondence_DaysNoClock_Test)
+		{
+			auto info = LichessClient::parseRematchInfo(Json(R"({
+				"daysPerTurn": 3,
+				"white": { "id": "friend", "name": "Friend" },
+				"black": { "id": "me", "name": "Me" }
+			})"), "me");
+
+			Assert::IsTrue(info.valid);
+			Assert::AreEqual(0, info.clockLimitSec);
+			Assert::AreEqual(3, info.days);
+			Assert::AreEqual(QString("standard"), info.variant, L"Missing variant defaults to standard");
+		}
+
+		TEST_METHOD(ParseRematchInfo_LichessAi_NotRematchable_Test)
+		{
+			auto info = LichessClient::parseRematchInfo(Json(R"({
+				"white": { "id": "me", "name": "Me" },
+				"black": { "aiLevel": 3 }
+			})"), "me");
+
+			Assert::IsFalse(info.valid);
 		}
 	};
 
