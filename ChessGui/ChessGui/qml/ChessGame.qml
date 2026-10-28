@@ -94,6 +94,49 @@ ApplicationWindow {
             lichessClient.cancelChallenge(_pendingChallengeId)
     }
 
+    // ── --screenshot mode (see main.cpp): set up the scene, then C++ grabs the window ──
+    readonly property var _shot: chessConnector.ScreenshotScene
+    Component.onCompleted: if (_shot.scene) Qt.callLater(setUpScreenshotScene)
+
+    function setUpScreenshotScene() {
+        if (_shot.width)  root.width  = _shot.width
+        if (_shot.height) root.height = _shot.height
+        appSettings.darkMode = _shot.dark
+
+        if (_shot.scene === "create-user" || _shot.scene === "login") {
+            if (_shot.scene === "login" && !userManager.hasUsers)
+                userManager.createUser("Tester", "wizard")
+            userManager.logout()
+            authOverlay._showCreate = _shot.scene === "create-user"
+        } else if (!userManager.isLoggedIn) {
+            if (userManager.hasUsers) userManager.login(userManager.users[0].id)
+            else                      userManager.createUser("Tester", "wizard")
+        }
+
+        if (_shot.scene === "settings") _showSettings = true
+        if (_shot.scene === "levels")   _showLevelsHelp = true
+        if (_shot.scene === "profile")  _showProfile = true
+        if (_shot.scene === "board") {
+            chessConnector.setPlayerPlaysWhite(!_shot.black)
+            screen.state = "screen_2"
+            chessConnector.startNewGame()
+            avatarProvider.setOpponentFromUser("unicorn") // not the random one: stable screenshots
+            gameIsInProgress = true
+            chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
+            if (_shot.moves)
+                chessConnector.applyMoves(_shot.moves)
+        }
+
+        // A finished game shows its result only after resultDialogTimer.
+        screenshotReadyTimer.interval = chessConnector.GameResult !== "" ? resultDialogTimer.interval + 100 : 0
+        screenshotReadyTimer.start()
+    }
+
+    Timer {
+        id: screenshotReadyTimer
+        onTriggered: chessConnector.screenshotSceneReady()
+    }
+
     Settings {
         property alias width:  root.width
         property alias height: root.height

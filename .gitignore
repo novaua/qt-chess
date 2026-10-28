@@ -69,3 +69,4 @@ Thumbs.db
 .vs/*
 
 installer/Output/
+test-results/

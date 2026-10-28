@@ -30,6 +30,12 @@ vstest.console.exe x64\Debug\ChessTests.dll
 
 Test files are in `ChessTests/` — `BasicTest.cpp` (board logic) and `UciConnectorTest.cpp` (UCI protocol).
 
+## Seeing the UI
+
+`scripts\Take-Screenshot.ps1 -Scene all` saves offscreen screenshots of the app's views to
+`test-results\screens\` on a throwaway profile. Details: the `run-chess-app` skill
+(`.claude/skills/run-chess-app/SKILL.md`).
+
 ## Architecture
 
 Four projects in the solution:
@@ -96,4 +102,5 @@ Then confirm the current branch with `git branch` and `git log --oneline -5` bef
 
 - Start every task on a **new branch from the latest `origin/develop`** (`git fetch` first). Name it `<camelCaseTask>_<ddmmyy>`, e.g. `removeVcpkg_281026`.
 - Never continue a new task on the branch of a previous task.
+- When a feature/task is done (built, tested, committed), push the branch and open a GitHub PR into `develop` with the `gh` CLI (`gh pr create --base develop`) — no need to ask first. Report the PR link.
 - Exception: if the task depends on changes that are not merged into `develop` yet, stop and ask the user to either merge them first (then wait and branch from the updated `develop`) or explicitly approve branching from the unmerged branch.
