@@ -89,6 +89,8 @@ Rectangle {
         opacity: 0
         width: parent.height<parent.width?0.5*parent.height:0.5*parent.width
         height:   0.4*width
+        // Cancel the board's rotation (180° when playing Black) so the dialog stays upright.
+        rotation: -chessBoard.angle
 
         property int index;
         property int side;
