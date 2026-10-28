@@ -343,6 +343,8 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	_engineAutoPlay = false;
 	_onlineGameId = gameId;
 	emit isOnlineGameChanged();
+	_wasVsComputer = false;
+	setLastGameOnline(true);
 
 	_config.playerPlaysWhite = playingAsWhite;
 	emit playerPlaysWhiteChanged();
@@ -403,8 +405,31 @@ void ChessConnector::respondTakeback(bool accept)
 		_lichessClient->requestTakeback(_onlineGameId, accept);
 }
 
+void ChessConnector::setLichessClient(LichessClient* lc)
+{
+	_lichessClient = lc;
+	if (_lichessClient)
+		connect(_lichessClient, &LichessClient::canRematchChanged,
+			this, &ChessConnector::canRematchChanged, Qt::UniqueConnection);
+	emit canRematchChanged();
+}
+
+void ChessConnector::setLastGameOnline(bool online)
+{
+	if (_lastGameOnline == online) return;
+	_lastGameOnline = online;
+	emit canRematchChanged();
+}
+
 void ChessConnector::rematch()
 {
+	// Lichess has no rematch endpoint: send a new challenge with the same settings.
+	// The game starts through LichessClient::gameStarted → startOnlineGame().
+	if (_lastGameOnline) {
+		if (_lichessClient)
+			_lichessClient->createRematch();
+		return;
+	}
 	if (_wasVsComputer)
 		startNewGameWithComputer(_config.lastLevel);
 	else
@@ -414,6 +439,7 @@ void ChessConnector::rematch()
 void ChessConnector::startNewGame()
 {
 	_wasVsComputer = false;
+	setLastGameOnline(false);
 	resetMoveHistoryCache();
 	deleteAutoSave();
 	stopEngineThread();
@@ -433,6 +459,7 @@ void ChessConnector::startNewGame()
 void ChessConnector::startNewGameWithComputer(int level)
 {
 	_wasVsComputer = true;
+	setLastGameOnline(false);
 	resetMoveHistoryCache();
 	if (_config.lastLevel != level) {
 		_config.lastLevel = level;
@@ -842,6 +869,7 @@ bool ChessConnector::continueGame()
 	const auto info = _userManager ? _userManager->autoSaveInfo() : UserManager::GameSaveInfo{};
 	const bool isSingle = info.isSinglePlayer;
 	_wasVsComputer = isSingle;
+	setLastGameOnline(false);
 
 	_config.playerPlaysWhite = info.playerPlaysWhite;
 	emit playerPlaysWhiteChanged();

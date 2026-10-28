@@ -43,13 +43,14 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool CanReviewPrev READ canReviewPrev NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
+		Q_PROPERTY(bool CanRematch    READ canRematch    NOTIFY canRematchChanged)
 public:
 	explicit ChessConnector(QObject* parent = nullptr);
 	~ChessConnector();
 
 	void setAvatarProvider(AvatarProvider* ap) { _avatarProvider = ap; }
 	void setUserManager(UserManager* um)       { _userManager = um; }
-	void setLichessClient(LichessClient* lc)   { _lichessClient = lc; }
+	void setLichessClient(LichessClient* lc);
 
 	int MoveCount();
 	int IsWhiteMove();
@@ -70,6 +71,8 @@ public:
 	bool canReviewPrev() const;
 	bool canReviewNext() const;
 	bool isOnlineGame()  const { return !_onlineGameId.isEmpty(); }
+	// Local games can always be replayed; a Lichess game needs its settings and a token.
+	bool canRematch()    const { return !_lastGameOnline || (_lichessClient && _lichessClient->canRematch()); }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 
@@ -102,6 +105,7 @@ signals:
 	void gameResultChanged();
 	void reviewStateChanged();
 	void isOnlineGameChanged();
+	void canRematchChanged();
 	void drawOfferReceived();
 	void takebackRequested();
 	void lichessLoginResult(bool ok, QString username);
@@ -165,6 +169,7 @@ private:
 	void resetMoveHistoryCache();
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
+	void setLastGameOnline(bool online);
 	void autoSaveGame(bool isSinglePlayer);
 	void deleteAutoSave();
 	QString autoSavePath()  const;
@@ -188,6 +193,7 @@ private:
 	bool _promotionPending = false; // a pawn is on the last rank, waiting for pawnPromote()
 	std::atomic<bool> _gameOver{ false };
 	bool _wasVsComputer = false;
+	bool _lastGameOnline = false; // the current/last game is a Lichess game: rematch goes online
 	QString _gameResult;
 	AppConfig _config;
 	int _reviewIndex = -1;

@@ -9,9 +9,13 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 ### What was done
 - Merged earlier today: computer levels rework + levels help (#68), promotion dialog rotation fix (#69).
 - Analysed why Rematch doesn't work vs Lichess: the button is hidden for online games and the Board API has no rematch endpoint. Plan written to `docs/LichessRematchPlan.md`: Rematch creates a new challenge (direct to a registered opponent, open link for anonymous).
+- Implemented steps 1–4 (see `TASKS.md`): `LichessClient::createRematch()` / `parseRematchInfo()`, `ChessConnector::CanRematch`, Rematch button for online games, `ChallengeDialog` direct mode. Direct challenges use `keepAliveStream=true` (otherwise they expire after 20 s).
+- Debug + Release build OK; `LichessStaticTests` 21/21 (4 new); app starts without QML errors.
 
 ### Where to continue
-1. Follow the numbered steps under "In Progress" in `TASKS.md`.
+1. Step 5: play a game against a second Lichess account and run the manual scenarios in plan §5 (accept, decline, cancel, anonymous link, vs Robot unchanged, restart, leave while pending).
+2. Watch the log for `LichessClient: challenge stream line:`. It confirms the keep-alive challenge JSON and the final `{"done":...}` shape this code expects.
+3. Then open a PR to `develop`.
 
 ### Notes
 - If the opponent clicks Rematch in their browser, the Board API client probably never sees it; the app must send the challenge.

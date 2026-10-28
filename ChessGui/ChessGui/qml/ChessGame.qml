@@ -26,6 +26,8 @@ ApplicationWindow {
     property bool   _showChallengeDialog:     false
     property string _pendingChallengeId:      ""
     property string _pendingChallengeUrl:     ""
+    property string _pendingOpponentName:     ""    // set for a direct (rematch) challenge
+    property bool   _pendingRematch:          false // pending challenge is a rematch of the game on screen
     property string _onlineGameId:            ""
     property bool   _showDrawOffer:           false
     property bool   _showTakebackOffer:       false
@@ -77,7 +79,15 @@ ApplicationWindow {
         userManager.clearPendingChallenge()
         _pendingChallengeId  = ""
         _pendingChallengeUrl = ""
+        _pendingOpponentName = ""
+        _pendingRematch      = false
         _showChallengeDialog = false
+    }
+
+    // Leaving the finished game (menu button / Escape) while a rematch is pending withdraws it.
+    onGameIsInProgressChanged: {
+        if (!gameIsInProgress && _pendingRematch && _pendingChallengeId !== "")
+            lichessClient.cancelChallenge(_pendingChallengeId)
     }
 
     Settings {
@@ -368,7 +378,7 @@ ApplicationWindow {
                     height: _boardSize
                     gameInProgress: gameIsInProgress
                     isOnlineGame: _onlineGameId !== ""
-                    wasOnlineGame: _wasOnlineGame
+                    rematchPending: _pendingRematch
                     anchors {
                         verticalCenter: parent.verticalCenter
                         left: parent.left; leftMargin: (parent.width + _boardSize) / 2 + 5
@@ -664,17 +674,37 @@ ApplicationWindow {
         Connections {
             target: lichessClient
 
+            // A challenge created while the finished game is still on screen is a rematch
+            // (the Online dialog is only reachable from the start menu).
             function onChallengeCreated(gameId, joinUrl) {
                 _pendingChallengeId  = gameId
                 _pendingChallengeUrl = joinUrl
+                _pendingRematch      = gameIsInProgress
                 userManager.savePendingChallenge(gameId, joinUrl)
                 _showOnlineDialog    = false
                 _showChallengeDialog = true
             }
 
-            function onChallengeCanceled() {
+            // Not saved with savePendingChallenge: the challenge lives only while the app keeps
+            // its request open, so it can't be resumed after a restart.
+            function onDirectChallengeSent(challengeId, opponentName) {
+                _pendingChallengeId   = challengeId
+                _pendingChallengeUrl  = ""
+                _pendingOpponentName  = opponentName
+                _pendingRematch       = true
+                _showChallengeDialog  = true
+            }
+
+            function onChallengeDeclined(opponentName) {
                 clearPendingChallenge()
-                _showOnlineDialog = true
+                networkErrorBanner.show(opponentName + " declined the rematch")
+            }
+
+            function onChallengeCanceled() {
+                var wasRematch = _pendingRematch
+                clearPendingChallenge()
+                if (!wasRematch)
+                    _showOnlineDialog = true
             }
 
             function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
@@ -709,9 +739,14 @@ ApplicationWindow {
             }
 
             function onNetworkError(message) {
-                if (_showChallengeDialog) {
+                if (_showChallengeDialog && _pendingRematch) {
+                    clearPendingChallenge()
+                    networkErrorBanner.show("Rematch failed: " + message)
+                } else if (_showChallengeDialog) {
                     clearPendingChallenge()
                     _showOnlineDialog = true
+                } else if (_pendingRematch || _wasOnlineGame) {
+                    networkErrorBanner.show(message)
                 } else if (_onlineGameId !== "") {
                     networkErrorBanner.show(message)
                 }
@@ -935,6 +970,8 @@ ApplicationWindow {
             z: 20
             challengeId:  _pendingChallengeId
             challengeUrl: _pendingChallengeUrl
+            opponentName: _pendingOpponentName
+            isRematch:    _pendingRematch
         }
 
         // ── Profile dialog ───────────────────────────────────────────────────

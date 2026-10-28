@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-28 |
-| **Status** | Planned |
+| **Status** | Implemented; live Lichess testing pending |
 | **Branch** | new branch from `develop` |
 
 ## 1. Problem
@@ -149,7 +149,8 @@ Waiting for a direct challenge:
 | 3 | Cancel while waiting | Challenge canceled on Lichess, dialog closes |
 | 4 | Anonymous opponent | Link/QR dialog with a new link; game starts once they open it |
 | 5 | Rematch after a vs-Robot game | Unchanged local behavior |
-| 6 | App restarted while a rematch challenge is pending | Pending challenge restored like an open challenge today |
+| 6 | App restarted while a rematch challenge is pending | Anonymous (open) rematch: restored like an open challenge today. Direct rematch: not restored, because closing the app closes the keep-alive request, which cancels the challenge |
+| 7 | Menu button / Escape while a rematch is pending | Challenge withdrawn, start menu shown without the challenge dialog |
 
 ## 6. Risks and open questions
 
