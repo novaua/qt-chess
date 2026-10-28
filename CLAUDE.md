@@ -68,7 +68,8 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
 
 ### ChessGui (Qt QML application)
 
-- **`chessconnector.h/cpp`** — the sole C++/QML bridge; exposes `Q_PROPERTY` bindings and slots that QML calls
+- **`chessconnector.h/cpp`** — the C++/QML bridge for the chess game; exposes `Q_PROPERTY` bindings and slots that QML calls
+- **`UserManager`**, **`LichessClient`** (LiChessConnector project), **`AvatarProvider`** — app services without chess logic, also visible to QML (see Key Conventions)
 - QML files in `ChessGui/ChessGui/qml/`:
   - `ChessGame.qml` — top-level window, game state machine
   - `ChessBoard.qml` — board rendering
@@ -86,7 +87,10 @@ Builds as a DLL consumed by the VS test runner. Tests exercise `Game`, `Board`, 
 
 - Smart pointers (`std::shared_ptr`) throughout; avoid raw owning pointers
 - Chess logic stays in the `Chess::` namespace; GUI code stays in ChessGui
-- QML ↔ C++ communication goes exclusively through `ChessConnector` — don't add direct `Q_OBJECT` wrappers elsewhere
+- QML ↔ C++ boundary:
+  1. Anything that reads or changes the game — including flows that combine the game with users or Lichess (start a local or online game, game end, rematch, switch user during a game) — goes through `ChessConnector`, as **one call per user action**. QML never strings game steps together itself, and never sees `Chess::` types (`Game`, `Board`, engine).
+  2. `UserManager` and `LichessClient` stay separate services. QML may call them directly for non-game work: profiles, login, Lichess account and challenge setup, ratings. Don't forward their API through `ChessConnector`.
+  3. Expose QML-visible services as typed singletons (`qmlRegisterSingletonInstance`), not context properties. Today they are still context properties (`chessConnector`, `userManager`, `lichessClient`, `avatarProvider` in `main.cpp`); the switch is part of BL-02 P2 (`docs/AppModernizationPlan.md`).
 - `PieceColor` is an `enum class` (Light/Dark); use scoped references (`PieceColor::Light`)
 
 ## Resuming Work After a Session Break

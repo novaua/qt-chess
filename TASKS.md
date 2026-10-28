@@ -13,9 +13,9 @@
   - [ ] Run the built installer once (normal install) and check `engines\stockfish-install.log`
 - [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there.
   - [x] Review of all screens, plan, design kit (`pics/icons/*.svg`, [`docs/design/ThemeTokens.md`](docs/design/ThemeTokens.md)), mockups (branch `appModernizationPlan_281026`)
-  - [ ] Decide the QML access rule (plan §9 Q1) before P2
+  - [x] Decide the QML access rule (plan §9 Q1): game flows through `ChessConnector`, services stay separate typed singletons (CLAUDE.md "Key Conventions")
   - [ ] P1 Foundation: FluentWinUI3, `Theme.qml`, System/Light/Dark, icons in qrc, `AppDialog`; remove Qt5Compat effects and `NetworkPlayers.qml` (closes BL-01)
-  - [ ] P2 Shell and navigation: `StackView` pages, command bar, account menu, Home, setup dialogs, InfoBar
+  - [ ] P2 Shell and navigation: `StackView` pages, command bar, account menu, Home, setup dialogs, InfoBar; services as typed singletons; game flows into `ChessConnector` (`startLocalGame`, `switchUser`, Lichess game start/end)
   - [ ] P3 Users and Lichess: welcome, profile picker, Profile page (ratings, Reconnect, OAuth Cancel: closes BL-08), Guest, statistics, `QSaveFile`, backups, export/import
   - [ ] P4 Game chrome: player cards, captured strip with +N, responsive side panel or sheet, result card, move list with PGN
   - [ ] P5 Settings and About pages

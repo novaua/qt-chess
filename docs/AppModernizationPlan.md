@@ -69,7 +69,7 @@ The QML and C++ behind each screen were read in full. The "before" images below 
 | A6 | Qt5Compat effects (`ColorOverlay`, `Glow`) are deprecated, and offscreen they render blank: the ☰ icon looks empty (BL-01). `NetworkPlayers.qml` is unused. | `ChessGame.qml`, `ChessFigures.qml` |
 | A7 | `Notificator` is driven through `children[0]` and `resources[0]`. The board flip uses an elastic easing. | `ChessBoard.qml` |
 | A8 | Missing for a release: an About page (version, Qt LGPL and Stockfish GPLv3 notices), a keyboard shortcut list, and confirmations before destructive actions. "Switch User" ends a running game silently; "Disconnect" has no confirmation. | |
-| A9 | CLAUDE.md says "QML ↔ C++ only through `ChessConnector`", but `userManager`, `lichessClient` and `avatarProvider` are already context properties. | `main.cpp` |
+| A9 | Game flows are put together in QML. When a Lichess game ends, QML maps the status to the result text and decides which king gets the red flag (`setGameResult`, `flagKing`). Starting an online game, starting a two-player game and Switch user are each a sequence of calls in QML. The services are untyped context properties. | `ChessGame.qml` (`onGameEnded`, `onGameStarted`, Switch User, `SelectPlayerDialog` handler), `main.cpp` |
 
 ### 3.2 Start menu
 - Game types (Single / Two / Online) and actions (Continue / Load) share **one radio group**, so
@@ -303,7 +303,9 @@ profile", and "Manage" (opens Profile). It shows only when there are 2 or more p
 | Move list | Extend `moveHistory()` / `buildFullHistoryCache()` with the ply index and SAN pieces for the delegate. Add `reviewTo(ply)` next to `reviewFirst/Prev/Next/Last`, and `pgn()` (reuse `San.cpp`). |
 | Users | `UserManager`: `deleteUser`, `users()` with Lichess fields, per-opponent statistics, `exportProfile` / `importProfile`, `QSaveFile`, backups. |
 | Lichess | `LichessClient`: parse ratings from the existing `/api/account` call (`LichessClient.cpp:53`) and report a 401 as "expired". `LichessAuth`: `cancelLogin()` (BL-08). |
-| QML access rule (A9) | Proposal: change CLAUDE.md to allow the registered context objects (`userManager`, `lichessClient`, `avatarProvider`), or move them to `QML_SINGLETON`s, rather than routing everything through `ChessConnector`. **Needs the owner's decision before P2.** |
+| QML ↔ C++ boundary (A9, **decided**, see CLAUDE.md "Key Conventions") | 1. Anything that reads or changes the game, including flows that combine it with users or Lichess, goes through `ChessConnector` as one call per user action. 2. `UserManager` and `LichessClient` stay separate services that QML calls directly for non-game work; their API is not forwarded through `ChessConnector`. 3. QML-visible services become typed singletons (`qmlRegisterSingletonInstance`) instead of context properties. |
+| Game flows into C++ (P2) | New `ChessConnector` calls: `startLocalGame(whiteProfileId, blackProfileId)` (empty = Guest or Robot), `switchUser()` (autosave, end game, log out). The Lichess game start and end (`LichessClient::gameStarted` / `gameEnded`) are handled inside `ChessConnector`: result text, flagged king, opponent avatar. QML only shows the resulting state. |
+| Singletons (P2) | `main.cpp`: `qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "ChessConnector", connector)` and the same for `UserManager`, `LichessClient`, `AvatarProvider`. QML imports `ChessPlusPlus` and uses `UserManager.login(…)` with type information for qmllint and the IDE. All about 156 references (`chessConnector.` 101, `userManager.` 39, `lichessClient.` 9, `avatarProvider.` 7) are renamed in P2, together with the page split. Plain `Connections { target: … }` blocks keep working. |
 | Screenshot scenes | `setUpScreenshotScene()` in `ChessGame.qml` uses the `_show*` flags. Each phase keeps the existing scenes working and adds new ones (`welcome`, `home`, `profiles`, `review`, `result`). |
 
 ## 7. Windows app checklist (applies to every phase)
@@ -328,7 +330,7 @@ Each phase gets its own branch from `develop` and its own PR, with before/after 
 | Phase | Content | Done when |
 |---|---|---|
 | **P1 Foundation** | FluentWinUI3 · `Theme.qml` · System/Light/Dark · icons in `qml.qrc` · `AppDialog` (modal, scrim, Enter/Esc) · remove Qt5Compat effects and `NetworkPlayers.qml` (**closes BL-01**) | All existing screens render in Fluent light and dark; no `Window.window.color` left; screenshot scenes pass |
-| **P2 Shell and navigation** | `StackView` pages · command bar · account menu · Home with Continue and action cards · setup dialogs · InfoBar replaces `Notificator` · `_show*` flags removed | Every action of today's menu and toolbar is reachable; scenes `home` and `game` added |
+| **P2 Shell and navigation** | `StackView` pages · command bar · account menu · Home with Continue and action cards · setup dialogs · InfoBar replaces `Notificator` · `_show*` flags removed · services as typed singletons · game flows moved into `ChessConnector` (`startLocalGame`, `switchUser`, Lichess game start/end) | Every action of today's menu and toolbar is reachable; no game-step sequences left in QML; no `setContextProperty` left; scenes `home` and `game` added |
 | **P3 Users and Lichess** (**BL-03**, **BL-08**) | Welcome · profile picker · Profile page (Lichess card, ratings, 401 Reconnect, OAuth Cancel) · two-player setup by profile id and Guest · statistics per opponent · `QSaveFile`, backups, export/import | Unit tests for `UserManager` export/import, backup rotation and corrupt-file recovery (`ChessQtTests`) |
 | **P4 Game chrome** | Player cards · captured strip with +N · responsive side panel or bottom sheet · single result card · new move list (click, keys, Copy/Export PGN) | Unit tests for material balance and PGN; screenshots portrait, landscape, review, result |
 | **P5 Settings and About** | Settings page groups (§4.3) · About and licences · shortcut list | Every old setting has migrated (`config.json`, QML `Settings`) |
@@ -339,7 +341,7 @@ run in parallel after P2. P5 and P6 come last.
 
 ## 9. Open questions
 
-1. **QML access rule (A9):** update CLAUDE.md, or route everything through `ChessConnector`? (Recommended: update the rule.)
+1. ~~**QML access rule (A9)**~~ **Decided 2026-10-28.** The three-point rule is in CLAUDE.md and §6. Game flows go through `ChessConnector`, services stay separate typed singletons, and nothing is forwarded.
 2. **Guest games:** count them in the statistics of the profile that played, or not at all? (Recommended: count for the profile, with the opponent shown as "Guest".)
 3. **Board themes:** a picker for board and piece themes was left out of this plan, to stay native and simple. Revisit after P6.
 4. **Real-time Lichess clocks:** the player card reserves the space. Showing the clocks belongs to BL-07.
