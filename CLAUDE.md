@@ -102,4 +102,5 @@ Then confirm the current branch with `git branch` and `git log --oneline -5` bef
 
 - Start every task on a **new branch from the latest `origin/develop`** (`git fetch` first). Name it `<camelCaseTask>_<ddmmyy>`, e.g. `removeVcpkg_281026`.
 - Never continue a new task on the branch of a previous task.
+- When a feature/task is done (built, tested, committed), push the branch and open a GitHub PR into `develop` with the `gh` CLI (`gh pr create --base develop`) — no need to ask first. Report the PR link.
 - Exception: if the task depends on changes that are not merged into `develop` yet, stop and ask the user to either merge them first (then wait and branch from the updated `develop`) or explicitly approve branching from the unmerged branch.
