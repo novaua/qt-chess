@@ -86,6 +86,7 @@ namespace Chess
 		void AssureMove(BoardPosition from, BoardPosition to);
 		bool CanMoveFrom(BoardPosition from);
 		void NotifyFullBoardReinit();
+		void NotifyCheckState(PieceColors movedSide);
 
 		void NotifyBoardChangesListeners(std::vector<BoardPosition> indexes);
 		void NotifyActionsListeners(const EventBase &event);

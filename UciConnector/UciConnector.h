@@ -2,6 +2,7 @@
 #include <string>
 #include <memory>
 #include <chrono>
+#include <deque>
 #include <map>
 #include <vector>
 
@@ -30,6 +31,10 @@ class UciConnector
 	bool _initOk = false;
 	std::unique_ptr<QProcess> _uciEngine;
 	std::map<std::string, std::string> _opt;
+	std::string _enginePath;
+	std::deque<std::string> _traffic; // last lines sent (">>") and received ("<<"), for DebugState()
+
+	void Trace(const std::string& line);
 
 protected:
 	std::string ProcessCommand(const Command& comm);
@@ -38,6 +43,7 @@ public:
 	UciConnector();
 	void Init();
 	bool IsInitialized();
+	bool IsRunning() const; // false once the engine process has exited; Init() starts a fresh one
 	bool CheckReady();
 	bool NewGame();
 	std::string GetOption(const std::string& op);
@@ -47,6 +53,10 @@ public:
 	                                 std::chrono::milliseconds moveTime);
 	void SetDifficulty(int elo); // target Elo strength (clamped to Stockfish's supported 1320-3190 range)
 	void Kill();
+
+	// Multi-line, human-readable engine state for bug reports: executable, process state /
+	// exit code, stderr and the recent command traffic. Works in Release builds.
+	std::string DebugState();
 	~UciConnector();
 };
 

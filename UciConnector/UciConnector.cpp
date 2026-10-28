@@ -60,6 +60,15 @@ UciConnector::UciConnector() : _initOk(false)
 
 void UciConnector::Init()
 {
+	// Init() is also the restart path after the engine exited (Stockfish 18+ quits on
+	// an illegal move in "position ... moves"), so drop any previous process state.
+	if (_uciEngine->state() != QProcess::NotRunning) {
+		_uciEngine->kill();
+		_uciEngine->waitForFinished(1000);
+	}
+	_opt.clear();
+	_initOk = false;
+
 	// Prefer the engine installed next to the app (./engines/), then fall back
 	// to one on the system PATH. A candidate that is found but fails to start
 	// (e.g. a corrupt download) also falls through to the next one.
@@ -79,6 +88,8 @@ void UciConnector::Init()
 		_uciEngine->start(sfPath, QStringList());
 		if (_uciEngine->waitForStarted(5000)) {
 			started = true;
+			_enginePath = sfPath.toStdString();
+			Trace("-- engine started: " + _enginePath);
 			break;
 		}
 		_uciEngine->kill();
@@ -128,6 +139,7 @@ std::string UciConnector::ProcessCommand(const Command& comm)
 	Log(std::format(">>> Processing command: '{0}', expecting response: '{1}'",
 		comm.Request, comm.Response));
 
+	Trace(">> " + comm.Request);
 	sendLine(_uciEngine.get(), comm.Request);
 	if (comm.Response.empty())
 		return "";
@@ -137,17 +149,61 @@ std::string UciConnector::ProcessCommand(const Command& comm)
 		line = readLineBlocking(_uciEngine.get(), 10000);
 		if (line.empty())
 			break;
+		Trace("<< " + line);
 		if (line.find(comm.Response) != std::string::npos)
 			break;
 	}
+
+	if (line.empty())
+		Trace(_uciEngine->state() == QProcess::Running
+			? "<< (no output within 10 s, engine still running)"
+			: "<< (no output, engine process is not running)");
 
 	Log(std::format("Engine response: '{}' <<<", line));
 	return line;
 }
 
+void UciConnector::Trace(const std::string& line)
+{
+	constexpr size_t MaxLines = 30, MaxLineLength = 240;
+	_traffic.push_back(line.size() > MaxLineLength ? line.substr(0, MaxLineLength) + "..." : line);
+	if (_traffic.size() > MaxLines)
+		_traffic.pop_front();
+}
+
+std::string UciConnector::DebugState()
+{
+	std::string out = "engine: " + (_enginePath.empty() ? std::string("(not started)") : _enginePath);
+	out += " [" + _opt["id"] + "]\n";
+
+	out += "process: ";
+	switch (_uciEngine->state()) {
+	case QProcess::Running:    out += "running"; break;
+	case QProcess::Starting:   out += "starting"; break;
+	default:
+		out += std::format("not running, exit code {}, {}", _uciEngine->exitCode(),
+			_uciEngine->exitStatus() == QProcess::CrashExit ? "crashed" : "exited normally");
+	}
+	out += ", last error: " + _uciEngine->errorString().toStdString() + "\n";
+
+	auto err = QString::fromLocal8Bit(_uciEngine->readAllStandardError()).trimmed();
+	if (!err.isEmpty())
+		out += "stderr: " + err.toStdString() + "\n";
+
+	out += "recent traffic (oldest first):\n";
+	for (const auto& l : _traffic)
+		out += "  " + l + "\n";
+	return out;
+}
+
 bool UciConnector::IsInitialized()
 {
 	return _initOk;
+}
+
+bool UciConnector::IsRunning() const
+{
+	return _uciEngine && _uciEngine->state() == QProcess::Running;
 }
 
 bool UciConnector::CheckReady()

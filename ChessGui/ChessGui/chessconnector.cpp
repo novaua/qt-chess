@@ -65,6 +65,7 @@ ChessConnector::ChessConnector(QObject* parent)
 			{
 				const PawnPromotionEvent& ppEvent = (PawnPromotionEvent&)event;
 				_onPawnPromotedCallback = ppEvent.OnPromoted;
+				_promotionPending = true;
 				emit pawnPromotionNotify(ppEvent.GetIndex(), ppEvent.GetColor());
 			}
 		});
@@ -90,7 +91,7 @@ int ChessConnector::IsWhiteMove()
 
 void ChessConnector::figureSelected(int index)
 {
-	if (IsOnPlayerMode() || reviewMode() || _engineThinking) {
+	if (IsOnPlayerMode() || reviewMode() || _engineThinking || _promotionPending) {
 		return;
 	}
 
@@ -112,13 +113,6 @@ void ChessConnector::figureSelected(int index)
 	if (selected != -1)
 	{
 		makeMove(BoardPosition(selected), BoardPosition(index));
-
-		if (_engineWorker && !_gameOver && _engineAutoPlay)
-		{
-			_engineThinking = true;
-			emit engineThinkingChanged();
-			emit requestEngineMove();
-		}
 	}
 	else
 	{
@@ -133,11 +127,39 @@ void ChessConnector::figureSelected(int index)
 
 void ChessConnector::pawnPromote(int index, const QString& piece)
 {
+	if (!_promotionPending)
+		return; // e.g. a second click on the promotion dialog
+
+	_promotionPending = false;
 	auto promotedPiece = Piece::Parse(piece.toStdString());
 	_onPawnPromotedCallback({ (BoardPosition)index, promotedPiece });
 
 	qDebug() << "Pawn promoted at " << index << " to "
 		<< piece;
+
+	// The move is only complete now; the history shows the chosen piece (c8=Q).
+	buildFullHistoryCache();
+	onHumanMoveDone();
+}
+
+// Everything that needs the final move: counters, the online opponent, the engine's reply.
+void ChessConnector::onHumanMoveDone()
+{
+	EmitMoveCountUpdates();
+
+	if (!_onlineGameId.isEmpty() && _lichessClient) {
+		const auto& rec = _game->GetGameRecord();
+		if (!rec.empty())
+			_lichessClient->postMove(_onlineGameId,
+				QString::fromStdString(rec.back().ToUciString()));
+	}
+
+	if (_engineWorker && !_gameOver && _engineAutoPlay)
+	{
+		_engineThinking = true;
+		emit engineThinkingChanged();
+		emit requestEngineMove();
+	}
 }
 
 QStringList& ChessConnector::PossibleMoves()
@@ -296,15 +318,14 @@ void ChessConnector::makeMove(int from, int to)
 	try
 	{
 		_game->DoMove((BoardPosition)from, (BoardPosition)to);
-		appendMoveToHistory();
-		EmitMoveCountUpdates();
 
-		if (!_onlineGameId.isEmpty() && _lichessClient) {
-			const auto& rec = _game->GetGameRecord();
-			if (!rec.empty())
-				_lichessClient->postMove(_onlineGameId,
-					QString::fromStdString(rec.back().ToUciString()));
-		}
+		// A pawn reaching the last rank waits for the player's piece choice; the rest
+		// of the move handling runs from pawnPromote() so nobody sees "c7c8" without a piece.
+		if (_promotionPending)
+			return;
+
+		appendMoveToHistory();
+		onHumanMoveDone();
 	}
 	catch (ChessException& ex)
 	{
@@ -315,6 +336,7 @@ void ChessConnector::makeMove(int from, int to)
 void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 {
 	stopEngineThread();
+	_promotionPending = false;
 	_player = nullptr;
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
@@ -395,6 +417,7 @@ void ChessConnector::startNewGame()
 	resetMoveHistoryCache();
 	deleteAutoSave();
 	stopEngineThread();
+	_promotionPending = false;
 	_player = nullptr;
 	_reviewIndex = -1;
 	_gameOver = false;
@@ -415,6 +438,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_config.save();
 	deleteAutoSave();
 	stopEngineThread();
+	_promotionPending = false;
 	_player = nullptr;
 	_reviewIndex = -1;
 	_game->EndGame();
@@ -536,11 +560,15 @@ void ChessConnector::onEngineMoveComplete()
 	EmitMoveCountUpdates();
 }
 
-void ChessConnector::onEngineMoveError(const QString& message)
+void ChessConnector::onEngineMoveError(const QString& message, const QString& details)
 {
 	_engineThinking = false;
 	emit engineThinkingChanged();
 	qDebug() << "[Engine] move error:" << message;
+
+	// One log line per dump line so the board and the move list stay readable in the log file.
+	for (const auto& line : details.split('\n', Qt::SkipEmptyParts))
+		qDebug().noquote() << "[Engine]" << line;
 }
 
 QString ChessConnector::autoSavePath() const
@@ -592,6 +620,7 @@ bool ChessConnector::loadGame()
 			emit playerPlaysWhiteChanged();
 			if (_avatarProvider)
 				_avatarProvider->restore(info.playerAvatarName, info.opponentAvatarName, info.isSinglePlayer);
+			_promotionPending = false;
 			_game->Load(savedGamePath().toStdString());
 			_game->Restart();
 			_player = _game->MakePlayer();
@@ -630,7 +659,7 @@ void ChessConnector::movePrev()
 {
 	if (!_player) {
 		if (_engineWorker && !reviewMode()) {
-			if (_engineThinking) return;
+			if (_engineThinking || _promotionPending) return;
 			int count = _game->GetMoveCount();
 			if (count == 0) { emit noMoreMovesNotify(); return; }
 			int movesToUndo = count >= 2 ? 2 : 1;
@@ -774,6 +803,7 @@ void ChessConnector::endGame()
 	}
 
 	stopEngineThread();
+	_promotionPending = false;
 	_player = nullptr;
 	_game->EndGame();
 	_gameOver = false;
@@ -797,6 +827,7 @@ bool ChessConnector::continueGame()
 		_avatarProvider->restore(info.playerAvatarName, info.opponentAvatarName, isSingle);
 
 	stopEngineThread();
+	_promotionPending = false;
 	_game->Load(autoSavePath().toStdString());
 	_game->ResumeFromLoad();
 	_gameOver = false;
@@ -809,7 +840,7 @@ bool ChessConnector::continueGame()
 	if (isSingle) {
 		_engineAutoPlay = true;
 		startEngineThread(Chess::EngineLevel(_config.lastLevel));
-		if (_game->IsWhiteMove() != _config.playerPlaysWhite) {
+		if (_game->IsWhiteMove() != _config.playerPlaysWhite && !_promotionPending) {
 			_engineThinking = true;
 			emit engineThinkingChanged();
 			emit requestEngineMove();
