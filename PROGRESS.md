@@ -4,6 +4,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-28 — Lichess Rematch (branch: feLichessRematch_281026)
+
+### What was done
+- Merged earlier today: computer levels rework + levels help (#68), promotion dialog rotation fix (#69).
+- Analysed why Rematch doesn't work vs Lichess: the button is hidden for online games and the Board API has no rematch endpoint. Plan written to `docs/LichessRematchPlan.md`: Rematch creates a new challenge (direct to a registered opponent, open link for anonymous).
+
+### Where to continue
+1. Follow the numbered steps under "In Progress" in `TASKS.md`.
+
+### Notes
+- If the opponent clicks Rematch in their browser, the Board API client probably never sees it; the app must send the challenge.
+
+---
+
 ## 2026-10-27 — Release 0.1.0 preparation (branch: feRelease010_271026)
 
 ### What was done

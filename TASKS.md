@@ -1,28 +1,31 @@
 # Tasks
 
-## Branch: feRelease010_271026 — Release 0.1.0
+## Branch: feLichessRematch_281026 — Lichess Rematch
+
+Plan: [`docs/LichessRematchPlan.md`](docs/LichessRematchPlan.md)
 
 ### In Progress
 
-- [ ] Merge release-prep PR to `develop` (CI green)
-- [ ] Tag `v0.1.0` on `develop` and push; verify GitHub Release + `ChessSetup-0.1.0.exe`
-- [ ] Smoke-test installer on a clean machine
+- [ ] 1. `LichessClient`: `RematchInfo`, `parseRematchInfo()`, keep last game's settings from `gameFull` + unit tests
+- [ ] 2. `LichessClient`: `createRematch()` (direct challenge to a registered opponent / open challenge for anonymous), `waitForGameStart(…, registerAsPlayer)`, `challengeDeclined` / `challengeCanceled` events
+- [ ] 3. `ChessConnector`: track online games in C++, `CanRematch` property, `rematch()` routing
+- [ ] 4. QML: Rematch button for online games, `ChallengeDialog` direct-challenge mode, `ChessGame.qml` handlers
+- [ ] 5. Manual test against Lichess (scenarios in plan §5); Debug + Release build
 
 ### Done
 
+- [x] Release 0.1.0 – 0.1.2 published (installer via `release.yml`)
 - [x] CI/CD build pipeline (MSBuild + windeployqt + signing + Inno Setup) — working since #33/#34
-- [x] Release notes `docs/release-notes/v0.1.0.md`, wired into `release.yml`
+- [x] Computer levels rework + levels help screen (#68)
+  - Levels 1–2: weak-move picker over MultiPV candidates (`PickWeakMove`), levels 3–5: `UCI_Elo` 1320/2000/3190
+  - Level table with name/Elo/hint in `EngineLevel.h`; `LevelsHelpDialog.qml`; robot avatar tooltip
+- [x] Promotion dialog upside-down when playing Black (#69)
+- [x] User profiles — `UserManager`, per-user saves, login screen (feUserAndMultyplayer_140526)
 
 ### Backlog
 
-- [ ] **User profiles** — per-user config (display name, settings, stats); `AppConfig` is designed to extend
 - [ ] **chess.com account** — save/restore user chess.com credentials and data when connected
-
-- [x] Engine Difficulty setting — implemented
-  - `UciConnector::SetDifficulty(int)` sets "Skill Level" via `setoption`; `SetOption` now updates `_opt` so `GetOption` reflects it
-  - `ChessEnginePlayer(game, difficulty)` calls `SetDifficulty` after `Init()`
-  - `startNewGameWithComputer(int difficulty)` stores `_lastDifficulty`; `continueGame()` reuses it
-  - Two new unit tests in `UciConnectorTest.cpp`: boundary verification via `GetOption`, move test at difficulty 1
+- [ ] Flaky `ChessQtTests` run: test host crashes intermittently around the engine-kill tests (`Init_AfterEngineKilled…`, `DebugState_AfterEngineDied…`); also on `develop`
 
 ---
 
@@ -42,7 +45,3 @@
 ## How to use this file
 
 Mark tasks `[x]` when done. Add new tasks under the appropriate section. Move completed sections to the bottom under **Done**.
-
-## Done
-
-<!-- Move completed task blocks here -->
