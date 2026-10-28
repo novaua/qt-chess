@@ -11,14 +11,20 @@
   - [x] Per candidate: download (checksum) → unzip → UCI check (`Prepare-Stockfish.ps1`, `uci` → `uciok`, version logged); fallback only if a step fails
   - [x] `{app}\engines\stockfish-install.log` (+ Inno `/LOG`); `Test-StockfishDownload.ps1` mirrors the flow — normal and fallback paths verified
   - [ ] Run the built installer once (normal install) and check `engines\stockfish-install.log`
-- [ ] Screenshot mode + `run-chess-app` skill — step 1 of BL-05 (branch `screenshotHook_281026`)
-  - [x] `ChessGui.exe --screenshot <png> --scene <name>` (+ `--moves`, `--black`, `--dark`, `--size`, `--delay`), works with `-platform offscreen`; `--data-dir` for a throwaway profile
-  - [x] `scripts\Take-Screenshot.ps1` (all scenes, optional build / windowed); `.claude/skills/run-chess-app`
-  - [ ] Stub UCI engine for a single-player scene (later, with BL-05)
+- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there.
+  - [x] Review of all screens, plan, design kit (`pics/icons/*.svg`, [`docs/design/ThemeTokens.md`](docs/design/ThemeTokens.md)), mockups (branch `appModernizationPlan_281026`)
+  - [x] Decide the QML access rule (plan §9 Q1): game flows through `ChessConnector`, services stay separate typed singletons (CLAUDE.md "Key Conventions")
+  - [ ] P1 Foundation: FluentWinUI3, `Theme.qml`, System/Light/Dark, icons in qrc, `AppDialog`; remove Qt5Compat effects and `NetworkPlayers.qml` (closes BL-01)
+  - [ ] P2 Shell and navigation: `StackView` pages, command bar, account menu, Home, setup dialogs, InfoBar; services as typed singletons; game flows into `ChessConnector` (`startLocalGame`, `switchUser`, Lichess game start/end)
+  - [ ] P3 Users and Lichess: welcome, profile picker, Profile page (ratings, Reconnect, OAuth Cancel: closes BL-08), Guest, statistics, `QSaveFile`, backups, export/import
+  - [ ] P4 Game chrome: player cards, captured strip with +N, responsive side panel or sheet, result card, move list with PGN
+  - [ ] P5 Settings and About pages
+  - [ ] P6 Polish: keyboard and accessibility, high contrast, motion, app icon, screenshot baselines (with BL-05)
 - [ ] Lichess rematch: live test with two Lichess accounts — direct rematch accept / decline / cancel, `opponentGone` + Claim victory (scenarios in [`docs/LichessRematchPlan.md`](docs/LichessRematchPlan.md) §5)
 
 ### Done
 
+- [x] Screenshot mode + `run-chess-app` skill (#76): `--screenshot`/`--scene`/`--data-dir`, `scripts\Take-Screenshot.ps1`. The stub UCI engine moved to BL-05.
 - [x] Lichess rematch + game end handling (#70) — plan: [`docs/LichessRematchPlan.md`](docs/LichessRematchPlan.md)
   - `LichessClient::createRematch()`: direct challenge (`keepAliveStream`) to a registered opponent, open challenge for anonymous; `parseRematchInfo()` + 4 unit tests
   - `ChessConnector::CanRematch`, Rematch button for online games, `ChallengeDialog` direct-challenge mode
@@ -37,18 +43,24 @@
 
 ### Backlog
 
-- [ ] BL-01 Remove obsolete QT QML components, used for chess glow for example [Easy]
-- [ ] BL-02 Review and modernize all game screens [Hard]
-- [ ] BL-03 Remove user handling relay on adopting LiChess more, need more reserch here before or togather with BL-02 [Medium]
-- [ ] BL-04 Improve game UI making pice move and grag by hand, ulse latest QLM techniques [Medium]
+- [ ] BL-01 Remove obsolete QT QML components, used for chess glow for example [Easy] → part of BL-02 P1
+- [ ] BL-02 Review and modernize all game screens [Hard] → In Progress (plan done)
+- [ ] BL-03 Remove user handling relay on adopting LiChess more, need more reserch here before or togather with BL-02 [Medium] → In Progress, BL-02 P3 (decided: local profiles + linked Lichess account)
+- [ ] BL-04 Improve game UI making pice move and dragged by hands, use latest QLM techniques [Medium]
 - [ ] BL-05 UI test suite for local pre-PR sanity (Qt Quick Test + screenshot diff, optional pywinauto smoke / CI job) — plan: [`docs/UiTestSuitePlan.md`](docs/UiTestSuitePlan.md) [Hard]
-- [ ] 
+- [ ] BL-06 Implement engine selection. Currently we bundle only with Stockfish. Implement setting to select test and make default another UCI engine.
+- [ ] BL-07 Polish LiChess workflows add full suport inlcuding caht and diffrent way pof playing.
+- [ ] BL-08 When authorizing using LiChess, 'Waiting for browser' message is shown, but the browser is not opened or the link lost or user dont wasn to. Add cancel option. → part of BL-02 P3
+
 ---
+
+
 
 ## Network Multiplayer Game
 
 - [ ] Re-implement network game support with local games without server
-     - Consider if it's worht doing at all	
+     - Consider if it's worth doing at all
+     - 	
 ---
 
 ## How to use this file
