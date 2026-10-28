@@ -155,6 +155,7 @@ public slots:
 
 	Q_INVOKABLE void resignGame();
 	Q_INVOKABLE void offerDraw();
+	Q_INVOKABLE void claimVictory(); // Lichess: after the opponent left the game
 	Q_INVOKABLE void respondDraw(bool accept);
 	Q_INVOKABLE void requestTakeback();
 	Q_INVOKABLE void respondTakeback(bool accept);
@@ -174,7 +175,8 @@ private:
 	void resetMoveHistoryCache();
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
-	void setLastGameOnline(bool online);
+	void beginGame(bool online); // resets per-game end state; online: rematch goes to Lichess
+	bool isMateBy(bool white) const;
 	void setFlaggedKing(int square);
 	void autoSaveGame(bool isSinglePlayer);
 	void deleteAutoSave();
@@ -201,6 +203,8 @@ private:
 	bool _wasVsComputer = false;
 	bool _lastGameOnline = false; // the current/last game is a Lichess game: rematch goes online
 	int  _flaggedKing    = -1;
+	bool _resultRecorded = false; // stats recorded for this game (mate can recur after undo)
+	bool _resignAfterEngineMove = false; // resign pressed while the robot was thinking
 	QString _gameResult;
 	AppConfig _config;
 	int _reviewIndex = -1;

@@ -802,12 +802,15 @@ ApplicationWindow {
                     chessConnector.flagKing(winner !== "white")
 
                 // Checkmate is already announced by the local game when the mating move arrives.
-                const notice = ({ "resign": loserName + " resigned",
-                                  "outoftime": loserName + " ran out of time",
-                                  "timeout": loserName + " left the game",
-                                  "noStart": loserName + " didn't move",
-                                  "aborted": "Game aborted",
-                                  "stalemate": "Stalemate", "draw": "Draw" })[status] ?? ""
+                // Without a winner (e.g. time ran out against a bare king) it is a draw, and
+                // we don't know who lost.
+                const loserNotice = ({ "resign": loserName + " resigned",
+                                       "outoftime": loserName + " ran out of time",
+                                       "timeout": loserName + " left the game",
+                                       "noStart": loserName + " didn't move" })[status] ?? ""
+                const notice = winnerName !== "" ? loserNotice
+                             : ({ "aborted": "Game aborted", "stalemate": "Stalemate",
+                                  "mate": "" })[status] ?? "Draw"
                 if (notice !== "")
                     chessBoard.showNotification(notice)
 
@@ -827,9 +830,7 @@ ApplicationWindow {
                 } else if (_showChallengeDialog) {
                     clearPendingChallenge()
                     _showOnlineDialog = true
-                } else if (_pendingRematch || _wasOnlineGame) {
-                    networkErrorBanner.show(message)
-                } else if (_onlineGameId !== "") {
+                } else if (_onlineGameId !== "" || _wasOnlineGame) {
                     networkErrorBanner.show(message)
                 }
             }
@@ -1079,7 +1080,7 @@ ApplicationWindow {
                 Button {
                     text: "Claim victory"; implicitWidth: 100; implicitHeight: 28
                     enabled: _claimSecondsLeft <= 0
-                    onClicked: lichessClient.claimVictory(_onlineGameId)
+                    onClicked: chessConnector.claimVictory()
                 }
             }
         }

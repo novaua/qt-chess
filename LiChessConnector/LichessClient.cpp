@@ -71,6 +71,15 @@ void LichessClient::validateToken(const QString& token)
     });
 }
 
+// Lichess error bodies are {"error":"..."}; fall back to Qt's message.
+static QString apiErrorMessage(const QByteArray& body, const QNetworkReply* reply)
+{
+    const auto doc = QJsonDocument::fromJson(body);
+    const QString apiError = doc.isObject()
+        ? doc.object().value(QStringLiteral("error")).toString() : QString();
+    return apiError.isEmpty() ? reply->errorString() : apiError;
+}
+
 // Real-time clock, correspondence days, or neither (unlimited).
 static void addTimeControl(QUrlQuery& body, int limitSec, int incrementSec, int days)
 {
@@ -96,17 +105,28 @@ void LichessClient::createOpenChallengeSec(int limitSec, int incrementSec, int d
     body.addQueryItem(QStringLiteral("color"),   color);
     body.addQueryItem(QStringLiteral("variant"), variant);
 
+    if (_openChallengeReply) {
+        auto* previous = _openChallengeReply;
+        _openChallengeReply = nullptr;
+        previous->abort();
+    }
     auto* reply = _nam.post(makeRequest(QStringLiteral("/api/challenge/open")),
                             body.toString(QUrl::FullyEncoded).toUtf8());
+    // Kept so stopStream() can drop a request still in flight (e.g. the user left the game).
+    _openChallengeReply = reply;
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, color]() {
         reply->deleteLater();
+        if (reply != _openChallengeReply)
+            return; // aborted by stopStream() or replaced
+        _openChallengeReply = nullptr;
+
         const QByteArray raw = reply->readAll();
         const int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         qDebug() << "LichessClient: createOpenChallenge HTTP" << httpStatus << raw.left(500);
 
         if (reply->error() != QNetworkReply::NoError) {
-            emit networkError(reply->errorString());
+            emit networkError(apiErrorMessage(raw, reply));
             return;
         }
 
@@ -466,13 +486,9 @@ void LichessClient::claimVictory(const QString& gameId)
         QByteArray());
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
-        if (reply->error() != QNetworkReply::NoError) {
-            const auto doc = QJsonDocument::fromJson(reply->readAll());
-            const QString apiError = doc.isObject()
-                ? doc.object().value(QStringLiteral("error")).toString() : QString();
+        if (reply->error() != QNetworkReply::NoError)
             emit networkError(QStringLiteral("Claim victory failed: ")
-                              + (apiError.isEmpty() ? reply->errorString() : apiError));
-        }
+                              + apiErrorMessage(reply->readAll(), reply));
     });
 }
 
@@ -505,6 +521,8 @@ void LichessClient::challengeUser(const RematchInfo& game, const QString& color)
 
     QNetworkRequest req = makeRequest(QStringLiteral("/api/challenge/") + game.opponentId);
     req.setRawHeader("Accept", "application/x-ndjson");
+    _directChallengeAccepted = false;
+    _directChallengeDone     = false;
     _directChallengeReply = _nam.post(req, body.toString(QUrl::FullyEncoded).toUtf8());
     auto* reply = _directChallengeReply;
 
@@ -530,19 +548,29 @@ void LichessClient::challengeUser(const RematchInfo& game, const QString& color)
                  << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()
                  << "| error:" << reply->error() << "|" << rest.left(300);
 
-        if (httpFailed() || (reply->error() != QNetworkReply::NoError
-                             && reply->error() != QNetworkReply::OperationCanceledError)) {
-            const auto doc = QJsonDocument::fromJson(rest);
-            const QString apiError = doc.isObject()
-                ? doc.object().value(QStringLiteral("error")).toString() : QString();
-            _pollTimer.stop();
-            stopEventStream();
-            _directChallengeId.clear();
-            emit networkError(apiError.isEmpty() ? reply->errorString() : apiError);
+        if (httpFailed()) {
+            stopWaitingForDirectChallenge();
+            emit networkError(QStringLiteral("Rematch challenge failed: ") + apiErrorMessage(rest, reply));
             return;
         }
-        for (const QByteArray& line : rest.split('\n'))
-            handleDirectChallengeLine(line.trimmed());
+        if (reply->error() == QNetworkReply::NoError)
+            for (const QByteArray& line : rest.split('\n'))
+                handleDirectChallengeLine(line.trimmed());
+
+        // Once accepted, the game exists: however the stream ended, waitForGameStart()
+        // finds it. Without a final {"done":...} the challenge is gone (connection lost,
+        // or closed early), so stop waiting instead of showing "Waiting…" forever.
+        if (_directChallengeAccepted || _directChallengeDone)
+            return;
+        const bool wasSent = !_directChallengeId.isEmpty();
+        stopWaitingForDirectChallenge();
+        if (wasSent && reply->error() == QNetworkReply::NoError)
+            emit challengeCanceled();
+        else
+            emit networkError(QStringLiteral("Rematch challenge failed: ")
+                              + (reply->error() == QNetworkReply::NoError
+                                 ? QStringLiteral("no response from Lichess")
+                                 : apiErrorMessage(rest, reply)));
     });
 }
 
@@ -559,15 +587,15 @@ void LichessClient::handleDirectChallengeLine(const QByteArray& line)
 
     const QString done = obj.value(QStringLiteral("done")).toString();
     if (!done.isEmpty()) {
+        _directChallengeDone = true;
         if (done == QLatin1String("accepted")) {
+            _directChallengeAccepted = true;
             checkGameReady(); // waitForGameStart() is running; probe now instead of in 3 s
             return;
         }
         // Declined, or canceled on the server side (e.g. expired). Our own cancel goes
         // through cancelChallenge(), which stops this stream before the server answers.
-        _pollTimer.stop();
-        stopEventStream();
-        _directChallengeId.clear();
+        stopWaitingForDirectChallenge();
         if (done == QLatin1String("declined"))
             emit challengeDeclined(_lastGame.opponentName);
         else
@@ -587,6 +615,13 @@ void LichessClient::handleDirectChallengeLine(const QByteArray& line)
     _currentGameId     = id;
     emit directChallengeSent(id, _lastGame.opponentName);
     waitForGameStart(id, false);
+}
+
+void LichessClient::stopWaitingForDirectChallenge()
+{
+    _pollTimer.stop();
+    stopEventStream();
+    _directChallengeId.clear();
 }
 
 void LichessClient::stopDirectChallenge()
@@ -639,6 +674,11 @@ RematchInfo LichessClient::parseRematchInfo(const QJsonObject& gameFull, const Q
 void LichessClient::stopStream()
 {
     stopDirectChallenge();
+    if (_openChallengeReply) {
+        auto* reply = _openChallengeReply;
+        _openChallengeReply = nullptr; // its finished() handler must ignore it
+        reply->abort();
+    }
     _pollTimer.stop();
     if (_probeReply) {
         _probeReply->abort();

@@ -21,6 +21,12 @@ Plan: [`docs/LichessRematchPlan.md`](docs/LichessRematchPlan.md)
   - Local resign sets `GameResult`, so Rematch / result card appear; flag hidden while reviewing earlier moves
   - Undo after mate / resign vs Robot resumes the game (clears flag, result, `_gameOver`)
   - Winner name fixed when the player plays Black
+- [x] 4d. Code review fixes
+  - Undo after the player mates the Robot takes back only that move; robot replays if it is its turn
+  - Mate stats recorded once per game; finished games no longer autosaved for Continue
+  - Resign while the robot thinks is applied after its move; pieces frozen after any game end
+  - '#' only for checkmate results (not resignations); outoftime draw notice fixed
+  - Lichess: in-flight open-challenge request aborted on leaving; direct challenge stream ending without `done` / after `accepted` handled; shared `apiErrorMessage`; Claim victory via `ChessConnector`
 - [ ] 5. Manual test against Lichess (scenarios in plan §5) — Debug + Release build ✅, app starts without QML errors ✅, live Lichess scenarios pending
 
 ### Done

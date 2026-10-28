@@ -40,7 +40,7 @@ public:
 	// Rematch the last game with colors swapped: a direct challenge to a registered opponent
 	// (emits directChallengeSent), or a new open challenge for an anonymous one (emits
 	// challengeCreated). Either way gameStarted follows once the opponent joins.
-	Q_INVOKABLE void createRematch();
+	void createRematch(); // via ChessConnector::rematch()
 	bool canRematch() const { return _lastGame.valid && !_token.isEmpty(); }
 	const RematchInfo& lastGame() const { return _lastGame; }
 
@@ -51,7 +51,7 @@ public:
 	Q_INVOKABLE void offerDraw(const QString& gameId, bool accept);
 	Q_INVOKABLE void requestTakeback(const QString& gameId, bool accept);
 	Q_INVOKABLE void abortGame(const QString& gameId);
-	Q_INVOKABLE void claimVictory(const QString& gameId); // allowed once opponentGone's countdown ends
+	void claimVictory(const QString& gameId); // allowed once opponentGone's countdown ends
 	Q_INVOKABLE void stopStream();
 	Q_INVOKABLE void cancelChallenge(const QString& challengeId);
 
@@ -88,6 +88,7 @@ private:
 	void challengeUser(const RematchInfo& game, const QString& color);
 	void handleDirectChallengeLine(const QByteArray& line);
 	void stopDirectChallenge();
+	void stopWaitingForDirectChallenge(); // stop probing for the game; keeps the reply
 	void handleStreamData(QNetworkReply* reply);
 
 	void handleEventStreamData(QNetworkReply* reply);
@@ -107,8 +108,11 @@ private:
 	QNetworkReply* _streamReply      = nullptr;
 	QNetworkReply* _eventStreamReply = nullptr;
 	QNetworkReply* _probeReply       = nullptr;
+	QNetworkReply* _openChallengeReply   = nullptr; // POST /api/challenge/open in flight
 	QNetworkReply* _directChallengeReply = nullptr; // keepAliveStream: open while the challenge waits
 	QString        _directChallengeId;
+	bool           _directChallengeAccepted = false;
+	bool           _directChallengeDone     = false; // a {"done":...} line arrived
 	QTimer         _pollTimer;
 	RematchInfo    _lastGame;
 };
