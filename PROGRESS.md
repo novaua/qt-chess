@@ -4,6 +4,34 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-28 — App modernisation planned (BL-02/BL-03); next: Phase 1
+
+### What was done
+- **#76 Screenshot mode:** `ChessGui.exe --screenshot <png> --scene <name>` (with `--moves`, `--black`, `--dark`, `--size`, `--delay`) on a throwaway profile; `--data-dir <dir>` for interactive runs. `scripts\Take-Screenshot.ps1 -Scene all [-Dark] [-Windowed] [-Build]` writes to `test-results\screens\`. The `run-chess-app` skill explains it.
+- **#77 Modernisation plan:** `docs/AppModernizationPlan.md` holds the screen-by-screen review, target flows, roadmap P1–P6 and the mockup link (§10).
+  - Design kit: 38 icons in `ChessGui/ChessGui/pics/icons/` (not in `qml.qrc` yet), `docs/design/ThemeTokens.md`, and "before" screenshots in `docs/design/before/`.
+  - Decisions: Windows 11 Fluent (`FluentWinUI3` style, system theme and accent); local profiles with a linked Lichess account; profile export/import plus backups.
+  - QML ↔ C++ rule (CLAUDE.md "Key Conventions"): game flows go through `ChessConnector`, one call per action; `UserManager` and `LichessClient` stay separate services and become typed singletons in P2.
+- `TASKS.md`: BL-02/BL-03 is at the top of *In Progress*, with one sub-item per phase.
+
+### Where to continue: P1 Foundation (new branch from `origin/develop`, e.g. `fluentFoundation_<ddmmyy>`)
+Plan first (`/plan`), then implement. Spec: plan §6 and §8, `docs/design/ThemeTokens.md`.
+1. `main.cpp`: `QQuickStyle::setStyle("FluentWinUI3")`. Remove the per-file `background:`/`contentItem:` overrides that fight the style: inline `Button` and `ModeButton` in `ChessGame.qml`, `Button.qml`, `ActionButton.qml`, `CustomSlider.qml`, the primary-button copies in the dialogs. Prefer plain Fluent controls (`highlighted: true` for the primary action).
+2. `qml/Theme.qml` singleton (`qmldir` + `qml.qrc`). It replaces the 16 `Window.window.color` dark-mode blocks. System/Light/Dark sets `Application.styleHints.colorScheme`; migrate `appSettings.darkMode`.
+3. Icons: add `pics/icons/*.svg` to `qml.qrc` and use them via `icon.source` + `icon.color`. This replaces the `ColorOverlay` menu icon and glyph labels ("⚑", "↩", "|<<").
+4. `AppDialog` base: modal, with a scrim and Enter/Esc. Move the existing dialogs onto it (Settings, Profile, Levels, Lichess, Challenge, Select player, Apply moves).
+5. Remove `Qt5Compat.GraphicalEffects` (`ColorOverlay` in `ChessGame.qml`; `Glow` in `ChessFigures.qml`, which becomes an accent square tint) and the unused `NetworkPlayers.qml`. That closes BL-01.
+6. Keep every screenshot scene working (`setUpScreenshotScene()` in `ChessGame.qml`). Before/after shots, light and dark, go in the PR.
+
+Out of scope for P1: the page split and navigation (P2), and piece moving/drag (BL-04).
+
+### Notes
+- After P1, offscreen screenshots should match windowed ones, because Qt5Compat effects are what rendered blank offscreen.
+- Login cards are left-aligned (`UserLoginScreen.qml` `Flow`); this is fixed in P3, not P1.
+- Manual checks still open (no code): VC++ runtime install, Stockfish install log, Lichess rematch live test. They're listed under *In Progress* in `TASKS.md`.
+
+---
+
 ## 2026-10-28 — Lichess Rematch (branch: feLichessRematch_281026)
 
 ### What was done
