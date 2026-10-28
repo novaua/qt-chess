@@ -16,6 +16,20 @@
   #error Stockfish download not set: build with installer\Build-Installer.ps1 (runs Resolve-Stockfish.ps1)
 #endif
 
+; Microsoft Visual C++ runtime the app was built with. windeployqt puts vc_redist.x64.exe
+; into deploy\ (only when VCINSTALLDIR is set; Build-Installer.ps1 and release.yml do that).
+; Setup runs it only if the installed runtime is missing or older than this version.
+#define VCRedistFile AddBackslash(SourcePath) + "..\deploy\vc_redist.x64.exe"
+#if !FileExists(VCRedistFile)
+  #error deploy\vc_redist.x64.exe missing: build with installer\Build-Installer.ps1 (sets VCINSTALLDIR for windeployqt)
+#endif
+#define VCRedistMajor
+#define VCRedistMinor
+#define VCRedistBld
+#define VCRedistRbld
+#expr GetVersionComponents(VCRedistFile, VCRedistMajor, VCRedistMinor, VCRedistBld, VCRedistRbld)
+#define VCRedistVersion Str(VCRedistMajor) + "." + Str(VCRedistMinor) + "." + Str(VCRedistBld) + "." + Str(VCRedistRbld)
+
 [Setup]
 AppId={{F3A8B2C1-5D47-4E89-B123-9A0C1D2E3F4A}
 AppName={#MyAppName}
@@ -47,7 +61,9 @@ Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription
 Name: "stockfish"; Description: "Download the Stockfish chess engine ({#SfPrimaryTag}, requires internet)"; GroupDescription: "Optional components:"
 
 [Files]
-Source: "..\deploy\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\deploy\*"; Excludes: "vc_redist.x64.exe"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Unpacked to {tmp} only when needed (VCRedistNeeded); run in CurStepChanged(ssPostInstall).
+Source: "..\deploy\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall; Check: VCRedistNeeded
 ; Unzips and checks the downloaded engine; extracted to {tmp} on demand (ExtractTemporaryFile).
 Source: "Prepare-Stockfish.ps1"; Flags: dontcopy
 
@@ -199,12 +215,80 @@ begin
   end;
 end;
 
-// Copy the verified engine and the log into {app}\engines.
-procedure CurStepChanged(CurStep: TSetupStep);
+// --- Microsoft Visual C++ runtime -----------------------------------------------------
+// ChessGui.exe needs the runtime it was built with ({#VCRedistVersion}) or newer. The
+// bundled vc_redist.x64.exe is unpacked (see [Files] Check) and run only if the installed
+// runtime is missing or older; it is never copied into {app}.
+const
+  VCRuntimeKey = 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64';
+  VCRedistUrl = 'https://aka.ms/vc14/vc_redist.x64.exe';
+
+var
+  VCRedistRestart: Boolean;
+
+function InstalledVCRuntime(var Version: Int64): Boolean;
+var
+  Installed, Major, Minor, Bld, Rbld: Cardinal;
+begin
+  Result := RegQueryDWordValue(HKLM64, VCRuntimeKey, 'Installed', Installed) and (Installed = 1) and
+            RegQueryDWordValue(HKLM64, VCRuntimeKey, 'Major', Major) and
+            RegQueryDWordValue(HKLM64, VCRuntimeKey, 'Minor', Minor) and
+            RegQueryDWordValue(HKLM64, VCRuntimeKey, 'Bld', Bld);
+  if not RegQueryDWordValue(HKLM64, VCRuntimeKey, 'Rbld', Rbld) then
+    Rbld := 0;
+  if Result then
+    Version := PackVersionComponents(Major, Minor, Bld, Rbld);
+end;
+
+function VCRedistNeeded(): Boolean;
+var
+  Installed: Int64;
+begin
+  Result := not InstalledVCRuntime(Installed) or
+            (ComparePackedVersion(Installed,
+               PackVersionComponents({#VCRedistMajor}, {#VCRedistMinor}, {#VCRedistBld}, {#VCRedistRbld})) < 0);
+end;
+
+procedure InstallVCRedist();
+var
+  Exe: String;
+  ResultCode: Integer;
+begin
+  Exe := ExpandConstant('{tmp}\vc_redist.x64.exe');
+  if not FileExists(Exe) then
+  begin
+    Log('VC++ runtime: {#VCRedistVersion} or newer already installed');
+    Exit;
+  end;
+
+  WizardForm.StatusLabel.Caption := 'Installing Microsoft Visual C++ Runtime...';
+  WizardForm.FilenameLabel.Caption := '';
+  if not Exec(Exe, '/install /quiet /norestart', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    ResultCode := -1;
+  Log('VC++ runtime {#VCRedistVersion}: vc_redist.x64.exe exit code ' + IntToStr(ResultCode));
+
+  case ResultCode of
+    0, 1638: ;                      // installed, or a newer version is already there
+    3010: VCRedistRestart := True;  // installed, Windows needs a restart
+  else
+    SuppressibleMsgBox('The Microsoft Visual C++ Runtime could not be installed (exit code ' +
+      IntToStr(ResultCode) + ').' + #13#10 + #13#10 +
+      'If Chess++ does not start, install it from:' + #13#10 + VCRedistUrl,
+      mbError, MB_OK, IDOK);
+  end;
+end;
+
+function NeedRestart(): Boolean;
+begin
+  Result := VCRedistRestart;
+end;
+
+// --- Stockfish: copy the verified engine and the log into {app}\engines ----------------
+procedure InstallStockfish();
 var
   EnginesDir: String;
 begin
-  if (CurStep = ssPostInstall) and WizardIsTaskSelected('stockfish') and (StockfishLog <> '') then
+  if WizardIsTaskSelected('stockfish') and (StockfishLog <> '') then
   begin
     WizardForm.StatusLabel.Caption := 'Installing Stockfish chess engine...';
     WizardForm.FilenameLabel.Caption := '';
@@ -222,6 +306,15 @@ begin
     end;
     CopyFile(StockfishLog, EnginesDir + '\stockfish-install.log', False);
     WizardForm.StatusLabel.Caption := 'Done.';
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+  begin
+    InstallVCRedist();
+    InstallStockfish();
   end;
 end;
 
