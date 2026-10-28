@@ -5,9 +5,9 @@ Rectangle{
     height: parent.height<parent.width?0.125*parent.height:0.125*parent.width
     width:  4*height
     radius: 0.125*height
-    border.color: lightChessBoxColor
+    border.color: Theme.squareLight
     opacity:0
-    color: darkChessBoxColor
+    color: Theme.squareDark
 
     Behavior on opacity  {
         NumberAnimation {
@@ -37,7 +37,7 @@ Rectangle{
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         fontSizeMode: Text.Fit
-        color: lightChessBoxColor
+        color: Theme.squareLight
         minimumPixelSize: 2
         font.pixelSize: 50
     }

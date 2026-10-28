@@ -4,6 +4,28 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-29 — BL-02 P1 Foundation done (branch: fluentFoundation_281026); next: P2
+
+### What was done
+- **Style:** `QQuickStyle::setStyle("FluentWinUI3")` in `main.cpp`. The palette block, inline `Button`/`ModeButton` and every `background:`/`contentItem:` override are gone. `Button.qml`, `ActionButton.qml`, `CustomSlider.qml`, `NetworkPlayers.qml` and `menu_icon.svg` were deleted.
+- **`qml/Theme.qml`** singleton (`qml/qmldir`): colour roles, board, type ramp, spacing and motion as in `docs/design/ThemeTokens.md`; §8 there lists the differences. No `Window.window.color` and no hex colour outside `Theme.qml`.
+- **System / Light / Dark:** `appSettings.theme` (Settings → "App theme"). It sets `Application.styleHints.colorScheme`; until it is set, the old `darkMode` decides. "System" follows Windows; checked live.
+- **Icons:** `pics/icons/*.svg` are in `qml.qrc` under `qrc:/icons/` (`Theme.icon("undo")`). New `IconButton.qml` (icon-only `ToolButton` with tooltip and `Accessible.name`) is used in the command bar and the move panel.
+- **`AppDialog.qml`:** a modal Fluent `Dialog` on the overlay with the `Theme.scrim`. Enter runs `accept()` and Esc runs `reject()`; footers are `DialogButtonBox`es. Settings, Profile/Create profile, Levels, Lichess, Challenge, Select player and Apply moves use it. Shown with `visible: _showX; onClosed: _showX = false`.
+- **Board:** the `Glow` is replaced by an accent tint on the selected piece's square, cleared after a move. Legal-move dots use `Theme.legalMoveDot`, and coordinates use `textSecondary`. The photo shows only behind the start menu and login, faint.
+- **Screenshots:** `-platform offscreen` can't force light/dark, and Fluent falls back to its dark palette there. Screenshot mode now uses a real window that is transparent, frameless, ignores input and has no taskbar button, at 100% scale. `Take-Screenshot.ps1` dropped `-Windowed`. New scenes: `online`, `players`. After shots: `docs/design/after-p1/`.
+- Keyboard checked live: Enter creates a profile, F1 opens levels, Esc closes the dialog. `windeployqt` deploys the FluentWinUI3 plugin and its assets. Debug + Release build OK; `ChessTests` 67/67.
+
+### Where to continue: P2 Shell and navigation (new branch from `origin/develop`)
+Spec: plan §6 and §8 (P2 row). `StackView` pages, command bar, account menu, Home, InfoBar replaces `Notificator` and the banners, `_show*` flags removed, services as typed singletons, game flows into `ChessConnector`.
+
+### Notes
+- Not seen in a scene yet: the connected Lichess dialog, the Challenge dialog, the draw/takeback banners and the two resign confirmations. Check them during the Lichess live test (TASKS).
+- `windeployqt --qmldir ChessGui\ChessGui` locally still lists Qt5Compat, but only because stale Qt VS Tools caches (`ChessGui\ChessGui\x64\*\qt\qmake\*\import.qml`) import it. CI starts clean.
+- The board's own animations (elastic flip, InCirc piece rotation) are unchanged; motion tokens come in P6.
+
+---
+
 ## 2026-10-28 — App modernisation planned (BL-02/BL-03); next: Phase 1
 
 ### What was done

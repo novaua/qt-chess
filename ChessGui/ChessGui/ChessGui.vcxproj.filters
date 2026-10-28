@@ -119,9 +119,6 @@
     <None Include="pics\chess_icon.svg">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="qml\Button.qml">
-      <Filter>Source Files\Qml</Filter>
-    </None>
     <None Include="qml\ChessBoard.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
@@ -135,9 +132,6 @@
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\ChessGame.qml">
-      <Filter>Source Files\Qml</Filter>
-    </None>
-    <None Include="qml\CustomSlider.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\EmptyBoardModel.qml">
@@ -155,9 +149,6 @@
     <None Include="qml\NavigationLayer.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
-    <None Include="qml\NetworkPlayers.qml">
-      <Filter>Source Files\Qml</Filter>
-    </None>
     <None Include="qml\Notificator.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
@@ -166,9 +157,6 @@
     </None>
     <None Include="qml\GameResultDialog.qml">
       <Filter>Source Files\Qml</Filter>
-    </None>
-    <None Include="menu_icon.svg">
-      <Filter>Resource Files</Filter>
     </None>
     <None Include="qml\ApplyMovesDialog.qml">
       <Filter>Source Files\Qml</Filter>
@@ -182,7 +170,16 @@
     <None Include="qml\LichessGameDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
-    <None Include="qml\ActionButton.qml">
+    <None Include="qml\AppDialog.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\IconButton.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\qmldir">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\Theme.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
   </ItemGroup>

@@ -1,6 +1,4 @@
 import QtQuick
-import Qt5Compat.GraphicalEffects
-import QtQuick.Effects
 
 Grid{
 
@@ -53,49 +51,12 @@ Grid{
                     }
                 }
             }
-/*
-    MultiEffect {
-        id: selectItemGlow
-        source: chessPiecesImg
-        anchors.fill: chessPiecesItm
-        // Enable the shadow effect to create the glow
-        shadowEnabled: false
-        visible: shadowEnabled
-        // Configure the "shadow" to look like a glow
-        shadowColor: chessFigureGlow                // cyan The color of the glow
-        shadowBlur: 1.0 // Full blur strength (actual radius depends on blurMax)
-        //shadowSpread: 1.0 // Ensures the glow is strong near the edges
-        shadowScale: 1.1 // No scaling of the shadow
-        shadowVerticalOffset: 0 // Center the "shadow" vertically
-        shadowHorizontalOffset: 0 // Center the "shadow" horizontally
-
-        // Performance note: blurMax should be set once and not animated
-        blurMax: 32.0 // Maximum pixel radius of the blur
-    }
-*/
-
-            Glow{
-                id:selectItemGlow
-
-                anchors.fill:  chessPiecesImg
-                radius: 0.05*height
-                samples: radius>16?16:radius
-                spread: 0.5
-                opacity:0
-                color: chessFigureGlow
-                source: chessPiecesImg
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        easing {
-                            type: Easing.InCirc
-                            amplitude: 6.0
-                            period: 30
-                        }
-                    }
-                }
+            // Selected piece: accent tint on its square
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.selected
+                visible: chessPiecesRptr.selectedIndex === index && modelData !== " "
             }
-
 
             Image{
                 id:chessPiecesImg
@@ -117,9 +78,9 @@ Grid{
                 visible: index === chessConnector.FlaggedKing
                 anchors { top: parent.top; right: parent.right; margins: parent.width * 0.04 }
                 text: "⚑"
-                color: "#e74c3c"
+                color: Theme.flaggedKing
                 style: Text.Outline
-                styleColor: "#ffffff"
+                styleColor: Theme.textOnColor
                 font.pixelSize: parent.height * 0.36
                 font.bold: true
             }
@@ -139,7 +100,7 @@ Grid{
             {
                 anchors.fill:parent
                 onClicked: {
-                    changeGlow(index)
+                    chessPiecesRptr.selectedIndex = index
                     chessPiecesRptr.chessfigureSelected(index)
 
                     //connect using signal
@@ -151,19 +112,10 @@ Grid{
 
     Connections {
         target: chessConnector
-        function onBoardChanged(position, newValue) { updateChessFiguresModel(position, newValue) }
-    }
-
-    function changeGlow(index)
-    {
-        index=parseInt(index)
-        if(chessPiecesRptr.selectedIndex!==-1)
-            chessPiecesRptr.itemAt(chessPiecesRptr.selectedIndex).children[0].opacity=0
-            //chessPiecesRptr.itemAt(chessPiecesRptr.selectedIndex).children[0].shadowEnabled=false
-
-        chessPiecesRptr.selectedIndex=index
-        chessPiecesRptr.itemAt(index).children[0].opacity=1
-        //chessPiecesRptr.itemAt(index).children[0].shadowEnabled=true
+        function onBoardChanged(position, newValue) {
+            chessPiecesRptr.selectedIndex = -1   // a move was made: nothing is selected any more
+            updateChessFiguresModel(position, newValue)
+        }
     }
 
     function updateChessFiguresModel(index, value)

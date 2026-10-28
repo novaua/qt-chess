@@ -27,11 +27,9 @@ Column {
                  verticalAlignment: Text.AlignVCenter
                  text:modelData
                  fontSizeMode: Text.Fit
-                 color: markersOfChessBoxColor
+                 color: Theme.textSecondary
                  minimumPixelSize: 2
                  font.pixelSize: 50
-
-                 opacity:0.8
              }
          }
     }

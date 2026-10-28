@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Window
 import QtQuick.Controls
 
 Rectangle {
@@ -13,12 +12,6 @@ Rectangle {
 
     signal avatarClicked()
 
-    readonly property bool _dark: {
-        if (!Window.window) return false
-        var c = Window.window.color
-        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) <= 0.5
-    }
-
     Row {
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
@@ -30,9 +23,9 @@ Rectangle {
             id: avatarFrame
             width:  panel.height - 8
             height: panel.height - 8
-            radius: 6
-            color:  panel._dark ? "#3c3c3c" : "#e8e8e8"
-            border.color: panel.isActive ? "#27ae60" : (panel._dark ? "#666666" : "#bbbbbb")
+            radius: Theme.radiusAvatar
+            color:  Theme.cardBg
+            border.color: panel.isActive ? Theme.success : Theme.cardStroke
             border.width: panel.isActive ? 2 : 1
 
             Image {
@@ -47,7 +40,7 @@ Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
                 radius: parent.radius - 1
-                color: "#27ae60"
+                color: Theme.success
                 opacity: 0
                 visible: panel.isActive
 

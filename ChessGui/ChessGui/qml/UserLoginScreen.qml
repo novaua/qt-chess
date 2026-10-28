@@ -1,49 +1,41 @@
 import QtQuick
-import QtQuick.Controls as QQC
-import QtQuick.Window
+import QtQuick.Controls
 
 Rectangle {
     id: loginScreen
     anchors.fill: parent
 
-    readonly property bool isDarkMode: {
-        if (!Window.window) return false
-        var c = Window.window.color
-        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) <= 0.5
-    }
-
-    color: isDarkMode ? "#1e1e1e" : "#f0f0f0"
+    color: Theme.windowBg
 
     Image {
         anchors.fill: parent
         source: "qrc:/app/pics/ChessBackground.jpg"
         fillMode: Image.PreserveAspectCrop
-        opacity: 0.35
+        opacity: Theme.homeBackdropOpacity
     }
 
     Column {
         anchors.centerIn: parent
-        spacing: 24
-        width: Math.min(parent.width - 48, 480)
+        spacing: Theme.s5
+        width: Math.min(parent.width - 2 * Theme.s7, 480)
 
         Text {
-            text: "Chess ++"
-            font.pixelSize: 30
-            font.bold: true
-            color: isDarkMode ? "#ffffff" : "#000000"
+            text: "Chess++"
+            font: Theme.titleLarge
+            color: Theme.textPrimary
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
         Text {
             text: "Who's playing?"
-            font.pixelSize: 16
-            color: isDarkMode ? "#bbbbbb" : "#555555"
+            font: Theme.subtitle
+            color: Theme.textSecondary
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
         Flow {
             id: userFlow
-            spacing: 14
+            spacing: Theme.s3
             anchors.horizontalCenter: parent.horizontalCenter
             width: parent.width
 
@@ -52,18 +44,17 @@ Rectangle {
                 delegate: Rectangle {
                     readonly property bool isActive: modelData.id === userManager.activeUserId
 
-                    width: 90
-                    height: 110
-                    radius: 10
-                    color: isActive
-                        ? (isDarkMode ? "#1a4a7a" : "#cce4ff")
-                        : (isDarkMode ? "#2d2d2d" : "#ffffff")
-                    border.color: isActive ? "#0078d4" : (isDarkMode ? "#555555" : "#dddddd")
+                    width: 96
+                    height: 116
+                    radius: Theme.radiusCard
+                    color: isActive ? Theme.selectedBg
+                         : cardMouse.containsMouse ? Theme.cardBgHover : Theme.cardBg
+                    border.color: isActive || cardMouse.containsMouse ? Theme.accent : Theme.cardStroke
                     border.width: isActive ? 2 : 1
 
                     Column {
                         anchors.centerIn: parent
-                        spacing: 8
+                        spacing: Theme.s2
 
                         Image {
                             width: 56; height: 56
@@ -74,22 +65,20 @@ Rectangle {
 
                         Text {
                             text: modelData.name
-                            color: isDarkMode ? "#ffffff" : "#000000"
-                            font.pixelSize: 12
-                            font.bold: isActive
+                            color: Theme.textPrimary
+                            font: isActive ? Theme.bodyStrong : Theme.body
                             horizontalAlignment: Text.AlignHCenter
-                            width: 80
+                            width: 84
                             elide: Text.ElideRight
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                     }
 
                     MouseArea {
+                        id: cardMouse
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         hoverEnabled: true
-                        onEntered: if (!isActive) parent.border.color = "#0078d4"
-                        onExited:  if (!isActive) parent.border.color = isDarkMode ? "#555555" : "#dddddd"
                         onClicked: userManager.login(modelData.id)
                     }
                 }
@@ -97,9 +86,8 @@ Rectangle {
         }
 
         Button {
-            text: "+ Add User"
-            implicitWidth: 130
-            implicitHeight: 32
+            text: "Add profile"
+            icon.source: Theme.icon("person-add")
             anchors.horizontalCenter: parent.horizontalCenter
             onClicked: loginScreen.addUserRequested()
         }

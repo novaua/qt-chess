@@ -1,35 +1,27 @@
 import QtQuick
-import QtQuick.Window
 
 Rectangle {
     id: dialog
 
-    readonly property bool isDarkMode: {
-        if (!Window.window) return false
-        var c = Window.window.color
-        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) <= 0.5
-    }
-
     property string winner: ""
 
     width: 160
-    height: dialogContent.implicitHeight + 24
-    color: isDarkMode ? "#cc252525" : "#ccf4f4f4"
-    border.color: isDarkMode ? "#555555" : "#cccccc"
+    height: dialogContent.implicitHeight + 2 * Theme.s3
+    color: Theme.cardBg
+    border.color: Theme.cardStroke
     border.width: 1
-    radius: 12
+    radius: Theme.radiusCard
 
     Column {
         id: dialogContent
         anchors.centerIn: parent
-        spacing: 10
-        width: parent.width - 24
+        spacing: Theme.s2
+        width: parent.width - 2 * Theme.s3
 
         Text {
             text: dialog.winner
-            font.pixelSize: 18
-            font.bold: true
-            color: isDarkMode ? "#ffffff" : "#000000"
+            font: Theme.bodyStrong
+            color: Theme.textPrimary
             anchors.horizontalCenter: parent.horizontalCenter
             wrapMode: Text.WordWrap
             width: parent.width
@@ -39,44 +31,29 @@ Rectangle {
         Rectangle {
             width: parent.width
             height: 1
-            color: isDarkMode ? "#444444" : "#dddddd"
+            color: Theme.divider
         }
 
-        Text {
-            text: "Games played: " + userManager.gamesPlayed
-            color: isDarkMode ? "#dddddd" : "#222222"
-            font.pixelSize: 13
-            anchors.horizontalCenter: parent.horizontalCenter
-            wrapMode: Text.WordWrap
-            width: parent.width
-            horizontalAlignment: Text.AlignHCenter
-        }
-
-        Text {
-            text: "Human won: " + userManager.humanWins
-            color: isDarkMode ? "#dddddd" : "#222222"
-            font.pixelSize: 13
-            anchors.horizontalCenter: parent.horizontalCenter
-            wrapMode: Text.WordWrap
-            width: parent.width
-            horizontalAlignment: Text.AlignHCenter
-        }
-
-        Text {
-            text: "Robot won: " + userManager.computerWins
-            color: isDarkMode ? "#dddddd" : "#222222"
-            font.pixelSize: 13
-            anchors.horizontalCenter: parent.horizontalCenter
-            wrapMode: Text.WordWrap
-            width: parent.width
-            horizontalAlignment: Text.AlignHCenter
+        Repeater {
+            model: [
+                "Games played: " + userManager.gamesPlayed,
+                "Human won: "    + userManager.humanWins,
+                "Robot won: "    + userManager.computerWins
+            ]
+            Text {
+                text: modelData
+                color: Theme.textPrimary
+                font: Theme.body
+                wrapMode: Text.WordWrap
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+            }
         }
 
         Text {
             text: "Since: " + userManager.statsCreatedDate
-            color: isDarkMode ? "#888888" : "#888888"
-            font.pixelSize: 11
-            anchors.horizontalCenter: parent.horizontalCenter
+            color: Theme.textSecondary
+            font: Theme.caption
             wrapMode: Text.WordWrap
             width: parent.width
             horizontalAlignment: Text.AlignHCenter

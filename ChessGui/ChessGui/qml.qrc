@@ -1,12 +1,14 @@
 <RCC>
     <qresource prefix="/">
-        <file>qml/ActionButton.qml</file>
+        <file>qml/qmldir</file>
+        <file>qml/Theme.qml</file>
+        <file>qml/AppDialog.qml</file>
+        <file>qml/IconButton.qml</file>
         <file>qml/ApplyMovesDialog.qml</file>
         <file>qml/ChallengeDialog.qml</file>
         <file>qml/CreateUserDialog.qml</file>
         <file>qml/UserLoginScreen.qml</file>
         <file>qml/LichessGameDialog.qml</file>
-        <file>qml/Button.qml</file>
         <file>qml/SettingsDialog.qml</file>
         <file>qml/LevelsHelpDialog.qml</file>
         <file>qml/GameResultCard.qml</file>
@@ -17,13 +19,11 @@
         <file>qml/ChessBoxes.qml</file>
         <file>qml/ChessFigures.qml</file>
         <file>qml/ChessGame.qml</file>
-        <file>qml/CustomSlider.qml</file>
         <file>qml/EmptyBoardModel.qml</file>
         <file>qml/MarkerColumn.qml</file>
         <file>qml/MoveHistoryPanel.qml</file>
         <file>qml/MarkerRow.qml</file>
         <file>qml/NavigationLayer.qml</file>
-        <file>qml/NetworkPlayers.qml</file>
         <file>qml/Notificator.qml</file>
         <file>qml/PawnPromotionOptions.qml</file>
         <file>qml/SelectPlayerDialog.qml</file>
@@ -44,7 +44,6 @@
     </qresource>
     <qresource prefix="/app">
         <file>pics/chess_icon.svg</file>
-        <file>pics/menu_icon.svg</file>
         <file>pics/ChessBackground.jpg</file>
         <file>pics/rotate.png</file>
         <file>pics/avatars/robot.png</file>
@@ -68,6 +67,46 @@
         <file>pics/avatars/pirate.png</file>
         <file>pics/avatars/alien.png</file>
         <file>pics/avatars/crown.png</file>
+    </qresource>
+    <qresource prefix="/icons">
+        <file alias="back.svg">pics/icons/back.svg</file>
+        <file alias="clock.svg">pics/icons/clock.svg</file>
+        <file alias="close.svg">pics/icons/close.svg</file>
+        <file alias="copy.svg">pics/icons/copy.svg</file>
+        <file alias="delete.svg">pics/icons/delete.svg</file>
+        <file alias="draw.svg">pics/icons/draw.svg</file>
+        <file alias="edit.svg">pics/icons/edit.svg</file>
+        <file alias="export.svg">pics/icons/export.svg</file>
+        <file alias="first.svg">pics/icons/first.svg</file>
+        <file alias="flag.svg">pics/icons/flag.svg</file>
+        <file alias="flip-board.svg">pics/icons/flip-board.svg</file>
+        <file alias="folder-open.svg">pics/icons/folder-open.svg</file>
+        <file alias="globe.svg">pics/icons/globe.svg</file>
+        <file alias="home.svg">pics/icons/home.svg</file>
+        <file alias="import.svg">pics/icons/import.svg</file>
+        <file alias="info.svg">pics/icons/info.svg</file>
+        <file alias="keyboard.svg">pics/icons/keyboard.svg</file>
+        <file alias="last.svg">pics/icons/last.svg</file>
+        <file alias="link.svg">pics/icons/link.svg</file>
+        <file alias="menu.svg">pics/icons/menu.svg</file>
+        <file alias="more.svg">pics/icons/more.svg</file>
+        <file alias="next.svg">pics/icons/next.svg</file>
+        <file alias="people.svg">pics/icons/people.svg</file>
+        <file alias="person-add.svg">pics/icons/person-add.svg</file>
+        <file alias="person.svg">pics/icons/person.svg</file>
+        <file alias="play.svg">pics/icons/play.svg</file>
+        <file alias="prev.svg">pics/icons/prev.svg</file>
+        <file alias="rematch.svg">pics/icons/rematch.svg</file>
+        <file alias="robot.svg">pics/icons/robot.svg</file>
+        <file alias="save.svg">pics/icons/save.svg</file>
+        <file alias="settings.svg">pics/icons/settings.svg</file>
+        <file alias="sign-out.svg">pics/icons/sign-out.svg</file>
+        <file alias="theme.svg">pics/icons/theme.svg</file>
+        <file alias="trophy.svg">pics/icons/trophy.svg</file>
+        <file alias="two-players.svg">pics/icons/two-players.svg</file>
+        <file alias="undo.svg">pics/icons/undo.svg</file>
+        <file alias="volume-mute.svg">pics/icons/volume-mute.svg</file>
+        <file alias="volume.svg">pics/icons/volume.svg</file>
     </qresource>
     <qresource prefix="/sounds">
         <file alias="move.wav">sounds/move.wav</file>

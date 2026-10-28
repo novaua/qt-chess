@@ -1,20 +1,15 @@
 import QtQuick
-import QtQuick.Controls as QQC
-import QtQuick.Window
+import QtQuick.Controls
+import QtQuick.Layouts
 
-Rectangle {
+AppDialog {
     id: dialog
-
-    readonly property bool isDarkMode: {
-        if (!Window.window) return false
-        var c = Window.window.color
-        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) <= 0.5
-    }
 
     // Pre-fill for edit mode (ProfileDialog reuses this component)
     property string initialName:   ""
     property string initialAvatar: avatarNames[0]
     property bool   editMode:      false
+    property bool   canCancel:     editMode
 
     readonly property var avatarNames: [
         "wizard","unicorn","sun","flower","rabbit","mouse","girl","boy","ball","star",
@@ -26,67 +21,51 @@ Rectangle {
     signal confirmed(string name, string avatarName)
     signal cancelled()
 
-    width: 360
-    height: content.implicitHeight + 48
-    color:        isDarkMode ? "#252525" : "#f4f4f4"
-    border.color: isDarkMode ? "#555555" : "#cccccc"
-    border.width: 1
-    radius: 12
+    title: editMode ? "Edit profile" : "Create profile"
+    width: 380
+    acceptEnabled: nameField.text.trim().length > 0
+    rejectEnabled: canCancel
 
     onInitialNameChanged:   nameField.text = initialName
     onInitialAvatarChanged: _selectedAvatar = initialAvatar
+    onOpened: {
+        nameField.text = initialName
+        _selectedAvatar = initialAvatar
+        nameField.forceActiveFocus()
+    }
+    onAccepted: confirmed(nameField.text.trim(), _selectedAvatar)
+    onRejected: cancelled()
 
-    Column {
-        id: content
-        anchors.centerIn: parent
-        width: parent.width - 40
-        spacing: 14
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: Theme.s3
 
-        Text {
-            text: dialog.editMode ? "Edit Profile" : "Create Profile"
-            font.pixelSize: 20
-            font.bold: true
-            color: isDarkMode ? "#ffffff" : "#000000"
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
-
-        QQC.TextField {
+        TextField {
             id: nameField
-            width: parent.width
+            Layout.fillWidth: true
             placeholderText: "Your name"
             text: dialog.initialName
-            color: isDarkMode ? "#ffffff" : "#000000"
-            placeholderTextColor: isDarkMode ? "#888888" : "#aaaaaa"
-            background: Rectangle {
-                radius: 4
-                color:        isDarkMode ? "#3c3c3c" : "#ffffff"
-                border.color: nameField.activeFocus
-                    ? "#0078d4"
-                    : (isDarkMode ? "#555555" : "#cccccc")
-                border.width: 1
-            }
         }
 
-        Text {
+        Label {
             text: "Choose your avatar"
-            font.pixelSize: 13
-            color: isDarkMode ? "#bbbbbb" : "#555555"
+            color: Theme.textSecondary
         }
 
         Grid {
             columns: 5
-            spacing: 8
-            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Theme.s2
+            Layout.alignment: Qt.AlignHCenter
 
             Repeater {
                 model: dialog.avatarNames
                 delegate: Rectangle {
+                    readonly property bool isSelected: dialog._selectedAvatar === modelData
                     width: 52; height: 52
-                    radius: 8
-                    color: dialog._selectedAvatar === modelData
-                        ? (isDarkMode ? "#1a4a7a" : "#cce4ff")
-                        : (isDarkMode ? "#3c3c3c" : "#f0f0f0")
-                    border.color: dialog._selectedAvatar === modelData ? "#0078d4" : "transparent"
+                    radius: Theme.radiusCard
+                    color: isSelected ? Theme.selectedBg
+                         : avatarMouse.containsMouse ? Theme.cardBgHover : "transparent"
+                    border.color: isSelected ? Theme.accent : "transparent"
                     border.width: 2
 
                     Image {
@@ -97,7 +76,9 @@ Rectangle {
                     }
 
                     MouseArea {
+                        id: avatarMouse
                         anchors.fill: parent
+                        hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: dialog._selectedAvatar = modelData
                     }
@@ -106,10 +87,10 @@ Rectangle {
         }
 
         // Lichess section (profile mode only)
-        Column {
+        ColumnLayout {
             id: lichessSection
-            width: parent.width
-            spacing: 6
+            Layout.fillWidth: true
+            spacing: Theme.s2
             visible: dialog.editMode
 
             property bool _validating: false
@@ -136,173 +117,124 @@ Rectangle {
                 }
             }
 
-            Text {
+            Label {
                 text: "Lichess"
-                font.pixelSize: 13
-                color: isDarkMode ? "#bbbbbb" : "#555555"
+                font: Theme.bodyStrong
             }
 
-            Column {
-                width: parent.width
-                spacing: 6
-
-                // Already connected: show username + disconnect button
-                Row {
-                    visible: userManager.lichessConnected && lichessSection._lichessStatus === ""
-                    spacing: 8
-                    Text {
-                        text: "✓ " + userManager.lichessUsername
-                        color: "#27ae60"
-                        font.pixelSize: 13
-                        anchors.verticalCenter: parent.verticalCenter
+            // Already connected: show username + disconnect button
+            RowLayout {
+                visible: userManager.lichessConnected && lichessSection._lichessStatus === ""
+                spacing: Theme.s2
+                Label {
+                    text: "✓ " + userManager.lichessUsername
+                    color: Theme.success
+                }
+                Button {
+                    text: "Disconnect"
+                    icon.source: Theme.icon("sign-out")
+                    onClicked: {
+                        userManager.clearLichessToken()
+                        lichessSection._lichessStatus = ""
+                        lichessSection._showTokenField = false
                     }
-                    Button {
-                        text: "Disconnect"
-                        implicitWidth: 90
-                        implicitHeight: 26
-                        onClicked: {
-                            userManager.clearLichessToken()
-                            lichessSection._lichessStatus = ""
-                            lichessSection._showTokenField = false
-                        }
+                }
+            }
+
+            // Primary: browser OAuth button
+            RowLayout {
+                visible: !userManager.lichessConnected || lichessSection._lichessStatus !== ""
+                spacing: Theme.s2
+
+                Button {
+                    text: lichessSection._validating ? "Waiting for browser…" : "Sign in with Lichess"
+                    icon.source: Theme.icon("globe")
+                    enabled: !lichessSection._validating
+                    onClicked: {
+                        lichessSection._validating    = true
+                        lichessSection._lichessStatus = ""
+                        chessConnector.loginWithLichess()
                     }
                 }
 
-                // Primary: browser OAuth button
-                Row {
-                    visible: !userManager.lichessConnected || lichessSection._lichessStatus !== ""
-                    spacing: 6
+                Button {
+                    flat: true
+                    text: lichessSection._showTokenField ? "Hide API token" : "Use an API token"
+                    visible: !lichessSection._validating
+                    onClicked: lichessSection._showTokenField = !lichessSection._showTokenField
+                }
+            }
 
-                    Button {
-                        text: lichessSection._validating ? "Waiting for browser…" : "Login with Lichess"
-                        implicitWidth: 160
-                        implicitHeight: 28
-                        enabled: !lichessSection._validating
-                        onClicked: {
-                            lichessSection._validating    = true
-                            lichessSection._lichessStatus = ""
-                            chessConnector.loginWithLichess()
-                        }
-                    }
+            // Fallback: manual API token (collapsed by default)
+            RowLayout {
+                visible: lichessSection._showTokenField &&
+                         (!userManager.lichessConnected || lichessSection._lichessStatus !== "")
+                Layout.fillWidth: true
+                spacing: Theme.s2
 
-                    Text {
-                        text: "or"
-                        anchors.verticalCenter: parent.verticalCenter
-                        font.pixelSize: 12
-                        color: isDarkMode ? "#888" : "#aaa"
-                        visible: !lichessSection._validating
-                    }
-
-                    Text {
-                        text: lichessSection._showTokenField ? "hide" : "use API token"
-                        anchors.verticalCenter: parent.verticalCenter
-                        font.pixelSize: 12
-                        color: "#0078d4"
-                        visible: !lichessSection._validating
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: lichessSection._showTokenField = !lichessSection._showTokenField
-                        }
-                    }
+                TextField {
+                    id: lichessTokenField
+                    Layout.fillWidth: true
+                    placeholderText: "Paste your Lichess API token"
+                    echoMode: TextInput.Password
                 }
 
-                // Fallback: manual API token (collapsed by default)
-                Row {
-                    visible: lichessSection._showTokenField &&
-                             (!userManager.lichessConnected || lichessSection._lichessStatus !== "")
-                    width: parent.width
-                    spacing: 6
-
-                    QQC.TextField {
-                        id: lichessTokenField
-                        width: parent.width - validateBtn.width - 6
-                        placeholderText: "Paste your Lichess API token"
-                        echoMode: TextInput.Password
-                        color: isDarkMode ? "#ffffff" : "#000000"
-                        placeholderTextColor: isDarkMode ? "#888" : "#aaa"
-                        background: Rectangle {
-                            radius: 4
-                            color:        isDarkMode ? "#3c3c3c" : "#ffffff"
-                            border.color: lichessTokenField.activeFocus ? "#0078d4"
-                                        : (isDarkMode ? "#555555" : "#cccccc")
-                            border.width: 1
-                        }
-                    }
-
-                    Button {
-                        id: validateBtn
-                        text: "Validate"
-                        implicitWidth: 74
-                        implicitHeight: lichessTokenField.height
-                        enabled: lichessTokenField.text.trim() !== "" && !lichessSection._validating
-                        onClicked: {
-                            lichessSection._validating    = true
-                            lichessSection._lichessStatus = ""
-                            lichessClient.validateToken(lichessTokenField.text.trim())
-                        }
+                Button {
+                    text: "Validate"
+                    enabled: lichessTokenField.text.trim() !== "" && !lichessSection._validating
+                    onClicked: {
+                        lichessSection._validating    = true
+                        lichessSection._lichessStatus = ""
+                        lichessClient.validateToken(lichessTokenField.text.trim())
                     }
                 }
+            }
 
-                // Status row
-                Row {
-                    spacing: 6
-                    visible: lichessSection._validating || lichessSection._lichessStatus !== ""
+            // Status row
+            RowLayout {
+                spacing: Theme.s2
+                visible: lichessSection._validating || lichessSection._lichessStatus !== ""
 
-                    QQC.BusyIndicator {
-                        width: 16; height: 16
-                        running: lichessSection._validating
-                        visible: lichessSection._validating
-                    }
+                BusyIndicator {
+                    Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                    running: lichessSection._validating
+                    visible: lichessSection._validating
+                }
 
-                    Text {
-                        visible: !lichessSection._validating
-                        text: lichessSection._lichessStatus.startsWith("ok:")
-                            ? ("✓ Connected as " + lichessSection._lichessStatus.substring(3))
-                            : "✗ Login failed"
-                        color: lichessSection._lichessStatus.startsWith("ok:")
-                            ? "#27ae60" : "#e74c3c"
-                        font.pixelSize: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
+                Label {
+                    visible: !lichessSection._validating
+                    text: lichessSection._lichessStatus.startsWith("ok:")
+                        ? ("✓ Connected as " + lichessSection._lichessStatus.substring(3))
+                        : "✗ Sign-in failed"
+                    color: lichessSection._lichessStatus.startsWith("ok:")
+                        ? Theme.success : Theme.critical
+                    font: Theme.caption
                 }
             }
         }
+    }
 
-        Row {
-            spacing: 12
-            anchors.horizontalCenter: parent.horizontalCenter
-
-            Button {
-                text: dialog.editMode ? "Save" : "Create"
-                implicitWidth: 100
-                implicitHeight: 32
-                font.bold: true
-                enabled: nameField.text.trim().length > 0
-                background: Rectangle {
-                    radius: 4
-                    color: parent.enabled
-                        ? (parent.down ? "#005a9e" : "#0078d4")
-                        : (isDarkMode ? "#2a2a2a" : "#cccccc")
-                    border.color: parent.enabled ? "#005a9e" : "transparent"
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: parent.enabled ? "#ffffff" : (isDarkMode ? "#666666" : "#aaaaaa")
-                    font: parent.font
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                onClicked: dialog.confirmed(nameField.text.trim(), dialog._selectedAvatar)
-            }
-
-            Button {
-                text: "Cancel"
-                implicitWidth: 80
-                implicitHeight: 32
-                visible: dialog.editMode
-                onClicked: dialog.cancelled()
-            }
+    // A hidden button still takes its slot in a DialogButtonBox, so there are two boxes.
+    footer: canCancel ? _boxWithCancel : _boxCreateOnly
+    property DialogButtonBox _boxWithCancel: DialogButtonBox {
+        Button {
+            text: dialog.editMode ? "Save" : "Create profile"
+            highlighted: true
+            enabled: dialog.acceptEnabled
+            DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+        }
+        Button {
+            text: "Cancel"
+            DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+        }
+    }
+    property DialogButtonBox _boxCreateOnly: DialogButtonBox {
+        alignment: Qt.AlignRight
+        Button {
+            text: "Create profile"
+            highlighted: true
+            enabled: dialog.acceptEnabled
+            DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
         }
     }
 }

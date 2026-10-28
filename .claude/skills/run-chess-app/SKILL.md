@@ -24,8 +24,9 @@ The exe is `x64\Release\ChessGui.exe` (or `x64\Debug\`). Qt DLLs come from `PATH
 ## Screenshots (preferred way to look at a view)
 
 `scripts\Take-Screenshot.ps1` runs the app in screenshot mode: fresh temporary profile (the
-user's own users/settings/saves are never touched), opens a scene, saves a PNG, exits. Offscreen
-by default — no window, no mouse. Then **Read the PNG** to see it.
+user's own users/settings/saves are never touched), opens a scene, saves a PNG, exits. The window
+is real but transparent, frameless, without a taskbar button and ignores the mouse — nothing shows
+on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the PNG** to see it.
 
 ```powershell
 .\scripts\Take-Screenshot.ps1 -Scene all                                    # every scene
@@ -34,7 +35,9 @@ by default — no window, no mouse. Then **Read the PNG** to see it.
 .\scripts\Take-Screenshot.ps1 -Scene board -Black -Dark -Size 1400x900      # flipped, dark, landscape
 ```
 
-- Scenes: `create-user`, `login`, `menu`, `board` (two-player game), `settings`, `levels`, `profile`, `all`.
+- Scenes: `create-user`, `login`, `menu`, `board` (two-player game), `settings`, `levels`, `profile`,
+  `online` (Lichess dialog, not connected), `players` (second-player picker), `all`.
+- To review many shots at once, tile them into one contact sheet (System.Drawing) and Read that.
 - Output: `test-results\screens\<scene>[-black][-dark][-<Name>].png` (git-ignored). Exit code = number of failed scenes.
 - `-Size WxH`: default 768x1054 (portrait). Wider than 1.15 × height shows the move-history panel
   and the side result panel instead of the result card.
@@ -43,17 +46,17 @@ by default — no window, no mouse. Then **Read the PNG** to see it.
 - On failure the script prints the exit code meaning and the tail of `<file>.png.log`
   (the app's qDebug/QML warnings) — read it for QML errors.
 
-**Offscreen limits** — use `-Windowed` (a real window flashes up briefly, mouse untouched) when checking:
-- shader effects (Qt5Compat `ColorOverlay`/`Glow`): offscreen leaves them blank, e.g. the ☰ menu icon;
-- exact Windows font rendering / DPI scaling (windowed shots are at the monitor's scale, e.g. 175%).
+**Don't use `-platform offscreen`** for looks: it can't force light/dark, and the FluentWinUI3
+style then uses its dark palette (white text on our light surfaces, invisible buttons). Fine for
+checking that QML loads without errors, not for colours.
 
-Not covered yet: single-player vs the robot (needs Stockfish; a stub engine is planned) and
-Lichess dialogs. Plan for the full UI test suite: `docs/UiTestSuitePlan.md`.
+Not covered yet: single-player vs the robot (needs Stockfish; a stub engine is planned), a
+connected Lichess account and the challenge dialog. Plan for the full UI test suite: `docs/UiTestSuitePlan.md`.
 
 ## The underlying switches (ChessGui.exe)
 
 `--screenshot <file.png> --scene <name> [--moves "..."] [--black] [--dark] [--size WxH] [--delay ms]`,
-plus Qt's `-platform offscreen`. `--data-dir <dir>` (also usable without `--screenshot`) keeps
+`--screenshot` also sets `QT_ENABLE_HIGHDPI_SCALING=0` (unless already set). `--data-dir <dir>` (also usable without `--screenshot`) keeps
 users, settings (ini instead of registry), saves and logs in `<dir>` — use it to run the app
 interactively on a throwaway profile. Exit codes: 0 saved, 1 grab/save failed, 2 timed out,
 3 QML failed to load, 4 unknown scene. Implementation: `main.cpp` (options, grab) and

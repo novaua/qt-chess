@@ -1,15 +1,10 @@
 import QtQuick
-import QtQuick.Controls as QQC
-import QtQuick.Window
+import QtQuick.Controls
+import QtQuick.Layouts
 
-Rectangle {
+// Waiting for the opponent to accept a Lichess challenge. Cancel (or Esc) withdraws it.
+AppDialog {
     id: dialog
-
-    readonly property bool isDarkMode: {
-        if (!Window.window) return false
-        var c = Window.window.color
-        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) <= 0.5
-    }
 
     property string challengeId:  ""
     property string challengeUrl: ""
@@ -18,73 +13,49 @@ Rectangle {
 
     readonly property bool _direct: opponentName !== ""
 
-    width: 380
-    height: dialogContent.implicitHeight + 48
-    color:        isDarkMode ? "#252525" : "#f4f4f4"
-    border.color: isDarkMode ? "#555555" : "#cccccc"
-    border.width: 1
-    radius: 12
+    title: isRematch ? "Rematch" : "Challenge"
+    width: 400
+    acceptEnabled: false
 
-    Column {
-        id: dialogContent
-        anchors.centerIn: parent
-        width: parent.width - 40
-        spacing: 16
+    onRejected: lichessClient.cancelChallenge(dialog.challengeId)
 
-        Text {
-            text: dialog.isRematch ? "Rematch" : "Challenge"
-            font.pixelSize: 20
-            font.bold: true
-            color: isDarkMode ? "#ffffff" : "#000000"
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: Theme.s3
 
-        Text {
+        Label {
             visible: dialog._direct
             textFormat: Text.StyledText
             text: "Rematch challenge sent to <b>" + dialog.opponentName + "</b> on Lichess. "
                 + "They can accept it from their Lichess notifications."
-            font.pixelSize: 13
-            color: isDarkMode ? "#dddddd" : "#444444"
             wrapMode: Text.WordWrap
-            width: parent.width
+            Layout.fillWidth: true
         }
 
-        Text {
+        Label {
             visible: !dialog._direct
             text: dialog.isRematch
                 ? "Your opponent played anonymously, so send them this new link to play again:"
                 : "To invite someone to play, give them this link:"
-            font.pixelSize: 13
-            color: isDarkMode ? "#dddddd" : "#444444"
             wrapMode: Text.WordWrap
-            width: parent.width
+            Layout.fillWidth: true
         }
 
-        Row {
+        RowLayout {
             visible: !dialog._direct
-            width: parent.width
-            spacing: 6
+            spacing: Theme.s2
+            Layout.fillWidth: true
 
-            QQC.TextField {
+            TextField {
                 id: urlField
                 text: dialog.challengeUrl
                 readOnly: true
-                width: parent.width - copyBtn.implicitWidth - 6
-                color: isDarkMode ? "#ffffff" : "#000000"
-                background: Rectangle {
-                    radius: 4
-                    color:        isDarkMode ? "#3c3c3c" : "#ffffff"
-                    border.color: isDarkMode ? "#555555" : "#cccccc"
-                    border.width: 1
-                }
+                Layout.fillWidth: true
             }
 
             Button {
-                id: copyBtn
                 text: "Copy"
-                implicitWidth: 60
-                implicitHeight: urlField.height
+                icon.source: Theme.icon("copy")
                 onClicked: {
                     urlField.selectAll()
                     urlField.copy()
@@ -92,19 +63,17 @@ Rectangle {
             }
         }
 
-        Text {
+        Label {
             visible: !dialog._direct
             text: "Or let your opponent scan this QR code:"
-            font.pixelSize: 13
-            color: isDarkMode ? "#dddddd" : "#444444"
             wrapMode: Text.WordWrap
-            width: parent.width
+            Layout.fillWidth: true
         }
 
         Image {
             visible: !dialog._direct
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: 180; height: 180
+            Layout.alignment: Qt.AlignHCenter
+            Layout.preferredWidth: 180; Layout.preferredHeight: 180
             source: dialog.challengeUrl !== ""
                 ? ("https://api.qrserver.com/v1/create-qr-code/?size=180x180&data="
                    + encodeURIComponent(dialog.challengeUrl))
@@ -112,31 +81,27 @@ Rectangle {
             fillMode: Image.PreserveAspectFit
         }
 
-        Row {
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 8
+        RowLayout {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: Theme.s2
 
-            QQC.BusyIndicator {
-                width: 20; height: 20
-                running: true
-                anchors.verticalCenter: parent.verticalCenter
+            BusyIndicator {
+                Layout.preferredWidth: 20; Layout.preferredHeight: 20
+                running: dialog.visible
             }
 
-            Text {
+            Label {
                 text: dialog._direct ? "Waiting for " + dialog.opponentName + " to accept…"
                                      : "Waiting for opponent…"
-                font.pixelSize: 13
-                color: isDarkMode ? "#dddddd" : "#444444"
-                anchors.verticalCenter: parent.verticalCenter
+                color: Theme.textSecondary
             }
         }
+    }
 
+    footer: DialogButtonBox {
         Button {
-            text: "Cancel"
-            implicitWidth: 90
-            implicitHeight: 32
-            anchors.horizontalCenter: parent.horizontalCenter
-            onClicked: lichessClient.cancelChallenge(dialog.challengeId)
+            text: dialog.isRematch ? "Cancel rematch" : "Cancel challenge"
+            DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
         }
     }
 }

@@ -41,7 +41,8 @@ void customLogMessageHandler(QtMsgType type, const QMessageLogContext&, const QS
 
 int main(int argc, char* argv[])
 {
-	QQuickStyle::setStyle(QStringLiteral("Basic"));
+	// Windows 11 look; follows the system light/dark theme and accent colour (Theme.qml can force one).
+	QQuickStyle::setStyle(QStringLiteral("FluentWinUI3"));
 
 	QCoreApplication::setOrganizationName("ChessPlusPlus_Inc");
 	QCoreApplication::setOrganizationDomain("chessplusplus.app");
@@ -51,16 +52,25 @@ int main(int argc, char* argv[])
 	if (!qEnvironmentVariableIsSet("QT_QPA_FONTDIR"))
 		qputenv("QT_QPA_FONTDIR", qgetenv("WINDIR") + "\\Fonts");
 
+	// --screenshot (parsed properly below, after QApplication): 1 screenshot pixel = 1 QML pixel,
+	// whatever the monitor's scaling. It has to be set before QApplication exists.
+	for (int i = 1; i < argc; ++i) {
+		if (qstrcmp(argv[i], "--screenshot") == 0 && !qEnvironmentVariableIsSet("QT_ENABLE_HIGHDPI_SCALING"))
+			qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
+	}
+
 	QApplication app(argc, argv);
 	app.setWindowIcon(QIcon(":/app/pics/chess_icon.svg"));
 	if (QGuiApplication::platformName() == "offscreen")
 		QGuiApplication::setFont(QFont("Segoe UI", 9)); // the Windows default; offscreen picks any font
 
 	// Screenshot mode, for checking views without clicking through the app:
-	//   ChessGui.exe -platform offscreen --screenshot menu.png --scene board --moves "e2e4 e7e5"
-	// It runs on a fresh temporary profile unless --data-dir is given.
+	//   ChessGui.exe --screenshot menu.png --scene board --moves "e2e4 e7e5"
+	// It runs on a fresh temporary profile unless --data-dir is given. The window is real but
+	// transparent and ignores input (ChessGame.qml). Not -platform offscreen: it can't force the
+	// light/dark colour scheme, so the Fluent controls would get the wrong palette.
 	static const QStringList screenshotScenes = {
-		"create-user", "login", "menu", "board", "settings", "levels", "profile"
+		"create-user", "login", "menu", "board", "settings", "levels", "profile", "online", "players"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
