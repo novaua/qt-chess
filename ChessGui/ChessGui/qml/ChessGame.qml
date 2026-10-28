@@ -26,9 +26,12 @@ ApplicationWindow {
     property bool   _showChallengeDialog:     false
     property string _pendingChallengeId:      ""
     property string _pendingChallengeUrl:     ""
+    property string _pendingOpponentName:     ""    // set for a direct (rematch) challenge
+    property bool   _pendingRematch:          false // pending challenge is a rematch of the game on screen
     property string _onlineGameId:            ""
     property bool   _showDrawOffer:           false
     property bool   _showTakebackOffer:       false
+    property bool   _resultCardHidden:        false
     property bool   _toolbarResignPending:    false
     property bool   _wasOnlineGame:           false
     property bool   _showLevelsHelp:          false
@@ -77,7 +80,18 @@ ApplicationWindow {
         userManager.clearPendingChallenge()
         _pendingChallengeId  = ""
         _pendingChallengeUrl = ""
+        _pendingOpponentName = ""
+        _pendingRematch      = false
         _showChallengeDialog = false
+    }
+
+    // Leaving the game (menu button / Escape): withdraw a pending rematch, drop online banners.
+    onGameIsInProgressChanged: {
+        if (gameIsInProgress)
+            return
+        opponentGoneBanner.hide()
+        if (_pendingRematch && _pendingChallengeId !== "")
+            lichessClient.cancelChallenge(_pendingChallengeId)
     }
 
     Settings {
@@ -368,7 +382,7 @@ ApplicationWindow {
                     height: _boardSize
                     gameInProgress: gameIsInProgress
                     isOnlineGame: _onlineGameId !== ""
-                    wasOnlineGame: _wasOnlineGame
+                    rematchPending: _pendingRematch
                     anchors {
                         verticalCenter: parent.verticalCenter
                         left: parent.left; leftMargin: (parent.width + _boardSize) / 2 + 5
@@ -385,6 +399,20 @@ ApplicationWindow {
                         right: parent.horizontalCenter
                         rightMargin: _boardSize / 2 + 5
                     }
+                }
+
+                // Narrow / portrait window: no side panels, so show the result (and Rematch)
+                // on the board itself.
+                GameResultCard {
+                    visible: _showGameResult && !_showHistoryPanel && !_resultCardHidden
+                    anchors.centerIn: parent
+                    width: Math.min(_boardSize * 0.8, 320)
+                    z: 5
+                    resultText: _checkmateWinner
+                    canRematch: chessConnector.GameResult !== "" && chessConnector.CanRematch
+                                && !_pendingRematch
+                    onRematchRequested: chessConnector.rematch()
+                    onCloseRequested:   _resultCardHidden = true
                 }
             }
 
@@ -653,8 +681,12 @@ ApplicationWindow {
             function onCheckMateResult(winner) {
                 _toolbarResignPending = false
                 var isWhite = winner === "White Won"
-                var name = isWhite ? avatarProvider.playerName : avatarProvider.opponentName
+                var playerWon = isWhite === chessConnector.PlayerPlaysWhite
+                var name = playerWon ? avatarProvider.playerName : avatarProvider.opponentName
                 _checkmateWinner = (isWhite ? "White " : "Black ") + name + " Won"
+                if (chessConnector.GameResult.indexOf("resignation") >= 0)
+                    chessBoard.showNotification((isWhite ? "Black" : "White") + " resigned")
+                _resultCardHidden = false
                 resultDialogTimer.start()
                 if (appSettings.musicEnabled) 
                     sndWin.play()
@@ -664,21 +696,42 @@ ApplicationWindow {
         Connections {
             target: lichessClient
 
+            // A challenge created while the finished game is still on screen is a rematch
+            // (the Online dialog is only reachable from the start menu).
             function onChallengeCreated(gameId, joinUrl) {
                 _pendingChallengeId  = gameId
                 _pendingChallengeUrl = joinUrl
+                _pendingRematch      = gameIsInProgress
                 userManager.savePendingChallenge(gameId, joinUrl)
                 _showOnlineDialog    = false
                 _showChallengeDialog = true
             }
 
-            function onChallengeCanceled() {
+            // Not saved with savePendingChallenge: the challenge lives only while the app keeps
+            // its request open, so it can't be resumed after a restart.
+            function onDirectChallengeSent(challengeId, opponentName) {
+                _pendingChallengeId   = challengeId
+                _pendingChallengeUrl  = ""
+                _pendingOpponentName  = opponentName
+                _pendingRematch       = true
+                _showChallengeDialog  = true
+            }
+
+            function onChallengeDeclined(opponentName) {
                 clearPendingChallenge()
-                _showOnlineDialog = true
+                networkErrorBanner.show(opponentName + " declined the rematch")
+            }
+
+            function onChallengeCanceled() {
+                var wasRematch = _pendingRematch
+                clearPendingChallenge()
+                if (!wasRematch)
+                    _showOnlineDialog = true
             }
 
             function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
                 clearPendingChallenge()
+                opponentGoneBanner.hide()
                 _onlineGameId = gameId
                 chessConnector.startOnlineGame(gameId, playingAsWhite)
                 avatarProvider.setOpponentFromUser(opponentAvatarUrl !== "" ? opponentAvatarUrl : "unicorn")
@@ -694,25 +747,56 @@ ApplicationWindow {
                 _showDrawOffer = false
                 _showTakebackOffer = false
                 _toolbarResignPending = false
+                opponentGoneBanner.hide()
                 _wasOnlineGame = true
 
                 const winnerName = ({ "white": "White", "black": "Black" })[winner] ?? ""
+                const loserName  = winner === "white" ? "Black" : "White"
                 const reason     = ({ "mate": " by Checkmate", "resign": " by Resignation",
-                                      "outoftime": " on Time" })[status] ?? ""
+                                      "outoftime": " on Time", "timeout": " (opponent left)",
+                                      "noStart": " (opponent didn't move)" })[status] ?? ""
 
-                if      (status === "aborted") _checkmateWinner = "Game Aborted"
-                else if (winnerName !== "")    _checkmateWinner = winnerName + " Won" + reason
-                else                           _checkmateWinner = "Draw"
+                if      (status === "aborted")   _checkmateWinner = "Game Aborted"
+                else if (winnerName !== "")      _checkmateWinner = winnerName + " Won" + reason
+                else if (status === "stalemate") _checkmateWinner = "Draw by Stalemate"
+                else                             _checkmateWinner = "Draw"
 
                 chessConnector.setGameResult(_checkmateWinner)
+
+                // Like Lichess: a red flag on the king of the side that gave up / ran out of time.
+                if (winnerName !== "" && ["resign", "outoftime", "timeout", "noStart"].includes(status))
+                    chessConnector.flagKing(winner !== "white")
+
+                // Checkmate is already announced by the local game when the mating move arrives.
+                // Without a winner (e.g. time ran out against a bare king) it is a draw, and
+                // we don't know who lost.
+                const loserNotice = ({ "resign": loserName + " resigned",
+                                       "outoftime": loserName + " ran out of time",
+                                       "timeout": loserName + " left the game",
+                                       "noStart": loserName + " didn't move" })[status] ?? ""
+                const notice = winnerName !== "" ? loserNotice
+                             : ({ "aborted": "Game aborted", "stalemate": "Stalemate",
+                                  "mate": "" })[status] ?? "Draw"
+                if (notice !== "")
+                    chessBoard.showNotification(notice)
+
+                _resultCardHidden = false
                 resultDialogTimer.start()
             }
 
+            function onOpponentGone(gone, claimWinInSeconds) {
+                if (gone) opponentGoneBanner.show(claimWinInSeconds)
+                else      opponentGoneBanner.hide()
+            }
+
             function onNetworkError(message) {
-                if (_showChallengeDialog) {
+                if (_showChallengeDialog && _pendingRematch) {
+                    clearPendingChallenge()
+                    networkErrorBanner.show("Rematch failed: " + message)
+                } else if (_showChallengeDialog) {
                     clearPendingChallenge()
                     _showOnlineDialog = true
-                } else if (_onlineGameId !== "") {
+                } else if (_onlineGameId !== "" || _wasOnlineGame) {
                     networkErrorBanner.show(message)
                 }
             }
@@ -729,6 +813,13 @@ ApplicationWindow {
             function onPlayerPlaysWhiteChanged() {
                 if (gameIsInProgress)
                     chessBoard.angle = chessConnector.PlayerPlaysWhite ? 0 : 180
+            }
+            // Undo after mate / resign vs Robot resumes the game: drop the result display.
+            function onGameResultChanged() {
+                if (chessConnector.GameResult === "") {
+                    resultDialogTimer.stop()
+                    _showGameResult = false
+                }
             }
             function onDrawOfferReceived()  { _showDrawOffer = true }
             function onTakebackRequested()  { _showTakebackOffer = true }
@@ -918,6 +1009,20 @@ ApplicationWindow {
             }
         }
 
+        // ── Opponent left (Lichess opponentGone) ─────────────────────────────
+        OpponentGoneBanner {
+            id: opponentGoneBanner
+            anchors {
+                top: takebackBanner.visible ? takebackBanner.bottom
+                   : drawOfferBanner.visible ? drawOfferBanner.bottom : networkErrorBanner.bottom
+                topMargin: 4
+                horizontalCenter: parent.horizontalCenter
+            }
+            width: Math.min(parent.width - 32, 420)
+            z: 30
+            onClaimVictoryRequested: chessConnector.claimVictory()
+        }
+
         // ── Lichess online dialog ────────────────────────────────────────────
         LichessGameDialog {
             anchors.centerIn: parent
@@ -935,6 +1040,8 @@ ApplicationWindow {
             z: 20
             challengeId:  _pendingChallengeId
             challengeUrl: _pendingChallengeUrl
+            opponentName: _pendingOpponentName
+            isRematch:    _pendingRematch
         }
 
         // ── Profile dialog ───────────────────────────────────────────────────

@@ -4,6 +4,28 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-28 — Lichess Rematch (branch: feLichessRematch_281026)
+
+### What was done
+- Merged earlier today: computer levels rework + levels help (#68), promotion dialog rotation fix (#69).
+- Analysed why Rematch doesn't work vs Lichess: the button is hidden for online games and the Board API has no rematch endpoint. Plan written to `docs/LichessRematchPlan.md`: Rematch creates a new challenge (direct to a registered opponent, open link for anonymous).
+- Implemented steps 1–4 (see `TASKS.md`): `LichessClient::createRematch()` / `parseRematchInfo()`, `ChessConnector::CanRematch`, Rematch button for online games, `ChallengeDialog` direct mode. Direct challenges use `keepAliveStream=true` (otherwise they expire after 20 s).
+- Debug + Release build OK; `LichessStaticTests` 21/21 (4 new); app starts without QML errors.
+- Testing showed an opponent's resignation was received (`status:"resign"`) but nothing was shown: result and Rematch lived only in the landscape side panels. Added step 4b (result card, notification, red flag on the losing king, frozen board, `opponentGone` + Claim victory).
+- Note for testers: resigning on lichess.org needs the flag **and** the ✓ confirm within ~3 s; otherwise nothing reaches the server.
+
+- Code review fixes (step 4d) and PR #70 opened. Live check OK for resign from the app and from an anonymous Lichess opponent.
+
+### Where to continue
+1. Step 5: play a game against a second Lichess account and run the manual scenarios in plan §5 (accept, decline, cancel, anonymous link, vs Robot unchanged, restart, leave while pending).
+2. Watch the log for `LichessClient: challenge stream line:`. It confirms the keep-alive challenge JSON and the final `{"done":...}` shape this code expects.
+3. Merge PR #70 to `develop` once reviewed.
+
+### Notes
+- If the opponent clicks Rematch in their browser, the Board API client probably never sees it; the app must send the challenge.
+
+---
+
 ## 2026-10-27 — Release 0.1.0 preparation (branch: feRelease010_271026)
 
 ### What was done

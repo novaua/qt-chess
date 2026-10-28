@@ -43,13 +43,15 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool CanReviewPrev READ canReviewPrev NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
+		Q_PROPERTY(bool CanRematch    READ canRematch    NOTIFY canRematchChanged)
+		Q_PROPERTY(int  FlaggedKing   READ flaggedKing   NOTIFY flaggedKingChanged) // square of a king that resigned / lost on time, or -1
 public:
 	explicit ChessConnector(QObject* parent = nullptr);
 	~ChessConnector();
 
 	void setAvatarProvider(AvatarProvider* ap) { _avatarProvider = ap; }
 	void setUserManager(UserManager* um)       { _userManager = um; }
-	void setLichessClient(LichessClient* lc)   { _lichessClient = lc; }
+	void setLichessClient(LichessClient* lc);
 
 	int MoveCount();
 	int IsWhiteMove();
@@ -70,6 +72,10 @@ public:
 	bool canReviewPrev() const;
 	bool canReviewNext() const;
 	bool isOnlineGame()  const { return !_onlineGameId.isEmpty(); }
+	// Local games can always be replayed; a Lichess game needs its settings and a token.
+	bool canRematch()    const { return !_lastGameOnline || (_lichessClient && _lichessClient->canRematch()); }
+	// Hidden while reviewing earlier moves: the king may not be on that square then.
+	int  flaggedKing()   const { return reviewMode() ? -1 : _flaggedKing; }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 
@@ -102,6 +108,8 @@ signals:
 	void gameResultChanged();
 	void reviewStateChanged();
 	void isOnlineGameChanged();
+	void canRematchChanged();
+	void flaggedKingChanged();
 	void drawOfferReceived();
 	void takebackRequested();
 	void lichessLoginResult(bool ok, QString username);
@@ -119,7 +127,8 @@ public slots:
 	void startNewGame();
 	void startNewGameWithComputer(int level = 3);
 	Q_INVOKABLE void robotMove();
-	Q_INVOKABLE void setGameResult(const QString& result);
+	Q_INVOKABLE void setGameResult(const QString& result); // non-empty: the game is over
+	Q_INVOKABLE void flagKing(bool white); // mark that side's king as the loser (resign / time)
 	void setUseFen(bool v);
 	Q_INVOKABLE void setPlayerPlaysWhite(bool v);
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
@@ -146,6 +155,7 @@ public slots:
 
 	Q_INVOKABLE void resignGame();
 	Q_INVOKABLE void offerDraw();
+	Q_INVOKABLE void claimVictory(); // Lichess: after the opponent left the game
 	Q_INVOKABLE void respondDraw(bool accept);
 	Q_INVOKABLE void requestTakeback();
 	Q_INVOKABLE void respondTakeback(bool accept);
@@ -165,6 +175,9 @@ private:
 	void resetMoveHistoryCache();
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
+	void beginGame(bool online); // resets per-game end state; online: rematch goes to Lichess
+	bool isMateBy(bool white) const;
+	void setFlaggedKing(int square);
 	void autoSaveGame(bool isSinglePlayer);
 	void deleteAutoSave();
 	QString autoSavePath()  const;
@@ -188,6 +201,10 @@ private:
 	bool _promotionPending = false; // a pawn is on the last rank, waiting for pawnPromote()
 	std::atomic<bool> _gameOver{ false };
 	bool _wasVsComputer = false;
+	bool _lastGameOnline = false; // the current/last game is a Lichess game: rematch goes online
+	int  _flaggedKing    = -1;
+	bool _resultRecorded = false; // stats recorded for this game (mate can recur after undo)
+	bool _resignAfterEngineMove = false; // resign pressed while the robot was thinking
 	QString _gameResult;
 	AppConfig _config;
 	int _reviewIndex = -1;

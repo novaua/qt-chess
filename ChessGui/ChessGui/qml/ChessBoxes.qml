@@ -44,6 +44,15 @@ Grid {
                 z: 1
             }
 
+            // King of the side that resigned / lost on time (like Lichess's red king)
+            Rectangle {
+                anchors.fill: parent
+                visible: index === chessConnector.FlaggedKing
+                color: "#e74c3c"
+                opacity: 0.6
+                z: 2
+            }
+
             Text {
                 anchors.fill: parent
                 id: name

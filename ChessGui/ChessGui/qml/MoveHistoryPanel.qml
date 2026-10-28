@@ -7,7 +7,7 @@ Rectangle {
 
     property bool gameInProgress: false
     property bool isOnlineGame: false
-    property bool wasOnlineGame: false
+    property bool rematchPending: false // a rematch challenge is waiting for the opponent
 
     readonly property bool isDarkMode: {
         if (!Window.window) return false
@@ -265,10 +265,11 @@ Rectangle {
         }
     }
 
-    // Rematch button — full width, shown when game is over (local games only)
+    // Rematch button — full width, shown when game is over. For a Lichess game it sends the
+    // opponent a new challenge (ChessConnector::rematch()).
     Rectangle {
         id: rematchBar
-        visible: chessConnector.GameResult !== "" && !panel.wasOnlineGame
+        visible: chessConnector.GameResult !== "" && chessConnector.CanRematch && !panel.rematchPending
         anchors {
             bottom: resultBar.visible ? resultBar.top : parent.bottom
             left: parent.left; leftMargin: 3
