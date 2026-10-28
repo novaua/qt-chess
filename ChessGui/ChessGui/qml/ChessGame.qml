@@ -31,8 +31,6 @@ ApplicationWindow {
     property string _onlineGameId:            ""
     property bool   _showDrawOffer:           false
     property bool   _showTakebackOffer:       false
-    property bool   _opponentGone:            false // Lichess: opponent left the game
-    property int    _claimSecondsLeft:        -1    // until "Claim victory" is allowed; <= 0: now
     property bool   _resultCardHidden:        false
     property bool   _toolbarResignPending:    false
     property bool   _wasOnlineGame:           false
@@ -87,9 +85,12 @@ ApplicationWindow {
         _showChallengeDialog = false
     }
 
-    // Leaving the finished game (menu button / Escape) while a rematch is pending withdraws it.
+    // Leaving the game (menu button / Escape): withdraw a pending rematch, drop online banners.
     onGameIsInProgressChanged: {
-        if (!gameIsInProgress && _pendingRematch && _pendingChallengeId !== "")
+        if (gameIsInProgress)
+            return
+        opponentGoneBanner.hide()
+        if (_pendingRematch && _pendingChallengeId !== "")
             lichessClient.cancelChallenge(_pendingChallengeId)
     }
 
@@ -402,51 +403,16 @@ ApplicationWindow {
 
                 // Narrow / portrait window: no side panels, so show the result (and Rematch)
                 // on the board itself.
-                Rectangle {
-                    id: resultCard
+                GameResultCard {
                     visible: _showGameResult && !_showHistoryPanel && !_resultCardHidden
                     anchors.centerIn: parent
                     width: Math.min(_boardSize * 0.8, 320)
-                    height: resultCol.implicitHeight + 28
-                    radius: 12
                     z: 5
-                    color:        root.isDarkMode ? "#e6252525" : "#e6f4f4f4"
-                    border.color: root.isDarkMode ? "#555555" : "#cccccc"
-
-                    MouseArea { anchors.fill: parent } // keep clicks off the board
-
-                    Column {
-                        id: resultCol
-                        anchors.centerIn: parent
-                        width: parent.width - 28
-                        spacing: 12
-
-                        Text {
-                            width: parent.width
-                            text: _checkmateWinner
-                            font.pixelSize: 18
-                            font.bold: true
-                            color: root.isDarkMode ? "#ffffff" : "#000000"
-                            wrapMode: Text.WordWrap
-                            horizontalAlignment: Text.AlignHCenter
-                        }
-
-                        Row {
-                            spacing: 10
-                            anchors.horizontalCenter: parent.horizontalCenter
-
-                            ActionButton {
-                                label: "Rematch"
-                                visible: chessConnector.GameResult !== "" && chessConnector.CanRematch
-                                         && !_pendingRematch
-                                onAction: chessConnector.rematch()
-                            }
-                            ActionButton {
-                                label: "Close"
-                                onAction: _resultCardHidden = true
-                            }
-                        }
-                    }
+                    resultText: _checkmateWinner
+                    canRematch: chessConnector.GameResult !== "" && chessConnector.CanRematch
+                                && !_pendingRematch
+                    onRematchRequested: chessConnector.rematch()
+                    onCloseRequested:   _resultCardHidden = true
                 }
             }
 
@@ -765,7 +731,7 @@ ApplicationWindow {
 
             function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
                 clearPendingChallenge()
-                _opponentGone = false
+                opponentGoneBanner.hide()
                 _onlineGameId = gameId
                 chessConnector.startOnlineGame(gameId, playingAsWhite)
                 avatarProvider.setOpponentFromUser(opponentAvatarUrl !== "" ? opponentAvatarUrl : "unicorn")
@@ -781,7 +747,7 @@ ApplicationWindow {
                 _showDrawOffer = false
                 _showTakebackOffer = false
                 _toolbarResignPending = false
-                _opponentGone = false
+                opponentGoneBanner.hide()
                 _wasOnlineGame = true
 
                 const winnerName = ({ "white": "White", "black": "Black" })[winner] ?? ""
@@ -819,8 +785,8 @@ ApplicationWindow {
             }
 
             function onOpponentGone(gone, claimWinInSeconds) {
-                _opponentGone     = gone
-                _claimSecondsLeft = gone ? claimWinInSeconds : -1
+                if (gone) opponentGoneBanner.show(claimWinInSeconds)
+                else      opponentGoneBanner.hide()
             }
 
             function onNetworkError(message) {
@@ -1044,17 +1010,8 @@ ApplicationWindow {
         }
 
         // ── Opponent left (Lichess opponentGone) ─────────────────────────────
-        Timer {
-            id: claimCountdown
-            interval: 1000
-            repeat: true
-            running: _opponentGone && _claimSecondsLeft > 0
-            onTriggered: _claimSecondsLeft--
-        }
-
-        Rectangle {
+        OpponentGoneBanner {
             id: opponentGoneBanner
-            visible: _opponentGone && _onlineGameId !== ""
             anchors {
                 top: takebackBanner.visible ? takebackBanner.bottom
                    : drawOfferBanner.visible ? drawOfferBanner.bottom : networkErrorBanner.bottom
@@ -1062,27 +1019,8 @@ ApplicationWindow {
                 horizontalCenter: parent.horizontalCenter
             }
             width: Math.min(parent.width - 32, 420)
-            height: 44
-            radius: 8
-            color: "#7a3b00"
             z: 30
-
-            Row {
-                anchors.centerIn: parent
-                spacing: 10
-                Text {
-                    text: _claimSecondsLeft > 0
-                        ? "Opponent left the game. Claim victory in " + _claimSecondsLeft + " s"
-                        : "Opponent left the game"
-                    color: "#ffffff"; font.pixelSize: 13
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-                Button {
-                    text: "Claim victory"; implicitWidth: 100; implicitHeight: 28
-                    enabled: _claimSecondsLeft <= 0
-                    onClicked: chessConnector.claimVictory()
-                }
-            }
+            onClaimVictoryRequested: chessConnector.claimVictory()
         }
 
         // ── Lichess online dialog ────────────────────────────────────────────
