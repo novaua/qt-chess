@@ -11,6 +11,10 @@
   - [x] Per candidate: download (checksum) → unzip → UCI check (`Prepare-Stockfish.ps1`, `uci` → `uciok`, version logged); fallback only if a step fails
   - [x] `{app}\engines\stockfish-install.log` (+ Inno `/LOG`); `Test-StockfishDownload.ps1` mirrors the flow — normal and fallback paths verified
   - [ ] Run the built installer once (normal install) and check `engines\stockfish-install.log`
+- [ ] Screenshot mode + `run-chess-app` skill — step 1 of BL-05 (branch `screenshotHook_281026`)
+  - [x] `ChessGui.exe --screenshot <png> --scene <name>` (+ `--moves`, `--black`, `--dark`, `--size`, `--delay`), works with `-platform offscreen`; `--data-dir` for a throwaway profile
+  - [x] `scripts\Take-Screenshot.ps1` (all scenes, optional build / windowed); `.claude/skills/run-chess-app`
+  - [ ] Stub UCI engine for a single-player scene (later, with BL-05)
 - [ ] Lichess rematch: live test with two Lichess accounts — direct rematch accept / decline / cancel, `opponentGone` + Claim victory (scenarios in [`docs/LichessRematchPlan.md`](docs/LichessRematchPlan.md) §5)
 
 ### Done
@@ -37,6 +41,7 @@
 - [ ] BL-02 Review and modernize all game screens [Hard]
 - [ ] BL-03 Remove user handling relay on adopting LiChess more, need more reserch here before or togather with BL-02 [Medium]
 - [ ] BL-04 Improve game UI making pice move and grag by hand, ulse latest QLM techniques [Medium]
+- [ ] BL-05 UI test suite for local pre-PR sanity (Qt Quick Test + screenshot diff, optional pywinauto smoke / CI job) — plan: [`docs/UiTestSuitePlan.md`](docs/UiTestSuitePlan.md) [Hard]
 - [ ] 
 ---
 

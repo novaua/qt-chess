@@ -45,6 +45,8 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
 		Q_PROPERTY(bool CanRematch    READ canRematch    NOTIFY canRematchChanged)
 		Q_PROPERTY(int  FlaggedKing   READ flaggedKing   NOTIFY flaggedKingChanged) // square of a king that resigned / lost on time, or -1
+		// --screenshot mode: { scene, moves, black, dark, width, height }; empty in a normal run
+		Q_PROPERTY(QVariantMap ScreenshotScene READ screenshotScene CONSTANT)
 public:
 	explicit ChessConnector(QObject* parent = nullptr);
 	~ChessConnector();
@@ -52,6 +54,7 @@ public:
 	void setAvatarProvider(AvatarProvider* ap) { _avatarProvider = ap; }
 	void setUserManager(UserManager* um)       { _userManager = um; }
 	void setLichessClient(LichessClient* lc);
+	void setScreenshotScene(const QVariantMap& scene) { _screenshotScene = scene; }
 
 	int MoveCount();
 	int IsWhiteMove();
@@ -78,6 +81,7 @@ public:
 	int  flaggedKing()   const { return reviewMode() ? -1 : _flaggedKing; }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
+	QVariantMap screenshotScene() const { return _screenshotScene; }
 
 	QStringList& PossibleMoves();
 	void setPossibleMoves(const QStringList& moves);
@@ -122,6 +126,8 @@ signals:
 	void noMoreMovesNotify();
 
 	void requestEngineMove();
+
+	void screenshotSceneReady(); // QML has set up the --screenshot scene: grab the window
 
 public slots:
 	void startNewGame();
@@ -211,6 +217,7 @@ private:
 	LichessAuth* _lichessAuth = nullptr;
 
 	QVariantList _moveHistoryCache;
+	QVariantMap  _screenshotScene;
 };
 
 #endif // CHESSCONNECTOR_H

@@ -8,11 +8,20 @@
 #include <QStandardPaths>
 #include <QString>
 
+static QString g_appDataDir;
+
 QString AppConfig::appDataDir()
 {
-	QString dir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+	QString dir = g_appDataDir.isEmpty()
+		? QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+		: g_appDataDir;
 	QDir().mkpath(dir);
 	return dir;
+}
+
+void AppConfig::setAppDataDir(const QString& dir)
+{
+	g_appDataDir = dir;
 }
 
 QString AppConfig::configFilePath()

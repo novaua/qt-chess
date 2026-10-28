@@ -30,6 +30,12 @@ vstest.console.exe x64\Debug\ChessTests.dll
 
 Test files are in `ChessTests/` — `BasicTest.cpp` (board logic) and `UciConnectorTest.cpp` (UCI protocol).
 
+## Seeing the UI
+
+`scripts\Take-Screenshot.ps1 -Scene all` saves offscreen screenshots of the app's views to
+`test-results\screens\` on a throwaway profile. Details: the `run-chess-app` skill
+(`.claude/skills/run-chess-app/SKILL.md`).
+
 ## Architecture
 
 Four projects in the solution:
