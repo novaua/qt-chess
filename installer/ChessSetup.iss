@@ -6,6 +6,20 @@
 #define MyAppPublisher "Vitaly German"
 #define MyAppExeName "ChessGui.exe"
 
+; Stockfish downloads, resolved at build time by Resolve-Stockfish.ps1: the newest stable
+; release and the previous one as fallback, each with the SHA-256 GitHub publishes.
+; Builds that don't pass them (/DSfPrimaryUrl=... etc.) use these known-good defaults.
+#ifndef SfPrimaryUrl
+  #define SfPrimaryTag    "sf_19"
+  #define SfPrimaryUrl    "https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-windows-x86-64-universal.zip"
+  #define SfPrimarySha256 "3c8bf1f9ea66a09350a40df4f632288285ac206d99f33ab5842c408fc30b48a7"
+#endif
+#ifndef SfFallbackUrl
+  #define SfFallbackTag    "sf_18"
+  #define SfFallbackUrl    "https://github.com/official-stockfish/Stockfish/releases/download/sf_18/stockfish-windows-x86-64-sse41-popcnt.zip"
+  #define SfFallbackSha256 "f25830a4567e2bac843d029d3113e6e34ba0cd2f95b9c0bb49afc871fe722a10"
+#endif
+
 [Setup]
 AppId={{F3A8B2C1-5D47-4E89-B123-9A0C1D2E3F4A}
 AppName={#MyAppName}
@@ -34,10 +48,12 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional icons:"
-Name: "stockfish"; Description: "Download latest Stockfish chess engine (requires internet)"; GroupDescription: "Optional components:"
+Name: "stockfish"; Description: "Download the Stockfish chess engine ({#SfPrimaryTag}, requires internet)"; GroupDescription: "Optional components:"
 
 [Files]
 Source: "..\deploy\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Unzips and checks the downloaded engine; extracted to {tmp} on demand (ExtractTemporaryFile).
+Source: "Prepare-Stockfish.ps1"; Flags: dontcopy
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\engines"
@@ -50,153 +66,165 @@ Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: 
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
 
 [Code]
-// Download URLs: GitHub's /releases/latest/download/ redirect always points
-// to the current release — no API call needed to resolve the tag.
-// Stockfish renamed its Windows assets in sf_19 (avx2 -> universal), which broke
-// a single hard-coded name, so several candidates are tried in order:
-//   0. latest, current naming  (stockfish-windows-x86-64-universal.zip)
-//   1. latest, pre-sf_19 naming (stockfish-windows-x86-64-avx2.zip)
-//   2. pinned known-good release, verified by SHA-256 (works if "latest" changes again)
+// Stockfish: one download in the normal case. Each candidate goes through
+//   download (SHA-256 verified) -> unzip -> UCI check (Prepare-Stockfish.ps1)
+// and the fallback (previous stable release) is used only if any step fails.
+// Everything runs into {tmp} when the user clicks Next on the Ready page; the verified
+// engine is copied to {app}\engines during installation, together with the log
+// stockfish-install.log (also written to the Inno Setup log when run with /LOG).
 const
-  StockfishZip = 'stockfish.zip';
-  StockfishCandidates = 3;
-  StockfishLatest = 'https://github.com/official-stockfish/Stockfish/releases/latest/download/';
-  StockfishPinnedUrl = 'https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-windows-x86-64-universal.zip';
-  StockfishPinnedSha256 = '3c8bf1f9ea66a09350a40df4f632288285ac206d99f33ab5842c408fc30b48a7';
+  StockfishCandidates = 2;
   StockfishManualUrl = 'https://stockfishchess.org/download/windows/';
 
 var
   DownloadPage: TDownloadWizardPage;
+  StockfishReadyExe: String; // verified engine in {tmp}; empty: none (yet)
+  StockfishLog: String;
 
 procedure InitializeWizard;
 begin
   DownloadPage := CreateDownloadPage(
     'Downloading Stockfish Chess Engine',
-    'Fetching the latest Stockfish engine from GitHub...',
+    'Fetching the Stockfish engine ({#SfPrimaryTag}) from GitHub...',
     nil);
 end;
 
-procedure StockfishCandidate(Index: Integer; var Url, Sha256: String);
+procedure SfLog(const Msg: String);
 begin
-  Sha256 := '';
-  case Index of
-    0: Url := StockfishLatest + 'stockfish-windows-x86-64-universal.zip';
-    1: Url := StockfishLatest + 'stockfish-windows-x86-64-avx2.zip';
-  else
-    begin
-      Url := StockfishPinnedUrl;
-      Sha256 := StockfishPinnedSha256;
-    end;
+  Log('Stockfish: ' + Msg);
+  SaveStringToFile(StockfishLog,
+    GetDateTimeString('yyyy/mm/dd hh:nn:ss', '-', ':') + '  ' + Msg + #13#10, True);
+end;
+
+procedure StockfishCandidate(Index: Integer; var Tag, Url, Sha256: String);
+begin
+  if Index = 0 then
+  begin
+    Tag := '{#SfPrimaryTag}';  Url := '{#SfPrimaryUrl}';  Sha256 := '{#SfPrimarySha256}';
+  end else
+  begin
+    Tag := '{#SfFallbackTag}'; Url := '{#SfFallbackUrl}'; Sha256 := '{#SfFallbackSha256}';
   end;
 end;
 
-// Try each candidate URL until one downloads. Returns False if all fail.
-function DownloadStockfish(): Boolean;
+// Unzip + UCI check + copy to ReadyExe. Prepare-Stockfish.ps1 appends its own lines to the log.
+function PrepareStockfish(const Zip, WorkDir, ReadyExe: String): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Result := Exec('powershell.exe',
+    '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{tmp}\Prepare-Stockfish.ps1') + '"' +
+    ' -Zip "' + Zip + '" -WorkDir "' + WorkDir + '" -ReadyExe "' + ReadyExe + '" -Log "' + StockfishLog + '"',
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0);
+  if not Result then
+    SfLog('  result     : FAILED (exit code ' + IntToStr(ResultCode) + ')');
+end;
+
+// Try the candidates until one is downloaded and verified. Returns False if none works.
+function GetStockfish(): Boolean;
 var
   I: Integer;
-  Url, Sha256, Errors: String;
+  Tag, Url, Sha256, Zip: String;
+  Downloaded: Boolean;
+  LogContent: AnsiString;
 begin
   Result := False;
-  Errors := '';
+  ExtractTemporaryFile('Prepare-Stockfish.ps1');
+  SfLog('Chess++ {#MyAppVersion} setup');
+
   for I := 0 to StockfishCandidates - 1 do
   begin
-    StockfishCandidate(I, Url, Sha256);
+    StockfishCandidate(I, Tag, Url, Sha256);
+    if I = 0 then
+      SfLog('Stockfish ' + Tag + ' (newest stable release)')
+    else
+      SfLog('Fallback: Stockfish ' + Tag + ' (previous stable release)');
+    SfLog('  url        : ' + Url);
+    SfLog('  sha256     : ' + Sha256);
+
+    Zip := 'stockfish-' + Tag + '.zip';
     DownloadPage.Clear;
-    DownloadPage.Add(Url, StockfishZip, Sha256);
+    DownloadPage.Add(Url, Zip, Sha256);
+    Downloaded := False;
     try
       DownloadPage.Download;
-      Result := True;
-      Break;
+      Downloaded := True;
+      SfLog('  download   : OK, checksum verified');
     except
-      Errors := Errors + Url + #13#10 + '    ' + GetExceptionMessage + #13#10;
-      DeleteFile(ExpandConstant('{tmp}\' + StockfishZip));
+      SfLog('  download   : FAILED - ' + GetExceptionMessage);
+      DeleteFile(ExpandConstant('{tmp}\' + Zip));
+    end;
+    if not Downloaded and DownloadPage.AbortedByUser then
+    begin
+      SfLog('Download canceled by the user');
+      Exit;
+    end;
+
+    if Downloaded then
+    begin
+      DownloadPage.SetText('Checking the Stockfish engine...', '');
+      if PrepareStockfish(ExpandConstant('{tmp}\' + Zip), ExpandConstant('{tmp}\sf_' + Tag),
+                          ExpandConstant('{tmp}\stockfish.exe')) then
+      begin
+        StockfishReadyExe := ExpandConstant('{tmp}\stockfish.exe');
+        SfLog('Ready: Stockfish ' + Tag);
+        Result := True;
+        Exit;
+      end;
     end;
   end;
 
-  if not Result then
-    MsgBox('The Stockfish engine could not be downloaded:' + #13#10 + #13#10 + Errors + #13#10 +
-           'The app will still be installed. To play against the computer, download' + #13#10 +
-           'Stockfish from ' + StockfishManualUrl + #13#10 +
-           'and place stockfish.exe in: ' + ExpandConstant('{app}\engines\'),
-           mbError, MB_OK);
+  SfLog('No working Stockfish engine');
+  LogContent := '';
+  LoadStringFromFile(StockfishLog, LogContent);
+  MsgBox('The Stockfish engine could not be installed.' + #13#10 + #13#10 +
+         'The app will still be installed. To play against the computer, download' + #13#10 +
+         'Stockfish from ' + StockfishManualUrl + #13#10 +
+         'and place stockfish.exe in: ' + ExpandConstant('{app}\engines\') + #13#10 + #13#10 +
+         '--- Log ---' + #13#10 + LogContent,
+         mbError, MB_OK);
 end;
 
-// Download Stockfish when the user clicks Next on the Ready page.
-// Uses Inno Setup''s built-in WinHTTP download (no PowerShell, native progress bar).
+// Get Stockfish when the user clicks Next on the Ready page (native download progress bar).
+// Going Back and Next again doesn't download a second time.
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
-  if (CurPageID = wpReady) and WizardIsTaskSelected('stockfish') then
+  if (CurPageID = wpReady) and WizardIsTaskSelected('stockfish') and (StockfishReadyExe = '') then
   begin
+    StockfishLog := ExpandConstant('{tmp}\stockfish-install.log');
+    DeleteFile(StockfishLog);
     DownloadPage.Show;
     try
-      DownloadStockfish();
+      GetStockfish();
     finally
       DownloadPage.Hide;
     end;
   end;
 end;
 
-// Extract the already-downloaded zip into {app}\engines\ using PowerShell.
-// Only the extraction runs here — no network access, no hanging risk.
-procedure ExtractStockfish();
-var
-  EnginesDir, ZipFile, ScriptFile, LogFile: String;
-  ResultCode: Integer;
-  LogContent: AnsiString;
-begin
-  ZipFile    := ExpandConstant('{tmp}\' + StockfishZip);
-  EnginesDir := ExpandConstant('{app}\engines');
-  ScriptFile := ExpandConstant('{tmp}\sf_extract.ps1');
-  LogFile    := ExpandConstant('{tmp}\sf_extract.log');
-
-  if not FileExists(ZipFile) then Exit;
-  ForceDirectories(EnginesDir);
-
-  SaveStringToFile(ScriptFile,
-    '$log     = "' + LogFile + '"' + #13#10 +
-    '$zipFile = "' + ZipFile + '"' + #13#10 +
-    '$sfDir   = "' + ExpandConstant('{tmp}') + '\sf"' + #13#10 +
-    'function Log($m) { $m | Out-File $log -Append -Encoding ASCII }' + #13#10 +
-    'try {' + #13#10 +
-    '  "=== Extracting $(Get-Date) ===" | Out-File $log -Encoding ASCII' + #13#10 +
-    '  Expand-Archive $zipFile -DestinationPath $sfDir -Force' + #13#10 +
-    '  Log "Extraction OK"' + #13#10 +
-    '  $exe = Get-ChildItem $sfDir -Recurse -Filter "stockfish*.exe" | Select-Object -First 1' + #13#10 +
-    '  if (-not $exe) { throw "No stockfish*.exe found inside the zip" }' + #13#10 +
-    '  Log "Found: $($exe.FullName)"' + #13#10 +
-    '  Copy-Item $exe.FullName "' + EnginesDir + '\stockfish.exe" -Force' + #13#10 +
-    '  Log "=== Done ==="' + #13#10 +
-    '} catch {' + #13#10 +
-    '  Log "ERROR: $_"' + #13#10 +
-    '  Log "Stack: $($_.ScriptStackTrace)"' + #13#10 +
-    '  exit 1' + #13#10 +
-    '}',
-    False);
-
-  if not Exec('powershell.exe',
-      '-NoProfile -ExecutionPolicy Bypass -File "' + ScriptFile + '"',
-      '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-    ResultCode := -1;
-
-  if ResultCode <> 0 then
-  begin
-    LogContent := '(no log)';
-    LoadStringFromFile(LogFile, LogContent);
-    MsgBox('Stockfish could not be extracted (exit code: ' + IntToStr(ResultCode) + ').' + #13#10 +
-           'Place stockfish.exe manually in: ' + EnginesDir + #13#10#13#10 +
-           '--- Log ---' + #13#10 + LogContent,
-           mbError, MB_OK);
-  end;
-end;
-
+// Copy the verified engine and the log into {app}\engines.
 procedure CurStepChanged(CurStep: TSetupStep);
+var
+  EnginesDir: String;
 begin
-  if (CurStep = ssPostInstall) and WizardIsTaskSelected('stockfish') then
+  if (CurStep = ssPostInstall) and WizardIsTaskSelected('stockfish') and (StockfishLog <> '') then
   begin
     WizardForm.StatusLabel.Caption := 'Installing Stockfish chess engine...';
     WizardForm.FilenameLabel.Caption := '';
-    ExtractStockfish();
+    EnginesDir := ExpandConstant('{app}\engines');
+    ForceDirectories(EnginesDir);
+    if StockfishReadyExe <> '' then
+    begin
+      if CopyFile(StockfishReadyExe, EnginesDir + '\stockfish.exe', False) then
+        SfLog('Installed: ' + EnginesDir + '\stockfish.exe')
+      else
+      begin
+        SfLog('ERROR: could not copy the engine to ' + EnginesDir);
+        MsgBox('Stockfish could not be copied to ' + EnginesDir + '.', mbError, MB_OK);
+      end;
+    end;
+    CopyFile(StockfishLog, EnginesDir + '\stockfish-install.log', False);
     WizardForm.StatusLabel.Caption := 'Done.';
   end;
 end;

@@ -151,9 +151,14 @@ jobs:
         env:
           APP_VERSION: ${{ steps.version.outputs.value }}
           PFX_PASS: ${{ secrets.PFX_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub API rate limit for Resolve-Stockfish.ps1
         run: |
+          # Pin the newest stable Stockfish (+ previous as fallback) with GitHub's SHA-256.
+          $stockfishArgs = @(& installer\Resolve-Stockfish.ps1 -AsIsccArgs)
+          $stockfishArgs | ForEach-Object { Write-Host $_ }
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
             /S"MySignTool=${{ github.workspace }}\sign_tool.bat `$f" `
+            @stockfishArgs `
             installer\ChessSetup.iss
 
       - name: Cleanup Certificate
