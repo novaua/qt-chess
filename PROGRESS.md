@@ -16,10 +16,12 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 - Code review fixes (step 4d) and PR #70 opened. Live check OK for resign from the app and from an anonymous Lichess opponent.
 
+- Merged: #70 (rematch + game end) and #71 (test host crash fix). `ChessQtTests` engine tests now run reliably (10/10).
+
 ### Where to continue
-1. Step 5: play a game against a second Lichess account and run the manual scenarios in plan §5 (accept, decline, cancel, anonymous link, vs Robot unchanged, restart, leave while pending).
+1. Play a game against a second Lichess account and run the manual scenarios in plan §5 (accept, decline, cancel, anonymous link, vs Robot unchanged, restart, leave while pending).
 2. Watch the log for `LichessClient: challenge stream line:`. It confirms the keep-alive challenge JSON and the final `{"done":...}` shape this code expects.
-3. Merge PR #70 to `develop` once reviewed.
+3. If a live scenario fails, fix it on a new branch from `develop`.
 
 ### Notes
 - If the opponent clicks Rematch in their browser, the Board API client probably never sees it; the app must send the challenge.

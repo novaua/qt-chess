@@ -1,6 +1,7 @@
 # Build-Installer.ps1
 # Build the Chess++ installer locally, mirroring the steps in .github/workflows/release.yml:
-#   MSBuild Release|x64  ->  deploy\ (windeployqt)  ->  Inno Setup  ->  installer\Output\ChessSetup-<version>.exe
+#   MSBuild Release|x64  ->  deploy\ (windeployqt)  ->  Resolve-Stockfish.ps1  ->  Inno Setup
+#   ->  installer\Output\ChessSetup-<version>.exe
 #
 # The local installer is NOT code-signed (CI signs releases).
 #
@@ -105,11 +106,18 @@ try {
         }
     }
 
+    # --- Stockfish download to pin ---------------------------------------------
+    # Required: ChessSetup.iss has no built-in Stockfish URL, so a build that can't reach
+    # GitHub (or finds the assets renamed) fails here instead of shipping stale values.
+    Step "Resolve Stockfish (newest stable release + fallback)"
+    $stockfishArgs = @(& "$PSScriptRoot\Resolve-Stockfish.ps1" -AsIsccArgs)
+    $stockfishArgs | ForEach-Object { Write-Host "  $_" }
+
     # --- Inno Setup (unsigned) -------------------------------------------------
     # /DNoSign=1 turns off the SignTool/SignedUninstaller directives in ChessSetup.iss.
     Step "Build installer with Inno Setup (unsigned)"
     $env:APP_VERSION = $Version
-    Invoke-Native $iscc @('/DNoSign=1', 'installer\ChessSetup.iss')
+    Invoke-Native $iscc (@('/DNoSign=1') + $stockfishArgs + @('installer\ChessSetup.iss'))
 
     $out = Get-ChildItem installer\Output -Filter "ChessSetup-$Version.exe" | Select-Object -First 1
     if (-not $out) { throw "Installer not found in installer\Output" }
