@@ -95,8 +95,11 @@ void ChessConnector::figureSelected(int index)
 		return;
 	}
 
-	// In online games only allow moving when it's the local player's turn.
+	// In online games only allow moving when it's the local player's turn, and not after
+	// the game has ended on Lichess (moves would be rejected there).
 	if (!_onlineGameId.isEmpty()) {
+		if (_gameOver)
+			return;
 		const bool localIsWhite = _config.playerPlaysWhite;
 		if (_game->IsWhiteMove() != localIsWhite)
 			return;
@@ -276,7 +279,31 @@ QVariantList ChessConnector::moveHistory() const
 void ChessConnector::setGameResult(const QString& result)
 {
 	_gameResult = result;
+	if (!result.isEmpty()) {
+		_gameOver = true;
+		ClearBoard(_possibleMoves); // drop move highlights of a selected piece
+		emit PossibleMovesChanged();
+	}
 	emit gameResultChanged();
+}
+
+void ChessConnector::flagKing(bool white)
+{
+	const auto color = white ? Chess::PieceColors::Light : Chess::PieceColors::Dark;
+	for (int i = 0; i < 64; ++i) {
+		const auto piece = _game->GetPieceAt(i);
+		if (piece.Type == Chess::KING && piece.Color == color) {
+			setFlaggedKing(i);
+			return;
+		}
+	}
+}
+
+void ChessConnector::setFlaggedKing(int square)
+{
+	if (_flaggedKing == square) return;
+	_flaggedKing = square;
+	emit flaggedKingChanged();
 }
 
 int ChessConnector::lastMoveFrom() const
@@ -374,6 +401,7 @@ void ChessConnector::resignGame()
 	}
 	// Local game: white to move resigns → Black wins, and vice versa
 	_gameOver = true;
+	flagKing(IsWhiteMove() == 1);
 	const QString winner = (IsWhiteMove() == 1) ? QStringLiteral("Black Won")
 	                                              : QStringLiteral("White Won");
 	emit checkMateResult(winner);
@@ -416,6 +444,7 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 
 void ChessConnector::setLastGameOnline(bool online)
 {
+	setFlaggedKing(-1); // called whenever a new game starts
 	if (_lastGameOnline == online) return;
 	_lastGameOnline = online;
 	emit canRematchChanged();
@@ -842,6 +871,7 @@ int ChessConnector::IsOnPlayerMode()
 void ChessConnector::endGame()
 {
 	resetMoveHistoryCache();
+	setFlaggedKing(-1);
 	if (!_onlineGameId.isEmpty()) {
 		if (_lichessClient) _lichessClient->stopStream();
 		_onlineGameId.clear();

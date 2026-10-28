@@ -51,6 +51,7 @@ public:
 	Q_INVOKABLE void offerDraw(const QString& gameId, bool accept);
 	Q_INVOKABLE void requestTakeback(const QString& gameId, bool accept);
 	Q_INVOKABLE void abortGame(const QString& gameId);
+	Q_INVOKABLE void claimVictory(const QString& gameId); // allowed once opponentGone's countdown ends
 	Q_INVOKABLE void stopStream();
 	Q_INVOKABLE void cancelChallenge(const QString& challengeId);
 
@@ -73,6 +74,9 @@ signals:
 	void directChallengeSent(QString challengeId, QString opponentName);
 	void challengeDeclined(QString opponentName);
 	void canRematchChanged();
+	// The opponent left (gone) or came back. claimWinInSeconds: when claimVictory() becomes
+	// possible; -1 if Lichess didn't say.
+	void opponentGone(bool gone, int claimWinInSeconds);
 	void drawOfferReceived();
 	void takebackRequested();
 

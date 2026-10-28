@@ -10,6 +10,12 @@ Plan: [`docs/LichessRematchPlan.md`](docs/LichessRematchPlan.md)
 - [x] 2. `LichessClient`: `createRematch()` (direct challenge with `keepAliveStream` to a registered opponent / open challenge for anonymous), `waitForGameStart(…, registerAsPlayer)`, `directChallengeSent` / `challengeDeclined` signals
 - [x] 3. `ChessConnector`: track online games in C++ (`_lastGameOnline`), `CanRematch` property, `rematch()` routing
 - [x] 4. QML: Rematch button for online games, `ChallengeDialog` direct-challenge mode, `ChessGame.qml` handlers (decline banner, cancel on leaving the game)
+- [x] 4b. Online game end handling (found while testing: opponent resigned, app showed nothing)
+  - Result card with Rematch on the board when the side panels are hidden (default portrait window)
+  - Board notification ("Black resigned", "… ran out of time", "… left the game") + red flag on the losing king (`FlaggedKing`)
+  - Board frozen after an online game ends (`_gameOver`); reason texts for `timeout` / `noStart` / `stalemate`
+  - `opponentGone` banner with countdown and **Claim victory** (`LichessClient::claimVictory`)
+  - `gameFull` of an already finished game ends it (`state.status`)
 - [ ] 5. Manual test against Lichess (scenarios in plan §5) — Debug + Release build ✅, app starts without QML errors ✅, live Lichess scenarios pending
 
 ### Done

@@ -370,6 +370,20 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
             if (!_lastMovesList.isEmpty())
                 emit opponentMoveReceived(_lastMovesList.join(QLatin1Char(' ')));
 
+            // Streaming a game that has already ended: Lichess sends only gameFull, then closes.
+            const QString status = state.value(QStringLiteral("status")).toString();
+            if (!status.isEmpty() && status != QLatin1String("started")
+                    && status != QLatin1String("created")) {
+                emit gameEnded(status, state.value(QStringLiteral("winner")).toString());
+                return;
+            }
+
+        } else if (type == QLatin1String("opponentGone")) {
+            const bool gone = obj.value(QStringLiteral("gone")).toBool();
+            const int  claimIn = obj.contains(QStringLiteral("claimWinInSeconds"))
+                ? obj.value(QStringLiteral("claimWinInSeconds")).toInt() : -1;
+            emit opponentGone(gone, claimIn);
+
         } else if (type == QLatin1String("gameState")) {
             const QString moves  = obj.value(QStringLiteral("moves")).toString();
             const QString status = obj.value(QStringLiteral("status")).toString();
@@ -442,6 +456,24 @@ void LichessClient::requestTakeback(const QString& gameId, bool accept)
 void LichessClient::abortGame(const QString& gameId)
 {
     postGameAction(QStringLiteral("/api/board/game/") + gameId + QStringLiteral("/abort"));
+}
+
+void LichessClient::claimVictory(const QString& gameId)
+{
+    // On success the game stream sends gameState with status "timeout" → gameEnded.
+    auto* reply = _nam.post(
+        makeRequest(QStringLiteral("/api/board/game/") + gameId + QStringLiteral("/claim-victory")),
+        QByteArray());
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        if (reply->error() != QNetworkReply::NoError) {
+            const auto doc = QJsonDocument::fromJson(reply->readAll());
+            const QString apiError = doc.isObject()
+                ? doc.object().value(QStringLiteral("error")).toString() : QString();
+            emit networkError(QStringLiteral("Claim victory failed: ")
+                              + (apiError.isEmpty() ? reply->errorString() : apiError));
+        }
+    });
 }
 
 void LichessClient::createRematch()

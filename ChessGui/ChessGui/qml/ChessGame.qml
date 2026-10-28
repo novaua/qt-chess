@@ -31,6 +31,9 @@ ApplicationWindow {
     property string _onlineGameId:            ""
     property bool   _showDrawOffer:           false
     property bool   _showTakebackOffer:       false
+    property bool   _opponentGone:            false // Lichess: opponent left the game
+    property int    _claimSecondsLeft:        -1    // until "Claim victory" is allowed; <= 0: now
+    property bool   _resultCardHidden:        false
     property bool   _toolbarResignPending:    false
     property bool   _wasOnlineGame:           false
     property bool   _showLevelsHelp:          false
@@ -396,6 +399,55 @@ ApplicationWindow {
                         rightMargin: _boardSize / 2 + 5
                     }
                 }
+
+                // Narrow / portrait window: no side panels, so show the result (and Rematch)
+                // on the board itself.
+                Rectangle {
+                    id: resultCard
+                    visible: _showGameResult && !_showHistoryPanel && !_resultCardHidden
+                    anchors.centerIn: parent
+                    width: Math.min(_boardSize * 0.8, 320)
+                    height: resultCol.implicitHeight + 28
+                    radius: 12
+                    z: 5
+                    color:        root.isDarkMode ? "#e6252525" : "#e6f4f4f4"
+                    border.color: root.isDarkMode ? "#555555" : "#cccccc"
+
+                    MouseArea { anchors.fill: parent } // keep clicks off the board
+
+                    Column {
+                        id: resultCol
+                        anchors.centerIn: parent
+                        width: parent.width - 28
+                        spacing: 12
+
+                        Text {
+                            width: parent.width
+                            text: _checkmateWinner
+                            font.pixelSize: 18
+                            font.bold: true
+                            color: root.isDarkMode ? "#ffffff" : "#000000"
+                            wrapMode: Text.WordWrap
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+
+                        Row {
+                            spacing: 10
+                            anchors.horizontalCenter: parent.horizontalCenter
+
+                            ActionButton {
+                                label: "Rematch"
+                                visible: chessConnector.GameResult !== "" && chessConnector.CanRematch
+                                         && !_pendingRematch
+                                onAction: chessConnector.rematch()
+                            }
+                            ActionButton {
+                                label: "Close"
+                                onAction: _resultCardHidden = true
+                            }
+                        }
+                    }
+                }
             }
 
             CapturedPanel {
@@ -665,6 +717,7 @@ ApplicationWindow {
                 var isWhite = winner === "White Won"
                 var name = isWhite ? avatarProvider.playerName : avatarProvider.opponentName
                 _checkmateWinner = (isWhite ? "White " : "Black ") + name + " Won"
+                _resultCardHidden = false
                 resultDialogTimer.start()
                 if (appSettings.musicEnabled) 
                     sndWin.play()
@@ -709,6 +762,7 @@ ApplicationWindow {
 
             function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
                 clearPendingChallenge()
+                _opponentGone = false
                 _onlineGameId = gameId
                 chessConnector.startOnlineGame(gameId, playingAsWhite)
                 avatarProvider.setOpponentFromUser(opponentAvatarUrl !== "" ? opponentAvatarUrl : "unicorn")
@@ -724,18 +778,43 @@ ApplicationWindow {
                 _showDrawOffer = false
                 _showTakebackOffer = false
                 _toolbarResignPending = false
+                _opponentGone = false
                 _wasOnlineGame = true
 
                 const winnerName = ({ "white": "White", "black": "Black" })[winner] ?? ""
+                const loserName  = winner === "white" ? "Black" : "White"
                 const reason     = ({ "mate": " by Checkmate", "resign": " by Resignation",
-                                      "outoftime": " on Time" })[status] ?? ""
+                                      "outoftime": " on Time", "timeout": " (opponent left)",
+                                      "noStart": " (opponent didn't move)" })[status] ?? ""
 
-                if      (status === "aborted") _checkmateWinner = "Game Aborted"
-                else if (winnerName !== "")    _checkmateWinner = winnerName + " Won" + reason
-                else                           _checkmateWinner = "Draw"
+                if      (status === "aborted")   _checkmateWinner = "Game Aborted"
+                else if (winnerName !== "")      _checkmateWinner = winnerName + " Won" + reason
+                else if (status === "stalemate") _checkmateWinner = "Draw by Stalemate"
+                else                             _checkmateWinner = "Draw"
 
                 chessConnector.setGameResult(_checkmateWinner)
+
+                // Like Lichess: a red flag on the king of the side that gave up / ran out of time.
+                if (winnerName !== "" && ["resign", "outoftime", "timeout", "noStart"].includes(status))
+                    chessConnector.flagKing(winner !== "white")
+
+                // Checkmate is already announced by the local game when the mating move arrives.
+                const notice = ({ "resign": loserName + " resigned",
+                                  "outoftime": loserName + " ran out of time",
+                                  "timeout": loserName + " left the game",
+                                  "noStart": loserName + " didn't move",
+                                  "aborted": "Game aborted",
+                                  "stalemate": "Stalemate", "draw": "Draw" })[status] ?? ""
+                if (notice !== "")
+                    chessBoard.showNotification(notice)
+
+                _resultCardHidden = false
                 resultDialogTimer.start()
+            }
+
+            function onOpponentGone(gone, claimWinInSeconds) {
+                _opponentGone     = gone
+                _claimSecondsLeft = gone ? claimWinInSeconds : -1
             }
 
             function onNetworkError(message) {
@@ -949,6 +1028,48 @@ ApplicationWindow {
                 Button {
                     text: "Decline"; implicitWidth: 70; implicitHeight: 28
                     onClicked: { chessConnector.respondTakeback(false); _showTakebackOffer = false }
+                }
+            }
+        }
+
+        // ── Opponent left (Lichess opponentGone) ─────────────────────────────
+        Timer {
+            id: claimCountdown
+            interval: 1000
+            repeat: true
+            running: _opponentGone && _claimSecondsLeft > 0
+            onTriggered: _claimSecondsLeft--
+        }
+
+        Rectangle {
+            id: opponentGoneBanner
+            visible: _opponentGone && _onlineGameId !== ""
+            anchors {
+                top: takebackBanner.visible ? takebackBanner.bottom
+                   : drawOfferBanner.visible ? drawOfferBanner.bottom : networkErrorBanner.bottom
+                topMargin: 4
+                horizontalCenter: parent.horizontalCenter
+            }
+            width: Math.min(parent.width - 32, 420)
+            height: 44
+            radius: 8
+            color: "#7a3b00"
+            z: 30
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 10
+                Text {
+                    text: _claimSecondsLeft > 0
+                        ? "Opponent left the game. Claim victory in " + _claimSecondsLeft + " s"
+                        : "Opponent left the game"
+                    color: "#ffffff"; font.pixelSize: 13
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                Button {
+                    text: "Claim victory"; implicitWidth: 100; implicitHeight: 28
+                    enabled: _claimSecondsLeft <= 0
+                    onClicked: lichessClient.claimVictory(_onlineGameId)
                 }
             }
         }

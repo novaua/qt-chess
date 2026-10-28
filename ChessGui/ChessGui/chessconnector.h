@@ -44,6 +44,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
 		Q_PROPERTY(bool CanRematch    READ canRematch    NOTIFY canRematchChanged)
+		Q_PROPERTY(int  FlaggedKing   READ flaggedKing   NOTIFY flaggedKingChanged) // square of a king that resigned / lost on time, or -1
 public:
 	explicit ChessConnector(QObject* parent = nullptr);
 	~ChessConnector();
@@ -73,6 +74,7 @@ public:
 	bool isOnlineGame()  const { return !_onlineGameId.isEmpty(); }
 	// Local games can always be replayed; a Lichess game needs its settings and a token.
 	bool canRematch()    const { return !_lastGameOnline || (_lichessClient && _lichessClient->canRematch()); }
+	int  flaggedKing()   const { return _flaggedKing; }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 
@@ -106,6 +108,7 @@ signals:
 	void reviewStateChanged();
 	void isOnlineGameChanged();
 	void canRematchChanged();
+	void flaggedKingChanged();
 	void drawOfferReceived();
 	void takebackRequested();
 	void lichessLoginResult(bool ok, QString username);
@@ -123,7 +126,8 @@ public slots:
 	void startNewGame();
 	void startNewGameWithComputer(int level = 3);
 	Q_INVOKABLE void robotMove();
-	Q_INVOKABLE void setGameResult(const QString& result);
+	Q_INVOKABLE void setGameResult(const QString& result); // non-empty: the game is over
+	Q_INVOKABLE void flagKing(bool white); // mark that side's king as the loser (resign / time)
 	void setUseFen(bool v);
 	Q_INVOKABLE void setPlayerPlaysWhite(bool v);
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
@@ -170,6 +174,7 @@ private:
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
 	void setLastGameOnline(bool online);
+	void setFlaggedKing(int square);
 	void autoSaveGame(bool isSinglePlayer);
 	void deleteAutoSave();
 	QString autoSavePath()  const;
@@ -194,6 +199,7 @@ private:
 	std::atomic<bool> _gameOver{ false };
 	bool _wasVsComputer = false;
 	bool _lastGameOnline = false; // the current/last game is a Lichess game: rematch goes online
+	int  _flaggedKing    = -1;
 	QString _gameResult;
 	AppConfig _config;
 	int _reviewIndex = -1;

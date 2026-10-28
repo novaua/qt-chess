@@ -112,6 +112,18 @@ Grid{
                     :"")
             }
 
+            // Red flag on the king that resigned / lost on time
+            Text {
+                visible: index === chessConnector.FlaggedKing
+                anchors { top: parent.top; right: parent.right; margins: parent.width * 0.04 }
+                text: "⚑"
+                color: "#e74c3c"
+                style: Text.Outline
+                styleColor: "#ffffff"
+                font.pixelSize: parent.height * 0.36
+                font.bold: true
+            }
+
             PropertyAnimation {
                 target: chessPiecesItm;
                 property: "opacity";
