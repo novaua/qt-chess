@@ -93,7 +93,16 @@ try {
     if (Test-Path deploy) { Remove-Item deploy -Recurse -Force }
     New-Item -ItemType Directory deploy | Out-Null
     Copy-Item x64\Release\ChessGui.exe, x64\Release\LiChessConnector.dll deploy\
+    # windeployqt bundles vc_redist.x64.exe only when VCINSTALLDIR is set (as in a VS
+    # developer prompt); ChessSetup.iss requires it and runs it when the runtime is missing.
+    if (-not $env:VCINSTALLDIR -and (Test-Path $vswhere)) {
+        $vsPath = & $vswhere -latest -products '*' -property installationPath
+        if ($vsPath) { $env:VCINSTALLDIR = "$vsPath\VC\" }
+    }
     Invoke-Native $windeployqt @('--release', '--qmldir', 'ChessGui\ChessGui', 'deploy\ChessGui.exe')
+    if (-not (Test-Path deploy\vc_redist.x64.exe)) {
+        throw "windeployqt did not deploy vc_redist.x64.exe (VCINSTALLDIR='$env:VCINSTALLDIR')"
+    }
 
     # --- Verify version metadata ----------------------------------------------
     Step "Verify version metadata"

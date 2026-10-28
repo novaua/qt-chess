@@ -2,7 +2,11 @@
 
 ## In Progress
 
-- [ ] Installer: Stockfish from the newest **stable** release, single download (branch `feStockfishInstallCheck_281026`)
+- [ ] Installer: install the Microsoft VC++ runtime when missing (branch `fixVcRedistInstall_281026`)
+  - [x] `vc_redist.x64.exe` no longer copied into `{app}`; unpacked to `{tmp}` and run (`/install /quiet /norestart`) only if the installed runtime (registry `VC\Runtimes\x64`) is missing or older than the bundled one; exit codes 0/1638 OK, 3010 → restart offered, others → warning with download link
+  - [x] `Build-Installer.ps1` sets `VCINSTALLDIR` so local builds bundle it too; the build fails if it's missing
+  - [ ] Install on a PC without the runtime (or older) and check the `/LOG` setup log line `VC++ runtime …: exit code`
+- [x] Installer: Stockfish from the newest **stable** release, single download (#72)
   - [x] `Resolve-Stockfish.ps1` pins newest stable + previous stable (fallback) with GitHub's SHA-256 at build time (`Build-Installer.ps1`, `release.yml`); no hard-coded release in `ChessSetup.iss`, the build fails if it can't resolve (review: option A)
   - [x] Per candidate: download (checksum) → unzip → UCI check (`Prepare-Stockfish.ps1`, `uci` → `uciok`, version logged); fallback only if a step fails
   - [x] `{app}\engines\stockfish-install.log` (+ Inno `/LOG`); `Test-StockfishDownload.ps1` mirrors the flow — normal and fallback paths verified
@@ -29,21 +33,17 @@
 
 ### Backlog
 
-- [ ] **chess.com account** — save/restore user chess.com credentials and data when connected
-
+- [ ] BL-01 Remove obsolete QT QML components, used for chess glow for example [Easy]
+- [ ] BL-02 Review and modernize all game screens [Hard]
+- [ ] BL-03 Remove user handling relay on adopting LiChess more, need more reserch here before or togather with BL-02 [Medium]
+- [ ] BL-04 Improve game UI making pice move and grag by hand, ulse latest QLM techniques [Medium]
+- [ ] 
 ---
 
 ## Network Multiplayer Game
 
-- [ ] Re-implement network game support
-  - Skeleton code preserved in `networkplayer.h` / `networkplayer.cpp` (excluded from build)
-  - QML dialogs preserved in `SelectPlayerDialog.qml` / `NetworkPlayers.qml` (excluded from qml.qrc)
-  - `ChessConnector` had `PlayersName` Q_PROPERTY wired up for player discovery — restore when implementing
-  - Protocol skeleton uses UDP multicast (`239.255.43.32:33211`) for player discovery; extend for actual move exchange
-  - Re-add to build: `networkplayer.cpp`, `networkplayer.h` (QtMoc), restore QML files to `qml.qrc`
-  - Re-add `#include "networkplayer.h"` and `NetworkPlayerAptr _netPlayer` to `ChessConnector`
-  - Re-add "Network Player" button to `ChessGame.qml` toolbar and state visibility rules
-
+- [ ] Re-implement network game support with local games without server
+     - Consider if it's worht doing at all	
 ---
 
 ## How to use this file
