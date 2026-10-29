@@ -3,7 +3,7 @@
 #include <QRandomGenerator>
 #include <QStringList>
 
-static const QStringList& avatarNames()
+const QStringList& AvatarProvider::avatarNames()
 {
     static const QStringList names = {
         "wizard", "unicorn", "sun",    "flower", "rabbit",

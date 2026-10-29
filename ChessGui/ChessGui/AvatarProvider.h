@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 class AvatarProvider : public QObject
 {
@@ -9,9 +10,13 @@ class AvatarProvider : public QObject
     Q_PROPERTY(QString playerName   READ playerName   NOTIFY playerAvatarChanged)
     Q_PROPERTY(QString opponentUrl  READ opponentUrl  NOTIFY opponentAvatarChanged)
     Q_PROPERTY(QString opponentName READ opponentName NOTIFY opponentAvatarChanged)
+    Q_PROPERTY(QStringList names    READ names        CONSTANT) // every avatar, for the pickers
 
 public:
     explicit AvatarProvider(QObject* parent = nullptr);
+
+    static const QStringList& avatarNames();
+    QStringList names() const { return avatarNames(); }
 
     QString playerUrl()      const;
     QString playerName()     const;

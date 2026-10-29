@@ -18,7 +18,6 @@
 #include "AvatarProvider.h"
 #include "UserManager.h"
 #include "LichessClient.h"
-#include "LichessAuth.h"
 
 class ChessConnector : public QObject
 {
@@ -148,7 +147,6 @@ signals:
 	void gameInfoChanged();
 	void pendingOfferChanged();
 	void opponentGoneChanged();
-	void lichessLoginResult(bool ok, QString username);
 
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
@@ -196,8 +194,6 @@ public slots:
 	Q_INVOKABLE void copyPgn();
 	Q_INVOKABLE void exportPgn(const QUrl& file);
 
-	Q_INVOKABLE void loginWithLichess();
-
 	Q_INVOKABLE void resignGame();
 	Q_INVOKABLE void offerDraw();
 	Q_INVOKABLE void claimVictory(); // Lichess: after the opponent left the game
@@ -219,7 +215,9 @@ private:
 	void startNewGameWithComputer(int level);
 	void startOnlineGame(const QString& gameId, bool playingAsWhite);
 	void setPlayerPlaysWhite(bool v);
-	void setGameMode(const QString& mode, const QString& opponentName);
+	// opponentUserId: the opponent's profile in a two-player game ("" = Guest, or not a local game).
+	void setGameMode(const QString& mode, const QString& opponentName, const QString& opponentUserId = {});
+	void recordResult(int whiteScore); // statistics; 1 White won, 0 draw, -1 Black won
 	void setResult(const QString& result, const QString& text); // non-empty: the game is over
 	void setPendingOffer(const QString& offer);
 	void setOpponentGone(bool gone, int claimWinInSeconds = -1);
@@ -271,12 +269,12 @@ private:
 	QString _resultText;
 	QString _gameMode;
 	QString _opponentName;
+	QString _opponentUserId;
 	QString _pendingOffer;
 	bool _opponentGone = false;
 	int  _claimWinSeconds = -1;
 	AppConfig _config;
 	int _reviewIndex = -1;
-	LichessAuth* _lichessAuth = nullptr;
 
 	QVariantList _moveHistoryCache;
 	std::vector<std::string> _sanCache; // SAN of shownHistory(), for the PGN

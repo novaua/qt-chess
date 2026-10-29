@@ -2,6 +2,7 @@
 #include "lichessconnector_global.h"
 #include <QNetworkAccessManager>
 #include <QTimer>
+#include <QVariantMap>
 
 class QNetworkReply;
 class QJsonObject;
@@ -30,6 +31,10 @@ public:
 	void setUsername(const QString& username);
 
 	Q_INVOKABLE void validateToken(const QString& token);
+	// GET /api/account with our token: emits accountFetched, or authExpired on a 401.
+	void refreshAccount();
+	// "perfs" of /api/account: { "blitz": { rating, games, prov }, ... } for the pools that have a rating.
+	static QVariantMap parseRatings(const QJsonObject& account);
 	Q_INVOKABLE void createOpenChallenge(int minutes, int increment, const QString& color, const QString& variant);
 	Q_INVOKABLE void acceptChallenge(const QString& challengeId);
 	Q_INVOKABLE void streamGame(const QString& gameId);
@@ -65,6 +70,8 @@ public:
 
 signals:
 	void tokenValidated(bool ok, QString username);
+	void accountFetched(QString username, QVariantMap ratings);
+	void authExpired(); // Lichess answered 401 to a call made with our token
 	void challengeCreated(QString gameId, QString joinUrl);
 	void gameStarted(QString gameId, bool playingAsWhite, QString opponentName, QString opponentAvatarUrl);
 	void opponentMoveReceived(QString uciMove);
@@ -82,6 +89,7 @@ signals:
 
 private:
 	QNetworkRequest makeRequest(const QString& path) const;
+	void checkAuthExpired(QNetworkReply* reply, bool unauthorized);
 	void postGameAction(const QString& path);
 	void createOpenChallengeSec(int limitSec, int incrementSec, int days,
 	                            const QString& color, const QString& variant);

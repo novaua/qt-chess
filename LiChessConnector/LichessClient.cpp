@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "LichessClient.h"
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
@@ -21,7 +22,53 @@ LichessClient::LichessClient(QObject* parent)
 {
     // Prevent Qt from intercepting 401 responses and overriding our Bearer token.
     connect(&_nam, &QNetworkAccessManager::authenticationRequired,
-            [](QNetworkReply* reply, QAuthenticator*) { reply->abort(); });
+            this, [this](QNetworkReply* reply, QAuthenticator*) { checkAuthExpired(reply, true); reply->abort(); });
+    connect(&_nam, &QNetworkAccessManager::finished,
+            this, [this](QNetworkReply* reply) { checkAuthExpired(reply, false); });
+}
+
+// Any call made with our token that Lichess answers with 401: the token was revoked or expired.
+// validateToken() sends a different token, so it doesn't count.
+void LichessClient::checkAuthExpired(QNetworkReply* reply, bool unauthorized)
+{
+    if (_token.isEmpty() || reply->request().rawHeader("Authorization") != ("Bearer " + _token).toUtf8())
+        return;
+    if (unauthorized || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 401) {
+        qDebug() << "LichessClient: 401 for" << reply->url().path() << "- the token is no longer valid";
+        emit authExpired();
+    }
+}
+
+void LichessClient::refreshAccount()
+{
+    if (_token.isEmpty()) return;
+    auto* reply = _nam.get(makeRequest(QStringLiteral("/api/account")));
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        if (reply->error() != QNetworkReply::NoError) return; // a 401 is reported by checkAuthExpired
+        const auto doc = QJsonDocument::fromJson(reply->readAll());
+        if (!doc.isObject()) return;
+        const QString username = doc.object().value(QStringLiteral("username")).toString();
+        if (!username.isEmpty())
+            emit accountFetched(username, parseRatings(doc.object()));
+    });
+}
+
+QVariantMap LichessClient::parseRatings(const QJsonObject& account)
+{
+    QVariantMap ratings;
+    const QJsonObject perfs = account.value(QStringLiteral("perfs")).toObject();
+    for (const char* pool : { "bullet", "blitz", "rapid", "classical", "correspondence" }) {
+        const QJsonObject perf = perfs.value(QLatin1String(pool)).toObject();
+        if (!perf.contains(QStringLiteral("rating")))
+            continue;
+        ratings.insert(QLatin1String(pool), QVariantMap{
+            { QStringLiteral("rating"), perf.value(QStringLiteral("rating")).toInt() },
+            { QStringLiteral("games"),  perf.value(QStringLiteral("games")).toInt() },
+            { QStringLiteral("prov"),   perf.value(QStringLiteral("prov")).toBool() }, // provisional: few games
+        });
+    }
+    return ratings;
 }
 
 void LichessClient::setToken(const QString& decryptedToken)

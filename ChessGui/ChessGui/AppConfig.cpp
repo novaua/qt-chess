@@ -1,10 +1,12 @@
 #include "stdafx.h"
 #include "AppConfig.h"
 
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSaveFile>
 #include <QStandardPaths>
 #include <QString>
 
@@ -80,7 +82,8 @@ void AppConfig::save() const
 	root["version"]  = 1;
 	root["settings"] = settings;
 
-	QFile file(configFilePath());
-	if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
-		file.write(QJsonDocument(root).toJson());
+	// QSaveFile: a crash mid-write leaves the previous file, not a broken one.
+	QSaveFile file(configFilePath());
+	if (!file.open(QIODevice::WriteOnly) || file.write(QJsonDocument(root).toJson()) < 0 || !file.commit())
+		qWarning() << "AppConfig: can't write" << configFilePath() << file.errorString();
 }

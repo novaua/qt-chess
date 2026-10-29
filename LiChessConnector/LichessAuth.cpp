@@ -27,10 +27,29 @@ static QString base64Url(const QByteArray& data)
 LichessAuth::LichessAuth(QObject* parent)
 	: QObject(parent)
 {
+	connect(&_server, &QTcpServer::newConnection, this, &LichessAuth::onNewConnection);
+}
+
+void LichessAuth::cancel()
+{
+	_server.close();
+	if (_reply) {
+		_reply->disconnect(this); // no loginFailed for the abort
+		_reply->abort();
+		_reply->deleteLater();
+		_reply = nullptr;
+	}
+}
+
+void LichessAuth::useToken(const QString& token)
+{
+	cancel();
+	fetchUsername(token);
 }
 
 void LichessAuth::startLogin()
 {
+	cancel();
 	// Generate code_verifier: 64 random bytes → Base64URL (86 chars, within RFC 7636 limits)
 	QByteArray verifierBytes(64, Qt::Uninitialized);
 	QRandomGenerator::global()->fillRange(
@@ -53,7 +72,6 @@ void LichessAuth::startLogin()
 		return;
 	}
 	_port = _server.serverPort();
-	connect(&_server, &QTcpServer::newConnection, this, &LichessAuth::onNewConnection);
 
 	// Build authorization URL and open browser
 	QUrl url(kAuthUrl);
@@ -133,8 +151,10 @@ void LichessAuth::exchangeCode(const QString& code)
 	body.addQueryItem("client_id",     kClientId);
 
 	QNetworkReply* reply = _nam.post(req, body.toString(QUrl::FullyEncoded).toUtf8());
+	_reply = reply;
 	connect(reply, &QNetworkReply::finished, this, [this, reply]() {
 		reply->deleteLater();
+		_reply = nullptr;
 		if (reply->error() != QNetworkReply::NoError) {
 			emit loginFailed("Token exchange failed: " + reply->errorString());
 			return;
@@ -155,8 +175,10 @@ void LichessAuth::fetchUsername(const QString& token)
 	req.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
 
 	QNetworkReply* reply = _nam.get(req);
+	_reply = reply;
 	connect(reply, &QNetworkReply::finished, this, [this, reply, token]() {
 		reply->deleteLater();
+		_reply = nullptr;
 		if (reply->error() != QNetworkReply::NoError) {
 			emit loginFailed("Account fetch failed: " + reply->errorString());
 			return;

@@ -202,6 +202,33 @@ namespace LichessTests
 
 			Assert::IsFalse(info.valid);
 		}
+
+		// parseRatings ———————————————————————————————————————————————————————
+
+		TEST_METHOD(ParseRatings_PoolsWithARating_ProvisionalKept)
+		{
+			auto ratings = LichessClient::parseRatings(Json(R"({
+				"username": "Me",
+				"perfs": {
+					"blitz":  { "games": 214, "rating": 1612, "rd": 60, "prog": 12 },
+					"rapid":  { "games": 3, "rating": 1500, "rd": 300, "prov": true },
+					"puzzle": { "games": 10, "rating": 1900 },
+					"storm":  { "runs": 4, "score": 20 }
+				}
+			})"));
+
+			Assert::AreEqual(2, (int)ratings.size(), L"blitz and rapid; puzzle and storm aren't games");
+			const auto blitz = ratings.value("blitz").toMap();
+			Assert::AreEqual(1612, blitz.value("rating").toInt());
+			Assert::AreEqual(214, blitz.value("games").toInt());
+			Assert::IsFalse(blitz.value("prov").toBool());
+			Assert::IsTrue(ratings.value("rapid").toMap().value("prov").toBool());
+		}
+
+		TEST_METHOD(ParseRatings_NoPerfs_Empty)
+		{
+			Assert::IsTrue(LichessClient::parseRatings(Json(R"({ "username": "Me" })")).isEmpty());
+		}
 	};
 
 	// -----------------------------------------------------------------------
