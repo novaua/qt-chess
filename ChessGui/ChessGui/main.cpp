@@ -52,6 +52,12 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 		um->createUser("Alice", "girl");
 		um->login(um->users().first().toMap().value("id").toString());
 		um->backupNow();
+		// Fixed times (the list shows them), so the picture is the same on every run.
+		for (const auto& [n, time] : { std::pair{ 1, QTime(9, 30) }, std::pair{ 2, QTime(9, 0) } }) {
+			QFile backup(UserManager::backupFilePath(n));
+			if (backup.open(QIODevice::ReadWrite))
+				backup.setFileTime(QDateTime(QDate::currentDate(), time), QFileDevice::FileModificationTime);
+		}
 		return;
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import" }.contains(scene))

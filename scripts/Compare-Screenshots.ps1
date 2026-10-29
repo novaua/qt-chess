@@ -11,6 +11,9 @@
     fails when more than -MaxChangedPercent of its pixels changed, or its size differs. For each
     failure, <DiffDir>\<name>.png shows the baseline greyed out with the changed pixels in red.
 
+    A baseline without a screenshot fails too (MISSING): its scene failed or wasn't taken. Take the
+    same scenes as the baselines, or limit the check with -Name.
+
     Exit code: the number of screenshots that failed (0 = all match).
 
 .EXAMPLE
@@ -77,8 +80,9 @@ public static class ScreenshotDiff
         return pixels;
     }
 
-    // Returns the number of changed pixels; writes the diff image when diffPath isn't null and any changed.
-    public static long Compare(string actualPath, string baselinePath, int tolerance, string diffPath)
+    // Returns the changed pixels in percent (-1: the size differs) and writes the diff image to
+    // diffPath when that is more than maxPercent.
+    public static double Compare(string actualPath, string baselinePath, int tolerance, double maxPercent, string diffPath)
     {
         using (var actual = new Bitmap(actualPath))
         using (var baseline = new Bitmap(baselinePath))
@@ -107,7 +111,8 @@ public static class ScreenshotDiff
                     diff[i] = unchecked((int)0xFFFF0000);
                 }
             }
-            if (changed > 0 && diffPath != null)
+            double percent = 100.0 * changed / a.Length;
+            if (percent > maxPercent)
             {
                 using (var img = new Bitmap(actual.Width, actual.Height, PixelFormat.Format32bppArgb))
                 {
@@ -118,7 +123,7 @@ public static class ScreenshotDiff
                     img.Save(diffPath, ImageFormat.Png);
                 }
             }
-            return changed;
+            return percent;
         }
     }
 }
@@ -136,22 +141,26 @@ foreach ($shot in $shots) {
         Write-Host "NEW   $($shot.BaseName) - no baseline (accept it with -Update)" -ForegroundColor Yellow
         continue
     }
-    $changed = [ScreenshotDiff]::Compare($shot.FullName, (Resolve-Path $baseline).Path, $Tolerance, $diffFile)
-    if ($changed -lt 0) {
+    $percent = [ScreenshotDiff]::Compare($shot.FullName, (Resolve-Path $baseline).Path, $Tolerance, $MaxChangedPercent, $diffFile)
+    if ($percent -lt 0) {
         $failed++
         Write-Host "FAIL  $($shot.BaseName) - the size changed" -ForegroundColor Red
         continue
     }
-    $img = [System.Drawing.Image]::FromFile($shot.FullName)
-    $percent = 100.0 * $changed / ($img.Width * $img.Height)
-    $img.Dispose()
     if ($percent -gt $MaxChangedPercent) {
         $failed++
         Write-Host ("FAIL  {0} - {1:N2} % of the pixels changed: {2}" -f $shot.BaseName, $percent, $diffFile) -ForegroundColor Red
     } else {
-        Remove-Item $diffFile -ErrorAction SilentlyContinue   # within tolerance: no picture to look at
-        Write-Host ("OK    {0}{1}" -f $shot.BaseName, $(if ($changed) { " ($changed pixels)" }))
+        Write-Host ("OK    {0}{1}" -f $shot.BaseName, $(if ($percent) { " ({0:N3} % of the pixels changed)" -f $percent }))
     }
+}
+# A baseline without a new screenshot: the scene failed (Take-Screenshot.ps1 deletes the old picture
+# first) or wasn't taken. It fails, so a broken scene can't pass unnoticed.
+$gone = Get-ChildItem $BaselineDir -Filter *.png -ErrorAction SilentlyContinue |
+    Where-Object { $n = $_.BaseName; ($Name | Where-Object { $n -like $_ }) -and -not (Test-Path (Join-Path $ScreensDir $_.Name)) }
+foreach ($b in $gone) {
+    $failed++
+    Write-Host "MISSING $($b.BaseName) - a baseline without a screenshot: the scene failed or wasn't taken" -ForegroundColor Red
 }
 Write-Host ("{0} compared, {1} failed, {2} without a baseline" -f ($shots.Count - $missing), $failed, $missing)
 exit $failed

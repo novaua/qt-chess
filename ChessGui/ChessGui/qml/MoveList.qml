@@ -55,6 +55,9 @@ ListView {
             color: cell.current ? Theme.selectedBg
                  : cell.hovered ? Theme.cardBgHover
                  : "transparent"
+            // High contrast has no selected fill: the accent border marks the move (and a hovered one).
+            border.width: Theme.highContrast && (cell.current || cell.hovered) ? (cell.current ? 2 : 1) : 0
+            border.color: Theme.accent
         }
         contentItem: Row {
             leftPadding: Theme.s1

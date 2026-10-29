@@ -283,33 +283,31 @@ ApplicationWindow {
         anchors.fill: parent
 
         // WinUI page transitions: the new page fades in and rises a little; the old one fades out.
-        // Off with Reduce animations (a disabled transition switches the pages at once).
+        // Reduce animations makes them instant, not disabled: a disabled popEnter wouldn't undo the
+        // fade-out of the page underneath, which would come back invisible.
+        readonly property int _normal: Theme.reduceMotion ? 0 : Theme.normal
+        readonly property int _fast:   Theme.reduceMotion ? 0 : Theme.fast
         pushEnter: Transition {
-            enabled: !Theme.reduceMotion
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.normal; easing.type: Easing.OutCubic }
-            NumberAnimation { property: "y"; from: Theme.s5; to: 0; duration: Theme.normal; easing.type: Easing.OutCubic }
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: stack._normal; easing.type: Easing.OutCubic }
+            NumberAnimation { property: "y"; from: Theme.s5; to: 0; duration: stack._normal; easing.type: Easing.OutCubic }
         }
         pushExit: Transition {
-            enabled: !Theme.reduceMotion
-            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.fast }
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: stack._fast }
         }
         popEnter: Transition {
-            enabled: !Theme.reduceMotion
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.normal; easing.type: Easing.OutCubic }
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: stack._normal; easing.type: Easing.OutCubic }
+            NumberAnimation { property: "y"; to: 0; duration: 0 }   // in case its push was cut short
         }
         popExit: Transition {
-            enabled: !Theme.reduceMotion
-            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.fast }
-            NumberAnimation { property: "y"; from: 0; to: Theme.s5; duration: Theme.fast }
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: stack._fast }
+            NumberAnimation { property: "y"; from: 0; to: Theme.s5; duration: stack._fast }
         }
         replaceEnter: Transition {
-            enabled: !Theme.reduceMotion
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.normal; easing.type: Easing.OutCubic }
-            NumberAnimation { property: "y"; from: Theme.s5; to: 0; duration: Theme.normal; easing.type: Easing.OutCubic }
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: stack._normal; easing.type: Easing.OutCubic }
+            NumberAnimation { property: "y"; from: Theme.s5; to: 0; duration: stack._normal; easing.type: Easing.OutCubic }
         }
         replaceExit: Transition {
-            enabled: !Theme.reduceMotion
-            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.fast }
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: stack._fast }
         }
     }
 
@@ -752,10 +750,7 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+O"
         enabled: _page === "home" && !_dialogOpen
-        onActivated: {
-            if (ChessConnector.CanLoad) ChessConnector.loadGame()
-            else                        messageBar.show("No saved game yet: use Save during a game")
-        }
+        onActivated: ChessConnector.loadGame()   // says so itself when there is none (onNoSavedGame)
     }
     Shortcut {
         sequence: "F"

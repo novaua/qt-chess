@@ -50,8 +50,9 @@ AppDialog {
 
             function step(delta) {
                 var list = dialog._opponents
-                var i = list.findIndex(o => o.id === dialog._opponentId)
-                dialog._opponentId = list[Math.max(0, Math.min(list.length - 1, i + delta))].id
+                var next = list.findIndex(o => o.id === dialog._opponentId) + delta
+                if (next >= 0 && next < list.length)
+                    dialog._opponentId = list[next].id
             }
             Keys.onLeftPressed:  step(-1)
             Keys.onRightPressed: step(1)

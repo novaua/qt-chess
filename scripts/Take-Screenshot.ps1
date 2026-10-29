@@ -79,6 +79,7 @@ $failed = 0
 foreach ($s in $Scene) {
     $baseName = ($s, $(if ($Black) { 'black' }), $(if ($Dark -or $Offscreen) { 'dark' }), $(if ($HighContrast) { 'hc' }), $Name | Where-Object { $_ }) -join '-'
     $file = Join-Path $OutDir "$baseName.png"
+    Remove-Item $file -ErrorAction SilentlyContinue   # a failed scene leaves no old picture behind (Compare-Screenshots.ps1)
     $argList = @('--screenshot', "`"$file`"", '--scene', $s, '--delay', $Delay)
     if ($Offscreen) { $argList = @('-platform', 'offscreen') + $argList }
     if ($Moves) { $argList += '--moves', "`"$Moves`"" }

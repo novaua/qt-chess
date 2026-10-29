@@ -21,10 +21,13 @@ Grid {
         selected = name
         picked(name)
     }
+    // At an edge the selection stays (and nothing is picked: on Profile each pick saves the profile).
     function _step(delta) {
         var names = AvatarProvider.names
         var i = names.indexOf(selected)
-        pick(names[i < 0 ? 0 : Math.max(0, Math.min(names.length - 1, i + delta))])
+        var next = i < 0 ? 0 : i + delta
+        if (next >= 0 && next < names.length && next !== i)
+            pick(names[next])
     }
     Keys.onLeftPressed:  _step(-1)
     Keys.onRightPressed: _step(1)

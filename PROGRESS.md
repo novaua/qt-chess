@@ -15,6 +15,21 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Screenshot baselines (BL-05 step 4):** `scripts/Compare-Screenshots.ps1` compares `test-results\screens` with local baselines (`-Update` accepts), with a tolerance, and writes a diff image per failure. Screenshot mode turns animations off (`Theme.forceReduceMotion`, not saved), so two runs of all 42 scenes (light and dark) match; a swapped picture fails with a diff.
 - Release and Debug build OK; all 151 tests pass; all 42 scenes OK, no QML warnings. The `run-chess-app` skill, `ThemeTokens.md` (§1, §6, §11), the plan's §7 and `UiTestSuitePlan.md` are updated.
 
+### Code review (medium, same branch)
+9 findings: 8 are fixed (one of them partly), 1 isn't changed.
+- **Pages:** Reduce animations makes the page transitions instant, not disabled. Before, a disabled `popEnter` didn't undo the `pushExit` fade, so Home came back blank after Settings if the switch changed in between. `popEnter` also resets `y` after a push that was cut short.
+- **High contrast:** the shown move in the move list gets an accent border. It had no highlight at all, since high contrast has no selected fill.
+- **Arrow keys:**
+  - In the avatar and opponent pickers, an arrow at an edge leaves the selection alone. Before, Up in the first row jumped to the first avatar.
+  - An arrow that changes nothing no longer saves the profile. Each step that does change it still saves, as a click does.
+- **Profile picker:** on a touchscreen, a tap on the hidden More button now selects the profile instead of opening the menu.
+- **Ctrl+O** just calls `loadGame()`, which says itself when there is no saved game, so there's one message, not two.
+- **Screenshots:**
+  - `Take-Screenshot.ps1` deletes the old picture before each scene, so a scene that fails can't pass with last run's PNG.
+  - `Compare-Screenshots.ps1` fails a baseline that has no new screenshot (`MISSING`), and writes a diff image only for failures.
+  - The `restore` scene's backups get fixed times (9:00 and 9:30), so all 42 scenes now match exactly.
+- Not changed: the opponent picker has no Up/Down. It is a `Flow` with a varying number per row, and Left/Right reach every opponent. The two step functions differ (a grid and a list), so they stay separate.
+
 ### Not checked live
 - Keyboard in a real window: Tab order on Home, the profile picker, Create profile and Two players; the focus ring; Ctrl+N / Ctrl+O; the page transitions. Screenshots can't show focus (the window never takes it).
 - A real Windows contrast theme, 200 % scaling, Windows animation effects off, and the installer's wizard pages. Listed in TASKS under P6.

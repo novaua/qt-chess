@@ -140,7 +140,8 @@ Page {
                             opacity: card.hovered || card.visualFocus || visualFocus || cardMenu.visible ? 1 : 0
                             icon.source: Theme.icon("more")
                             tip: "More for " + card.modelData.name
-                            onClicked: cardMenu.popup(this, 0, height)
+                            // Hidden, a tap (touch: no hover) is meant for the card.
+                            onClicked: opacity > 0 ? cardMenu.popup(this, 0, height) : card.click()
 
                             Menu {
                                 id: cardMenu
