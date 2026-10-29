@@ -450,6 +450,17 @@ namespace ChessTests
 			Assert::IsTrue(EtCheck == events[1], L"Promoted queen checks the king on e8");
 		}
 
+		TEST_METHOD(IsInCheck_SideToMove_Test) {
+			Game game;
+			Assert::IsFalse(game.IsInCheck());
+			game.DoMove(e2, e4);
+			game.DoMove(f7, f6);
+			game.DoMove(d1, h5); // Qh5+: Black to move, in check
+			Assert::IsTrue(game.IsInCheck());
+			game.DoMove(g7, g6); // blocked
+			Assert::IsFalse(game.IsInCheck());
+		}
+
 		TEST_METHOD(PawnPromotionNotGivingCheck_NoCheckEvent_Test) {
 			auto events = PlayPromotionWithCheck(KNIGHT); // a knight on c8 does not attack e8
 

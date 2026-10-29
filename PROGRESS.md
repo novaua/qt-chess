@@ -4,6 +4,14 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-29 — Check glow on the king (branch: checkHighlight_291026)
+
+- The king in check glows red-yellow and pulses gently, so a missed "Check" InfoBar doesn't leave the player wondering why most moves are refused. `ChessConnector::CheckedKing` gives the square for the position on the board (live, reviewed, or a saved game's replay); `Game::IsInCheck()` (side to move) is new in ChessCore with a test. The glow is a `QtQuick.Shapes` radial gradient in `ChessBoxes.qml` (`Theme.checkGlowCenter` / `checkGlowEdge` replace the unused `checkSquare`).
+- Checked: `game` with `e2e4 f7f6 d1h5` (light; dark and flipped with Bb5+), a mate (the red flagged king on top), and a reviewed check that is blocked live. No QML warnings. ChessTests 86/86.
+- Independent of P3 (#84): branched from `develop`.
+
+---
+
 ## 2026-10-29 — PGN date kept in saves (branch: pgnGameDate_291026)
 
 - Hand check by the user: Copy PGN and Export PGN work, but a continued game exported `[Date "????.??.??"]`.

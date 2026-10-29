@@ -72,6 +72,7 @@ namespace Chess
 
 		bool IsWhiteMove();
 		bool IsCheckMate() const { return _checkMate; } // the last move mated
+		bool IsInCheck();                               // the side to move is in check
 		int GetMoveCount();
 		int GetHalfMovesCount();
 
