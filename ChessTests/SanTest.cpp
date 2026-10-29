@@ -3,6 +3,7 @@
 #include "../ChessCore/Board.h"
 #include "../ChessCore/Move.h"
 #include "../ChessCore/San.h"
+#include "../ChessCore/Game.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace Chess;
@@ -240,6 +241,134 @@ public:
         board.Place(e2, { PAWN, PieceColors::Light });
         auto hm = board.DoMove({ e2, e4, false });
         Assert::IsFalse(hm.IsEnPassantMove());
+    }
+};
+
+static MovesHistory PlayMoves(const std::vector<std::pair<BoardPosition, BoardPosition>>& moves) {
+    Game game;
+    game.Restart();
+    for (const auto& [from, to] : moves)
+        game.DoMove(from, to);
+    return game.GetGameRecord();
+}
+
+TEST_CLASS(HistorySanTests) {
+public:
+
+    TEST_METHOD(FoolsMate_LastMoveIsMate) {
+        auto sans = FormatHistorySan(PlayMoves({ { f2, f3 }, { e7, e5 }, { g2, g4 }, { d8, h4 } }));
+        Assert::AreEqual<size_t>(4u, sans.size());
+        Assert::AreEqual(std::string("f3"),   sans[0]);
+        Assert::AreEqual(std::string("e5"),   sans[1]);
+        Assert::AreEqual(std::string("g4"),   sans[2]);
+        Assert::AreEqual(std::string("Qh4#"), sans[3]);
+    }
+
+    TEST_METHOD(CheckIsNotMate) {
+        auto sans = FormatHistorySan(PlayMoves({ { e2, e4 }, { f7, f6 }, { d1, h5 } }));
+        Assert::AreEqual(std::string("Qh5+"), sans[2]);
+    }
+
+    TEST_METHOD(CaptureAndCastling) {
+        auto sans = FormatHistorySan(PlayMoves({
+            { e2, e4 }, { d7, d5 }, { e4, d5 }, { g8, f6 },
+            { g1, f3 }, { f6, d5 }, { f1, c4 }, { c8, g4 }, { e1, g1 } }));
+        Assert::AreEqual(std::string("exd5"), sans[2]);
+        Assert::AreEqual(std::string("Nxd5"), sans[5]);
+        Assert::AreEqual(std::string("O-O"),  sans[8]);
+    }
+
+    TEST_METHOD(EmptyHistory) {
+        Assert::AreEqual<size_t>(0u, FormatHistorySan({}).size());
+    }
+};
+
+TEST_CLASS(PgnTests) {
+public:
+
+    TEST_METHOD(TagsMovesAndResult) {
+        auto pgn = FormatPgn({ { "White", "Alice" }, { "Black", "Bob" }, { "Result", "0-1" } },
+            { "f3", "e5", "g4", "Qh4#" }, "0-1");
+        Assert::AreEqual(std::string(
+            "[White \"Alice\"]\n"
+            "[Black \"Bob\"]\n"
+            "[Result \"0-1\"]\n"
+            "\n"
+            "1. f3 e5 2. g4 Qh4# 0-1\n"), pgn);
+    }
+
+    TEST_METHOD(OddMoveCountAndUnfinished) {
+        auto pgn = FormatPgn({}, { "e4", "e5", "Nf3" }, "");
+        Assert::AreEqual(std::string("\n1. e4 e5 2. Nf3 *\n"), pgn);
+    }
+
+    TEST_METHOD(TagValuesAreEscaped) {
+        auto pgn = FormatPgn({ { "White", "Al \"the\" \\ king" } }, {}, "*");
+        Assert::AreEqual(std::string("[White \"Al \\\"the\\\" \\\\ king\"]\n\n*\n"), pgn);
+    }
+
+    TEST_METHOD(LongGameWrapsAt80Columns) {
+        std::vector<std::string> moves;
+        for (int i = 0; i < 120; ++i)
+            moves.push_back(i % 2 == 0 ? "Nf3" : "Ng8");
+        auto pgn = FormatPgn({}, moves, "1/2-1/2");
+
+        std::string joined;
+        size_t start = 1; // after the blank line that ends the (empty) tag section
+        while (start < pgn.size()) {
+            auto end = pgn.find('\n', start);
+            auto line = pgn.substr(start, end - start);
+            Assert::IsTrue(line.size() <= 80, L"line longer than 80 characters");
+            joined += (joined.empty() ? "" : " ") + line;
+            start = end + 1;
+        }
+        Assert::IsTrue(joined.rfind("60. Nf3 Ng8 1/2-1/2") == joined.size() - 19);
+        Assert::IsTrue(joined.find("1. Nf3 Ng8 2. Nf3") == 0);
+    }
+};
+
+TEST_CLASS(MaterialTests) {
+public:
+
+    TEST_METHOD(StartPositionIsEven) {
+        Board board;
+        Assert::AreEqual(0, MaterialBalance(board));
+    }
+
+    TEST_METHOD(CapturedPawnCounts) {
+        Game game;
+        game.Restart();
+        game.DoMove(e2, e4);
+        game.DoMove(d7, d5);
+        game.DoMove(e4, d5);
+        Assert::AreEqual(1, MaterialBalance(game.GetCurrentBoard()));
+    }
+
+    TEST_METHOD(BlackAheadIsNegative) {
+        Board board; ClearBoard(board);
+        board.Place(e1, { KING,   PieceColors::Light });
+        board.Place(a1, { KNIGHT, PieceColors::Light });
+        board.Place(e8, { KING,   PieceColors::Dark  });
+        board.Place(a8, { ROOK,   PieceColors::Dark  });
+        Assert::AreEqual(-2, MaterialBalance(board));
+    }
+
+    TEST_METHOD(PromotedPieceCountsAtNewValue) {
+        Board board; ClearBoard(board);
+        board.Place(e7, { PAWN, PieceColors::Light });
+        board.Place(a8, { ROOK, PieceColors::Dark  });
+        Assert::AreEqual(-4, MaterialBalance(board));
+        board.DoMove({ e7, e8, false, { QUEEN, PieceColors::Light } });
+        Assert::AreEqual(4, MaterialBalance(board));
+    }
+
+    TEST_METHOD(PieceValues) {
+        Assert::AreEqual(1, PieceValue(PAWN));
+        Assert::AreEqual(3, PieceValue(KNIGHT));
+        Assert::AreEqual(3, PieceValue(BISHOP));
+        Assert::AreEqual(5, PieceValue(ROOK));
+        Assert::AreEqual(9, PieceValue(QUEEN));
+        Assert::AreEqual(0, PieceValue(KING));
     }
 };
 

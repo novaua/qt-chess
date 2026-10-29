@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "San.h"
 #include "MovesGen.h"
+#include "Game.h"
 
 using namespace Chess;
 
@@ -79,4 +80,63 @@ std::string Chess::FormatMoveSan(const HistoryMove& m,
 	if (isMate)       result += "#";
 	else if (isCheck) result += "+";
 	return result;
+}
+
+std::vector<std::string> Chess::FormatHistorySan(const MovesHistory& history)
+{
+	std::vector<std::string> result;
+	result.reserve(history.size());
+
+	Game game;
+	bool mate = false;
+	game.RegisterGameActionsListeners([&mate](const EventBase& event) {
+		if (event.GetType() == EtCheckMate)
+			mate = true;
+		});
+
+	for (const auto& m : history) {
+		mate = false;
+		game.DoMove(m.ToMove());
+		result.push_back(FormatMoveSan(m, game.GetCurrentBoard(), mate));
+	}
+	return result;
+}
+
+std::string Chess::FormatPgn(const std::vector<PgnTag>& tags,
+	const std::vector<std::string>& sanMoves,
+	const std::string& result)
+{
+	std::string pgn;
+	for (const auto& tag : tags) {
+		std::string value;
+		for (char c : tag.Value) {
+			if (c == '"' || c == '\\')
+				value += '\\';
+			value += c;
+		}
+		pgn += "[" + tag.Name + " \"" + value + "\"]\n";
+	}
+	pgn += "\n";
+
+	// Movetext: "1. e4 e5 2. Nf3", lines no longer than 80 characters.
+	const size_t maxLine = 80;
+	std::string line;
+	auto addToken = [&](const std::string& token) {
+		if (!line.empty() && line.size() + 1 + token.size() > maxLine) {
+			pgn += line + "\n";
+			line.clear();
+		}
+		if (!line.empty())
+			line += ' ';
+		line += token;
+	};
+
+	for (size_t i = 0; i < sanMoves.size(); ++i) {
+		if (i % 2 == 0)
+			addToken(std::to_string(i / 2 + 1) + ".");
+		addToken(sanMoves[i]);
+	}
+	addToken(result.empty() ? "*" : result);
+	pgn += line + "\n";
+	return pgn;
 }

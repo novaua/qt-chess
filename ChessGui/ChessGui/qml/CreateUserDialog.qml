@@ -213,6 +213,28 @@ AppDialog {
                 }
             }
         }
+
+        // Statistics (profile mode only); the full per-opponent page comes with the Profile page.
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: Theme.s1
+            visible: dialog.editMode
+
+            Label {
+                text: "Statistics"
+                font: Theme.bodyStrong
+            }
+            Label {
+                text: UserManager.gamesPlayed + " games finished · vs Robot: " + UserManager.humanWins
+                      + " won, " + UserManager.computerWins + " lost"
+                font: Theme.body
+            }
+            Label {
+                text: "Since " + UserManager.statsCreatedDate
+                font: Theme.caption
+                color: Theme.textSecondary
+            }
+        }
     }
 
     // A hidden button still takes its slot in a DialogButtonBox, so there are two boxes.

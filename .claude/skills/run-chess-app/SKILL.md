@@ -33,24 +33,30 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
 .\scripts\Take-Screenshot.ps1 -Scene game -Moves "e2e4 e7e5 g1f3"           # position after moves
 .\scripts\Take-Screenshot.ps1 -Scene game -Moves "f2f3 e7e5 g2g4 d8h4" -Name foolsmate   # game end
 .\scripts\Take-Screenshot.ps1 -Scene game -Black -Dark -Size 1400x900       # flipped, dark, landscape
+.\scripts\Take-Screenshot.ps1 -Scene all -Offscreen                          # screen locked: dark only
 ```
 
 - Scenes: `create-user`, `login`, `home`, `continue` (Home with an autosaved game), `game` (two-player
-  game, Tester vs Bob), `settings`, `levels`, `profile`, `online` (Lichess dialog, not connected),
-  `computer` (vs-computer setup dialog), `players` (two-player setup dialog), `all`. `menu` and `board`
-  still work as the old names of `home` and `game`.
+  game, Tester vs Bob), `review` (a middlegame reviewed at move 5), `result` (Fool's mate: the result
+  card), `moves` (the middlegame with the move sheet open; narrow window only), `settings`, `levels`,
+  `profile`, `online` (Lichess dialog, not connected), `computer` (vs-computer setup dialog), `players`
+  (two-player setup dialog), `all`. `menu` and `board` still work as the old names of `home` and `game`.
+  `-Moves` replaces a scene's own moves.
 - To review many shots at once, tile them into one contact sheet (System.Drawing) and Read that.
 - Output: `test-results\screens\<scene>[-black][-dark][-<Name>].png` (git-ignored). Exit code = number of failed scenes.
-- `-Size WxH`: default 768x1054 (portrait). Wider than 1.15 × height shows the move-history panel
-  and the side result panel instead of the result card.
+- `-Size WxH`: default 768x1054 (portrait: the moves are in a sheet at the bottom). At least 960 wide,
+  or wider than 1.15 × height, shows the move list beside the board.
 - `-Moves` are UCI (`e7e8q` for promotion); an illegal move stops the list there (see the log).
 - `-Delay ms` (default 1000) if an animation hasn't finished. A finished game waits for the result card itself.
 - On failure the script prints the exit code meaning and the tail of `<file>.png.log`
   (the app's qDebug/QML warnings) — read it for QML errors.
 
-**Don't use `-platform offscreen`** for looks: it can't force light/dark, and the FluentWinUI3
-style then uses its dark palette (white text on our light surfaces, invisible buttons). Fine for
-checking that QML loads without errors, not for colours.
+**Locked screen:** a real window renders no frames while Windows is locked (`Get-Process LogonUI`
+exists), so animations freeze mid-way (half-closed dialogs, empty squares, page transitions) and a
+finished game times out (exit code 2). Then use **`-Offscreen`** (`-platform offscreen`): it renders
+fine, but only in dark mode. Offscreen the Fluent style always uses its dark palette and can't be
+switched, so `Theme.dark` follows it there. Light shots need an unlocked screen. Dialog backgrounds
+don't render offscreen (the page shows through).
 
 Not covered yet: a game vs the robot (needs Stockfish; a stub engine is planned), a
 connected Lichess account and the challenge dialog. Sending keys to an interactive window

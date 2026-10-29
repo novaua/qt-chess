@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QStringList>
+#include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
 #include "MovesGen.h"
@@ -31,12 +32,18 @@ class ChessConnector : public QObject
 		Q_PROPERTY(QVariantList Levels READ levels CONSTANT)
 		Q_PROPERTY(int LastMoveFrom READ lastMoveFrom NOTIFY lastMoveChanged)
 		Q_PROPERTY(int LastMoveTo   READ lastMoveTo   NOTIFY lastMoveChanged)
+		// Pieces taken in the position on the board, in value order P N B R Q: "P" white, "p" black.
 		Q_PROPERTY(QStringList CapturedByDark  READ capturedByDark  NOTIFY capturedChanged)
 		Q_PROPERTY(QStringList CapturedByLight READ capturedByLight NOTIFY capturedChanged)
+		Q_PROPERTY(int MaterialBalance READ materialBalance NOTIFY capturedChanged) // White minus Black, in pawns
 		Q_PROPERTY(bool EngineThinking    READ engineThinking    NOTIFY engineThinkingChanged)
 		Q_PROPERTY(bool UseFen            READ useFen            WRITE setUseFen NOTIFY useFenChanged)
 		Q_PROPERTY(bool PlayerPlaysWhite  READ playerPlaysWhite  NOTIFY playerPlaysWhiteChanged)
+		// One row per move number: { n, wPly, wPiece, wText, bPly, bPiece, bText }. Ply = moves on the
+		// board after that move (for reviewTo); piece = "N"/"n" etc. or "" for pawns and castling;
+		// text = the SAN without the piece letter. No black move yet: bPly 0, bText "".
 		Q_PROPERTY(QVariantList MoveHistory READ moveHistory NOTIFY moveHistoryChanged)
+		Q_PROPERTY(int  ShownPly      READ shownPly      NOTIFY reviewStateChanged) // moves on the board now
 		Q_PROPERTY(QString      GameResult  READ gameResult  NOTIFY gameResultChanged)
 		Q_PROPERTY(bool ReviewMode    READ reviewMode    NOTIFY reviewStateChanged)
 		Q_PROPERTY(int  ReviewIndex   READ reviewIndex   NOTIFY reviewStateChanged)
@@ -49,6 +56,8 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool    InGame    READ inGame    NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString GameMode  READ gameMode  NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString GameTitle READ gameTitle NOTIFY gameInfoChanged) // e.g. "vs Robot · Level 3", "Alice vs Bob"
+		Q_PROPERTY(QString PlayerName   READ playerName   NOTIFY gameInfoChanged) // the bottom player card
+		Q_PROPERTY(QString OpponentName READ opponentName NOTIFY gameInfoChanged) // the top one
 		Q_PROPERTY(QString ResultText READ resultText NOTIFY gameResultChanged) // e.g. "Bob wins by checkmate"
 		Q_PROPERTY(QString PendingOffer READ pendingOffer NOTIFY pendingOfferChanged) // Lichess opponent offers: "", "draw", "takeback"
 		Q_PROPERTY(bool OpponentGone    READ opponentGone    NOTIFY opponentGoneChanged)
@@ -81,6 +90,7 @@ public:
 	QString      gameResult()  const { return _gameResult; }
 	bool reviewMode()    const { return _reviewIndex >= 0; }
 	int  reviewIndex()   const { return _player ? _player->GetPointer() : _reviewIndex; }
+	int  shownPly()      const;
 	bool canReviewPrev() const;
 	bool canReviewNext() const;
 	bool isOnlineGame()  const { return !_onlineGameId.isEmpty(); }
@@ -91,6 +101,8 @@ public:
 	bool    inGame()     const { return !_gameMode.isEmpty(); }
 	QString gameMode()   const { return _gameMode; }
 	QString gameTitle()  const;
+	QString playerName() const;
+	QString opponentName() const { return _opponentName; }
 	QString resultText() const { return _resultText; }
 	QString pendingOffer() const { return _pendingOffer; }
 	bool    opponentGone()    const { return _opponentGone; }
@@ -98,6 +110,7 @@ public:
 	QString continueDescription() const;
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
+	int materialBalance() const;
 	QVariantMap screenshotScene() const { return _screenshotScene; }
 
 	QStringList& PossibleMoves();
@@ -142,6 +155,8 @@ signals:
 	void noSavedGame();
 	void savedOk();
 	void noMoreMovesNotify();
+	void pgnCopied();
+	void pgnExported(bool ok, const QString& path);
 
 	void requestEngineMove();
 
@@ -173,6 +188,12 @@ public slots:
 	void reviewPrev();
 	void reviewNext();
 	void reviewLast();
+	Q_INVOKABLE void reviewTo(int ply); // show the position after that many moves; the last = live
+
+	Q_INVOKABLE QString pgn() const;            // the whole game with tags, also while reviewing
+	Q_INVOKABLE QString pgnFileName() const;    // suggested name, e.g. "Alice vs Bob 2026-10-29.pgn"
+	Q_INVOKABLE void copyPgn();
+	Q_INVOKABLE void exportPgn(const QUrl& file);
 
 	Q_INVOKABLE void loginWithLichess();
 
@@ -202,20 +223,19 @@ private:
 	void setPendingOffer(const QString& offer);
 	void setOpponentGone(bool gone, int claimWinInSeconds = -1);
 	void flagKing(bool white); // mark that side's king as the loser (resign / time)
-	QString playerName() const;
 	QString sideName(bool white) const; // who plays that colour
+	QStringList capturedPieces(Chess::PieceColors capturedColor) const;
+	const Chess::MovesHistory& shownHistory() const; // the saved game in replay, else the game record
 	QString opponentNameOf(const UserManager::GameSaveInfo& info) const;
 	void makeMove(int from, int to);
 	void onHumanMoveDone();
 	void emitBoardState(int moveIndex);
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
-	void appendMoveToHistory();
 	void buildFullHistoryCache();
 	void resetMoveHistoryCache();
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
 	void beginGame(bool online); // resets per-game end state; online: rematch goes to Lichess
-	bool isMateBy(bool white) const;
 	void setFlaggedKing(int square);
 	void autoSaveGame(bool isSinglePlayer);
 	void deleteAutoSave();
@@ -256,6 +276,7 @@ private:
 	LichessAuth* _lichessAuth = nullptr;
 
 	QVariantList _moveHistoryCache;
+	std::vector<std::string> _sanCache; // SAN of shownHistory(), for the PGN
 	QVariantMap  _screenshotScene;
 };
 

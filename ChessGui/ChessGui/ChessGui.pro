@@ -63,7 +63,7 @@ HEADERS += \
 DISTFILES += \
     qml/AppDialog.qml \
     qml/ApplyMovesDialog.qml \
-    qml/CapturedPanel.qml \
+    qml/CapturedStrip.qml \
     qml/ChallengeDialog.qml \
     qml/ChessBoard.qml \
     qml/ChessBoxes.qml \
@@ -76,8 +76,6 @@ DISTFILES += \
     qml/CreateUserDialog.qml \
     qml/EmptyBoardModel.qml \
     qml/GamePage.qml \
-    qml/GameResultCard.qml \
-    qml/GameResultDialog.qml \
     qml/HomeCard.qml \
     qml/HomePage.qml \
     qml/IconButton.qml \
@@ -86,9 +84,12 @@ DISTFILES += \
     qml/LichessGameDialog.qml \
     qml/MarkerColumn.qml \
     qml/MarkerRow.qml \
-    qml/MoveHistoryPanel.qml \
+    qml/MoveList.qml \
+    qml/MovesPanel.qml \
     qml/NavigationLayer.qml \
     qml/PawnPromotionOptions.qml \
+    qml/PlayerCard.qml \
+    qml/ResultCard.qml \
     qml/SettingsDialog.qml \
     qml/Theme.qml \
     qml/TwoPlayerDialog.qml \

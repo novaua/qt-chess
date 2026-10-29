@@ -413,12 +413,15 @@
     <None Include="qml\ApplyMovesDialog.qml" />
     <None Include="qml\ChessBoard.qml" />
     <None Include="qml\ChessBoxes.qml" />
-    <None Include="qml\MoveHistoryPanel.qml" />
+    <None Include="qml\MoveList.qml" />
+    <None Include="qml\MovesPanel.qml" />
+    <None Include="qml\PlayerCard.qml" />
+    <None Include="qml\CapturedStrip.qml" />
+    <None Include="qml\ResultCard.qml" />
     <None Include="qml\ChessFigures.qml" />
     <None Include="qml\ChessGame.qml" />
     <None Include="qml\CreateUserDialog.qml" />
     <None Include="qml\EmptyBoardModel.qml" />
-    <None Include="qml\GameResultDialog.qml" />
     <None Include="qml\IconButton.qml" />
     <None Include="qml\CommandBar.qml" />
     <None Include="qml\InfoBar.qml" />

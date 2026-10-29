@@ -74,7 +74,9 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
   - `ChessGame.qml` — the window: a `StackView` with one page (`UserLoginScreen`, `HomePage`,
     `GamePage`; `route()` picks it from `UserManager.isLoggedIn` and `ChessConnector.InGame`), the
     InfoBars and every dialog. Pages ask for dialogs through signals.
-  - `HomePage.qml` (account menu, Continue, action cards), `GamePage.qml` (command bar, board, side panels)
+  - `HomePage.qml` (account menu, Continue, action cards), `GamePage.qml` (command bar, board between
+    two `PlayerCard`s with a `CapturedStrip` and "+N", the moves (`MovesPanel` + `MoveList`) beside
+    the board or in a bottom sheet, `ResultCard` over the board)
   - `ChessBoard.qml` — board rendering
   - `ChessFigures.qml` — piece rendering and drag/drop animation
   - `ChessBoxes.qml` — square highlights (legal moves, last move)

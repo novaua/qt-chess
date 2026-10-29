@@ -4,18 +4,24 @@
 #include "AppConfig.h"
 #include "San.h"
 
+#include <algorithm>
+#include <QClipboard>
+#include <QDate>
 #include <QDir>
 #include <QDebug>
 #include <QFile>
+#include <QGuiApplication>
 #include <QHash>
 #include <QRandomGenerator>
+#include <QRegularExpression>
+#include <QSaveFile>
 #include <QThread>
 
 using namespace Chess;
 
 const char* EmptyFlag = " ";
 
-// GameResult of a checkmate; the move history marks the last move with '#' only for these.
+// GameResult of a checkmate.
 static const QString MateResultWhite = QStringLiteral("1-0 White victorious");
 static const QString MateResultBlack = QStringLiteral("0-1 Black victorious");
 
@@ -89,11 +95,7 @@ ChessConnector::ChessConnector(QObject* parent)
 	ClearBoard(_possibleMoves);
 
 	connect(this, &ChessConnector::reviewStateChanged, this, &ChessConnector::flaggedKingChanged);
-}
-
-bool ChessConnector::isMateBy(bool white) const
-{
-	return _gameResult == (white ? MateResultWhite : MateResultBlack);
+	connect(this, &ChessConnector::reviewStateChanged, this, &ChessConnector::capturedChanged); // of the reviewed position
 }
 
 int ChessConnector::MoveCount()
@@ -197,15 +199,10 @@ void ChessConnector::setPossibleMoves(const QStringList& moves)
 
 namespace {
 	static const char pieceCodes[] = " nbrqkp";
-	QChar pieceCode(const Chess::Piece& p) { return QChar(pieceCodes[p.Type]); }
-
-	static const char32_t whiteFigurines[] = { 0, 0x2658, 0x2657, 0x2656, 0x2655, 0x2654 };
-	static const char32_t blackFigurines[] = { 0, 0x265E, 0x265D, 0x265C, 0x265B, 0x265A };
-
-	static QString pieceSymbol(Chess::PieceTypes type, Chess::PieceColors color) {
-		if (type < 1 || type > 5) return {};
-		auto cp = (color == Chess::PieceColors::Light) ? whiteFigurines[type] : blackFigurines[type];
-		return QString::fromUcs4(&cp, 1);
+	// "N" for a white knight, "n" for a black one: the piece image keys QML uses.
+	QString pieceKey(Chess::PieceTypes type, Chess::PieceColors color) {
+		const QChar code(pieceCodes[type]);
+		return color == Chess::PieceColors::Light ? QString(code.toUpper()) : QString(code);
 	}
 
 	static std::shared_ptr<Chess::Game> replayHistory(const Chess::MovesHistory& history, int count) {
@@ -215,16 +212,14 @@ namespace {
 		return game;
 	}
 
-	// Replaces the leading ASCII piece letter (N/B/R/Q/K) with the UTF-8 figurine for the given color.
-	static QString toFan(const std::string& san, Chess::PieceColors color) {
-		if (san.empty())
-			return {};
-		static const char* const letters = "NBRQK"; // indexed: N=1 B=2 R=3 Q=4 K=5
-		const char* p = std::strchr(letters, san[0]);
-		if (!p)
-			return QString::fromStdString(san);
-		auto type = static_cast<Chess::PieceTypes>(p - letters + 1);
-		return pieceSymbol(type, color) + QString::fromUtf8(san.c_str() + 1);
+	// A move for the move list: the piece image key (none for pawns and castling) and the rest.
+	void addMoveCell(QVariantMap& row, const char* side, int ply, const std::string& san) {
+		static const std::string letters = "NBRQK";
+		const bool hasPiece = !san.empty() && letters.find(san[0]) != std::string::npos;
+		const QString text = QString::fromStdString(san);
+		row[QStringLiteral("%1Ply").arg(side)]   = ply;
+		row[QStringLiteral("%1Piece").arg(side)] = hasPiece ? (ply % 2 == 1 ? text.left(1) : text.left(1).toLower()) : QString();
+		row[QStringLiteral("%1Text").arg(side)]  = hasPiece ? text.mid(1) : text;
 	}
 }
 
@@ -241,50 +236,26 @@ void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
 
 void ChessConnector::resetMoveHistoryCache() {
 	_moveHistoryCache.clear();
+	_sanCache.clear();
 }
 
-void ChessConnector::appendMoveToHistory() {
-	const auto& rec = _game->GetGameRecord();
-	if (rec.empty()) return;
-	int i = (int)rec.size() - 1;
-	bool isMate = isMateBy(i % 2 == 0);
-	const auto& m = rec[i];
-	QString san = toFan(Chess::FormatMoveSan(m, _game->GetCurrentBoard(), isMate),
-		m.From.Piece.Color);
-	if (i % 2 == 0) {
-		QVariantMap row;
-		row["n"] = i / 2 + 1;
-		row["w"] = san;
-		row["b"] = QString();
-		_moveHistoryCache.append(row);
-	}
-	else if (!_moveHistoryCache.isEmpty()) {
-		auto row = _moveHistoryCache.last().toMap();
-		row["b"] = san;
-		_moveHistoryCache[_moveHistoryCache.size() - 1] = row;
-	}
+const Chess::MovesHistory& ChessConnector::shownHistory() const
+{
+	return _player ? _player->GetHistory() : _game->GetGameRecord();
 }
 
+// Rebuilt after every move: FormatHistorySan replays the game to find check and mate.
 void ChessConnector::buildFullHistoryCache() {
-	const auto& history = _player ? _player->GetHistory() : _game->GetGameRecord();
+	_sanCache = Chess::FormatHistorySan(shownHistory());
 	_moveHistoryCache.clear();
-	auto replayGame = replayHistory(history, 0);
-	for (int i = 0; i < (int)history.size(); i += 2) {
+	for (int i = 0; i < (int)_sanCache.size(); i += 2) {
 		QVariantMap row;
 		row["n"] = i / 2 + 1;
-		replayGame->DoMove(history[i].ToMove());
-		bool wMate = (i == (int)history.size() - 1) && isMateBy(true);
-		row["w"] = toFan(Chess::FormatMoveSan(history[i], replayGame->GetCurrentBoard(), wMate),
-			history[i].From.Piece.Color);
-		if (i + 1 < (int)history.size()) {
-			replayGame->DoMove(history[i + 1].ToMove());
-			bool bMate = (i + 1 == (int)history.size() - 1) && isMateBy(false);
-			row["b"] = toFan(Chess::FormatMoveSan(history[i + 1], replayGame->GetCurrentBoard(), bMate),
-				history[i + 1].From.Piece.Color);
-		}
-		else {
-			row["b"] = QString();
-		}
+		addMoveCell(row, "w", i + 1, _sanCache[i]);
+		if (i + 1 < (int)_sanCache.size())
+			addMoveCell(row, "b", i + 2, _sanCache[i + 1]);
+		else
+			addMoveCell(row, "b", 0, {});
 		_moveHistoryCache.append(row);
 	}
 }
@@ -292,6 +263,59 @@ void ChessConnector::buildFullHistoryCache() {
 QVariantList ChessConnector::moveHistory() const
 {
 	return _moveHistoryCache;
+}
+
+int ChessConnector::shownPly() const
+{
+	if (_player) return _player->GetPointer();
+	return reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
+}
+
+QString ChessConnector::pgn() const
+{
+	const QString date = QDate::currentDate().toString(QStringLiteral("yyyy.MM.dd"));
+	const QString site = isOnlineGame() ? QStringLiteral("https://lichess.org/") + _onlineGameId
+	                                    : QStringLiteral("Chess++");
+	const QString result = _gameResult.isEmpty() ? QStringLiteral("*") : _gameResult.section(' ', 0, 0);
+	auto tag = [](const char* name, const QString& value) {
+		return Chess::PgnTag{ name, value.toStdString() };
+	};
+	const std::vector<Chess::PgnTag> tags = {
+		tag("Event",  QStringLiteral("Casual game")),
+		tag("Site",   site),
+		tag("Date",   date),
+		tag("Round",  QStringLiteral("-")),
+		tag("White",  sideName(true)),
+		tag("Black",  sideName(false)),
+		tag("Result", result),
+	};
+	return QString::fromStdString(Chess::FormatPgn(tags, _sanCache, result.toStdString()));
+}
+
+QString ChessConnector::pgnFileName() const
+{
+	QString name = sideName(true) + QStringLiteral(" vs ") + sideName(false) + QLatin1Char(' ')
+		+ QDate::currentDate().toString(Qt::ISODate) + QStringLiteral(".pgn");
+	static const QRegularExpression notInFileNames(QStringLiteral("[<>:\"/\\\\|?*]"));
+	return name.replace(notInFileNames, QStringLiteral("_"));
+}
+
+void ChessConnector::copyPgn()
+{
+	QGuiApplication::clipboard()->setText(pgn());
+	emit pgnCopied();
+}
+
+void ChessConnector::exportPgn(const QUrl& file)
+{
+	const QString path = file.isLocalFile() ? file.toLocalFile() : file.toString();
+	QSaveFile out(path);
+	const bool ok = out.open(QIODevice::WriteOnly | QIODevice::Text)
+		&& out.write(pgn().toUtf8()) >= 0
+		&& out.commit();
+	if (!ok)
+		qDebug() << "exportPgn: can't write" << path << out.errorString();
+	emit pgnExported(ok, QDir::toNativeSeparators(path));
 }
 
 void ChessConnector::setResult(const QString& result, const QString& text)
@@ -408,22 +432,42 @@ int ChessConnector::lastMoveTo() const
 	return rec.empty() ? -1 : (int)rec.back().To.Position;
 }
 
+// Up to the position on the board (while reviewing, the reviewed one), in value order P N B R Q.
+QStringList ChessConnector::capturedPieces(Chess::PieceColors capturedColor) const
+{
+	static const std::vector<Chess::PieceTypes> order = { Chess::PAWN, Chess::KNIGHT, Chess::BISHOP, Chess::ROOK, Chess::QUEEN };
+	const auto& rec = _game->GetGameRecord();
+	const int count = reviewMode() ? std::min(_reviewIndex, (int)rec.size()) : (int)rec.size();
+	std::vector<int> taken(Chess::EPC_MAX, 0);
+	for (int i = 0; i < count; ++i) {
+		const auto& m = rec[i];
+		if (m.IsCapturingMove() && m.To.Piece.Color == capturedColor)
+			++taken[m.To.Piece.Type];
+		else if (m.IsEnPassantMove() && m.From.Piece.Color != capturedColor)
+			++taken[Chess::PAWN]; // the pawn taken en passant isn't on the target square
+	}
+	QStringList result;
+	for (auto type : order)
+		for (int n = 0; n < taken[type]; ++n)
+			result << pieceKey(type, capturedColor);
+	return result;
+}
+
 QStringList ChessConnector::capturedByDark() const
 {
-	QStringList result;
-	for (const auto& m : _game->GetGameRecord())
-		if (m.IsCapturingMove() && m.To.Piece.Color == Chess::PieceColors::Light)
-			result << QString(pieceCode(m.To.Piece).toUpper()); // uppercase = white piece image key
-	return result;
+	return capturedPieces(Chess::PieceColors::Light);
 }
 
 QStringList ChessConnector::capturedByLight() const
 {
-	QStringList result;
-	for (const auto& m : _game->GetGameRecord())
-		if (m.IsCapturingMove() && m.To.Piece.Color == Chess::PieceColors::Dark)
-			result << QString(pieceCode(m.To.Piece).toLower()); // lowercase = black piece image key
-	return result;
+	return capturedPieces(Chess::PieceColors::Dark);
+}
+
+int ChessConnector::materialBalance() const
+{
+	if (!reviewMode())
+		return Chess::MaterialBalance(_game->GetCurrentBoard());
+	return Chess::MaterialBalance(replayHistory(_game->GetGameRecord(), _reviewIndex)->GetCurrentBoard());
 }
 
 void ChessConnector::makeMove(int from, int to)
@@ -437,7 +481,7 @@ void ChessConnector::makeMove(int from, int to)
 		if (_promotionPending)
 			return;
 
-		appendMoveToHistory();
+		buildFullHistoryCache();
 		onHumanMoveDone();
 	}
 	catch (ChessException& ex)
@@ -839,7 +883,7 @@ void ChessConnector::onEngineMoveComplete()
 		_reviewIndex = -1;
 		emitBoardState((int)_game->GetGameRecord().size());
 	}
-	appendMoveToHistory();
+	buildFullHistoryCache();
 	EmitMoveCountUpdates();
 	if (_resignAfterEngineMove) {
 		_resignAfterEngineMove = false;
@@ -1062,6 +1106,23 @@ void ChessConnector::reviewLast() {
 	if (!reviewMode()) return;
 	_reviewIndex = -1;
 	emitBoardState((int)_game->GetGameRecord().size());
+	emit reviewStateChanged();
+}
+
+void ChessConnector::reviewTo(int ply) {
+	if (_player) {
+		ply = std::clamp(ply, 0, (int)_player->GetHistory().size());
+		while (_player->GetPointer() < ply) _player->MoveNext();
+		while (_player->GetPointer() > ply) _player->MoveBack();
+		EmitMoveCountUpdates(false);
+		return;
+	}
+	if (ply >= (int)_game->GetGameRecord().size()) {
+		reviewLast();
+		return;
+	}
+	_reviewIndex = std::max(0, ply);
+	emitBoardState(_reviewIndex);
 	emit reviewStateChanged();
 }
 

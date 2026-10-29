@@ -20,16 +20,17 @@
         <file>qml/LichessGameDialog.qml</file>
         <file>qml/SettingsDialog.qml</file>
         <file>qml/LevelsHelpDialog.qml</file>
-        <file>qml/GameResultCard.qml</file>
-        <file>qml/CapturedPanel.qml</file>
-        <file>qml/GameResultDialog.qml</file>
+        <file>qml/PlayerCard.qml</file>
+        <file>qml/CapturedStrip.qml</file>
+        <file>qml/MoveList.qml</file>
+        <file>qml/MovesPanel.qml</file>
+        <file>qml/ResultCard.qml</file>
         <file>qml/ChessBoard.qml</file>
         <file>qml/ChessBoxes.qml</file>
         <file>qml/ChessFigures.qml</file>
         <file>qml/ChessGame.qml</file>
         <file>qml/EmptyBoardModel.qml</file>
         <file>qml/MarkerColumn.qml</file>
-        <file>qml/MoveHistoryPanel.qml</file>
         <file>qml/MarkerRow.qml</file>
         <file>qml/NavigationLayer.qml</file>
         <file>qml/PawnPromotionOptions.qml</file>

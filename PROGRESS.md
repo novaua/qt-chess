@@ -4,6 +4,26 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-29 — BL-02 P4 Game chrome done (branch: gameChrome_291026); next: P3
+
+### What was done
+- **Player cards** (`PlayerCard.qml`) above and below the board: avatar, name (`ChessConnector.PlayerName` / `OpponentName`), the robot's level and Elo, the turn (accent bar and avatar pulse), and a **captured strip** (`CapturedStrip.qml`). The strip groups pieces by type (P N B R Q), overlaps pieces of a type, and shows "+N" (`MaterialBalance`, counted from the board, so promotions count). Captures and material follow the reviewed position. When the board is flipped, the cards swap.
+- **Moves:** a side panel (`MovesPanel` + `MoveList`) at width ≥ 960 or aspect > 1.15; otherwise a **bottom sheet** whose handle shows "Moves 12. Nf3", the status, and Back to live while reviewing. Esc closes the sheet first. The move list has two columns and a move-number column, piece images in the text colour, and tabular figures. **Click a move** to review it (`reviewTo(ply)`; `ShownPly` is highlighted). While reviewing, a slim InfoBar "Viewing 5. Nf3 · Back to live" sits at the bottom of the panel. The blinking button and "Reviewing" are gone.
+- **Result:** one `ResultCard` over the dimmed board in every layout, with Rematch, New game (the setup dialog of the same mode; online goes Home → Lichess dialog) and Review moves. `GameResultDialog`, `GameResultCard`, `MoveHistoryPanel` and `CapturedPanel` were deleted. Their statistics moved to a "Statistics" line in the profile dialog until P3's Profile page.
+- **PGN:** Copy PGN and Export PGN… are in the panel and under More. Export uses a `FileDialog` that suggests "White vs Black yyyy-MM-dd.pgn" and writes with `QSaveFile`; an InfoBar confirms. The tags are Event, Site (the lichess.org URL online), Date, Round, White, Black and Result.
+- **ChessCore:** `FormatHistorySan()` replays the game and marks '#' from the real mate event, no longer from the result string. `FormatPgn()` escapes tag values and wraps at 80 columns. `PieceValue()`/`MaterialBalance()` are in `Board.h`. `ChessTests` has 80 tests, 13 new (history SAN, PGN, material). En passant now counts in the captured strip.
+- **Scenes:** `review`, `result` and `moves` are new; `game` and `continue` work as before. `Take-Screenshot.ps1 -Offscreen` works when the screen is locked, dark only (see Notes). Debug and Release build OK; no QML warnings in the scene logs.
+
+### Notes
+- **Locked screen:** while Windows is locked, a real window renders no frames. Animations freeze (half-closed dialogs, empty squares) and the mate scene times out, on `develop` too. Use `-Offscreen` there: Fluent is always dark offscreen, so `Theme.dark` follows it. Dialog backgrounds don't render offscreen. The after shots in `docs/design/after-p4/` are dark for this reason.
+- Board coordinates are still outside the squares (the inside/outside setting is P5).
+
+### Where to continue
+1. With the screen unlocked: `.\scripts\Take-Screenshot.ps1 -Scene game,review,result,moves` (light) plus `-Size 1400x900`, then add the light shots to `docs/design/after-p4/`.
+2. P3 (Users and Lichess), on a new branch from `origin/develop` once this PR is merged.
+
+---
+
 ## 2026-10-29 — BL-02 P2 Shell and navigation done (branch: shellNavigation_291026); next: P3 or P4
 
 ### What was done

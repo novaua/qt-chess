@@ -1,10 +1,12 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.impl
 import QtQuick.Layouts
 import ChessPlusPlus
 
-// The game: command bar, the board between the two players' captured pieces and, in a wide window,
-// the move list and result beside it. ChessGame.qml owns the dialogs and answers the signals.
+// The game: command bar, the board between the two player cards, and the moves beside it (wide
+// window) or in a sheet at the bottom (narrow). The result shows as a card over the board.
+// ChessGame.qml owns the dialogs and answers the signals.
 Page {
     id: page
     objectName: "game"
@@ -12,6 +14,8 @@ Page {
     property bool rematchPending: false   // a Lichess rematch challenge waits for the opponent
 
     signal homeRequested()
+    signal newGameRequested()      // the result card: a new game of the same kind
+    signal exportPgnRequested()
     signal resignRequested()
     signal levelsHelpRequested()
     signal settingsRequested()
@@ -33,7 +37,10 @@ Page {
 
     Connections {
         target: ChessConnector
-        function onNewGameStarted()          { page._facePlayer() }
+        function onNewGameStarted() {
+            page._facePlayer()
+            page.sheetOpen = false
+        }
         function onPlayerPlaysWhiteChanged() { page._facePlayer() }
         // Undo after mate / resign vs Robot resumes the game: the result goes away again.
         function onGameResultChanged() {
@@ -117,6 +124,19 @@ Page {
             Menu {
                 id: moreMenu
                 MenuItem {
+                    text: "Copy PGN"
+                    icon.source: Theme.icon("copy")
+                    enabled: ChessConnector.MoveHistory.length > 0
+                    onTriggered: ChessConnector.copyPgn()
+                }
+                MenuItem {
+                    text: "Export PGN…"
+                    icon.source: Theme.icon("export")
+                    enabled: ChessConnector.MoveHistory.length > 0
+                    onTriggered: page.exportPgnRequested()
+                }
+                MenuSeparator {}
+                MenuItem {
                     text: "Computer levels"
                     icon.source: Theme.icon("robot")
                     onTriggered: page.levelsHelpRequested()
@@ -141,43 +161,87 @@ Page {
         }
     }
 
+    // ── Status for the move panel and the sheet ──
+    readonly property bool _playerToMove: (ChessConnector.IsWhiteMove === 1) === ChessConnector.PlayerPlaysWhite
+    readonly property int _plyCount: {
+        var rows = ChessConnector.MoveHistory
+        var last = rows[rows.length - 1]
+        return last ? (last.bPly > 0 ? last.bPly : last.wPly) : 0
+    }
+    readonly property string status: {
+        if (gameOver)                      return ChessConnector.ResultText
+        if (mode === "replay")             return "Move " + ChessConnector.ShownPly + " of " + _plyCount
+        if (ChessConnector.EngineThinking) return "Robot is thinking…"
+        return (_playerToMove ? ChessConnector.PlayerName : ChessConnector.OpponentName) + " to move"
+    }
+    // The move on the board, e.g. "12. Nf3" or "12… exd5"
+    readonly property string shownMove: {
+        var ply = ChessConnector.ShownPly
+        var row = ply > 0 ? ChessConnector.MoveHistory[(ply - 1) >> 1] : undefined
+        if (!row) return ""
+        return ply % 2 === 1 ? row.n + ". " + row.wPiece.toUpperCase() + row.wText
+                             : row.n + "… " + row.bPiece.toUpperCase() + row.bText
+    }
+    // Reviewing earlier moves of the game (a saved game has no live end, so not there).
+    readonly property string reviewText: !ChessConnector.ReviewMode ? ""
+        : ChessConnector.ShownPly === 0 ? "Viewing the start position"
+        : "Viewing " + shownMove
+
+    // The board flipped away from the player: the player's card goes on top.
+    readonly property bool _flipped: chessBoard.angle !== (ChessConnector.PlayerPlaysWhite ? 0 : 180)
+    property bool sheetOpen: false
+
+    // A player card bound to the player (bottom) or the opponent (top).
+    component SideCard: PlayerCard {
+        property bool isPlayer
+        readonly property bool white: isPlayer === ChessConnector.PlayerPlaysWhite
+        readonly property var level: ChessConnector.Levels[ChessConnector.LastLevel - 1]
+        readonly property bool isRobot: !isPlayer && page.mode === "computer"
+
+        avatarUrl: isPlayer ? AvatarProvider.playerUrl : AvatarProvider.opponentUrl
+        name:      isPlayer ? ChessConnector.PlayerName : ChessConnector.OpponentName
+        detail:    isRobot ? "Level " + level.level + " · " + level.rating : ""
+        avatarTip: isRobot ? "Robot · Level " + level.level + " — " + level.name + "\n" + level.rating
+                             + "\nClick for level info"
+                           : ""
+        pieces:    white ? ChessConnector.CapturedByLight : ChessConnector.CapturedByDark
+        advantage: white ? ChessConnector.MaterialBalance : -ChessConnector.MaterialBalance
+        isActive:  !page.gameOver && page.mode !== "replay" && (ChessConnector.IsWhiteMove === 1) === white
+        onAvatarClicked: page.levelsHelpRequested()
+    }
+
     Item {
         id: area
-        anchors.fill: parent
+        anchors {
+            fill: parent
+            margins: Theme.s4
+            bottomMargin: wide ? Theme.s4 : Theme.sheetHandleHeight + Theme.s2
+        }
 
-        // Worked out from the area, not from the board, to avoid a binding loop
-        // (board size → panel height → board size):
-        //   portrait (width-limited):   panelH = width * 0.95 / 16
-        //   landscape (height-limited): panelH = (height - 2 * panelH) * 0.95 / 16 = height * 0.95 / 17.9
-        readonly property real panelH: width * 1.11875 < height ? width * 0.95 / 16 : height * 0.95 / 17.9
-        readonly property real boardSize: Math.min(width, height - 2 * panelH) * 0.95
-        readonly property real sidePanelW: 160
-        readonly property bool showSidePanels: page.width > page.height * 1.15
+        // Side panel at width >= 960 or a landscape window (ThemeTokens §5); else the move sheet.
+        readonly property bool wide: page.width >= 960 || page.width > page.height * 1.15
+        readonly property real gap: Theme.s2
+        readonly property real panelW: wide ? Theme.sidePanelWidth + Theme.s4 : 0
+        // The board item: its squares take 95 %, the coordinates the edge around them.
+        readonly property real boardSize: Math.max(200, Math.min(width - panelW,
+                                                height - 2 * (Theme.playerCardHeight + gap)))
+        readonly property real squaresSize: boardSize * 0.95
 
         Column {
-            anchors.fill: parent
+            id: boardColumn
+            x: (area.width - width - area.panelW) / 2
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: area.gap
 
-            CapturedPanel {
-                width: area.boardSize
-                height: area.panelH
+            SideCard {
+                isPlayer: page._flipped
+                width: area.squaresSize
                 anchors.horizontalCenter: parent.horizontalCenter
-                avatarUrl: AvatarProvider.opponentUrl
-                // The robot only plays in computer games.
-                avatarTip: {
-                    if (page.mode !== "computer") return ""
-                    var info = ChessConnector.Levels[ChessConnector.LastLevel - 1]
-                    return "Robot · Level " + info.level + " — " + info.name + "\n"
-                        + info.rating + "\n"
-                        + "Click for level info"
-                }
-                onAvatarClicked: page.levelsHelpRequested()
-                pieces: ChessConnector.PlayerPlaysWhite ? ChessConnector.CapturedByDark : ChessConnector.CapturedByLight
-                isActive: (ChessConnector.IsWhiteMove === 1) !== ChessConnector.PlayerPlaysWhite
             }
 
             Item {
-                width: parent.width
-                height: area.height - 2 * area.panelH
+                width: area.boardSize
+                height: area.boardSize
 
                 ChessBoard {
                     id: chessBoard
@@ -191,49 +255,140 @@ Page {
                     cursorShape: Qt.WaitCursor
                 }
 
-                MoveHistoryPanel {
-                    visible: area.showSidePanels
-                    width: area.sidePanelW
-                    height: area.boardSize
-                    rematchPending: page.rematchPending
-                    anchors {
-                        verticalCenter: parent.verticalCenter
-                        left: parent.left; leftMargin: (parent.width + area.boardSize) / 2 + 5
-                    }
-                }
-
-                GameResultDialog {
-                    visible: page._resultShown && area.showSidePanels
-                    width: area.sidePanelW
-                    anchors {
-                        verticalCenter: parent.verticalCenter
-                        right: parent.horizontalCenter
-                        rightMargin: area.boardSize / 2 + 5
-                    }
-                }
-
-                // Narrow / portrait window: no side panels, so the result (and Rematch) shows on
-                // the board itself.
-                GameResultCard {
-                    visible: page._resultShown && !area.showSidePanels && !page._resultCardClosed
+                // The result, over the dimmed board.
+                Rectangle {
                     anchors.centerIn: parent
-                    width: Math.min(area.boardSize * 0.8, 320)
-                    z: 5
+                    width: area.squaresSize
+                    height: width
+                    visible: resultCard.visible
+                    color: Theme.scrim
+                }
+                ResultCard {
+                    id: resultCard
+                    visible: page._resultShown && !page._resultCardClosed
+                    anchors.centerIn: parent
+                    width: Math.min(area.squaresSize - 2 * Theme.s5, 440)
                     resultText: ChessConnector.ResultText
                     canRematch: page.gameOver && ChessConnector.CanRematch && !page.rematchPending
                     onRematchRequested: ChessConnector.rematch()
-                    onCloseRequested:   page._resultCardClosed = true
+                    onNewGameRequested: page.newGameRequested()
+                    onReviewRequested: {
+                        page._resultCardClosed = true
+                        page.sheetOpen = !area.wide
+                    }
+                    onCloseRequested: page._resultCardClosed = true
                 }
             }
 
-            CapturedPanel {
-                width: area.boardSize
-                height: area.panelH
+            SideCard {
+                isPlayer: !page._flipped
+                width: area.squaresSize
                 anchors.horizontalCenter: parent.horizontalCenter
-                avatarUrl: AvatarProvider.playerUrl
-                pieces: ChessConnector.PlayerPlaysWhite ? ChessConnector.CapturedByLight : ChessConnector.CapturedByDark
-                isActive: (ChessConnector.IsWhiteMove === 1) === ChessConnector.PlayerPlaysWhite
             }
+        }
+
+        // Wide window: the moves beside the board, as tall as the cards and the board.
+        Rectangle {
+            visible: area.wide
+            x: boardColumn.x + boardColumn.width + Theme.s4
+            y: boardColumn.y + (area.boardSize - area.squaresSize) / 2
+            width: Theme.sidePanelWidth
+            height: boardColumn.height - (area.boardSize - area.squaresSize)
+            radius: Theme.radiusCard
+            color: Theme.cardBg
+            border.color: Theme.cardStroke
+
+            MovesPanel {
+                anchors.fill: parent
+                anchors.margins: 1
+                status: page.status
+                reviewText: page.reviewText
+                onExportRequested: page.exportPgnRequested()
+            }
+        }
+    }
+
+    // ── Narrow window: the moves in a sheet at the bottom ──
+    MouseArea {
+        anchors.fill: parent
+        visible: page.sheetOpen && !area.wide
+        onClicked: page.sheetOpen = false
+        Rectangle { anchors.fill: parent; color: Theme.scrim }
+    }
+
+    Rectangle {
+        id: sheet
+        visible: !area.wide
+        width: Math.min(page.width - 2 * Theme.s4, Math.max(area.squaresSize, 360))
+        height: page.sheetOpen ? Math.min(page.height * 0.6, 460) : Theme.sheetHandleHeight
+        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom }
+        radius: Theme.radiusCard
+        color: Theme.cardBg
+        border.color: Theme.cardStroke
+        clip: true
+
+        Behavior on height { NumberAnimation { duration: Theme.slow; easing.type: Easing.OutCubic } }
+
+        // Square bottom corners: the sheet sits on the window edge.
+        Rectangle {
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+            height: Theme.radiusCard
+            color: Theme.cardBg
+        }
+
+        AbstractButton {
+            id: handle
+            width: parent.width
+            height: Theme.sheetHandleHeight
+            hoverEnabled: true
+            Accessible.name: page.sheetOpen ? "Hide moves" : "Show moves"
+            onClicked: page.sheetOpen = !page.sheetOpen
+
+            background: Rectangle {
+                radius: Theme.radiusCard
+                color: handle.hovered ? Theme.cardBgHover : "transparent"
+            }
+            contentItem: RowLayout {
+                spacing: Theme.s2
+                Label {
+                    Layout.leftMargin: Theme.s4
+                    text: "Moves"
+                    font: Theme.bodyStrong
+                }
+                Label {
+                    text: page.shownMove
+                    font.pixelSize: Theme.body.pixelSize
+                    font.features: { "tnum": 1 }
+                }
+                Label {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignRight
+                    text: page.reviewText !== "" ? page.reviewText : page.status
+                    font: Theme.caption
+                    color: Theme.textSecondary
+                    elide: Text.ElideRight
+                }
+                Button {
+                    visible: page.reviewText !== ""
+                    text: "Back to live"
+                    onClicked: ChessConnector.reviewLast()
+                }
+                IconImage {
+                    Layout.rightMargin: Theme.s4
+                    source: Theme.icon("next")
+                    sourceSize.width: Theme.iconSizeDense; sourceSize.height: Theme.iconSizeDense
+                    color: Theme.textSecondary
+                    rotation: page.sheetOpen ? 90 : -90
+                    Behavior on rotation { NumberAnimation { duration: Theme.normal } }
+                }
+            }
+        }
+
+        MovesPanel {
+            anchors { top: handle.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
+            visible: sheet.height > Theme.sheetHandleHeight
+            showTitle: false   // the handle says "Moves", the status and the review
+            onExportRequested: page.exportPgnRequested()
         }
     }
 }

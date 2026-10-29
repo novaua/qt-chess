@@ -9,7 +9,10 @@ QtObject {
     property int scheme: 0
     onSchemeChanged: Application.styleHints.colorScheme =
         [Qt.ColorScheme.Unknown, Qt.ColorScheme.Light, Qt.ColorScheme.Dark][scheme] ?? Qt.ColorScheme.Unknown
-    readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+    // -platform offscreen can't set the colour scheme and Fluent then draws its dark palette:
+    // match it (screenshots on a locked screen, see the run-chess-app skill).
+    readonly property bool _offscreen: Qt.platform.pluginName === "offscreen"
+    readonly property bool dark: _offscreen || Application.styleHints.colorScheme === Qt.ColorScheme.Dark
 
     // The window's palette.accent (system accent colour); set by ChessGame.qml.
     property color systemAccent: "transparent"
@@ -68,6 +71,10 @@ QtObject {
     readonly property int iconSizeDense: 16
     readonly property int iconSizeCard:  24   // Home cards
     readonly property int commandBarHeight: 48
+    // Game page
+    readonly property int playerCardHeight: 60
+    readonly property int sidePanelWidth:   280   // move list beside the board (wide windows)
+    readonly property int sheetHandleHeight: 44   // the collapsed move sheet (narrow windows)
 
     // ── Motion ──
     readonly property int fast:   83
@@ -75,4 +82,9 @@ QtObject {
     readonly property int slow:   250
 
     function icon(name) { return "qrc:/icons/" + name + ".svg" }
+    // Piece image by key: "N" white knight, "n" black knight (the board's own images).
+    function piece(key) {
+        return key === key.toLowerCase() ? "qrc:/piece/pics/black/" + key.toUpperCase() + ".png"
+                                         : "qrc:/piece/pics/white/" + key.toLowerCase() + ".png"
+    }
 }
