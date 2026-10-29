@@ -46,7 +46,8 @@ QtObject {
     readonly property color lastMove:     Qt.alpha("#A8D8EA", 0.7)
     readonly property color selected:     Qt.alpha(accent, 0.45)
     readonly property color legalMoveDot: Qt.alpha("#000000", 0.22)
-    readonly property color checkSquare:  Qt.alpha("#C42B1C", 0.55)
+    readonly property color checkGlowCenter: "#FFD54A"   // the king in check: yellow in the middle …
+    readonly property color checkGlowEdge:   "#E5341F"   // … red towards the edges
     readonly property color flaggedKing:  "#C42B1C"   // light-mode critical; dark's pink fades on the board
 
     // ── Type ramp (family: the app font, Segoe UI) ──
