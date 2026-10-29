@@ -106,7 +106,7 @@ the clock must use fixed times (`restore`: backups at 9:00 and 9:30).
 users, settings (ini instead of registry), saves and logs in `<dir>` — use it to run the app
 interactively on a throwaway profile. Exit codes: 0 saved, 1 grab/save failed, 2 timed out,
 3 QML failed to load, 4 unknown scene. Implementation: `main.cpp` (options, grab) and
-`ChessGame.qml` `setUpScreenshotScene()`; `ChessConnector::ScreenshotScene` carries the options to QML.
+`ScreenshotScene.qml` `setUp()` (loaded by `ChessGame.qml` only in screenshot mode); `ChessConnector::ScreenshotScene` carries the options to QML.
 
 ## A scene with other settings
 
@@ -132,4 +132,4 @@ Start-Process x64\Release\ChessGui.exe -ArgumentList '--data-dir', "$env:TEMP\ch
 
 To capture a running window: `GetWindowRect` on the process's `MainWindowHandle` +
 `System.Drawing.Graphics.CopyFromScreen`, save to the scratchpad, Read it. Clicking/dragging by
-coordinates is fragile — prefer adding a scene to `setUpScreenshotScene()`. Stop the process afterwards.
+coordinates is fragile — prefer adding a scene to `ScreenshotScene.qml`. Stop the process afterwards.

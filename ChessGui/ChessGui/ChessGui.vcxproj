@@ -446,6 +446,7 @@
     <None Include="qml\ProfilePickerPage.qml" />
     <None Include="qml\ProfilePage.qml" />
     <None Include="qml\AvatarPicker.qml" />
+    <None Include="qml\ScreenshotScene.qml" />
     <None Include="qml\SectionCard.qml" />
     <None Include="qml\ImportConflictDialog.qml" />
     <QtRcc Include="qml.qrc" />
