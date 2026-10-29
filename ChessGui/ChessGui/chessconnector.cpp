@@ -244,9 +244,9 @@ const Chess::MovesHistory& ChessConnector::shownHistory() const
 	return _player ? _player->GetHistory() : _game->GetGameRecord();
 }
 
-// Rebuilt after every move: FormatHistorySan replays the game to find check and mate.
+// Rebuilt after every move: Game::FormatHistorySan replays the game to find check and mate.
 void ChessConnector::buildFullHistoryCache() {
-	_sanCache = Chess::FormatHistorySan(shownHistory());
+	_sanCache = Chess::Game::FormatHistorySan(shownHistory());
 	_moveHistoryCache.clear();
 	for (int i = 0; i < (int)_sanCache.size(); i += 2) {
 		QVariantMap row;

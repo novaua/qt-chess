@@ -13,10 +13,6 @@ namespace Chess {
                               const Board& boardAfter,
                               bool isMate);
 
-    // SAN of every move of a game from the start position, with '+' and '#'
-    // (replays the game to find the mate).
-    std::vector<std::string> FormatHistorySan(const MovesHistory& history);
-
     struct PgnTag
     {
         std::string Name;

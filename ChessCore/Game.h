@@ -78,6 +78,10 @@ namespace Chess
 
 		std::string MakeFen();
 
+		// SAN of every move of a game from the start position, with '+' and '#'
+		// (replays the game to find the mate).
+		static std::vector<std::string> FormatHistorySan(const MovesHistory& history);
+
 		~Game();
 	private:
 		bool CanCastleKingside(PieceColors c);

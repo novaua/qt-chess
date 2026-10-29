@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "San.h"
 #include "MovesGen.h"
-#include "Game.h"
 
 using namespace Chess;
 
@@ -79,26 +78,6 @@ std::string Chess::FormatMoveSan(const HistoryMove& m,
 	bool isCheck = !isMate && isKingInCheck(boardAfter, oppColor);
 	if (isMate)       result += "#";
 	else if (isCheck) result += "+";
-	return result;
-}
-
-std::vector<std::string> Chess::FormatHistorySan(const MovesHistory& history)
-{
-	std::vector<std::string> result;
-	result.reserve(history.size());
-
-	Game game;
-	bool mate = false;
-	game.RegisterGameActionsListeners([&mate](const EventBase& event) {
-		if (event.GetType() == EtCheckMate)
-			mate = true;
-		});
-
-	for (const auto& m : history) {
-		mate = false;
-		game.DoMove(m.ToMove());
-		result.push_back(FormatMoveSan(m, game.GetCurrentBoard(), mate));
-	}
 	return result;
 }
 

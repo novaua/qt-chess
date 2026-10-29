@@ -256,7 +256,7 @@ TEST_CLASS(HistorySanTests) {
 public:
 
     TEST_METHOD(FoolsMate_LastMoveIsMate) {
-        auto sans = FormatHistorySan(PlayMoves({ { f2, f3 }, { e7, e5 }, { g2, g4 }, { d8, h4 } }));
+        auto sans = Game::FormatHistorySan(PlayMoves({ { f2, f3 }, { e7, e5 }, { g2, g4 }, { d8, h4 } }));
         Assert::AreEqual<size_t>(4u, sans.size());
         Assert::AreEqual(std::string("f3"),   sans[0]);
         Assert::AreEqual(std::string("e5"),   sans[1]);
@@ -265,12 +265,12 @@ public:
     }
 
     TEST_METHOD(CheckIsNotMate) {
-        auto sans = FormatHistorySan(PlayMoves({ { e2, e4 }, { f7, f6 }, { d1, h5 } }));
+        auto sans = Game::FormatHistorySan(PlayMoves({ { e2, e4 }, { f7, f6 }, { d1, h5 } }));
         Assert::AreEqual(std::string("Qh5+"), sans[2]);
     }
 
     TEST_METHOD(CaptureAndCastling) {
-        auto sans = FormatHistorySan(PlayMoves({
+        auto sans = Game::FormatHistorySan(PlayMoves({
             { e2, e4 }, { d7, d5 }, { e4, d5 }, { g8, f6 },
             { g1, f3 }, { f6, d5 }, { f1, c4 }, { c8, g4 }, { e1, g1 } }));
         Assert::AreEqual(std::string("exd5"), sans[2]);
@@ -279,7 +279,7 @@ public:
     }
 
     TEST_METHOD(EmptyHistory) {
-        Assert::AreEqual<size_t>(0u, FormatHistorySan({}).size());
+        Assert::AreEqual<size_t>(0u, Game::FormatHistorySan({}).size());
     }
 };
 
