@@ -52,8 +52,8 @@ QtObject {
     readonly property color checkGlowCenter: "#FFD54A"   // the king in check: yellow in the middle …
     readonly property color checkGlowEdge:   "#E5341F"   // … red towards the edges
     // Pieces off the board (move list): a glow of the other colour, so both show on any panel.
-    readonly property color pieceGlowOnBlack: "#FFFFFF"
-    readonly property color pieceGlowOnWhite: "#000000"
+    readonly property color pieceGlowOnBlack: Qt.alpha("#FFFFFF", 0.45)
+    readonly property color pieceGlowOnWhite: Qt.alpha("#000000", 0.35)
     readonly property color flaggedKing:  "#C42B1C"   // light-mode critical; dark's pink fades on the board
 
     // ── Type ramp (family: the app font, Segoe UI) ──

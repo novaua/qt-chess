@@ -75,9 +75,9 @@ ListView {
                     shadowColor: cell.piece === cell.piece.toLowerCase() ? Theme.pieceGlowOnBlack : Theme.pieceGlowOnWhite
                     shadowHorizontalOffset: 0
                     shadowVerticalOffset: 0
-                    shadowBlur: 0.2
-                    shadowScale: 1.14
-                    blurMax: 6
+                    shadowBlur: 0.3
+                    shadowScale: 1.05
+                    blurMax: 4
                 }
             }
             Label {
