@@ -115,5 +115,8 @@ this is acceptable under that rule before starting.
 2. `objectName`s + `ChessGuiTests` project with scenarios 1, 2 and 5.
 3. `scripts\ui-tests.ps1` local runner.
 4. Golden-image baselines and diff.
+   - Done in BL-02 P6 (`polish_291026`): `scripts\Compare-Screenshots.ps1` (local baselines in
+     `test-results\baselines\`, `-Update` to accept, diff images in `test-results\diffs\`).
+     Screenshot mode turns animations off, so two runs of all 42 scenes match.
 5. Remaining scenarios.
 6. Optional: pywinauto smoke tests; manual CI job.

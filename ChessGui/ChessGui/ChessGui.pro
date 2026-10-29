@@ -79,6 +79,7 @@ DISTFILES += \
     qml/EmptyBoardModel.qml \
     qml/GamePage.qml \
     qml/HomeCard.qml \
+    qml/FocusRing.qml \
     qml/HomePage.qml \
     qml/IconButton.qml \
     qml/InfoBar.qml \

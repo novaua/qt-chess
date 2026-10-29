@@ -8,6 +8,7 @@
         <file>qml/CommandBar.qml</file>
         <file>qml/InfoBar.qml</file>
         <file>qml/HomeCard.qml</file>
+        <file>qml/FocusRing.qml</file>
         <file>qml/ConfirmDialog.qml</file>
         <file>qml/ChoiceRow.qml</file>
         <file>qml/ComputerGameDialog.qml</file>
@@ -58,7 +59,7 @@
         <file>pics/white/r.png</file>
     </qresource>
     <qresource prefix="/app">
-        <file>pics/chess_icon.svg</file>
+        <file>pics/app-icon.png</file>
         <file>pics/ChessBackground.jpg</file>
         <file>pics/rotate.png</file>
         <file>pics/avatars/robot.png</file>

@@ -101,9 +101,12 @@ Page {
                 }
                 SettingRow {
                     title: "Reduce animations"
-                    description: "The board turns at once, pieces appear without fading in, and nothing pulses."
+                    description: AppInfo.windowsAnimationsOff
+                                 ? "On, because animation effects are off in Windows (Accessibility → Visual effects)."
+                                 : "The board turns at once, pages and pieces appear without sliding or fading in, and nothing pulses."
                     Switch {
-                        checked: AppSettings.reduceMotion
+                        checked: AppSettings.reduceMotion || AppInfo.windowsAnimationsOff
+                        enabled: !AppInfo.windowsAnimationsOff
                         onToggled: AppSettings.reduceMotion = checked
                         Accessible.name: "Reduce animations"
                     }
@@ -296,8 +299,9 @@ Page {
                     spacing: Theme.s3
                     Layout.fillWidth: true
                     Image {
-                        source: "qrc:/app/pics/chess_icon.svg"
-                        sourceSize.width: 48; sourceSize.height: 48
+                        source: "qrc:/app/pics/app-icon.png"
+                        mipmap: true
+                        Layout.preferredWidth: 48; Layout.preferredHeight: 48
                     }
                     ColumnLayout {
                         spacing: 2
@@ -353,6 +357,9 @@ Page {
 
                     Repeater {
                         model: [
+                            ["Ctrl+N", "New game vs the computer; after a game, a new one like it"],
+                            ["Ctrl+O", "Open the saved game (Home)"],
+                            ["Tab  Space", "Move between buttons and cards, and press one"],
                             ["Esc", "Back; in a game, close the move sheet or go Home"],
                             ["← →", "Previous or next move"],
                             ["Home  End", "First move or the live position"],

@@ -410,7 +410,7 @@
     <Image Include="pics\white\r.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="pics\chess_icon.svg" />
+    <Image Include="pics\app-icon.png" />
     <None Include="qml\AppDialog.qml" />
     <None Include="qml\ApplyMovesDialog.qml" />
     <None Include="qml\ChessBoard.qml" />
@@ -428,6 +428,7 @@
     <None Include="qml\CommandBar.qml" />
     <None Include="qml\InfoBar.qml" />
     <None Include="qml\HomeCard.qml" />
+    <None Include="qml\FocusRing.qml" />
     <None Include="qml\ConfirmDialog.qml" />
     <None Include="qml\ChoiceRow.qml" />
     <None Include="qml\ComputerGameDialog.qml" />

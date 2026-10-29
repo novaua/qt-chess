@@ -33,8 +33,12 @@ Test files are in `ChessTests/` — `BasicTest.cpp` (board logic) and `UciConnec
 ## Seeing the UI
 
 `scripts\Take-Screenshot.ps1 -Scene all` saves screenshots of the app's views (invisible window) to
-`test-results\screens\` on a throwaway profile. Details: the `run-chess-app` skill
+`test-results\screens\` on a throwaway profile. `scripts\Compare-Screenshots.ps1` diffs them against
+local baselines (`-Update` accepts the current look). Details: the `run-chess-app` skill
 (`.claude/skills/run-chess-app/SKILL.md`).
+
+App icon and installer images: `python scripts\make_icons.py` (Pillow) redraws `chess.ico`,
+`pics/app-icon.png` and `installer/art/*.bmp`.
 
 ## Architecture
 
@@ -82,7 +86,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
   - `ChessFigures.qml` — piece rendering and drag/drop animation
   - `ChessBoxes.qml` — square highlights (legal moves, last move)
   - Shared: `Theme.qml` and `AppSettings.qml` (singletons; `AppSettings` is the QtCore `Settings` with the
-    app's own options), `SettingRow`, `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`, `SectionCard`, `AvatarPicker`
+    app's own options), `SettingRow`, `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`, `SectionCard`, `AvatarPicker`, `FocusRing` (keyboard focus outline for custom-drawn items)
   - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog`, `LichessGameDialog`; profiles: `CreateUserDialog`, `ImportConflictDialog`, `RestoreBackupDialog`
 - `UserManager` keeps `users.json` (atomic `QSaveFile` writes, `backups/users-1..3.json`), statistics
   per opponent, profile export/import (`.chessprofile`, never the Lichess token) and the Lichess

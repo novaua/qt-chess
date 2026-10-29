@@ -132,6 +132,7 @@ Page {
 
                 HomeCard {
                     text: "Play vs computer"
+                    shortcut: "Ctrl+N"
                     description: page._levels.length + " levels, from " + page._levels[0].name.toLowerCase()
                                  + " to " + page._levels[page._levels.length - 1].name.toLowerCase()
                     icon.source: Theme.icon("robot")
@@ -157,6 +158,7 @@ Page {
                 }
                 HomeCard {
                     text: "Open saved game"
+                    shortcut: "Ctrl+O"
                     description: ChessConnector.CanLoad ? "Replay the game you saved"
                                                         : "No saved game yet: use Save during a game"
                     dimmed: !ChessConnector.CanLoad

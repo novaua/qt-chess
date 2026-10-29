@@ -4,6 +4,41 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-29 — BL-02 P6 Polish done (branch: polish_291026); BL-02 is coded, manual checks left
+
+### What was done
+- **Keyboard:** Ctrl+N (Home: new game vs the computer; a finished game: the result card's New game, so a running game is never dropped) and Ctrl+O (Home: open the saved game, or say there is none); both on the cards' tooltips and in About's shortcut list. Home cards take Enter as well as Space. The avatar picker (Create profile, Profile) and the opponent picker (Two players) are one Tab stop each, like radio buttons: arrow keys pick, and the new `FocusRing.qml` outlines the chosen one. A profile card's More button is hidden with opacity instead of `visible`, so Tab still reaches it.
+- **Accessibility:** every icon-only button already had a tooltip and `Accessible.name` (checked); the pickers now have list roles and names. No OK/Yes/No buttons are left.
+- **High contrast:** `Theme.highContrast` follows a Windows contrast theme (`styleHints.accessibility.contrastPreference`, Qt 6.10). The Fluent controls already switch to the system colours; our roles now do too (`SystemPalette`): window, windowText, disabled text, highlight as accent; no selected fill, no scrim, no Home photo; hovered cards get an accent border. The board keeps its colours. `--high-contrast` / `Take-Screenshot.ps1 -HighContrast` forces our part (the Fluent controls can't be forced).
+- **Motion:** page transitions in the `StackView` (fade in and rise 24 px over `Theme.normal`, fade out over `fast`) replace the Basic style's 400 ms slide, and switch off with Reduce animations. `Theme.reduceMotion` is also on when Windows' animation effects are off (`AppInfo.windowsAnimationsOff`, `SPI_GETCLIENTAREAANIMATION`); Settings then shows the switch on and disabled.
+- **App icon and installer:** a new icon (the board's white knight on a rounded tile in the board's green) in `chess.ico` (16–256 px), `pics/app-icon.png` (window, Welcome, About; replaces `chess_icon.svg`), and installer images `installer/art/wizard-*.bmp` for 100–250 % DPI with `WizardStyle=modern`. `scripts/make_icons.py` (Pillow) redraws them all. `Build-Installer.ps1 -SkipBuild` builds the installer with them.
+- **Screenshot baselines (BL-05 step 4):** `scripts/Compare-Screenshots.ps1` compares `test-results\screens` with local baselines (`-Update` accepts), with a tolerance, and writes a diff image per failure. Screenshot mode turns animations off (`Theme.forceReduceMotion`, not saved), so two runs of all 42 scenes (light and dark) match; a swapped picture fails with a diff.
+- Release and Debug build OK; all 151 tests pass; all 42 scenes OK, no QML warnings. The `run-chess-app` skill, `ThemeTokens.md` (§1, §6, §11), the plan's §7 and `UiTestSuitePlan.md` are updated.
+
+### Code review (medium, same branch)
+9 findings: 8 are fixed (one of them partly), 1 isn't changed.
+- **Pages:** Reduce animations makes the page transitions instant, not disabled. Before, a disabled `popEnter` didn't undo the `pushExit` fade, so Home came back blank after Settings if the switch changed in between. `popEnter` also resets `y` after a push that was cut short.
+- **High contrast:** the shown move in the move list gets an accent border. It had no highlight at all, since high contrast has no selected fill.
+- **Arrow keys:**
+  - In the avatar and opponent pickers, an arrow at an edge leaves the selection alone. Before, Up in the first row jumped to the first avatar.
+  - An arrow that changes nothing no longer saves the profile. Each step that does change it still saves, as a click does.
+- **Profile picker:** on a touchscreen, a tap on the hidden More button now selects the profile instead of opening the menu.
+- **Ctrl+O** just calls `loadGame()`, which says itself when there is no saved game, so there's one message, not two.
+- **Screenshots:**
+  - `Take-Screenshot.ps1` deletes the old picture before each scene, so a scene that fails can't pass with last run's PNG.
+  - `Compare-Screenshots.ps1` fails a baseline that has no new screenshot (`MISSING`), and writes a diff image only for failures.
+  - The `restore` scene's backups get fixed times (9:00 and 9:30), so all 42 scenes now match exactly.
+- Not changed: the opponent picker has no Up/Down. It is a `Flow` with a varying number per row, and Left/Right reach every opponent. The two step functions differ (a grid and a list), so they stay separate.
+
+### Not checked live
+- Keyboard in a real window: Tab order on Home, the profile picker, Create profile and Two players; the focus ring; Ctrl+N / Ctrl+O; the page transitions. Screenshots can't show focus (the window never takes it).
+- A real Windows contrast theme, 200 % scaling, Windows animation effects off, and the installer's wizard pages. Listed in TASKS under P6.
+
+### Where to continue
+BL-02 is coded. What's left are the manual checks in TASKS (P1–P6). Next backlog candidates: BL-09 (engine thread vs GUI thread, a real bug), BL-05 (stub engine, Quick tests), BL-06 (engine choice), BL-04 (dragging pieces).
+
+---
+
 ## 2026-10-29 — BL-02 P5 Settings and About done (branch: settingsAbout_291026); next: P6
 
 ### What was done

@@ -2,7 +2,7 @@
 
 ## In Progress
 
-- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there. **Next: P6** (see `PROGRESS.md`).
+- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there. **All phases coded; manual checks left** (see `PROGRESS.md`).
   - [x] Review of all screens, plan, design kit (`pics/icons/*.svg`, [`docs/design/ThemeTokens.md`](docs/design/ThemeTokens.md)), mockups (#77)
   - [x] Decide the QML access rule (plan §9 Q1): game flows through `ChessConnector`, services stay separate typed singletons (CLAUDE.md "Key Conventions")
   - [x] P1 Foundation (`fluentFoundation_281026`): FluentWinUI3, `Theme.qml`, System/Light/Dark, icons in qrc, `AppDialog`; removed Qt5Compat effects and `NetworkPlayers.qml` (closes BL-01)
@@ -19,7 +19,10 @@
     - [ ] Manual check: Esc closes the move sheet, Review moves / New game on the result card (vs Robot, two players)
   - [x] P5 Settings and About (`settingsAbout_291026`): `SettingsPage` replaces `SettingsDialog` (Appearance: theme, coordinates around the board or on the squares, reduce animations · Sound: effects switch + volume 1–5 · Gameplay: confirm resign, legal moves, last move · Computer: engine name and path, levels · Data: back up now, restore a chosen backup, export / import, data folder · Advanced: FEN or moves, log folder · About: version, build, licences, links, shortcuts); `AppSettings` singleton (same keys; old "volume 0" and `darkMode` migrated); `AppInfo` service; `UserManager.backups` / `backupNow` / `restoreBackup` with 3 tests; board colours fixed (a1 is dark)
     - [ ] Manual check in a real window: each switch takes effect in a game (legal-move dots, last move, resign without confirmation, Reduce animations when flipping), the volume preview sound, Back up now / Restore… / Open data folder / Open log folder, the About links
-  - [ ] P6 Polish: keyboard and accessibility, high contrast, motion, app icon, screenshot baselines (with BL-05)
+  - [x] P6 Polish (`polish_291026`): Ctrl+N / Ctrl+O; Enter on Home cards; avatar and opponent pickers as one Tab stop with arrow keys and a `FocusRing`; high contrast (`Theme.highContrast`: system colours, solid borders, `--high-contrast` screenshots); page transitions (fade and rise, off with Reduce animations); Reduce animations also follows Windows' animation effects; new app icon and installer images (`scripts/make_icons.py`, `WizardStyle=modern`); screenshot baselines (`Compare-Screenshots.ps1`, BL-05 step 4)
+    - [ ] Manual check in a real window: Tab through Home, the profile picker (card → More), Create profile and Two players (arrow keys, focus ring), Enter on a Home card, Ctrl+N / Ctrl+O, the page transitions
+    - [ ] Manual check: a Windows contrast theme (Settings → Accessibility → Contrast themes) and 200 % scaling; Windows animation effects off → Settings shows Reduce animations on and disabled
+    - [ ] Manual check: run the built installer once and look at the new wizard images and icons
 
 Manual checks, no code (do any time):
 
