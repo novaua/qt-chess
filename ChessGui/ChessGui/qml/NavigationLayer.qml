@@ -3,7 +3,7 @@ import ChessPlusPlus
 
 Grid {
 
-    width: parent.height<parent.width?0.95*parent.height:.95*parent.width
+    width: Theme.boardSquares * Math.min(parent.width, parent.height)
     height:width
     rows:8
     columns: 8
@@ -33,6 +33,7 @@ Grid {
             }
 
             Behavior on rotation  {
+                enabled: !Theme.reduceMotion
                 NumberAnimation {
                     id: navigationLayerRotation
                     easing {
@@ -53,8 +54,8 @@ Grid {
                 height:0.3*parent.height
                 width:height
                 radius: 0.5*height
-                scale:0
-                visible: modelData!==" "?true:false
+                scale: Theme.reduceMotion ? 1 : 0
+                visible: AppSettings.showLegalMoves && modelData !== " "
             }
 
             PropertyAnimation {
@@ -64,7 +65,7 @@ Grid {
                 from: 0;
                 to: 1.0;
                 duration: 450;
-                running: true;
+                running: !Theme.reduceMotion;
                 loops: 1;
             }
         }

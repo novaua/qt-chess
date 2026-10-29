@@ -182,6 +182,70 @@ namespace UserManagerTests
 			Assert::IsFalse(QFile::exists(UserManager::backupFilePath(2)), L"no duplicate copies");
 		}
 
+		TEST_METHOD(BackupNow_CopiesTheCurrentProfiles_OnceUntilTheyChange)
+		{
+			{
+				UserManager um;
+				um.createUser("A", "cat");
+			}
+			UserManager um;              // start: backup 1 has A
+			um.createUser("B", "fox");
+			Assert::IsTrue(um.backupNow());
+			Assert::IsTrue(readFile(UserManager::backupFilePath(1)) == readFile(UserManager::usersFilePath()));
+			Assert::IsTrue(um.backupNow(), L"unchanged: nothing to do, still backed up");
+			Assert::IsFalse(QFile::exists(UserManager::backupFilePath(3)), L"no duplicate copies");
+
+			const QVariantList list = um.backups();
+			Assert::AreEqual(2, (int)list.size());
+			Assert::AreEqual(1, list[0].toMap().value("number").toInt());
+			Assert::IsTrue(list[0].toMap().value("current").toBool());
+			Assert::AreEqual(QStringList{ "A", "B" }.join(','), list[0].toMap().value("profiles").toStringList().join(','));
+			Assert::AreEqual(QString("A"), list[1].toMap().value("profiles").toStringList().join(','));
+			Assert::IsFalse(list[1].toMap().value("current").toBool());
+		}
+
+		TEST_METHOD(RestoreBackup_CurrentProfilesBackedUpFirst_ActiveUserStays)
+		{
+			{
+				UserManager um;
+				um.createUser("A", "cat");
+			}
+			UserManager um;              // backup 1: A
+			const QString a = um.activeUserId();
+			um.createUser("B", "fox");
+			um.login(a);
+			um.recordResult(a, 1, UserManager::computerKey(3), "Robot");
+
+			Assert::IsTrue(um.restoreBackup(1));
+			Assert::AreEqual(1, um.userCount(), L"only A, as in the backup");
+			Assert::IsTrue(um.isLoggedIn());
+			Assert::AreEqual(a, um.activeUserId());
+			Assert::AreEqual(0, um.gamesPlayed(), L"A's statistics from the backup");
+
+			const QVariantList list = um.backups();
+			Assert::AreEqual(2, (int)list.size());
+			Assert::AreEqual(QString("A,B"), list[0].toMap().value("profiles").toStringList().join(','),
+				L"what was there before the restore is now the newest backup");
+			// Read the file: another UserManager would back it up on start and shift the backups.
+			Assert::IsFalse(readFile(UserManager::usersFilePath()).contains("\"B\""), L"users.json restored on disk");
+
+			Assert::IsTrue(um.restoreBackup(1), L"and the restore can be undone");
+			Assert::AreEqual(2, um.userCount());
+			Assert::AreEqual(1, um.gamesPlayed());
+		}
+
+		TEST_METHOD(RestoreBackup_MissingOrDamaged_Refused)
+		{
+			UserManager um;
+			um.createUser("A", "cat");
+			Assert::IsFalse(um.restoreBackup(1), L"no backup yet");
+			Assert::IsFalse(um.restoreBackup(0));
+			writeFile(UserManager::backupFilePath(2), "broken");
+			Assert::IsFalse(um.restoreBackup(2));
+			Assert::AreEqual(1, um.userCount());
+			Assert::IsTrue(um.backups().isEmpty(), L"a backup that doesn't parse isn't offered");
+		}
+
 		TEST_METHOD(DamagedFile_NothingLoaded_RestoreFromBackup)
 		{
 			{

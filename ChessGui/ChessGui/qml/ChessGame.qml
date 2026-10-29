@@ -6,9 +6,9 @@ import QtQuick.Dialogs
 import ChessPlusPlus
 
 // The window: one page at a time in a StackView (Welcome, the profile list, Home or the game, with
-// the Profile page pushed over Home or the game), the InfoBars under the command bar, and every
-// dialog. UserManager and ChessConnector.InGame decide the page (route()); pages ask for dialogs
-// through signals.
+// the Profile or Settings page pushed over Home or the game), the InfoBars under the command bar,
+// and every dialog. UserManager and ChessConnector.InGame decide the page (route()); pages ask for
+// dialogs through signals.
 ApplicationWindow {
     id: root
 
@@ -21,12 +21,12 @@ ApplicationWindow {
     readonly property bool   _inGame:   ChessConnector.InGame
     readonly property string _mode:     ChessConnector.GameMode
     readonly property bool   _gameOver: ChessConnector.GameResult !== ""
-    // The page on top: "welcome", "login", "home", "game" or "profile".
+    // The page on top: "welcome", "login", "home", "game", "profile" or "settings".
     readonly property string _page: stack.currentItem ? stack.currentItem.objectName : ""
     readonly property bool   _onGamePage: _page === "game"
 
     // A dialog is open: the window's shortcuts wait (Esc then closes the dialog).
-    readonly property bool _dialogOpen: settingsDialog.visible || levelsHelp.visible
+    readonly property bool _dialogOpen: restoreBackupDialog.visible || levelsHelp.visible
         || computerDialog.visible || twoPlayerDialog.visible || onlineDialog.visible
         || challengeDialog.visible || createUserDialog.visible
         || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible
@@ -40,8 +40,8 @@ ApplicationWindow {
         return Qt.hsla((1 - t) * 0.36, 0.65, 0.45, 1)
     }
 
-    // The page under everything follows the state; the Profile page stays on top of it until the
-    // base page changes (e.g. its profile was deleted).
+    // The page under everything follows the state; the Profile and Settings pages stay on top of it
+    // until the base page changes (e.g. its profile was deleted).
     function route() {
         var page = UserManager.isLoggedIn ? (ChessConnector.InGame ? "game" : "home")
                  : UserManager.hasUsers ? "login" : "welcome"
@@ -62,6 +62,18 @@ ApplicationWindow {
     function closeProfile() {
         if (_page === "profile")
             stack.pop()
+    }
+    function openSettings() {
+        if (_page !== "settings")
+            stack.push(settingsPage)
+    }
+    function closeSettings() {
+        if (_page === "settings")
+            stack.pop()
+    }
+    function resign() {
+        if (AppSettings.confirmResign) resignConfirm.open()
+        else                           ChessConnector.resignGame()
     }
 
     // ── Profiles: export, import, delete (the dialogs are below) ──
@@ -171,7 +183,7 @@ ApplicationWindow {
     function setUpScreenshotScene() {
         if (_shot.width)  root.width  = _shot.width
         if (_shot.height) root.height = _shot.height
-        appSettings.theme = _shot.dark ? 2 : 1   // not "system": stable screenshots
+        AppSettings.theme = _shot.dark ? 2 : 1   // not "system": stable screenshots
         var scene = ({ menu: "home", board: "game", login: "profiles" })[_shot.scene] ?? _shot.scene
 
         // welcome and create-user: first run. profiles and import: profiles made by main.cpp, nobody
@@ -192,7 +204,9 @@ ApplicationWindow {
             UserManager.login(me)
         }
 
-        if (scene === "settings") settingsDialog.open()
+        if (scene === "settings" || scene === "about" || scene === "restore") openSettings()
+        if (scene === "restore")  restoreBackupDialog.open()
+        if (scene === "about")    stack.currentItem.showAbout()
         if (scene === "levels")   levelsHelp.open()
         if (scene.startsWith("profile") && scene !== "profiles") openProfile()
         if (scene === "online")   onlineDialog.open()
@@ -235,24 +249,9 @@ ApplicationWindow {
         property alias y:      root.y
     }
 
-    Settings {
-        id: appSettings
-        property int  theme:           -1  // 0 system, 1 light, 2 dark; -1 = not set yet, see darkMode
-        property bool darkMode:        false // before the theme setting: only read, to migrate it
-        property bool musicEnabled:    true
-        property int  soundVolume:     3   // 0-5; 0 = muted
-        property int  lastSoundVolume: 3   // remembers last non-zero level for restore
-    }
-
-    Binding {
-        target: Theme; property: "scheme"
-        value: appSettings.theme >= 0 ? appSettings.theme : (appSettings.darkMode ? 2 : 0)
-    }
     Binding { target: Theme; property: "systemAccent"; value: root.palette.accent }
 
-    // Perceptual loudness curve: linear 0-5 feels far too loud at level 1,
-    // since human hearing perceives volume roughly logarithmically.
-    readonly property real _sfxVolume: Math.pow(appSettings.soundVolume / 5.0, 2)
+    readonly property real _sfxVolume: AppSettings.effectsVolume()
 
     SoundEffect { id: sndMove;         source: "qrc:/sounds/move.wav";          volume: _sfxVolume }
     SoundEffect { id: sndMoveOpponent; source: "qrc:/sounds/move_opponent.wav"; volume: _sfxVolume }
@@ -311,12 +310,23 @@ ApplicationWindow {
     }
 
     Component {
+        id: settingsPage
+        SettingsPage {
+            onBackRequested:        root.closeSettings()
+            onLevelsHelpRequested:  levelsHelp.open()
+            onExportRequested:      userId => root.exportProfile(userId)
+            onImportRequested:      profileImportDialog.open()
+            onRestoreRequested:     restoreBackupDialog.open()
+        }
+    }
+
+    Component {
         id: homePage
         HomePage {
             onComputerGameRequested:  computerDialog.openNew()
             onTwoPlayerGameRequested: twoPlayerDialog.open()
             onOnlineGameRequested:    root.playOnline()
-            onSettingsRequested:      settingsDialog.open()
+            onSettingsRequested:      root.openSettings()
             onProfileRequested:       root.openProfile()
             onSwitchUserRequested:    root.switchUser()
         }
@@ -329,9 +339,9 @@ ApplicationWindow {
             onHomeRequested:        root.leaveGame()
             onNewGameRequested:     root.newGameLikeThis()
             onExportPgnRequested:   root.exportPgn()
-            onResignRequested:      resignConfirm.open()
+            onResignRequested:      root.resign()
             onLevelsHelpRequested:  levelsHelp.open()
-            onSettingsRequested:    settingsDialog.open()
+            onSettingsRequested:    root.openSettings()
             onProfileRequested:     root.openProfile()
             onSwitchUserRequested:  root.switchUser()
         }
@@ -445,23 +455,23 @@ ApplicationWindow {
         function onGameInfoChanged() { root.route() }
 
         function onMoveCountChanged() {
-            if (!appSettings.musicEnabled || !ChessConnector.InGame || ChessConnector.MoveCount === 0)
+            if (!AppSettings.musicEnabled || !ChessConnector.InGame || ChessConnector.MoveCount === 0)
                 return
             var snd = (ChessConnector.MoveCount % 2 === 1) ? sndMove : sndMoveOpponent
             if (snd.status === SoundEffect.Ready)
                 snd.play()
         }
         function onCheckNotify() {
-            if (appSettings.musicEnabled)
+            if (AppSettings.musicEnabled)
                 sndCheck.play()
             messageBar.show("Check", "caution")
         }
         function onCheckMateNotify() {
-            if (appSettings.musicEnabled)
+            if (AppSettings.musicEnabled)
                 sndCheckmate.play()
         }
         function onCheckMateResult(winner) {
-            if (appSettings.musicEnabled)
+            if (AppSettings.musicEnabled)
                 sndWin.play()
         }
         function onSavedOk()           { messageBar.show("Game saved", "success") }
@@ -531,7 +541,13 @@ ApplicationWindow {
     }
 
     // ── Dialogs ──────────────────────────────────────────────────────────
-    SettingsDialog { id: settingsDialog }
+    RestoreBackupDialog {
+        id: restoreBackupDialog
+        onRestoreRequested: number => {
+            if (UserManager.restoreBackup(number)) messageBar.show("Profiles restored from the backup", "success")
+            else                                   messageBar.show("Couldn't restore the backup", "critical")
+        }
+    }
 
     ComputerGameDialog {
         id: computerDialog
@@ -682,13 +698,14 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+,"
         enabled: !_dialogOpen && UserManager.isLoggedIn
-        onActivated: settingsDialog.open()
+        onActivated: root.openSettings()
     }
     Shortcut {
         sequence: "Escape"
-        enabled: (_onGamePage || _page === "profile") && !_dialogOpen
+        enabled: (_onGamePage || _page === "profile" || _page === "settings") && !_dialogOpen
         onActivated: {
             if (_page === "profile")              closeProfile()
+            else if (_page === "settings")        closeSettings()
             else if (stack.currentItem.sheetOpen) stack.currentItem.sheetOpen = false   // an open move sheet first
             else                                  leaveGame()
         }

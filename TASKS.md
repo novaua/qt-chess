@@ -2,7 +2,7 @@
 
 ## In Progress
 
-- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there. **Next: P5** (see `PROGRESS.md`).
+- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there. **Next: P6** (see `PROGRESS.md`).
   - [x] Review of all screens, plan, design kit (`pics/icons/*.svg`, [`docs/design/ThemeTokens.md`](docs/design/ThemeTokens.md)), mockups (#77)
   - [x] Decide the QML access rule (plan §9 Q1): game flows through `ChessConnector`, services stay separate typed singletons (CLAUDE.md "Key Conventions")
   - [x] P1 Foundation (`fluentFoundation_281026`): FluentWinUI3, `Theme.qml`, System/Light/Dark, icons in qrc, `AppDialog`; removed Qt5Compat effects and `NetworkPlayers.qml` (closes BL-01)
@@ -17,7 +17,8 @@
     - [x] Light-mode after shots in a real window (`docs/design/after-p4/`: light and dark)
     - [x] Manual check: Copy PGN, Export PGN… (dialog and file), PGN date of a continued game (#83)
     - [ ] Manual check: Esc closes the move sheet, Review moves / New game on the result card (vs Robot, two players)
-  - [ ] P5 Settings and About pages
+  - [x] P5 Settings and About (`settingsAbout_291026`): `SettingsPage` replaces `SettingsDialog` (Appearance: theme, coordinates around the board or on the squares, reduce animations · Sound: effects switch + volume 1–5 · Gameplay: confirm resign, legal moves, last move · Computer: engine name and path, levels · Data: back up now, restore a chosen backup, export / import, data folder · Advanced: FEN or moves, log folder · About: version, build, licences, links, shortcuts); `AppSettings` singleton (same keys; old "volume 0" and `darkMode` migrated); `AppInfo` service; `UserManager.backups` / `backupNow` / `restoreBackup` with 3 tests; board colours fixed (a1 is dark)
+    - [ ] Manual check in a real window: each switch takes effect in a game (legal-move dots, last move, resign without confirmation, Reduce animations when flipping), the volume preview sound, Back up now / Restore… / Open data folder / Open log folder, the About links
   - [ ] P6 Polish: keyboard and accessibility, high contrast, motion, app icon, screenshot baselines (with BL-05)
 
 Manual checks, no code (do any time):

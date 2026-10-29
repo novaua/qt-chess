@@ -3,7 +3,7 @@ import QtQuick.Shapes
 import ChessPlusPlus
 
 Grid {
-    width: parent.height<parent.width?0.95*parent.height:.95*parent.width
+    width: Theme.boardSquares * Math.min(parent.width, parent.height)
     height:width
     rows: 8
     columns: 8
@@ -29,20 +29,18 @@ Grid {
 
             height: width
 
-            //rows and columns
+            // index 0 = a1 (the grid is flipped upside down): row = rank, column = file
             property int rowIndex: Math.floor(index/8)
             property int columnIndex: index%8
-            color: ((Math.floor(index / 8) % 2) === 0)
-                       ? (index % 2  === 1 ? Theme.squareDark : Theme.squareLight)
-                       : (index % 2  === 0 ? Theme.squareDark : Theme.squareLight)
+            color: (rowIndex + columnIndex) % 2 === 0 ? Theme.squareDark : Theme.squareLight   // a1 is dark
 
             //highlighting last move
             Rectangle {
                 anchors.fill: parent
                 color: Theme.lastMove
                 opacity: index === ChessConnector.LastMoveTo ? 1 : 0.7
-                visible: index === ChessConnector.LastMoveFrom
-                         || index === ChessConnector.LastMoveTo
+                visible: AppSettings.highlightLastMove
+                         && (index === ChessConnector.LastMoveFrom || index === ChessConnector.LastMoveTo)
                 z: 1
             }
 
@@ -71,7 +69,7 @@ Grid {
                 }
 
                 SequentialAnimation on opacity {
-                    running: checkGlow.visible
+                    running: checkGlow.visible && !Theme.reduceMotion
                     loops: Animation.Infinite
                     alwaysRunToEnd: true
                     NumberAnimation { from: 1.0; to: 0.7; duration: 700; easing.type: Easing.InOutSine }

@@ -349,6 +349,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AppConfig.cpp" />
+    <ClCompile Include="AppInfo.cpp" />
     <ClCompile Include="AvatarProvider.cpp" />
     <ClCompile Include="UserManager.cpp" />
     <ClCompile Include="chessconnector.cpp" />
@@ -360,6 +361,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\ChessCore\Piece.h" />
     <ClInclude Include="AppConfig.h" />
+    <QtMoc Include="AppInfo.h" />
     <QtMoc Include="AvatarProvider.h" />
     <QtMoc Include="UserManager.h" />
     <ClInclude Include="EngineLevel.h" />

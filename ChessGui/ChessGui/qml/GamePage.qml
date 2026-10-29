@@ -221,10 +221,11 @@ Page {
         readonly property bool wide: page.width >= 960 || page.width > page.height * 1.15
         readonly property real gap: Theme.s2
         readonly property real panelW: wide ? Theme.sidePanelWidth + Theme.s4 : 0
-        // The board item: its squares take 95 %, the coordinates the edge around them.
+        // The board item: its squares take 95 % and the coordinates the edge around them (all of it
+        // with the coordinates inside, Theme.boardSquares).
         readonly property real boardSize: Math.max(200, Math.min(width - panelW,
                                                 height - 2 * (Theme.playerCardHeight + gap)))
-        readonly property real squaresSize: boardSize * 0.95
+        readonly property real squaresSize: boardSize * Theme.boardSquares
         onWideChanged: if (wide) page.sheetOpen = false   // the sheet is hidden then
 
         Column {
@@ -332,7 +333,7 @@ Page {
         border.color: Theme.cardStroke
         clip: true
 
-        Behavior on height { NumberAnimation { duration: Theme.slow; easing.type: Easing.OutCubic } }
+        Behavior on height { enabled: !Theme.reduceMotion; NumberAnimation { duration: Theme.slow; easing.type: Easing.OutCubic } }
 
         // Square bottom corners: the sheet sits on the window edge.
         Rectangle {
@@ -391,7 +392,7 @@ Page {
                     sourceSize.width: Theme.iconSizeDense; sourceSize.height: Theme.iconSizeDense
                     color: Theme.textSecondary
                     rotation: page.sheetOpen ? 90 : -90
-                    Behavior on rotation { NumberAnimation { duration: Theme.normal } }
+                    Behavior on rotation { enabled: !Theme.reduceMotion; NumberAnimation { duration: Theme.normal } }
                 }
             }
         }

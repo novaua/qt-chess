@@ -10,6 +10,7 @@ Column {
              width:height/4
 
              Behavior on rotation  {
+                 enabled: !Theme.reduceMotion
                  NumberAnimation {
                      easing {
                          type: Easing.InCirc

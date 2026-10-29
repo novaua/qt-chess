@@ -320,7 +320,7 @@ profile", and "Manage" (opens Profile). It shows only when there are 2 or more p
 - [ ] System theme, accent colour, high contrast mode, 100–200% scaling (SVG icons only).
 - [ ] Minimum window size; the window title shows the state ("Chess++ — Alice vs Bob").
 - [ ] Confirmation before destructive actions. No Exit button; closing the window autosaves.
-- [ ] The About page has the version and licences (Qt LGPLv3, Stockfish GPLv3 with a source link).
+- [x] The About page has the version and licences (Qt LGPLv3, Stockfish GPLv3 with a source link). Done in P5.
 
 ## 8. Roadmap
 
@@ -333,7 +333,7 @@ Each phase gets its own branch from `develop` and its own PR, with before/after 
 | **P2 Shell and navigation** ✅ | `StackView` pages · command bar · account menu · Home with Continue and action cards · setup dialogs · InfoBar replaces `Notificator` · `_show*` flags removed · services as typed singletons · game flows moved into `ChessConnector` (`startLocalGame`, `switchUser`, Lichess game start/end) | Every action of today's menu and toolbar is reachable; no game-step sequences left in QML; no `setContextProperty` left; scenes `home` and `game` added. Done: branch `shellNavigation_291026`, after shots in [`design/after-p2/`](design/after-p2/); notes in `PROGRESS.md` (2026-10-29) |
 | **P3 Users and Lichess** ✅ (**BL-03**, **BL-08**) | Welcome · profile picker · Profile page (Lichess card, ratings, 401 Reconnect, OAuth Cancel) · two-player setup by profile id and Guest · statistics per opponent · `QSaveFile`, backups, export/import | Unit tests for `UserManager` export/import, backup rotation and corrupt-file recovery (`ChessQtTests`). Done: branch `usersLichess_291026`, after shots in [`design/after-p3/`](design/after-p3/); notes in `PROGRESS.md` (2026-10-29) |
 | **P4 Game chrome** ✅ | Player cards · captured strip with +N · responsive side panel or bottom sheet · single result card · new move list (click, keys, Copy/Export PGN) | Unit tests for material balance and PGN; screenshots portrait, landscape, review, result. Done: branch `gameChrome_291026`, after shots (dark) in [`design/after-p4/`](design/after-p4/); notes in `PROGRESS.md` (2026-10-29) |
-| **P5 Settings and About** | Settings page groups (§4.3) · About and licences · shortcut list | Every old setting has migrated (`config.json`, QML `Settings`) |
+| **P5 Settings and About** ✅ | Settings page groups (§4.3) · About and licences · shortcut list | Every old setting has migrated (`config.json`, QML `Settings`). Done: branch `settingsAbout_291026`, after shots in [`design/after-p5/`](design/after-p5/); notes in `PROGRESS.md` (2026-10-29) |
 | **P6 Polish** | Keyboard and accessibility pass · high contrast · motion tokens · app icon and installer visuals · screenshot baselines for all scenes (with BL-05) | Checklist §7 all ticked |
 
 **Ordering:** P1 comes first because everything builds on it. P2 comes before P3 and P4, which can

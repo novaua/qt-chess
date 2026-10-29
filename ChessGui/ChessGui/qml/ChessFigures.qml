@@ -3,7 +3,7 @@ import ChessPlusPlus
 
 Grid{
 
-    width: parent.height<parent.width?0.95*parent.height:.95*parent.width
+    width: Theme.boardSquares * Math.min(parent.width, parent.height)
     height:width
     rows:8
     columns: 8
@@ -43,6 +43,7 @@ Grid{
             }
 
             Behavior on rotation {
+                enabled: !Theme.reduceMotion
                 NumberAnimation {
                     id: chessPiecesRotation
                     easing {
@@ -92,7 +93,7 @@ Grid{
                 from: 0;
                 to: 1.0;
                 duration: 450;
-                running: true;
+                running: !Theme.reduceMotion;
                 loops: 1;
             }
 

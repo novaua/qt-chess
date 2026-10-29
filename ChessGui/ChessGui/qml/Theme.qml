@@ -4,11 +4,14 @@ import QtQuick
 // Colours, type, spacing and motion that the FluentWinUI3 style doesn't cover.
 // Spec: docs/design/ThemeTokens.md. No other QML file hard-codes a colour.
 QtObject {
-    // 0 System, 1 Light, 2 Dark (persisted as appSettings.theme). Forcing a scheme also
-    // restyles the Fluent controls.
-    property int scheme: 0
-    onSchemeChanged: Application.styleHints.colorScheme =
-        [Qt.ColorScheme.Unknown, Qt.ColorScheme.Light, Qt.ColorScheme.Dark][scheme] ?? Qt.ColorScheme.Unknown
+    // 0 System, 1 Light, 2 Dark (AppSettings.theme). Forcing a scheme also restyles the Fluent controls.
+    readonly property int scheme: AppSettings.theme
+    onSchemeChanged: _applyScheme()
+    Component.onCompleted: _applyScheme()   // the saved scheme: no change signal for a first value
+    function _applyScheme() {
+        Application.styleHints.colorScheme =
+            [Qt.ColorScheme.Unknown, Qt.ColorScheme.Light, Qt.ColorScheme.Dark][scheme] ?? Qt.ColorScheme.Unknown
+    }
     // -platform offscreen can't set the colour scheme and Fluent then draws its dark palette:
     // match it (screenshots on a locked screen, see the run-chess-app skill).
     readonly property bool _offscreen: Qt.platform.pluginName === "offscreen"
@@ -77,7 +80,12 @@ QtObject {
     readonly property int sidePanelWidth:   280   // move list beside the board (wide windows)
     readonly property int sheetHandleHeight: 44   // the collapsed move sheet (narrow windows)
 
+    // The squares' share of the board item; the rest is the edge for the coordinates outside.
+    readonly property real boardSquares: AppSettings.coordinatesInside ? 1.0 : 0.95
+
     // ── Motion ──
+    // Settings → Reduce animations: the board turns at once, pieces don't fade in, nothing pulses.
+    readonly property bool reduceMotion: AppSettings.reduceMotion
     readonly property int fast:   83
     readonly property int normal: 167
     readonly property int slow:   250

@@ -5,6 +5,7 @@
 #include <QQmlApplicationEngine>
 #include <QtQml/qqml.h>
 #include "chessconnector.h"
+#include "AppInfo.h"
 #include "AvatarProvider.h"
 #include "UserManager.h"
 #include "LichessClient.h"
@@ -39,11 +40,20 @@ void customLogMessageHandler(QtMsgType type, const QMessageLogContext&, const QS
 	OutputDebugStringW(reinterpret_cast<const WCHAR*>((msg + u'\n').utf16()));
 }
 
-// Screenshot scenes with several profiles, a linked Lichess account and statistics. No network:
+// Screenshot scenes with several profiles, a linked Lichess account, statistics or backups. No network:
 // the token is a placeholder and the account isn't refreshed in screenshot mode.
 static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 {
 	const QString scene = sceneMap.value("scene").toString();
+	if (scene == "restore") { // two backups: the profiles before Alice, and now (the same as users.json)
+		um->createUser("Bob", "fox");
+		um->createUser("Tester", "wizard");
+		um->backupNow();
+		um->createUser("Alice", "girl");
+		um->login(um->users().first().toMap().value("id").toString());
+		um->backupNow();
+		return;
+	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
@@ -113,7 +123,7 @@ int main(int argc, char* argv[])
 	// light/dark colour scheme, so the Fluent controls would get the wrong palette.
 	// "login", "menu" and "board" are the older names of "profiles", "home" and "game".
 	static const QStringList screenshotScenes = {
-		"welcome", "create-user", "profiles", "home", "continue", "game", "settings", "levels",
+		"welcome", "create-user", "profiles", "home", "continue", "game", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online",
 		"computer", "players", "review", "result", "ended", "moves", "login", "menu", "board"
 	};
@@ -164,7 +174,7 @@ int main(int argc, char* argv[])
 	}
 
 	const QString logPath = screenshotMode ? screenshotPath + ".log"
-		: AppConfig::appDataDir() + "/logs/ChessPlusPlus_AppDebug.log";
+		: AppInfo::logFolderPath() + "/ChessPlusPlus_AppDebug.log";
 	QDir().mkpath(QFileInfo(logPath).absolutePath());
 	g_logFile = new QFile(logPath);
 	const auto logMode = screenshotMode ? QIODevice::Truncate : QIODevice::Append;
@@ -179,6 +189,7 @@ int main(int argc, char* argv[])
 	auto* avatarProvider = new AvatarProvider(&app);
 	auto* userManager = new UserManager(&app);
 	auto* lichessClient = new LichessClient(&app);
+	auto* appInfo = new AppInfo(&app);
 
 	QQmlApplicationEngine engine;
 
@@ -248,6 +259,7 @@ int main(int argc, char* argv[])
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "AvatarProvider", avatarProvider);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "UserManager", userManager);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "LichessClient", lichessClient);
+	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "AppInfo", appInfo);
 
 	engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
 	if (screenshotMode && engine.rootObjects().isEmpty())

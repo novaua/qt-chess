@@ -58,6 +58,8 @@ protected:
 
 public:
 	UciConnector();
+	// stockfish.exe paths Init() tries, in order (empty: no engine installed).
+	static std::vector<std::string> EngineCandidates();
 	void Init();
 	bool IsInitialized();
 	bool IsRunning() const; // false once the engine process has exited; Init() starts a fresh one

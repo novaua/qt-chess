@@ -8,6 +8,7 @@ Rectangle{
     color: Theme.squareDark
 
     Behavior on opacity  {
+        enabled: !Theme.reduceMotion
         NumberAnimation {
             easing {
                 type: Easing.InCirc

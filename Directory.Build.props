@@ -13,6 +13,10 @@
     <AppVersionPatch>$(AppVersionCore.Split('.')[2])</AppVersionPatch>
   </PropertyGroup>
   <ItemDefinitionGroup>
+    <!-- The same numbers for the code (Settings → About, AppInfo.cpp) -->
+    <ClCompile>
+      <PreprocessorDefinitions>APP_VERSION_MAJOR=$(AppVersionMajor);APP_VERSION_MINOR=$(AppVersionMinor);APP_VERSION_PATCH=$(AppVersionPatch);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>APP_VERSION_MAJOR=$(AppVersionMajor);APP_VERSION_MINOR=$(AppVersionMinor);APP_VERSION_PATCH=$(AppVersionPatch);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

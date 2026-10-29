@@ -63,6 +63,19 @@ UciConnector::UciConnector() : _initOk(false)
 	_uciEngine->setReadChannel(QProcess::StandardOutput);
 }
 
+// The engine installed next to the app (./engines/) first, then one on the system PATH.
+std::vector<std::string> UciConnector::EngineCandidates()
+{
+	const QString enginesDir = QCoreApplication::applicationDirPath() + "/engines";
+	std::vector<std::string> paths;
+	for (const QString& path : { QStandardPaths::findExecutable(UciEngineProgrammExe, { enginesDir }),
+	                             QStandardPaths::findExecutable(UciEngineProgrammExe) }) {
+		if (!path.isEmpty() && std::find(paths.begin(), paths.end(), path.toStdString()) == paths.end())
+			paths.push_back(path.toStdString());
+	}
+	return paths;
+}
+
 void UciConnector::Init()
 {
 	// Init() is also the restart path after the engine exited (Stockfish 18+ quits on
@@ -74,26 +87,15 @@ void UciConnector::Init()
 	_opt.clear();
 	_initOk = false;
 
-	// Prefer the engine installed next to the app (./engines/), then fall back
-	// to one on the system PATH. A candidate that is found but fails to start
-	// (e.g. a corrupt download) also falls through to the next one.
-	const QString enginesDir = QCoreApplication::applicationDirPath() + "/engines";
-	const QString candidates[] = {
-		QStandardPaths::findExecutable(UciEngineProgrammExe, { enginesDir }),
-		QStandardPaths::findExecutable(UciEngineProgrammExe),
-	};
-
-	bool found = false;
+	// A candidate that is found but fails to start (e.g. a corrupt download) falls through to the next one.
+	const std::vector<std::string> candidates = EngineCandidates();
+	const bool found = !candidates.empty();
 	bool started = false;
-	for (const QString& sfPath : candidates) {
-		if (sfPath.isEmpty())
-			continue;
-		found = true;
-
-		_uciEngine->start(sfPath, QStringList());
+	for (const std::string& sfPath : candidates) {
+		_uciEngine->start(QString::fromStdString(sfPath), QStringList());
 		if (_uciEngine->waitForStarted(5000)) {
 			started = true;
-			_enginePath = sfPath.toStdString();
+			_enginePath = sfPath;
 			Trace("-- engine started: " + _enginePath);
 			break;
 		}

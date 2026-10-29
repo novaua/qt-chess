@@ -10,6 +10,7 @@ Rectangle {
 
     Behavior on rotation {
         id:chessBoardBehavior
+        enabled: !Theme.reduceMotion
         NumberAnimation {
             id: chessBoardRotation
             easing {
@@ -33,6 +34,7 @@ Rectangle {
 
     MarkerColumn {
         id:markerColumnLeft
+        visible: !AppSettings.coordinatesInside
         anchors.top: chessBoxes.top
         anchors.topMargin: 0
         anchors.right: chessBoxes.left
@@ -41,6 +43,7 @@ Rectangle {
 
     MarkerColumn {
         id:markerColumnRight
+        visible: !AppSettings.coordinatesInside
         anchors.top: chessBoxes.top
         anchors.topMargin: 0
         anchors.left: chessBoxes.right
@@ -49,6 +52,7 @@ Rectangle {
 
     MarkerRow {
         id:markerRowTop
+        visible: !AppSettings.coordinatesInside
         antialiasing: true
         anchors.bottom:  chessBoxes.top
         anchors.bottomMargin: 0
@@ -58,11 +62,72 @@ Rectangle {
 
     MarkerRow {
         id:markerRowBottom
+        visible: !AppSettings.coordinatesInside
         antialiasing: true
         anchors.top:  chessBoxes.bottom
         anchors.bottomMargin: 0
         anchors.left:  chessBoxes.left
         anchors.leftMargin: 0
+    }
+
+    // Coordinates on the squares (Settings → Board coordinates): the files along the bottom rank and
+    // the ranks along the left file, as the player sees the board. Laid out in the board's own
+    // coordinates (a1 bottom left), so when it is turned for Black they go to rank 8 and the h-file,
+    // and each label turns back upright.
+    Item {
+        id: insideCoordinates
+        anchors.fill: chessBoxes
+        visible: AppSettings.coordinatesInside
+        readonly property bool turned: (chessBoard.angle % 360) !== 0
+        readonly property real square: width / 8
+
+        component Coordinate: Item {
+            id: coordinate
+            property int rank    // 0 = rank 1
+            property int file    // 0 = a-file
+            property alias text: label.text
+            property bool alignRight   // seen from the player: bottom right (files) or top left (ranks)
+            x: file * insideCoordinates.square
+            y: (7 - rank) * insideCoordinates.square
+            width: insideCoordinates.square
+            height: width
+            rotation: insideCoordinates.turned ? 180 : 0
+            Text {
+                id: label
+                anchors {
+                    margins: coordinate.width * 0.05
+                    right: coordinate.alignRight ? parent.right : undefined
+                    bottom: coordinate.alignRight ? parent.bottom : undefined
+                    left: coordinate.alignRight ? undefined : parent.left
+                    top: coordinate.alignRight ? undefined : parent.top
+                }
+                font.pixelSize: Math.max(8, coordinate.width * 0.2)
+                font.weight: Font.DemiBold
+                // The colour of the other squares: a1 (rank + file even) is dark.
+                color: (coordinate.rank + coordinate.file) % 2 === 0 ? Theme.squareLight : Theme.squareDark
+            }
+        }
+
+        Repeater {
+            model: 8
+            Coordinate {
+                required property int index
+                rank: insideCoordinates.turned ? 7 : 0
+                file: index
+                text: "abcdefgh"[index]
+                alignRight: true
+            }
+        }
+        Repeater {
+            model: 8
+            Coordinate {
+                required property int index
+                rank: index
+                file: insideCoordinates.turned ? 7 : 0
+                text: index + 1
+                alignRight: false
+            }
+        }
     }
 
     // Messages (check, saved, …) are InfoBars in ChessGame.qml, not overlays on the board.
