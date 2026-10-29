@@ -13,7 +13,8 @@
   - [ ] P3 Users and Lichess: welcome, profile picker, Profile page (ratings, Reconnect, OAuth Cancel: closes BL-08), Guest, statistics, `QSaveFile`, backups, export/import
   - [x] P4 Game chrome (`gameChrome_291026`): player cards, captured strip with +N (`MaterialBalance`), side panel or bottom sheet, one result card (Rematch / New game / Review moves), move list (click a move, piece images, `reviewTo`), Copy / Export PGN; `Game::FormatHistorySan` (real mate detection), `FormatPgn`, `MaterialBalance` in ChessCore with 13 tests; `-Offscreen` screenshots for a locked screen
     - [x] Light-mode after shots in a real window (`docs/design/after-p4/`: light and dark)
-    - [ ] Manual check: Export PGN… save dialog and the file, Copy PGN, Esc closes the move sheet, Review moves / New game on the result card (vs Robot, two players)
+    - [x] Manual check: Copy PGN, Export PGN… (dialog and file), PGN date of a continued game (#83)
+    - [ ] Manual check: Esc closes the move sheet, Review moves / New game on the result card (vs Robot, two players)
   - [ ] P5 Settings and About pages
   - [ ] P6 Polish: keyboard and accessibility, high contrast, motion, app icon, screenshot baselines (with BL-05)
 
