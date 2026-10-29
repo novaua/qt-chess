@@ -62,13 +62,7 @@ ChessConnector::ChessConnector(QObject* parent)
 				const bool whiteMated = _game->IsWhiteMove(); // the side to move is mated
 				_gameOver = true;
 				flagKing(whiteMated);
-				// Once per game: undo after mate resumes the game, and a second mate must
-				// not count again.
-				if (_userManager && !_resultRecorded) {
-					_resultRecorded = true;
-					bool humanWon = whiteMated != _config.playerPlaysWhite;
-					_userManager->recordResult(humanWon, _engineWorker != nullptr);
-				}
+				recordResult(whiteMated ? -1 : 1);
 				setResult(whiteMated ? MateResultBlack : MateResultWhite,
 					sideName(!whiteMated) + QStringLiteral(" wins by checkmate"));
 				emit checkMateResult(whiteMated ? QStringLiteral("Black Won") : QStringLiteral("White Won"));
@@ -371,11 +365,34 @@ void ChessConnector::setOpponentGone(bool gone, int claimWinInSeconds)
 	emit opponentGoneChanged();
 }
 
-void ChessConnector::setGameMode(const QString& mode, const QString& opponentName)
+void ChessConnector::setGameMode(const QString& mode, const QString& opponentName, const QString& opponentUserId)
 {
 	_gameMode = mode;
 	_opponentName = opponentName;
+	_opponentUserId = opponentUserId;
 	emit gameInfoChanged(); // also when only the opponent changed: the title shows it
+}
+
+// Statistics of every profile that played: vs Robot by level, two players by opponent (both
+// profiles get the game; a Guest only counts for the profile), Lichess. Once per game: undo after
+// mate resumes the game, and a second mate must not count again.
+void ChessConnector::recordResult(int whiteScore)
+{
+	if (!_userManager || _resultRecorded || _gameMode == QLatin1String("replay") || _gameMode.isEmpty())
+		return;
+	_resultRecorded = true;
+	const QString me = _userManager->activeUserId();
+	const int myScore = _config.playerPlaysWhite ? whiteScore : -whiteScore;
+	if (_gameMode == QLatin1String("computer")) {
+		_userManager->recordResult(me, myScore, UserManager::computerKey(_config.lastLevel), QStringLiteral("Robot"));
+	} else if (_gameMode == QLatin1String("online")) {
+		_userManager->recordResult(me, myScore, QStringLiteral("lichess"), QStringLiteral("Lichess"));
+	} else if (_opponentUserId.isEmpty()) {
+		_userManager->recordResult(me, myScore, QStringLiteral("guest"), QStringLiteral("Guest"));
+	} else {
+		_userManager->recordResult(me, myScore, UserManager::userKey(_opponentUserId), _opponentName);
+		_userManager->recordResult(_opponentUserId, -myScore, UserManager::userKey(me), playerName());
+	}
 }
 
 QString ChessConnector::playerName() const
@@ -416,7 +433,7 @@ QString ChessConnector::continueDescription() const
 		return {};
 	const auto info = _userManager->autoSaveInfo();
 	if (info.isSinglePlayer)
-		return vsRobotTitle(_config.lastLevel);
+		return vsRobotTitle(info.computerLevel > 0 ? info.computerLevel : _config.lastLevel);
 	return QStringLiteral("vs ") + (info.opponentName.isEmpty() ? QStringLiteral("Guest") : info.opponentName);
 }
 
@@ -613,6 +630,8 @@ void ChessConnector::onLichessGameEnded(const QString& status, const QString& wi
 	const QString result = status == QLatin1String("aborted") ? QStringLiteral("*")
 		: hasWinner ? (whiteWon ? QStringLiteral("1-0") : QStringLiteral("0-1"))
 		: QStringLiteral("1/2-1/2");
+	if (status != QLatin1String("aborted"))
+		recordResult(hasWinner ? (whiteWon ? 1 : -1) : 0);
 	setResult(result, text);
 }
 
@@ -640,6 +659,7 @@ void ChessConnector::resignGame()
 	const bool whiteResigns = _wasVsComputer ? _config.playerPlaysWhite : IsWhiteMove() == 1;
 	_gameOver = true;
 	flagKing(whiteResigns);
+	recordResult(whiteResigns ? -1 : 1);
 	setResult(whiteResigns ? QStringLiteral("0-1 Black won by resignation") : QStringLiteral("1-0 White won by resignation"),
 		sideName(whiteResigns) + QStringLiteral(" resigned"));
 	emit checkMateResult(whiteResigns ? QStringLiteral("Black Won") : QStringLiteral("White Won"));
@@ -747,12 +767,14 @@ void ChessConnector::startLocalGame(bool playerPlaysWhite, const QString& oppone
 {
 	QString name = QStringLiteral("Guest");
 	QString avatar;
+	QString opponentId;
 	if (_userManager) {
 		for (const auto& u : _userManager->users()) {
 			const auto user = u.toMap();
 			if (!opponentUserId.isEmpty() && user.value(QStringLiteral("id")).toString() == opponentUserId) {
-				name   = user.value(QStringLiteral("name")).toString();
-				avatar = user.value(QStringLiteral("avatarName")).toString();
+				name       = user.value(QStringLiteral("name")).toString();
+				avatar     = user.value(QStringLiteral("avatarName")).toString();
+				opponentId = opponentUserId;
 			}
 		}
 	}
@@ -762,7 +784,7 @@ void ChessConnector::startLocalGame(bool playerPlaysWhite, const QString& oppone
 		if (avatar.isEmpty()) _avatarProvider->randomize(false); // a Guest gets a random avatar
 		else                  _avatarProvider->setOpponentFromUser(avatar);
 	}
-	setGameMode(QStringLiteral("local"), name);
+	setGameMode(QStringLiteral("local"), name, opponentId);
 }
 
 void ChessConnector::startNewGame()
@@ -978,7 +1000,9 @@ void ChessConnector::saveGame()
 		info.isSinglePlayer = _engineWorker != nullptr;
 		info.playerPlaysWhite = _config.playerPlaysWhite;
 		info.opponentName = _opponentName;
+		info.opponentUserId = _opponentUserId;
 		info.startDate = _gameDate;
+		info.computerLevel = info.isSinglePlayer ? _config.lastLevel : 0;
 		if (_avatarProvider) {
 			info.playerAvatarName = _avatarProvider->playerRawName();
 			info.opponentAvatarName = _avatarProvider->opponentRawName();
@@ -1171,34 +1195,6 @@ void ChessConnector::reviewTo(int ply) {
 	emit reviewStateChanged();
 }
 
-void ChessConnector::loginWithLichess()
-{
-	if (_lichessAuth) return; // already in progress
-
-	_lichessAuth = new LichessAuth(this);
-
-	connect(_lichessAuth, &LichessAuth::loginSucceeded,
-		this, [this](const QString& token, const QString& username) {
-		if (_userManager)
-			_userManager->saveLichessCredentials(token, username);
-		if (_lichessClient)
-			_lichessClient->setToken(token);
-		emit lichessLoginResult(true, username);
-		_lichessAuth->deleteLater();
-		_lichessAuth = nullptr;
-	});
-
-	connect(_lichessAuth, &LichessAuth::loginFailed,
-		this, [this](const QString& error) {
-		qDebug() << "[LichessAuth] login failed:" << error;
-		emit lichessLoginResult(false, QString());
-		_lichessAuth->deleteLater();
-		_lichessAuth = nullptr;
-	});
-
-	_lichessAuth->startLogin();
-}
-
 int ChessConnector::IsOnPlayerMode()
 {
 	return _player ? 1 : 0;
@@ -1265,6 +1261,12 @@ bool ChessConnector::continueGame()
 	_wasVsComputer = isSingle;
 	beginGame(false);
 	_gameDate = info.startDate; // maybe an earlier day; invalid in older autosaves
+	_resultRecorded = info.resultRecorded; // mated, undone and left: the mate counted already
+	// The robot plays the game's own level; lastLevel may have changed since (another profile).
+	if (isSingle && info.computerLevel > 0 && info.computerLevel != _config.lastLevel) {
+		_config.lastLevel = info.computerLevel;
+		emit lastLevelChanged();
+	}
 
 	_config.playerPlaysWhite = info.playerPlaysWhite;
 	emit playerPlaysWhiteChanged();
@@ -1292,7 +1294,9 @@ bool ChessConnector::continueGame()
 			emit requestEngineMove();
 		}
 	}
-	setGameMode(isSingle ? QStringLiteral("computer") : QStringLiteral("local"), opponentNameOf(info));
+	// A deleted opponent profile: the game goes on, counted as against a Guest.
+	const QString opponentId = !isSingle && _userManager && !_userManager->nameOf(info.opponentUserId).isEmpty() ? info.opponentUserId : QString();
+	setGameMode(isSingle ? QStringLiteral("computer") : QStringLiteral("local"), opponentNameOf(info), opponentId);
 	return isSingle;
 }
 
@@ -1314,6 +1318,9 @@ void ChessConnector::autoSaveGame(bool isSinglePlayer)
 		info.isSinglePlayer = isSinglePlayer;
 		info.playerPlaysWhite = _config.playerPlaysWhite;
 		info.opponentName = _opponentName;
+		info.opponentUserId = _opponentUserId;
+		info.computerLevel = isSinglePlayer ? _config.lastLevel : 0;
+		info.resultRecorded = _resultRecorded;
 		info.startDate = _gameDate;
 		if (_avatarProvider) {
 			info.playerAvatarName = _avatarProvider->playerRawName();

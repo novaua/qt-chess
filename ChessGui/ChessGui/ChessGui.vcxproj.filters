@@ -167,7 +167,22 @@
     <None Include="qml\CreateUserDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
-    <None Include="qml\UserLoginScreen.qml">
+    <None Include="qml\WelcomePage.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ProfilePickerPage.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ProfilePage.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\AvatarPicker.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\SectionCard.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ImportConflictDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\LichessGameDialog.qml">

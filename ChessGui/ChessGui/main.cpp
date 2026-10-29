@@ -39,6 +39,48 @@ void customLogMessageHandler(QtMsgType type, const QMessageLogContext&, const QS
 	OutputDebugStringW(reinterpret_cast<const WCHAR*>((msg + u'\n').utf16()));
 }
 
+// Screenshot scenes with several profiles, a linked Lichess account and statistics. No network:
+// the token is a placeholder and the account isn't refreshed in screenshot mode.
+static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
+{
+	const QString scene = sceneMap.value("scene").toString();
+	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import" }.contains(scene))
+		return;
+	um->createUser("Bob", "fox");
+	const QString bob = um->activeUserId();
+	um->createUser("Alice", "girl");
+	const QString alice = um->activeUserId();
+	um->createUser("Tester", "wizard");
+	const QString me = um->activeUserId();
+	if (scene != "profile-local") {
+		um->saveLichessCredentials("screenshot-token", "TesterChess");
+		um->setLichessAccount("TesterChess", {
+			{ "blitz",     QVariantMap{ { "rating", 1612 }, { "games", 214 }, { "prov", false } } },
+			{ "rapid",     QVariantMap{ { "rating", 1688 }, { "games", 57 },  { "prov", false } } },
+			{ "classical", QVariantMap{ { "rating", 1500 }, { "games", 3 },   { "prov", true } } },
+		});
+		if (scene == "profile-expired")
+			um->setLichessExpired();
+	}
+	const struct { QString key; QString name; int outcome; } games[] = {
+		{ UserManager::computerKey(1), "Robot", 1 }, { UserManager::computerKey(1), "Robot", 1 },
+		{ UserManager::computerKey(3), "Robot", 1 }, { UserManager::computerKey(3), "Robot", -1 },
+		{ UserManager::computerKey(3), "Robot", 0 }, { UserManager::computerKey(5), "Robot", -1 },
+		{ UserManager::userKey(bob), "Bob", 1 },     { UserManager::userKey(bob), "Bob", -1 },
+		{ "guest", "Guest", 1 },                     { "lichess", "Lichess", -1 },
+	};
+	for (const auto& g : games)
+		um->recordResult(me, g.outcome, g.key, g.name);
+	um->recordResult(bob, 1, UserManager::userKey(alice), "Alice"); // Bob: last played today
+	if (scene == "profiles" || scene == "login" || scene == "import")
+		um->logout();
+	if (scene == "import") {
+		const QString file = AppConfig::appDataDir() + "/Bob.chessprofile";
+		um->exportProfile(bob, QUrl::fromLocalFile(file));
+		sceneMap["importFile"] = QUrl::fromLocalFile(file);
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	// Windows 11 look; follows the system light/dark theme and accent colour (Theme.qml can force one).
@@ -69,10 +111,11 @@ int main(int argc, char* argv[])
 	// It runs on a fresh temporary profile unless --data-dir is given. The window is real but
 	// transparent and ignores input (ChessGame.qml). Not -platform offscreen: it can't force the
 	// light/dark colour scheme, so the Fluent controls would get the wrong palette.
-	// "menu" and "board" are the older names of "home" and "game".
+	// "login", "menu" and "board" are the older names of "profiles", "home" and "game".
 	static const QStringList screenshotScenes = {
-		"create-user", "login", "home", "continue", "game", "settings", "levels", "profile", "online",
-		"computer", "players", "review", "result", "ended", "moves", "menu", "board"
+		"welcome", "create-user", "profiles", "home", "continue", "game", "settings", "levels",
+		"profile", "profile-local", "profile-expired", "import", "online",
+		"computer", "players", "review", "result", "ended", "moves", "login", "menu", "board"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -155,6 +198,7 @@ int main(int argc, char* argv[])
 			sceneMap["width"]  = size[0].toInt();
 			sceneMap["height"] = size[1].toInt();
 		}
+		seedScreenshotProfiles(userManager, sceneMap);
 		connector->setScreenshotScene(sceneMap);
 
 		const int delay = qMax(0, parser.value(delayOption).toInt());
@@ -174,9 +218,18 @@ int main(int argc, char* argv[])
 		});
 	}
 
+	// The active profile's Lichess token goes to the client (none while it is expired). A new token:
+	// fetch the account for the ratings; a 401 on any call marks the link expired.
+	auto lastToken = std::make_shared<QString>();
 	auto updateLichessToken = [=]() {
-		lichessClient->setToken(LichessClient::decryptToken(userManager->lichessTokenEncrypted()));
+		const QString token = userManager->lichessConnected()
+			? LichessClient::decryptToken(userManager->lichessTokenEncrypted()) : QString();
 		lichessClient->setUsername(userManager->lichessUsername());
+		if (token == *lastToken) return;
+		*lastToken = token;
+		lichessClient->setToken(token);
+		if (!token.isEmpty() && !screenshotMode)
+			lichessClient->refreshAccount();
 	};
 	QObject::connect(userManager, &UserManager::activeUserChanged, [=]() {
 		avatarProvider->setPlayerFromUser(userManager->activeUserAvatar());
@@ -184,6 +237,11 @@ int main(int argc, char* argv[])
 		});
 	QObject::connect(userManager, &UserManager::lichessChanged, updateLichessToken);
 	updateLichessToken(); // load() sets the active user silently — seed the token now
+	QObject::connect(lichessClient, &LichessClient::accountFetched, userManager, &UserManager::setLichessAccount);
+	QObject::connect(lichessClient, &LichessClient::authExpired, userManager, &UserManager::setLichessExpired);
+	QObject::connect(lichessClient, &LichessClient::gameEnded, lichessClient, [=]() {
+		QTimer::singleShot(3000, lichessClient, &LichessClient::refreshAccount); // the new rating
+	});
 
 	// QML: `import ChessPlusPlus`, then e.g. ChessConnector.startLocalGame(…), UserManager.login(…).
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "ChessConnector", connector);

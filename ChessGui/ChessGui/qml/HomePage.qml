@@ -50,6 +50,14 @@ Page {
                     font: Theme.bodyStrong
                     anchors.verticalCenter: parent.verticalCenter
                 }
+                Label {   // the Lichess blitz rating, once linked
+                    visible: text !== ""
+                    text: UserManager.lichessConnected && UserManager.lichessRatings.blitz
+                          ? "Lichess " + UserManager.lichessRatings.blitz.rating : ""
+                    font: Theme.caption
+                    color: Theme.textSecondary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
             ToolTip.visible: hovered
             ToolTip.text: "Profile and switch user"
@@ -140,7 +148,8 @@ Page {
                 HomeCard {
                     text: "Play online"
                     description: UserManager.lichessConnected ? "Challenge a friend on Lichess"
-                                                              : "Link your Lichess account in your profile first"
+                               : UserManager.lichessNeedsReconnect ? "Lichess sign-in expired: reconnect in your profile"
+                               : "Link your Lichess account in your profile first"
                     dimmed: !UserManager.lichessConnected
                     icon.source: Theme.icon("globe")
                     Layout.fillWidth: true; Layout.fillHeight: true; Layout.preferredWidth: 1

@@ -5,9 +5,10 @@ import QtMultimedia
 import QtQuick.Dialogs
 import ChessPlusPlus
 
-// The window: one page at a time in a StackView (the profile list, Home or the game), the
-// InfoBars under the command bar, and every dialog. UserManager.isLoggedIn and
-// ChessConnector.InGame decide the page (route()); pages ask for dialogs through signals.
+// The window: one page at a time in a StackView (Welcome, the profile list, Home or the game, with
+// the Profile page pushed over Home or the game), the InfoBars under the command bar, and every
+// dialog. UserManager and ChessConnector.InGame decide the page (route()); pages ask for dialogs
+// through signals.
 ApplicationWindow {
     id: root
 
@@ -20,13 +21,17 @@ ApplicationWindow {
     readonly property bool   _inGame:   ChessConnector.InGame
     readonly property string _mode:     ChessConnector.GameMode
     readonly property bool   _gameOver: ChessConnector.GameResult !== ""
+    // The page on top: "welcome", "login", "home", "game" or "profile".
+    readonly property string _page: stack.currentItem ? stack.currentItem.objectName : ""
+    readonly property bool   _onGamePage: _page === "game"
 
     // A dialog is open: the window's shortcuts wait (Esc then closes the dialog).
     readonly property bool _dialogOpen: settingsDialog.visible || levelsHelp.visible
         || computerDialog.visible || twoPlayerDialog.visible || onlineDialog.visible
-        || challengeDialog.visible || profileDialog.visible || createUserDialog.visible
+        || challengeDialog.visible || createUserDialog.visible
         || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible
-        || pgnExportDialog.visible
+        || pgnExportDialog.visible || profileExportDialog.visible || profileImportDialog.visible
+        || importConflictDialog.visible || deleteProfileConfirm.visible || disconnectLichessConfirm.visible
 
     // Green (weakest) → red (strongest), spread over however many levels there are.
     function levelColor(level) {
@@ -35,17 +40,62 @@ ApplicationWindow {
         return Qt.hsla((1 - t) * 0.36, 0.65, 0.45, 1)
     }
 
+    // The page under everything follows the state; the Profile page stays on top of it until the
+    // base page changes (e.g. its profile was deleted).
     function route() {
-        var page = !UserManager.isLoggedIn ? "login" : ChessConnector.InGame ? "game" : "home"
-        if (stack.currentItem && stack.currentItem.objectName === page)
+        var page = UserManager.isLoggedIn ? (ChessConnector.InGame ? "game" : "home")
+                 : UserManager.hasUsers ? "login" : "welcome"
+        var base = stack.depth > 0 ? stack.get(0, StackView.DontLoad) : null
+        if (base && base.objectName === page)
             return
-        var component = ({ login: loginPage, home: homePage, game: gamePage })[page]
+        var component = ({ welcome: welcomePage, login: loginPage, home: homePage, game: gamePage })[page]
         if (stack.depth === 0) stack.push(component)
         else                   stack.replace(null, component)
-        if (page === "login" && !UserManager.hasUsers)
-            createUserDialog.open()   // first run
-        else if (page !== "login")
+        if (page !== "welcome" && page !== "login")
             createUserDialog.close()  // e.g. logged in by a script (--screenshot)
+    }
+
+    function openProfile() {
+        if (_page !== "profile")
+            stack.push(profilePage)
+    }
+    function closeProfile() {
+        if (_page === "profile")
+            stack.pop()
+    }
+
+    // ── Profiles: export, import, delete (the dialogs are below) ──
+    function exportProfile(userId) {
+        profileExportDialog.userId = userId
+        // Encoded: a '#' or '%' in a name is not URL syntax.
+        profileExportDialog.selectedFile = profileExportDialog.currentFolder + "/"
+                                         + encodeURIComponent(UserManager.exportFileName(userId))
+        profileExportDialog.open()
+    }
+    function inspectImport(file) {
+        var info = UserManager.inspectImport(file)
+        if (info.error !== "") {
+            messageBar.show(info.error, "critical")
+        } else if (info.conflictId !== "") {
+            importConflictDialog.file = file
+            importConflictDialog.importName = info.name
+            importConflictDialog.existingName = info.conflictName
+            importConflictDialog.open()
+        } else {
+            importProfile(file, false)
+        }
+    }
+    function importProfile(file, replace) {
+        var error = UserManager.importProfile(file, replace)
+        if (error !== "") messageBar.show(error, "critical")
+        else              messageBar.show("Profile imported", "success")
+    }
+    function deleteProfile(userId) {
+        var user = UserManager.users.find(u => u.id === userId)
+        if (!user) return
+        deleteProfileConfirm.userId = userId
+        deleteProfileConfirm.title = "Delete " + user.name + "'s profile?"
+        deleteProfileConfirm.open()
     }
 
     // Home button / Escape. A rematch challenge still waiting for the opponent is withdrawn.
@@ -69,7 +119,7 @@ ApplicationWindow {
 
     function playOnline() {
         if (!UserManager.lichessConnected) {
-            profileDialog.open()   // link the Lichess account there
+            openProfile()   // link or reconnect the Lichess account there
         } else if (UserManager.hasPendingChallenge) {
             _pendingChallengeId  = UserManager.pendingChallengeId
             _pendingChallengeUrl = UserManager.pendingChallengeUrl
@@ -122,15 +172,15 @@ ApplicationWindow {
         if (_shot.width)  root.width  = _shot.width
         if (_shot.height) root.height = _shot.height
         appSettings.theme = _shot.dark ? 2 : 1   // not "system": stable screenshots
-        var scene = ({ menu: "home", board: "game" })[_shot.scene] ?? _shot.scene
+        var scene = ({ menu: "home", board: "game", login: "profiles" })[_shot.scene] ?? _shot.scene
 
-        if (scene === "create-user" || scene === "login") {
-            if (scene === "login" && !UserManager.hasUsers)
-                UserManager.createUser("Tester", "wizard")
-            UserManager.logout()
-            if (scene === "create-user" && !createUserDialog.visible)
-                createUserDialog.open()
-        } else if (!UserManager.isLoggedIn) {
+        // welcome and create-user: first run. profiles and import: profiles made by main.cpp, nobody
+        // logged in. The profile scenes: main.cpp's profiles, logged in as Tester.
+        if (scene === "create-user") {
+            createUserDialog.open()
+        } else if (scene === "import") {
+            inspectImport(_shot.importFile)   // Bob again: the conflict dialog
+        } else if (scene !== "welcome" && scene !== "profiles" && !UserManager.isLoggedIn) {
             if (UserManager.hasUsers) UserManager.login(UserManager.users[0].id)
             else                      UserManager.createUser("Tester", "wizard")
         }
@@ -144,7 +194,7 @@ ApplicationWindow {
 
         if (scene === "settings") settingsDialog.open()
         if (scene === "levels")   levelsHelp.open()
-        if (scene === "profile")  profileDialog.open()
+        if (scene.startsWith("profile") && scene !== "profiles") openProfile()
         if (scene === "online")   onlineDialog.open()
         if (scene === "computer") computerDialog.openNew()
         if (scene === "players")  twoPlayerDialog.open()
@@ -233,9 +283,30 @@ ApplicationWindow {
     }
 
     Component {
+        id: welcomePage
+        WelcomePage {
+            onCreateProfileRequested: createUserDialog.open()
+            onImportRequested:        profileImportDialog.open()
+        }
+    }
+
+    Component {
         id: loginPage
-        UserLoginScreen {
-            onAddUserRequested: createUserDialog.open()
+        ProfilePickerPage {
+            onAddUserRequested:  createUserDialog.open()
+            onImportRequested:   profileImportDialog.open()
+            onExportRequested:   userId => root.exportProfile(userId)
+            onDeleteRequested:   userId => root.deleteProfile(userId)
+        }
+    }
+
+    Component {
+        id: profilePage
+        ProfilePage {
+            onBackRequested:     root.closeProfile()
+            onExportRequested:   userId => root.exportProfile(userId)
+            onDeleteRequested:   userId => root.deleteProfile(userId)
+            onDisconnectLichessRequested: disconnectLichessConfirm.open()
         }
     }
 
@@ -246,7 +317,7 @@ ApplicationWindow {
             onTwoPlayerGameRequested: twoPlayerDialog.open()
             onOnlineGameRequested:    root.playOnline()
             onSettingsRequested:      settingsDialog.open()
-            onProfileRequested:       profileDialog.open()
+            onProfileRequested:       root.openProfile()
             onSwitchUserRequested:    root.switchUser()
         }
     }
@@ -261,7 +332,7 @@ ApplicationWindow {
             onResignRequested:      resignConfirm.open()
             onLevelsHelpRequested:  levelsHelp.open()
             onSettingsRequested:    settingsDialog.open()
-            onProfileRequested:     profileDialog.open()
+            onProfileRequested:     root.openProfile()
             onSwitchUserRequested:  root.switchUser()
         }
     }
@@ -269,6 +340,7 @@ ApplicationWindow {
     Connections {
         target: UserManager
         function onActiveUserChanged() { root.route() }
+        function onUsersChanged()      { root.route() }   // the first profile imported, the last one deleted
     }
 
     // ── InfoBars: messages and Lichess offers, under the command bar ────────
@@ -285,6 +357,26 @@ ApplicationWindow {
             id: messageBar
             width: parent.width
             timeout: 4000
+        }
+
+        // users.json didn't parse at start: nothing was loaded, and nothing is lost yet.
+        InfoBar {
+            width: parent.width
+            visible: UserManager.dataDamaged
+            closable: false
+            severity: "critical"
+            text: UserManager.canRestoreBackup
+                  ? "Your profiles couldn't be read. Restore them from the latest backup?"
+                  : "Your profiles couldn't be read and there is no backup. A new profile starts over; the damaged file is kept in the data folder."
+            Button {
+                visible: UserManager.canRestoreBackup
+                text: "Restore"
+                highlighted: true
+                onClicked: {
+                    if (UserManager.restoreFromBackup()) messageBar.show("Profiles restored", "success")
+                    else                                 messageBar.show("The backups couldn't be read either", "critical")
+                }
+            }
         }
 
         InfoBar {
@@ -478,7 +570,7 @@ ApplicationWindow {
         id: onlineDialog
         onProfileRequested: {
             close()
-            profileDialog.open()
+            root.openProfile()
         }
     }
 
@@ -492,22 +584,63 @@ ApplicationWindow {
     }
 
     CreateUserDialog {
-        id: profileDialog
-        editMode: true
-        initialName:   UserManager.activeUserName
-        initialAvatar: UserManager.activeUserAvatar
-        onConfirmed: function(name, avatar) {
-            UserManager.updateProfile(name, avatar)
-        }
-    }
-
-    CreateUserDialog {
         id: createUserDialog
-        editMode: false
-        canCancel: UserManager.hasUsers   // back to the profile list
         onConfirmed: function(name, avatar) {
             UserManager.createUser(name, avatar)
         }
+    }
+
+    // ── Profiles: export, import, delete, Lichess disconnect ──
+    FileDialog {
+        id: profileExportDialog
+        property string userId
+        title: "Export profile"
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["Chess++ profiles (*.chessprofile)", "All files (*)"]
+        defaultSuffix: "chessprofile"
+        currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+        onAccepted: {
+            var error = UserManager.exportProfile(userId, selectedFile)
+            if (error !== "") messageBar.show(error, "critical")
+            else              messageBar.show("Profile exported", "success")
+        }
+    }
+
+    FileDialog {
+        id: profileImportDialog
+        title: "Import profile"
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["Chess++ profiles (*.chessprofile)", "All files (*)"]
+        currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+        onAccepted: root.inspectImport(selectedFile)
+    }
+
+    ImportConflictDialog {
+        id: importConflictDialog
+        property url file
+        onImportAsNew:      root.importProfile(file, false)
+        onReplaceExisting:  root.importProfile(file, true)
+    }
+
+    ConfirmDialog {
+        id: deleteProfileConfirm
+        property string userId
+        text: "Its statistics and saved games are deleted too. This can't be undone; export the profile first to keep a copy."
+        acceptText: "Delete"
+        onAccepted: {
+            if (userId === UserManager.activeUserId)
+                root.closeProfile()
+            UserManager.deleteUser(userId)
+        }
+    }
+
+    ConfirmDialog {
+        id: disconnectLichessConfirm
+        title: "Disconnect Lichess?"
+        text: "This PC forgets the Lichess sign-in of " + UserManager.lichessUsername
+              + ". You can link the account again at any time."
+        acceptText: "Disconnect"
+        onAccepted: UserManager.clearLichessToken()
     }
 
     // Move-input cheat (Alt+S in a two-player game).
@@ -553,50 +686,51 @@ ApplicationWindow {
     }
     Shortcut {
         sequence: "Escape"
-        enabled: _inGame && !_dialogOpen
+        enabled: (_onGamePage || _page === "profile") && !_dialogOpen
         onActivated: {
-            if (stack.currentItem.sheetOpen) stack.currentItem.sheetOpen = false   // an open move sheet first
-            else                             leaveGame()
+            if (_page === "profile")              closeProfile()
+            else if (stack.currentItem.sheetOpen) stack.currentItem.sheetOpen = false   // an open move sheet first
+            else                                  leaveGame()
         }
     }
     Shortcut {
         sequence: "F"
-        enabled: _inGame && !_dialogOpen
+        enabled: _onGamePage && !_dialogOpen
         onActivated: stack.currentItem.flipBoard()
     }
     Shortcut {
         sequence: "Ctrl+S"
-        enabled: (_mode === "computer" || _mode === "local") && !_dialogOpen
+        enabled: _onGamePage && (_mode === "computer" || _mode === "local") && !_dialogOpen
         onActivated: ChessConnector.saveGame()
     }
     Shortcut {
         sequence: "Ctrl+Z"
-        enabled: (_mode === "computer" || (_mode === "online" && !_gameOver)) && !_dialogOpen
+        enabled: _onGamePage && (_mode === "computer" || (_mode === "online" && !_gameOver)) && !_dialogOpen
         onActivated: ChessConnector.requestTakeback()
     }
     Shortcut {
         sequence: "Left"
-        enabled: _inGame && !_dialogOpen
+        enabled: _onGamePage && !_dialogOpen
         onActivated: ChessConnector.reviewPrev()
     }
     Shortcut {
         sequence: "Right"
-        enabled: _inGame && !_dialogOpen
+        enabled: _onGamePage && !_dialogOpen
         onActivated: ChessConnector.reviewNext()
     }
     Shortcut {
         sequence: "Home"
-        enabled: _inGame && !_dialogOpen
+        enabled: _onGamePage && !_dialogOpen
         onActivated: ChessConnector.reviewFirst()
     }
     Shortcut {
         sequence: "End"
-        enabled: _inGame && !_dialogOpen
+        enabled: _onGamePage && !_dialogOpen
         onActivated: ChessConnector.reviewLast()
     }
     Shortcut {
         sequence: "Alt+S"
-        enabled: _mode === "local" && !_dialogOpen
+        enabled: _onGamePage && _mode === "local" && !_dialogOpen
         onActivated: applyMovesDialog.open()
     }
 }

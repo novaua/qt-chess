@@ -36,11 +36,16 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
 .\scripts\Take-Screenshot.ps1 -Scene all -Offscreen                          # screen locked: dark only
 ```
 
-- Scenes: `create-user`, `login`, `home`, `continue` (Home with an autosaved game), `game` (two-player
+- Scenes: `welcome` (first run), `create-user` (first run, Create profile dialog), `profiles` (Who's
+  playing? with Bob, Alice and Tester, who has a Lichess account), `home`, `continue` (Home with an autosaved game), `game` (two-player
   game, Tester vs Bob), `review` (a middlegame reviewed at move 5), `result` (Fool's mate: the result
   card), `ended` (the same with the card closed: Rematch / New game in the moves panel, Result in the sheet), `moves` (the middlegame with the move sheet open; narrow window only), `settings`, `levels`,
-  `profile`, `online` (Lichess dialog, not connected), `computer` (vs-computer setup dialog), `players`
-  (two-player setup dialog), `all`. `menu` and `board` still work as the old names of `home` and `game`.
+  `profile` (Profile page: Lichess linked with ratings, statistics), `profile-local` (no Lichess),
+  `profile-expired` (Lichess sign-in expired: Reconnect), `import` (importing Bob again: the conflict
+  dialog), `online` (Lichess dialog, not connected), `computer` (vs-computer setup dialog), `players`
+  (two-player setup dialog), `all`. `login`, `menu` and `board` still work as the old names of `profiles`, `home` and `game`.
+  The profile scenes get their profiles, Lichess link (a placeholder token, no network) and statistics
+  from `seedScreenshotProfiles()` in `main.cpp`.
   `-Moves` replaces a scene's own moves.
 - To review many shots at once, tile them into one contact sheet (System.Drawing) and Read that.
 - Output: `test-results\screens\<scene>[-black][-dark][-<Name>].png` (git-ignored). Exit code = number of failed scenes.

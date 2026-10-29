@@ -93,5 +93,10 @@ DISTFILES += \
     qml/SettingsDialog.qml \
     qml/Theme.qml \
     qml/TwoPlayerDialog.qml \
-    qml/UserLoginScreen.qml \
+    qml/WelcomePage.qml \
+    qml/ProfilePickerPage.qml \
+    qml/ProfilePage.qml \
+    qml/AvatarPicker.qml \
+    qml/SectionCard.qml \
+    qml/ImportConflictDialog.qml \
     qml/qmldir

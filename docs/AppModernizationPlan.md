@@ -331,7 +331,7 @@ Each phase gets its own branch from `develop` and its own PR, with before/after 
 |---|---|---|
 | **P1 Foundation** ✅ | FluentWinUI3 · `Theme.qml` · System/Light/Dark · icons in `qml.qrc` · `AppDialog` (modal, scrim, Enter/Esc) · remove Qt5Compat effects and `NetworkPlayers.qml` (**closes BL-01**) | All existing screens render in Fluent light and dark; no `Window.window.color` left; screenshot scenes pass. Done: branch `fluentFoundation_281026`, after shots in [`design/after-p1/`](design/after-p1/) |
 | **P2 Shell and navigation** ✅ | `StackView` pages · command bar · account menu · Home with Continue and action cards · setup dialogs · InfoBar replaces `Notificator` · `_show*` flags removed · services as typed singletons · game flows moved into `ChessConnector` (`startLocalGame`, `switchUser`, Lichess game start/end) | Every action of today's menu and toolbar is reachable; no game-step sequences left in QML; no `setContextProperty` left; scenes `home` and `game` added. Done: branch `shellNavigation_291026`, after shots in [`design/after-p2/`](design/after-p2/); notes in `PROGRESS.md` (2026-10-29) |
-| **P3 Users and Lichess** (**BL-03**, **BL-08**) | Welcome · profile picker · Profile page (Lichess card, ratings, 401 Reconnect, OAuth Cancel) · two-player setup by profile id and Guest · statistics per opponent · `QSaveFile`, backups, export/import | Unit tests for `UserManager` export/import, backup rotation and corrupt-file recovery (`ChessQtTests`) |
+| **P3 Users and Lichess** ✅ (**BL-03**, **BL-08**) | Welcome · profile picker · Profile page (Lichess card, ratings, 401 Reconnect, OAuth Cancel) · two-player setup by profile id and Guest · statistics per opponent · `QSaveFile`, backups, export/import | Unit tests for `UserManager` export/import, backup rotation and corrupt-file recovery (`ChessQtTests`). Done: branch `usersLichess_291026`, after shots in [`design/after-p3/`](design/after-p3/); notes in `PROGRESS.md` (2026-10-29) |
 | **P4 Game chrome** ✅ | Player cards · captured strip with +N · responsive side panel or bottom sheet · single result card · new move list (click, keys, Copy/Export PGN) | Unit tests for material balance and PGN; screenshots portrait, landscape, review, result. Done: branch `gameChrome_291026`, after shots (dark) in [`design/after-p4/`](design/after-p4/); notes in `PROGRESS.md` (2026-10-29) |
 | **P5 Settings and About** | Settings page groups (§4.3) · About and licences · shortcut list | Every old setting has migrated (`config.json`, QML `Settings`) |
 | **P6 Polish** | Keyboard and accessibility pass · high contrast · motion tokens · app icon and installer visuals · screenshot baselines for all scenes (with BL-05) | Checklist §7 all ticked |
@@ -342,7 +342,7 @@ run in parallel after P2. P5 and P6 come last.
 ## 9. Open questions
 
 1. ~~**QML access rule (A9)**~~ **Decided 2026-10-28.** The three-point rule is in CLAUDE.md and §6. Game flows go through `ChessConnector`, services stay separate typed singletons, and nothing is forwarded.
-2. **Guest games:** count them in the statistics of the profile that played, or not at all? (Recommended: count for the profile, with the opponent shown as "Guest".)
+2. ~~**Guest games**~~ **Decided in P3:** they count for the profile that played, with the opponent shown as "Guest".
 3. **Board themes:** a picker for board and piece themes was left out of this plan, to stay native and simple. Revisit after P6.
 4. **Real-time Lichess clocks:** the player card reserves the space. Showing the clocks belongs to BL-07.
 

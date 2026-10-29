@@ -62,7 +62,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(SolutionDir)\ChessCore;$(SolutionDir)\LiChessConnector;$(SolutionDir)\UciConnector;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(SolutionDir)\LiChessConnector;$(SolutionDir)\UciConnector;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
@@ -78,7 +78,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(SolutionDir)\ChessCore;$(SolutionDir)\LiChessConnector;$(SolutionDir)\UciConnector;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(SolutionDir)\LiChessConnector;$(SolutionDir)\UciConnector;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
@@ -109,6 +109,15 @@
   <ItemGroup>
     <ClCompile Include="LichessClientTest.cpp" />
     <ClCompile Include="UciConnectorTest.cpp" />
+    <ClCompile Include="UserManagerTest.cpp" />
+    <!-- UserManager and what it needs, from the app (it has no library of its own) -->
+    <ClCompile Include="..\ChessGui\ChessGui\AppConfig.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\AvatarProvider.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\UserManager.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="..\ChessGui\ChessGui\AvatarProvider.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\UserManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

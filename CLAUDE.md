@@ -71,17 +71,21 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
 - **`chessconnector.h/cpp`** — the C++/QML bridge for the chess game; exposes `Q_PROPERTY` bindings and slots that QML calls
 - **`UserManager`**, **`LichessClient`** (LiChessConnector project), **`AvatarProvider`** — app services without chess logic, also visible to QML (see Key Conventions)
 - QML files in `ChessGui/ChessGui/qml/`:
-  - `ChessGame.qml` — the window: a `StackView` with one page (`UserLoginScreen`, `HomePage`,
-    `GamePage`; `route()` picks it from `UserManager.isLoggedIn` and `ChessConnector.InGame`), the
-    InfoBars and every dialog. Pages ask for dialogs through signals.
+  - `ChessGame.qml` — the window: a `StackView` with one page (`WelcomePage` on first run,
+    `ProfilePickerPage`, `HomePage`, `GamePage`; `route()` picks it from `UserManager` and
+    `ChessConnector.InGame`), with `ProfilePage` pushed over Home or the game; the InfoBars and every
+    dialog. Pages ask for dialogs through signals.
   - `HomePage.qml` (account menu, Continue, action cards), `GamePage.qml` (command bar, board between
     two `PlayerCard`s with a `CapturedStrip` and "+N", the moves (`MovesPanel` + `MoveList`) beside
     the board or in a bottom sheet, `ResultCard` over the board)
   - `ChessBoard.qml` — board rendering
   - `ChessFigures.qml` — piece rendering and drag/drop animation
   - `ChessBoxes.qml` — square highlights (legal moves, last move)
-  - Shared: `Theme.qml` (singleton), `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`
-  - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog`, `LichessGameDialog`
+  - Shared: `Theme.qml` (singleton), `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`, `SectionCard`, `AvatarPicker`
+  - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog`, `LichessGameDialog`; profiles: `CreateUserDialog`, `ImportConflictDialog`
+- `UserManager` keeps `users.json` (atomic `QSaveFile` writes, `backups/users-1..3.json`), statistics
+  per opponent, profile export/import (`.chessprofile`, never the Lichess token) and the Lichess
+  sign-in (`LichessAuth`), so the token never reaches QML. Its tests are in `ChessQtTests/UserManagerTest.cpp`.
 - Image assets live in `ChessGui/ChessGui/pics/`
 - Resources bundled via `qml.qrc`
 
