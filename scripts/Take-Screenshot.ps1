@@ -23,8 +23,9 @@
 #>
 [CmdletBinding()]
 param(
-    # create-user, login, home, continue, game, review, result, ended, moves, settings, levels, profile, online,
-    # computer, players, or all (menu and board: the older names of home and game)
+    # welcome, create-user, profiles, home, continue, game, review, result, ended, moves, settings, levels,
+    # profile, profile-local, profile-expired, import, online, computer, players, or all
+    # (login, menu and board: the older names of profiles, home and game)
     [string[]]$Scene = @('home'),
     # game scene: UCI moves to play first, e.g. "e2e4 e7e5"
     [string]$Moves,
@@ -49,11 +50,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
-$allScenes = 'create-user', 'login', 'home', 'continue', 'game', 'review', 'result', 'ended', 'moves', 'settings', 'levels',
-             'profile', 'online', 'computer', 'players'
+$allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'game', 'review', 'result', 'ended', 'moves',
+             'settings', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'computer', 'players'
 if ($Scene -contains 'all') { $Scene = $allScenes }
 foreach ($s in $Scene) {
-    if ($s -notin ($allScenes + 'menu', 'board')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
+    if ($s -notin ($allScenes + 'login', 'menu', 'board')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
 }
 
 if ($Build) {

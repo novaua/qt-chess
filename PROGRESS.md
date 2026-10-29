@@ -4,6 +4,26 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-29 — BL-02 P3 Users and Lichess done (branch: usersLichess_291026); next: P5
+
+### What was done
+- **Pages:** `WelcomePage` on first run: Continue with Lichess (OAuth, then a profile named after the account with a random avatar, or the profile already linked to it), Create local profile, Import a profile. `ProfilePickerPage` replaces `UserLoginScreen`. Its cards are centred and show the avatar, the Lichess username and when the profile last played, and each card has a menu with Export and Delete. With 2 or more profiles the app now starts here; with one, straight to Home. `ProfilePage` (a full page pushed over Home or the game; Back or Esc pops it) replaces the profile dialog: name and avatar apply right away; a Lichess card (ratings for bullet to correspondence, "?" = provisional; Open on lichess.org; Disconnect with confirmation; Advanced: API token); statistics; Export / Delete (Delete is off during a game). `CreateUserDialog` only creates now.
+- **Lichess (BL-08, BL-03):** the sign-in moved from `ChessConnector::loginWithLichess` into `UserManager` (`linkLichess`, `linkLichessToken`, `createUserWithLichess`, `cancelLichessLink`), so the token never passes through QML. `LichessAuth::cancel()` closes the local listener and aborts the token exchange: **Cancel** while "Waiting for the browser…". `LichessClient::refreshAccount()` reads the ratings from `/api/account` (on login, on a new token, 3 s after an online game). Any call made with our token that gets a 401 emits `authExpired`; the profile then shows "Lichess sign-in expired · Reconnect", Home's Play online card says so, and the client drops the token.
+- **Statistics per opponent**, with draws: the robot by level, each profile, Guest, Lichess. `ChessConnector::recordResult()` runs on mate, resignation and a Lichess game end, once per game. A two-player game between profiles counts for both (checked: the `result` scene gives Tester a loss vs Bob and Bob a win vs Tester). `GameSaveInfo.opponentUserId` keeps the opponent of a continued game. Version 1 totals are migrated: robot games become "level not recorded", the rest "Two players, before results were kept". Plan §9 Q2 is decided: a Guest game counts for the profile.
+- **Data safety:** `users.json` and `config.json` are written with `QSaveFile`. On start a readable `users.json` goes to `backups/users-1.json`, and 3 are kept (an unchanged file isn't copied again). If `users.json` doesn't parse, nothing is loaded and an InfoBar offers **Restore** (the newest good backup). The damaged file is kept as `users.damaged-<time>.json`, also when the user starts over instead.
+- **Export / import:** `<name>.chessprofile` (JSON, format version 1) holds the profile, statistics, ratings and both saves (base64), and never the token or a pending challenge. Importing adds the profile; on the same id or name, `ImportConflictDialog` offers Import as new ("Bob (2)") or Replace. Replacing the profile that is playing is refused. An imported Lichess link asks to reconnect.
+- **Tests:** `ChessQtTests` has 16 new tests: `UserManagerTest.cpp` (14: restart, start page, per-opponent stats, v1 migration, delete, backup rotation, unchanged file, damaged file + restore, damaged file kept, export without token, import on another PC, conflict as new / replace, replace refused, bad files, file name) and `parseRatings` ×2. `UserManager.cpp`, `AppConfig.cpp` and `AvatarProvider.cpp` are compiled into the test DLL. All 143 tests pass (ChessTests + ChessQtTests).
+- **Scenes:** `welcome`, `profiles` (`login` is its old name), `profile`, `profile-local`, `profile-expired`, `import`; `create-user` is now the first-run dialog. Their profiles come from `seedScreenshotProfiles()` in `main.cpp` (placeholder token, no network in screenshot mode). All 19 scenes OK, no QML warnings. After shots: `docs/design/after-p3/` (light and dark).
+
+### Not checked live
+- Anything that needs lichess.org: OAuth from Welcome and Profile, Cancel, the API token, ratings, a real 401 (revoke the token on lichess.org). Listed in TASKS under P3.
+- Export / import through the real file dialogs, delete, and Restore from a damaged file in a real window (the logic is unit-tested).
+
+### Where to continue
+P5 (Settings and About pages), on a new branch from `origin/develop` once this PR is merged. Settings → Data can reuse `exportProfile` / `inspectImport` / `importProfile` and `restoreFromBackup`; "Back up now" needs a new `UserManager` call.
+
+---
+
 ## 2026-10-29 — PGN date kept in saves (branch: pgnGameDate_291026)
 
 - Hand check by the user: Copy PGN and Export PGN work, but a continued game exported `[Date "????.??.??"]`.

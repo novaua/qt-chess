@@ -439,7 +439,12 @@
     <None Include="qml\PawnPromotionOptions.qml" />
     <None Include="qml\qmldir" />
     <None Include="qml\Theme.qml" />
-    <None Include="qml\UserLoginScreen.qml" />
+    <None Include="qml\WelcomePage.qml" />
+    <None Include="qml\ProfilePickerPage.qml" />
+    <None Include="qml\ProfilePage.qml" />
+    <None Include="qml\AvatarPicker.qml" />
+    <None Include="qml\SectionCard.qml" />
+    <None Include="qml\ImportConflictDialog.qml" />
     <QtRcc Include="qml.qrc" />
     <ResourceCompile Include="ChessGui.rc" />
   </ItemGroup>
