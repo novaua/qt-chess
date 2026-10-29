@@ -9,7 +9,6 @@
 #include <QVariantMap>
 #include "MovesGen.h"
 #include <QThread>
-#include <atomic>
 #include <functional>
 
 #include "Game.h"
@@ -159,8 +158,6 @@ signals:
 	void pgnCopied();
 	void pgnExported(bool ok, const QString& path);
 
-	void requestEngineMove();
-
 	void screenshotSceneReady(); // QML has set up the --screenshot scene: grab the window
 
 public slots:
@@ -205,8 +202,8 @@ public slots:
 	Q_INVOKABLE void rematch();
 
 private slots:
-	void onEngineMoveComplete();
-	void onEngineMoveError(const QString& message, const QString& details);
+	void onEngineMoveFound(int request, const QString& move);
+	void onEngineMoveError(int request, const QString& message, const QString& details);
 	void onLichessGameStarted(const QString& gameId, bool playingAsWhite, const QString& opponentName,
 		const QString& opponentAvatar);
 	void onLichessGameEnded(const QString& status, const QString& winner);
@@ -238,6 +235,7 @@ private:
 	void resetMoveHistoryCache();
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
+	void askEngineMove(); // the robot's turn: start the engine on a copy of the moves
 	void beginGame(bool online); // resets per-game end state; online: rematch goes to Lichess
 	void setFlaggedKing(int square);
 	void autoSaveGame(bool isSinglePlayer);
@@ -259,9 +257,10 @@ private:
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
 	bool _engineThinking = false;
+	int  _engineRequest  = 0; // the engine answer we wait for; older answers are dropped
 	bool _engineAutoPlay = false;
 	bool _promotionPending = false; // a pawn is on the last rank, waiting for pawnPromote()
-	std::atomic<bool> _gameOver{ false };
+	bool _gameOver = false;
 	bool _wasVsComputer = false;
 	bool _lastGameOnline = false; // the current/last game is a Lichess game: rematch goes online
 	int  _flaggedKing    = -1;

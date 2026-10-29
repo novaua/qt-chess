@@ -57,7 +57,7 @@ $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'game', '
              'settings', 'about', 'restore', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'computer', 'players'
 if ($Scene -contains 'all') { $Scene = $allScenes }
 foreach ($s in $Scene) {
-    if ($s -notin ($allScenes + 'login', 'menu', 'board')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
+    if ($s -notin ($allScenes + 'robot', 'login', 'menu', 'board')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
 }
 
 if ($Build) {

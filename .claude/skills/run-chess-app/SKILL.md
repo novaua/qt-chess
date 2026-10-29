@@ -46,7 +46,9 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   `profile` (Profile page: Lichess linked with ratings, statistics), `profile-local` (no Lichess),
   `profile-expired` (Lichess sign-in expired: Reconnect), `import` (importing Bob again: the conflict
   dialog), `online` (Lichess dialog, not connected), `computer` (vs-computer setup dialog), `players`
-  (two-player setup dialog), `all`. `login`, `menu` and `board` still work as the old names of `profiles`, `home` and `game`.
+  (two-player setup dialog), `all`. `robot` (not in `all`: needs Stockfish): a saved game vs the robot at
+  level 5, continued, where the robot mates with Qh5# (the engine's answer is played on the GUI thread).
+  `login`, `menu` and `board` still work as the old names of `profiles`, `home` and `game`.
   The profile scenes get their profiles, Lichess link (a placeholder token, no network) and statistics
   from `seedScreenshotProfiles()` in `main.cpp`.
   `-Moves` replaces a scene's own moves.
@@ -71,7 +73,7 @@ fine, but only in dark mode. Offscreen the Fluent style always uses its dark pal
 switched, so `Theme.dark` follows it there. Light shots need an unlocked screen. Dialog backgrounds
 don't render offscreen (the page shows through).
 
-Not covered yet: a game vs the robot (needs Stockfish; a stub engine is planned), a
+Not covered yet: a game vs the robot without Stockfish (a stub engine is planned), a
 connected Lichess account and the challenge dialog. Sending keys to an interactive window
 (SendKeys) doesn't reach the Qt controls reliably and takes over the user's desktop: add a scene instead. Plan for the full UI test suite: `docs/UiTestSuitePlan.md`.
 

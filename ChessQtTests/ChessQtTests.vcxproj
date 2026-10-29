@@ -107,6 +107,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ChessEnginePlayerTest.cpp" />
     <ClCompile Include="LichessClientTest.cpp" />
     <ClCompile Include="UciConnectorTest.cpp" />
     <ClCompile Include="UserManagerTest.cpp" />
@@ -114,9 +115,13 @@
     <ClCompile Include="..\ChessGui\ChessGui\AppConfig.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\AvatarProvider.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\UserManager.cpp" />
+    <!-- The engine player and its thread worker -->
+    <ClCompile Include="..\ChessGui\ChessGui\ChessEnginePlayer.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\engineworker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="..\ChessGui\ChessGui\AvatarProvider.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\engineworker.h" />
     <QtMoc Include="..\ChessGui\ChessGui\UserManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

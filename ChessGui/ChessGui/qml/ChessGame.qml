@@ -214,6 +214,14 @@ ApplicationWindow {
         if (scene === "online")   onlineDialog.open()
         if (scene === "computer") computerDialog.openNew()
         if (scene === "players")  twoPlayerDialog.open()
+        if (scene === "robot") {
+            // A saved game vs the robot (level 5, the player is Black) where White mates in one,
+            // then Continue: the engine finds Qh5#, played on the GUI thread (BL-09). Needs Stockfish.
+            ChessConnector.startComputerGame(5, 1)   // the robot starts on move 1 ...
+            ChessConnector.applyMoves(_shot.moves || "e2e4 f7f6 d2d4 g7g5")
+            ChessConnector.endGame()                  // ... and that answer is dropped
+            ChessConnector.continueGame()
+        }
         if (gameScene) {
             // A Scandinavian with captures on both sides (Black +1), and Fool's mate for the result.
             var middlegame = "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 c1d2 c7c6 "
@@ -234,9 +242,25 @@ ApplicationWindow {
                 stack.currentItem._resultCardClosed = true   // Rematch / New game in the moves panel
         }
 
+        if (ChessConnector.EngineThinking) _shotWaitsForEngine = true   // the robot's move comes later
+        else                               startScreenshotTimer()
+    }
+
+    function startScreenshotTimer() {
         // A finished game shows its result only after GamePage's resultTimer (1600 ms).
         screenshotReadyTimer.interval = ChessConnector.GameResult !== "" ? 1700 : 0
         screenshotReadyTimer.start()
+    }
+
+    property bool _shotWaitsForEngine: false
+    Connections {
+        target: ChessConnector
+        enabled: root._shotWaitsForEngine
+        function onEngineThinkingChanged() {
+            if (ChessConnector.EngineThinking) return
+            root._shotWaitsForEngine = false
+            root.startScreenshotTimer()
+        }
     }
 
     Timer {
