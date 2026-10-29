@@ -2,7 +2,7 @@
 
 ## In Progress
 
-- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there. **Next: P3 / P4** (see `PROGRESS.md`).
+- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there. **Next: P3** (see `PROGRESS.md`).
   - [x] Review of all screens, plan, design kit (`pics/icons/*.svg`, [`docs/design/ThemeTokens.md`](docs/design/ThemeTokens.md)), mockups (#77)
   - [x] Decide the QML access rule (plan §9 Q1): game flows through `ChessConnector`, services stay separate typed singletons (CLAUDE.md "Key Conventions")
   - [x] P1 Foundation (`fluentFoundation_281026`): FluentWinUI3, `Theme.qml`, System/Light/Dark, icons in qrc, `AppDialog`; removed Qt5Compat effects and `NetworkPlayers.qml` (closes BL-01)
@@ -11,7 +11,9 @@
     - [ ] Manual check in a real window: shortcuts (Esc, F, Ctrl+S/Z, ←/→, F1, Ctrl+,), Enter/Esc in the setup dialogs, Switch user confirmation during a game
     - [ ] Manual check with Lichess: challenge → game page, game end text, draw/takeback InfoBars, opponent gone + Claim victory, rematch
   - [ ] P3 Users and Lichess: welcome, profile picker, Profile page (ratings, Reconnect, OAuth Cancel: closes BL-08), Guest, statistics, `QSaveFile`, backups, export/import
-  - [ ] P4 Game chrome: player cards, captured strip with +N, responsive side panel or sheet, result card, move list with PGN
+  - [x] P4 Game chrome (`gameChrome_291026`): player cards, captured strip with +N (`MaterialBalance`), side panel or bottom sheet, one result card (Rematch / New game / Review moves), move list (click a move, piece images, `reviewTo`), Copy / Export PGN; `Game::FormatHistorySan` (real mate detection), `FormatPgn`, `MaterialBalance` in ChessCore with 13 tests; `-Offscreen` screenshots for a locked screen
+    - [x] Light-mode after shots in a real window (`docs/design/after-p4/`: light and dark)
+    - [ ] Manual check: Export PGN… save dialog and the file, Copy PGN, Esc closes the move sheet, Review moves / New game on the result card (vs Robot, two players)
   - [ ] P5 Settings and About pages
   - [ ] P6 Polish: keyboard and accessibility, high contrast, motion, app icon, screenshot baselines (with BL-05)
 

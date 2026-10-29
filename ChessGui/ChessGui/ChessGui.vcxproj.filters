@@ -125,7 +125,19 @@
     <None Include="qml\ChessBoxes.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
-    <None Include="qml\MoveHistoryPanel.qml">
+    <None Include="qml\MoveList.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\MovesPanel.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\PlayerCard.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\CapturedStrip.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ResultCard.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\ChessFigures.qml">
@@ -147,9 +159,6 @@
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\PawnPromotionOptions.qml">
-      <Filter>Source Files\Qml</Filter>
-    </None>
-    <None Include="qml\GameResultDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\ApplyMovesDialog.qml">

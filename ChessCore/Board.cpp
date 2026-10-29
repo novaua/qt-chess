@@ -5,6 +5,29 @@
 
 namespace Chess {
 
+	int PieceValue(PieceTypes type)
+	{
+		switch (type) {
+		case PAWN:   return 1;
+		case KNIGHT: return 3;
+		case BISHOP: return 3;
+		case ROOK:   return 5;
+		case QUEEN:  return 9;
+		default:     return 0;
+		}
+	}
+
+	int MaterialBalance(const Board& board)
+	{
+		int balance = 0;
+		for (int i = 0; i < BpMax; ++i) {
+			const auto piece = board.At(i);
+			if (piece.Color == PieceColors::Light)     balance += PieceValue(piece.Type);
+			else if (piece.Color == PieceColors::Dark) balance -= PieceValue(piece.Type);
+		}
+		return balance;
+	}
+
 	Board::Board()
 	{
 		Initialize();

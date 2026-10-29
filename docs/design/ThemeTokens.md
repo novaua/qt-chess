@@ -150,3 +150,16 @@ It is registered through `qmldir` (`singleton Theme 1.0 Theme.qml`) and listed i
   from WinUI; `criticalBg` is reused for error InfoBars and `cardBg` for informational ones.
 - `iconSizeCard` 24 (Home cards, the account avatar) and `commandBarHeight` 48 (both page headers;
   the InfoBars sit just below it).
+
+## 10. Added in P4
+
+- Game page sizes: `playerCardHeight` 60, `sidePanelWidth` 280 (the move list beside the board when
+  the window is at least 960 wide or wider than 1.15 × its height) and `sheetHandleHeight` 44 (the
+  collapsed move sheet otherwise).
+- `Theme.piece(key)`: the board's piece image for a key, `"N"` white knight, `"n"` black knight.
+  Captured pieces keep their colour. Move-list figurines use the text colour instead (white images
+  in dark mode, black in light), because black pieces disappear on a dark panel.
+- Turn indicator: an `accent` bar on the player card's left edge, plus the avatar pulse (`accent`
+  at 20 %). In P2 it was `success`.
+- `-platform offscreen` (screenshots on a locked screen) sets `Theme.dark`: the Fluent style is dark
+  there and can't be switched.

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtCore
 import QtMultimedia
+import QtQuick.Dialogs
 import ChessPlusPlus
 
 // The window: one page at a time in a StackView (the profile list, Home or the game), the
@@ -25,6 +26,7 @@ ApplicationWindow {
         || computerDialog.visible || twoPlayerDialog.visible || onlineDialog.visible
         || challengeDialog.visible || profileDialog.visible || createUserDialog.visible
         || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible
+        || pgnExportDialog.visible
 
     // Green (weakest) → red (strongest), spread over however many levels there are.
     function levelColor(level) {
@@ -78,6 +80,25 @@ ApplicationWindow {
         }
     }
 
+    // The result card's "New game": the setup of the same kind of game. The online setup is
+    // reached from Home (a challenge made in a game would count as a rematch).
+    function newGameLikeThis() {
+        if (_mode === "computer") {
+            computerDialog.openNew()
+        } else if (_mode === "local") {
+            twoPlayerDialog.open()
+        } else {
+            var wasOnline = _mode === "online"
+            leaveGame()
+            if (wasOnline) playOnline()
+        }
+    }
+
+    function exportPgn() {
+        pgnExportDialog.selectedFile = pgnExportDialog.currentFolder + "/" + ChessConnector.pgnFileName()
+        pgnExportDialog.open()
+    }
+
     function clearPendingChallenge() {
         UserManager.clearPendingChallenge()
         _pendingChallengeId  = ""
@@ -112,7 +133,8 @@ ApplicationWindow {
             else                      UserManager.createUser("Tester", "wizard")
         }
         // A second profile to play against: same names and avatars every time.
-        if (["game", "continue", "players"].includes(scene) && UserManager.userCount < 2) {
+        var gameScene = ["game", "continue", "review", "result", "moves"].includes(scene)
+        if ((gameScene || scene === "players") && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
             UserManager.login(me)
@@ -124,13 +146,22 @@ ApplicationWindow {
         if (scene === "online")   onlineDialog.open()
         if (scene === "computer") computerDialog.openNew()
         if (scene === "players")  twoPlayerDialog.open()
-        if (scene === "game" || scene === "continue") {
+        if (gameScene) {
+            // A Scandinavian with captures on both sides (Black +1), and Fool's mate for the result.
+            var middlegame = "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 c1d2 c7c6 "
+                           + "c3d5 a5d8 d5f6 d8f6 d1e2 f5c2"
+            var defaultMoves = ({ continue: "e2e4 e7e5", review: middlegame, moves: middlegame,
+                                  result: "f2f3 e7e5 g2g4 d8h4" })[scene] ?? ""
             var bob = UserManager.users.find(u => u.name === "Bob")
             ChessConnector.startLocalGame(!_shot.black, bob ? bob.id : "")
-            if (_shot.moves || scene === "continue")
-                ChessConnector.applyMoves(_shot.moves || "e2e4 e7e5")
+            if (_shot.moves || defaultMoves)
+                ChessConnector.applyMoves(_shot.moves || defaultMoves)
             if (scene === "continue")
                 ChessConnector.endGame()   // autosaved: Home offers to continue it
+            if (scene === "review")
+                ChessConnector.reviewTo(9)
+            if (scene === "moves")
+                stack.currentItem.sheetOpen = true   // the move sheet (narrow window)
         }
 
         // A finished game shows its result only after GamePage's resultTimer (1600 ms).
@@ -221,6 +252,8 @@ ApplicationWindow {
         GamePage {
             rematchPending: root._pendingRematch
             onHomeRequested:        root.leaveGame()
+            onNewGameRequested:     root.newGameLikeThis()
+            onExportPgnRequested:   root.exportPgn()
             onResignRequested:      resignConfirm.open()
             onLevelsHelpRequested:  levelsHelp.open()
             onSettingsRequested:    settingsDialog.open()
@@ -338,6 +371,11 @@ ApplicationWindow {
         function onSavedOk()           { messageBar.show("Game saved", "success") }
         function onNoSavedGame()       { messageBar.show("There is no saved game yet. Use Save during a game to keep one.") }
         function onNoMoreMovesNotify() { messageBar.show("No more moves") }
+        function onPgnCopied()         { messageBar.show("PGN copied to the clipboard", "success") }
+        function onPgnExported(ok, path) {
+            if (ok) messageBar.show("Saved " + path, "success")
+            else    messageBar.show("Couldn't save " + path, "critical")
+        }
     }
 
     // Lichess challenge setup: the dialogs and the pending challenge. The game itself starts and
@@ -471,6 +509,16 @@ ApplicationWindow {
     // Move-input cheat (Alt+S in a two-player game).
     ApplyMovesDialog { id: applyMovesDialog }
 
+    FileDialog {
+        id: pgnExportDialog
+        title: "Export PGN"
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["PGN files (*.pgn)", "All files (*)"]
+        defaultSuffix: "pgn"
+        currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+        onAccepted: ChessConnector.exportPgn(selectedFile)
+    }
+
     ConfirmDialog {
         id: resignConfirm
         title: "Resign this game?"
@@ -502,7 +550,10 @@ ApplicationWindow {
     Shortcut {
         sequence: "Escape"
         enabled: _inGame && !_dialogOpen
-        onActivated: leaveGame()
+        onActivated: {
+            if (stack.currentItem.sheetOpen) stack.currentItem.sheetOpen = false   // an open move sheet first
+            else                             leaveGame()
+        }
     }
     Shortcut {
         sequence: "F"

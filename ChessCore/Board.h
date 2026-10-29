@@ -73,4 +73,10 @@ namespace Chess {
 	private:
 		void OnBoardChanged(BoardPosition pos, Piece newValue);
 	};
+
+	// Value of a piece in pawns: P 1, N 3, B 3, R 5, Q 9 (king and empty 0).
+	int PieceValue(PieceTypes type);
+
+	// Material on the board, White minus Black. Promoted pieces count at their new value.
+	int MaterialBalance(const Board& board);
 }

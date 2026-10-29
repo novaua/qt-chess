@@ -4,6 +4,7 @@
 #include "Piece.h"
 #include "ChessException.h"
 #include "Serializer.h"
+#include "San.h"
 
 namespace Chess
 {
@@ -254,6 +255,26 @@ namespace Chess
 	void Game::DoMove(BoardPosition from, BoardPosition to)
 	{
 		DoMove({ from, to });
+	}
+
+	std::vector<std::string> Game::FormatHistorySan(const MovesHistory& history)
+	{
+		std::vector<std::string> result;
+		result.reserve(history.size());
+
+		Game game;
+		bool mate = false;
+		game.RegisterGameActionsListeners([&mate](const EventBase& event) {
+			if (event.GetType() == EtCheckMate)
+				mate = true;
+			});
+
+		for (const auto& m : history) {
+			mate = false;
+			game.DoMove(m.ToMove());
+			result.push_back(FormatMoveSan(m, game.GetCurrentBoard(), mate));
+		}
+		return result;
 	}
 
 	void Game::UndoMove()
