@@ -23,7 +23,7 @@
 #>
 [CmdletBinding()]
 param(
-    # welcome, create-user, profiles, home, continue, game, review, result, ended, moves, settings, levels,
+    # welcome, create-user, profiles, home, continue, game, review, result, ended, moves, settings, about, restore, levels,
     # profile, profile-local, profile-expired, import, online, computer, players, or all
     # (login, menu and board: the older names of profiles, home and game)
     [string[]]$Scene = @('home'),
@@ -51,7 +51,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'game', 'review', 'result', 'ended', 'moves',
-             'settings', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'computer', 'players'
+             'settings', 'about', 'restore', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'computer', 'players'
 if ($Scene -contains 'all') { $Scene = $allScenes }
 foreach ($s in $Scene) {
     if ($s -notin ($allScenes + 'login', 'menu', 'board')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }

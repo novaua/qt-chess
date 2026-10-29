@@ -4,6 +4,43 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-29 — BL-02 P5 Settings and About done (branch: settingsAbout_291026); next: P6
+
+### What was done
+- **Settings page** (`SettingsPage.qml`, pushed over Home or the game like Profile; Back, Esc, Ctrl+,) replaces `SettingsDialog`. One `SectionCard` per group, one `SettingRow` per setting:
+  - Appearance: theme; **board coordinates** around the board or on the squares (the squares then fill the board item: `Theme.boardSquares`); **Reduce animations** (`Theme.reduceMotion`: no board turn, piece fade, legal-move dot pop, check glow or turn pulse, sheet slide).
+  - Sound: an on/off switch and a volume of 1–5 (muting is the switch only), with a preview sound.
+  - Gameplay: **confirm before resigning** (`root.resign()`), **show legal moves**, **highlight the last move**.
+  - Computer: the engine's name and path from a short `uci` run (`AppInfo.probeEngine()`, e.g. "Stockfish 19"), or "not found" with what to do; Show levels. BL-06 adds "Change…" there.
+  - Data: Back up now, Restore… (`RestoreBackupDialog`: pick a backup; the one equal to `users.json` is disabled; off during a game), Export… / Import…, Open data folder.
+  - Advanced: send the game to the engine as a position (FEN) or the moves (`ChessConnector.UseFen`, `config.json`), Open log folder.
+  - About: icon, version and build (`Built Oct 29, 2026 · Qt 6.10.2`), GitHub and issue links, licences (Chess++ GPLv3, Qt LGPLv3 + source, Stockfish GPLv3 + source), keyboard shortcuts.
+- **`AppSettings.qml`** singleton: the QtCore `Settings` that was `appSettings` in `ChessGame.qml`, with the same keys, so nothing is lost. On load, an unset `theme` comes from the old `darkMode`, and the old "volume 0 = muted" becomes sound off at `lastSoundVolume`. `Theme.scheme` binds to it directly (the `Binding` is gone). Note: `Settings` stores *every* property, so derived values are functions (`effectsVolume()`).
+- **`AppInfo`** (C++ service singleton in `ChessPlusPlus`): version from `APP_VERSION_*` (now also defined for C++ in `Directory.Build.props`), build date, Qt version, data and log folders, engine probe. `UciConnector::EngineCandidates()` is the engine lookup that `Init()` and the probe share.
+- **`UserManager`**: `backups` (number, date, profile names, `current`), `backupNow()`, `restoreBackup(n)`. A restore first backs up the current profiles, so it can be undone, and keeps the active profile logged in when the backup has it. Saved games aren't in backups (the Data card says so). 3 new tests in `ChessQtTests`; all 149 pass (ChessTests + ChessQtTests).
+- **Board colours fixed** (not P5, found while testing the coordinates on the squares): the squares were mirrored, with a1 and h8 light and the queens on the wrong colour. Now a1 is dark (`ChessBoxes.qml`).
+- **Scenes:** `about` (Settings scrolled to About) and `restore` (two seeded backups, the dialog open) are new; `settings` shows the page. All 21 scenes OK in light and dark, no QML warnings. The `run-chess-app` skill explains how to run a scene with other settings (an ini in `--data-dir`). After shots: `docs/design/after-p5/`. Debug and Release build OK.
+
+### Follow-ups on the same branch
+- **Move list colours** (user report): since P4 every piece was drawn in the text colour, so White's and Black's moves looked alike. Pieces have their own colour again, with a soft glow of the other colour (black glows white, white glows black: `MultiEffect`, `Theme.pieceGlowOnBlack/OnWhite`) so both show on either panel.
+- **Code review** (medium): 10 findings, 6 fixed.
+  - The engine probe tries every candidate, like `UciConnector::Init()`.
+  - `backupsChanged` fires on every save, so "the same as now" stays right; it compares the profiles, not who is logged in.
+  - A restore keeps, for profiles that exist now, the saved-game info (the files aren't restored) and the Lichess sign-in (a removed one doesn't come back).
+  - The piece fade and dot pop start once per piece, so switching Reduce animations doesn't replay them.
+  - The `APP_VERSION_*` C++ defines are for ChessGui only.
+  - Not changed: the coordinates are drawn over the pieces on purpose (as on Lichess); a glow per visible move is cheap (`ListView` only creates the visible rows); `backups` reads 4 small files, only while Settings is open.
+  - 2 more tests; all 151 pass.
+
+### Not checked live
+- Clicking through the page in a real window: each switch in a game (legal-move dots need a selected piece, resign without confirmation, Reduce animations while flipping), the volume preview sound, Back up now / Restore… / the folder buttons / the About links. Listed in TASKS under P5.
+- The engine line when Stockfish is missing (here it is on the PATH).
+
+### Where to continue
+P6 (Polish), on a new branch from `origin/develop` once this PR is merged: keyboard and accessibility pass, high contrast, motion tokens (`Theme.reduceMotion` exists now; StackView page transitions don't follow it yet), app icon and installer visuals, screenshot baselines (with BL-05). The plan's Ctrl+N and Ctrl+O shortcuts aren't there yet.
+
+---
+
 ## 2026-10-29 — BL-02 P3 Users and Lichess done (branch: usersLichess_291026); next: P5
 
 ### What was done

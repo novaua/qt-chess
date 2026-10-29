@@ -39,7 +39,9 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
 - Scenes: `welcome` (first run), `create-user` (first run, Create profile dialog), `profiles` (Who's
   playing? with Bob, Alice and Tester, who has a Lichess account), `home`, `continue` (Home with an autosaved game), `game` (two-player
   game, Tester vs Bob), `review` (a middlegame reviewed at move 5), `result` (Fool's mate: the result
-  card), `ended` (the same with the card closed: Rematch / New game in the moves panel, Result in the sheet), `moves` (the middlegame with the move sheet open; narrow window only), `settings`, `levels`,
+  card), `ended` (the same with the card closed: Rematch / New game in the moves panel, Result in the sheet), `moves` (the middlegame with the move sheet open; narrow window only), `settings` (Settings page, top),
+  `about` (Settings scrolled to About: version, licences, shortcuts), `restore` (Settings with the restore
+  dialog: two backups, the newest the same as now), `levels`,
   `profile` (Profile page: Lichess linked with ratings, statistics), `profile-local` (no Lichess),
   `profile-expired` (Lichess sign-in expired: Reconnect), `import` (importing Bob again: the conflict
   dialog), `online` (Lichess dialog, not connected), `computer` (vs-computer setup dialog), `players`
@@ -75,6 +77,22 @@ users, settings (ini instead of registry), saves and logs in `<dir>` — use it 
 interactively on a throwaway profile. Exit codes: 0 saved, 1 grab/save failed, 2 timed out,
 3 QML failed to load, 4 unknown scene. Implementation: `main.cpp` (options, grab) and
 `ChessGame.qml` `setUpScreenshotScene()`; `ChessConnector::ScreenshotScene` carries the options to QML.
+
+## A scene with other settings
+
+The Settings page's options (`qml/AppSettings.qml`) are QtCore `Settings`; with `--data-dir <dir>` they
+are read from `<dir>\ChessPlusPlus_Inc\ChessPlusPlus.ini`. Write that file first, then run the exe
+directly (the script makes its own temporary folder):
+
+```powershell
+New-Item -ItemType Directory -Force "$dir\ChessPlusPlus_Inc" | Out-Null
+"[General]`r`ncoordinatesInside=true`r`nhighlightLastMove=false" | Set-Content "$dir\ChessPlusPlus_Inc\ChessPlusPlus.ini"
+& x64\Release\ChessGui.exe --screenshot "$PWD\test-results\screens\game-inside.png" --scene game --moves "e2e4 e7e5" --data-dir $dir | Out-Null
+```
+
+`| Out-Null` waits for the app (`$LASTEXITCODE` is its exit code). Not `Start-Process -ArgumentList`: it doesn't
+quote, so only the first of `--moves "e2e4 e7e5"` arrives.
+The scene's `--dark` (or light) still overrides `theme`.
 
 ## Interactive run (when a scene doesn't cover it)
 

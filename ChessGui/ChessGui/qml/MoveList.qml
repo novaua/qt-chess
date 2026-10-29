@@ -1,9 +1,10 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import ChessPlusPlus
 
 // The moves in two columns (White, Black) after a move-number column. Pieces are small images in
-// the text colour, pawn moves and castling are text only. Click a move to see that position; the position on the
+// their own colour with a glow of the other one; pawn moves and castling are text only. Click a move to see that position; the position on the
 // board is highlighted.
 ListView {
     id: list
@@ -58,15 +59,26 @@ ListView {
         contentItem: Row {
             leftPadding: Theme.s1
             spacing: 1
+            // The piece in its own colour, so White's and Black's moves differ at a glance. A glow of
+            // the other colour keeps it visible on a light or a dark panel: black glows white,
+            // white glows black.
             Image {
                 visible: cell.piece !== ""
                 anchors.verticalCenter: parent.verticalCenter
                 width: 18; height: 18
-                // In the text colour, like a figurine font: black pieces vanish on a dark panel.
-                source: cell.piece === "" ? ""
-                      : Theme.piece(Theme.dark ? cell.piece.toUpperCase() : cell.piece.toLowerCase())
+                source: cell.piece === "" ? "" : Theme.piece(cell.piece)
                 fillMode: Image.PreserveAspectFit
                 sourceSize: Qt.size(36, 36)
+                layer.enabled: visible
+                layer.effect: MultiEffect {
+                    shadowEnabled: true
+                    shadowColor: cell.piece === cell.piece.toLowerCase() ? Theme.pieceGlowOnBlack : Theme.pieceGlowOnWhite
+                    shadowHorizontalOffset: 0
+                    shadowVerticalOffset: 0
+                    shadowBlur: 0.3
+                    shadowScale: 1.05
+                    blurMax: 4
+                }
             }
             Label {
                 anchors.verticalCenter: parent.verticalCenter

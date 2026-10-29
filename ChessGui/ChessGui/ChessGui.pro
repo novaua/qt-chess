@@ -19,6 +19,7 @@ SOURCES += main.cpp \
     chessconnector.cpp \
     engineworker.cpp \
     ChessEnginePlayer.cpp \
+    AppInfo.cpp \
     AvatarProvider.cpp \
     UserManager.cpp
 
@@ -57,6 +58,7 @@ HEADERS += \
     chessconnector.h \
     engineworker.h \
     ChessEnginePlayer.h \
+    AppInfo.h \
     AvatarProvider.h \
     UserManager.h
 
@@ -90,7 +92,10 @@ DISTFILES += \
     qml/PawnPromotionOptions.qml \
     qml/PlayerCard.qml \
     qml/ResultCard.qml \
-    qml/SettingsDialog.qml \
+    qml/AppSettings.qml \
+    qml/RestoreBackupDialog.qml \
+    qml/SettingRow.qml \
+    qml/SettingsPage.qml \
     qml/Theme.qml \
     qml/TwoPlayerDialog.qml \
     qml/WelcomePage.qml \

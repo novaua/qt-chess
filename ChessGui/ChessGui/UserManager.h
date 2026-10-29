@@ -41,6 +41,9 @@ class UserManager : public QObject
     // users.json didn't parse: nothing was loaded and the file is kept until restoreFromBackup() or the next save.
     Q_PROPERTY(bool         dataDamaged      READ dataDamaged      NOTIFY usersChanged)
     Q_PROPERTY(bool         canRestoreBackup READ canRestoreBackup NOTIFY usersChanged)
+    // Settings → Data: the backups that can be restored, newest first: { number, date, profiles, current }.
+    // current: the same profiles as users.json now.
+    Q_PROPERTY(QVariantList backups          READ backups          NOTIFY backupsChanged)
 
 public:
     struct GameSaveInfo {
@@ -95,6 +98,7 @@ public:
     QString      pendingChallengeUrl()  const;
     bool         dataDamaged()          const { return _damaged; }
     bool         canRestoreBackup()     const;
+    QVariantList backups()              const;
 
     // outcome: 1 the user won, 0 draw, -1 lost.
     void recordResult(const QString& userId, int outcome, const QString& opponentKey, const QString& opponentName);
@@ -147,6 +151,12 @@ public slots:
 
     // The newest backup that parses replaces users.json (the damaged file is kept beside it).
     Q_INVOKABLE bool restoreFromBackup();
+    // users.json → backups/users-1.json now (nothing to do when the newest backup is the same).
+    Q_INVOKABLE bool backupNow();
+    // Backup <n> replaces users.json; the current profiles become the newest backup first. The
+    // active profile stays logged in when the backup has it. A profile that exists now keeps its
+    // saved-game info (the files aren't in backups) and its Lichess sign-in.
+    Q_INVOKABLE bool restoreBackup(int n);
 
 signals:
     void usersChanged();
@@ -156,6 +166,7 @@ signals:
     void lichessLinkingChanged();
     void lichessLinkFailed(QString error);
     void pendingChallengeChanged();
+    void backupsChanged();
 
 private:
     struct User {
@@ -187,7 +198,8 @@ private:
     void load();
     bool loadFrom(const QByteArray& json);
     void save();
-    void rotateBackups(const QByteArray& json) const;
+    void rotateBackups(const QByteArray& json);
+    void emitAllChanged(); // after a restore: every property may have changed
     bool keepDamagedFile(); // false: the damaged users.json couldn't be copied, so it must not be overwritten
     QString uniqueName(const QString& name) const; // "Name", else "Name (2)", "Name (3)", …
     // An export file: its profile (token-free), its saves and the profile here with the same id or

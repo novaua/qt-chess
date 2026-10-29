@@ -8,9 +8,11 @@
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocale>
 #include <QRandomGenerator>
 #include <QRegularExpression>
 #include <QSaveFile>
@@ -626,7 +628,7 @@ void UserManager::load()
 }
 
 // backups/users-1.json is the newest. An unchanged file isn't copied again, so the older copies stay.
-void UserManager::rotateBackups(const QByteArray& json) const
+void UserManager::rotateBackups(const QByteArray& json)
 {
     if (readFile(backupFilePath(1)) == json)
         return;
@@ -634,6 +636,86 @@ void UserManager::rotateBackups(const QByteArray& json) const
     for (int n = kBackupCount - 1; n >= 1; --n)
         QFile::rename(backupFilePath(n), backupFilePath(n + 1));
     writeFileAtomically(backupFilePath(1), json);
+    emit backupsChanged();
+}
+
+QVariantList UserManager::backups() const
+{
+    QVariantList list;
+    // The profiles, not who was logged in: a restore keeps the active profile.
+    const QJsonValue current = parseObject(readFile(usersFilePath())).value(QStringLiteral("users"));
+    for (int n = 1; n <= kBackupCount; ++n) {
+        const QJsonValue users = parseObject(readFile(backupFilePath(n))).value(QStringLiteral("users"));
+        if (!users.isArray())
+            continue;
+        QStringList names;
+        for (const auto& u : usersFromJson(users.toArray()))
+            names.append(u.name);
+        const QDateTime saved = QFileInfo(backupFilePath(n)).lastModified();
+        list.append(QVariantMap{
+            { QStringLiteral("number"),   n },
+            { QStringLiteral("date"),     dayText(saved.date()) + QStringLiteral(", ")
+                                          + QLocale().toString(saved.time(), QLocale::ShortFormat) },
+            { QStringLiteral("profiles"), names },
+            { QStringLiteral("current"),  users == current },
+        });
+    }
+    return list;
+}
+
+bool UserManager::backupNow()
+{
+    const QByteArray json = readFile(usersFilePath());
+    if (_damaged || !isUsersFile(json))
+        return false;
+    rotateBackups(json);
+    return readFile(backupFilePath(1)) == json;
+}
+
+bool UserManager::restoreBackup(int n)
+{
+    if (n < 1 || n > kBackupCount)
+        return false;
+    const QByteArray json = readFile(backupFilePath(n));
+    if (!isUsersFile(json))
+        return false;
+    if (_damaged) {
+        if (!keepDamagedFile())
+            return false;
+    } else {
+        const QByteArray current = readFile(usersFilePath());
+        if (isUsersFile(current))
+            rotateBackups(current);
+    }
+
+    const QString userId = _activeUserId;
+    const bool wasLoggedIn = _isLoggedIn;
+    const QList<User> before = _users;
+    loadFrom(json);
+    // What belongs to this PC now stays: the save files on disk weren't restored, and a Lichess
+    // sign-in removed since the backup must not come back.
+    for (User& u : _users) {
+        for (const User& now : before) {
+            if (now.id != u.id)
+                continue;
+            u.autoSave              = now.autoSave;
+            u.savedGame             = now.savedGame;
+            u.lichessTokenEncrypted = now.lichessTokenEncrypted;
+            u.lichessUsername       = now.lichessUsername;
+            u.lichessExpired        = now.lichessExpired;
+            u.lichessRatings        = now.lichessRatings;
+            u.pendingChallengeId    = now.pendingChallengeId;
+            u.pendingChallengeUrl   = now.pendingChallengeUrl;
+        }
+    }
+    if (wasLoggedIn && userById(userId)) {
+        _activeUserId = userId;
+        _isLoggedIn = true;
+    }
+    save();
+    qInfo() << "UserManager: restored users.json from backup" << n;
+    emitAllChanged();
+    return true;
 }
 
 bool UserManager::canRestoreBackup() const
@@ -663,6 +745,15 @@ bool UserManager::keepDamagedFile()
     return true;
 }
 
+void UserManager::emitAllChanged()
+{
+    emit usersChanged();
+    emit activeUserChanged();
+    emit statsChanged();
+    emit lichessChanged();
+    emit pendingChallengeChanged();
+}
+
 bool UserManager::restoreFromBackup()
 {
     for (int n = 1; n <= kBackupCount; ++n) {
@@ -674,11 +765,7 @@ bool UserManager::restoreFromBackup()
         loadFrom(json);
         writeFileAtomically(usersFilePath(), json);
         qInfo() << "UserManager: restored users.json from" << backupFilePath(n);
-        emit usersChanged();
-        emit activeUserChanged();
-        emit statsChanged();
-        emit lichessChanged();
-        emit pendingChallengeChanged();
+        emitAllChanged();
         return true;
     }
     return false;
@@ -706,6 +793,7 @@ void UserManager::save()
     root[QStringLiteral("users")]        = usersArray;
 
     writeFileAtomically(usersFilePath(), QJsonDocument(root).toJson());
+    emit backupsChanged(); // which backup is "the same as now" may have changed
 }
 
 // ── Export / import ───────────────────────────────────────────────────────

@@ -12,6 +12,13 @@
     <AppVersionMinor>$(AppVersionCore.Split('.')[1])</AppVersionMinor>
     <AppVersionPatch>$(AppVersionCore.Split('.')[2])</AppVersionPatch>
   </PropertyGroup>
+  <!-- The same numbers for the app's code (Settings → About, AppInfo.cpp); only ChessGui, so a new
+       version doesn't rebuild the libraries and tests. -->
+  <ItemDefinitionGroup Condition="'$(MSBuildProjectName)' == 'ChessGui'">
+    <ClCompile>
+      <PreprocessorDefinitions>APP_VERSION_MAJOR=$(AppVersionMajor);APP_VERSION_MINOR=$(AppVersionMinor);APP_VERSION_PATCH=$(AppVersionPatch);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup>
     <ResourceCompile>
       <PreprocessorDefinitions>APP_VERSION_MAJOR=$(AppVersionMajor);APP_VERSION_MINOR=$(AppVersionMinor);APP_VERSION_PATCH=$(AppVersionPatch);%(PreprocessorDefinitions)</PreprocessorDefinitions>

@@ -80,6 +80,9 @@
     <ClCompile Include="AppConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AppInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="AvatarProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -341,6 +344,9 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="AppInfo.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
     <QtMoc Include="AvatarProvider.h">
       <Filter>Header Files</Filter>
     </QtMoc>

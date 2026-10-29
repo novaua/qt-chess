@@ -71,7 +71,7 @@ Rectangle {
                 visible: card.isActive
 
                 SequentialAnimation on opacity {
-                    running: card.isActive
+                    running: card.isActive && !Theme.reduceMotion
                     loops: Animation.Infinite
                     NumberAnimation { to: 0.2; duration: 850; easing.type: Easing.InOutSine }
                     NumberAnimation { to: 0.0; duration: 850; easing.type: Easing.InOutSine }
