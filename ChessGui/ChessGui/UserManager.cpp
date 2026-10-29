@@ -223,6 +223,8 @@ static QJsonObject saveInfoToJson(const UserManager::GameSaveInfo& info)
     o[QStringLiteral("playerAvatarName")]  = info.playerAvatarName;
     o[QStringLiteral("opponentAvatarName")] = info.opponentAvatarName;
     o[QStringLiteral("opponentName")]       = info.opponentName;
+    if (info.startDate.isValid())
+        o[QStringLiteral("startDate")]      = info.startDate.toString(Qt::ISODate);
     return o;
 }
 
@@ -234,6 +236,7 @@ static UserManager::GameSaveInfo saveInfoFromJson(const QJsonObject& o)
     info.playerAvatarName  = o.value(QStringLiteral("playerAvatarName")).toString(QStringLiteral("wizard"));
     info.opponentAvatarName = o.value(QStringLiteral("opponentAvatarName")).toString(QStringLiteral("unicorn"));
     info.opponentName       = o.value(QStringLiteral("opponentName")).toString();
+    info.startDate          = QDate::fromString(o.value(QStringLiteral("startDate")).toString(), Qt::ISODate);
     return info;
 }
 
