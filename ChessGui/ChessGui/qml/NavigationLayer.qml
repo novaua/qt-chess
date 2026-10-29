@@ -54,20 +54,22 @@ Grid {
                 height:0.3*parent.height
                 width:height
                 radius: 0.5*height
-                scale: Theme.reduceMotion ? 1 : 0
+                scale: 1
                 visible: AppSettings.showLegalMoves && modelData !== " "
             }
 
+            // Pops in when the dot appears; started once, like the pieces' fade.
             PropertyAnimation {
+                id: navigationLayerPopIn
                 target: navigationLayerRec;
                 property: "scale";
                 easing.type: Easing.InOutCirc
                 from: 0;
                 to: 1.0;
                 duration: 450;
-                running: !Theme.reduceMotion;
                 loops: 1;
             }
+            Component.onCompleted: if (!Theme.reduceMotion) navigationLayerPopIn.start()
         }
     }
 }

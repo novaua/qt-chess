@@ -65,19 +65,47 @@ void AppInfo::probeEngine()
     if (_probed)
         return;
     _probed = true;
+    for (const std::string& path : UciConnector::EngineCandidates())
+        _candidates.append(QString::fromStdString(path));
+    probeNext();
+}
 
-    const std::vector<std::string> candidates = UciConnector::EngineCandidates();
-    if (candidates.empty()) {
-        finishProbe({});
+// Like UciConnector::Init(): a candidate that doesn't start or answer gives way to the next one.
+void AppInfo::probeNext()
+{
+    if (_candidates.isEmpty()) {
+        qWarning() << "AppInfo: no UCI engine answered" << _enginePath;
+        setEngine({});
         return;
     }
-    _enginePath = QDir::toNativeSeparators(QString::fromStdString(candidates.front()));
+    const QString path = _candidates.takeFirst();
+    _enginePath = QDir::toNativeSeparators(path);
 
-    _probe = new QProcess(this);
+    auto* probe = new QProcess(this);
     auto buffer = std::make_shared<QByteArray>();
     auto name = std::make_shared<QString>();
-    connect(_probe, &QProcess::readyReadStandardOutput, this, [this, buffer, name]() {
-        buffer->append(_probe->readAllStandardOutput());
+    auto done = std::make_shared<bool>(false);
+    // Once per run: an answer is the engine, anything else tries the next candidate. The process is
+    // left to quit on its own ("quit" was sent) or killed if it never answered.
+    auto finish = [this, probe, done](const QString& engineName) {
+        if (*done)
+            return;
+        *done = true;
+        connect(probe, &QProcess::finished, probe, &QObject::deleteLater);
+        if (probe->state() == QProcess::NotRunning)
+            probe->deleteLater();
+        else if (engineName.isEmpty())
+            probe->kill();
+        else
+            QTimer::singleShot(2000, probe, [probe]() { probe->kill(); });
+        if (engineName.isEmpty())
+            probeNext();
+        else
+            setEngine(engineName);
+    };
+
+    connect(probe, &QProcess::readyReadStandardOutput, probe, [probe, buffer, name, finish]() {
+        buffer->append(probe->readAllStandardOutput());
         qsizetype end;
         while ((end = buffer->indexOf('\n')) >= 0) {
             const QString line = QString::fromUtf8(buffer->left(end)).trimmed();
@@ -85,44 +113,27 @@ void AppInfo::probeEngine()
             if (line.startsWith(QStringLiteral("id name ")))
                 *name = line.mid(8);
             else if (line == QStringLiteral("uciok")) {
-                _probe->write("quit\n");
-                finishProbe(*name);
+                probe->write("quit\n");
+                finish(name->isEmpty() ? QStringLiteral("UCI engine") : *name);
                 return;
             }
         }
     });
-    connect(_probe, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
+    connect(probe, &QProcess::errorOccurred, probe, [finish](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart)
-            finishProbe({});
+            finish({});
     });
-    connect(_probe, &QProcess::finished, this, [this]() { finishProbe({}); });
+    connect(probe, &QProcess::finished, probe, [finish]() { finish({}); });
     // Stockfish answers in milliseconds; don't wait forever on something that isn't a UCI engine.
-    QTimer::singleShot(5000, this, [this]() { finishProbe({}); });
+    QTimer::singleShot(5000, probe, [finish]() { finish({}); });
 
-    _probe->start(QString::fromStdString(candidates.front()), {});
-    _probe->write("uci\n");
+    probe->start(path, {});
+    probe->write("uci\n");
 }
 
-// The first call decides; the process is left to quit on its own (or killed if it never answered).
-void AppInfo::finishProbe(const QString& name)
+void AppInfo::setEngine(const QString& name)
 {
-    if (_engineState != QStringLiteral("checking"))
-        return;
     _engineName = name;
     _engineState = name.isEmpty() ? QStringLiteral("missing") : QStringLiteral("ok");
-    if (name.isEmpty())
-        qWarning() << "AppInfo: no UCI engine answered" << _enginePath;
-    if (_probe) {
-        QProcess* probe = _probe;
-        _probe = nullptr;
-        probe->disconnect(this);
-        connect(probe, &QProcess::finished, probe, &QObject::deleteLater);
-        if (probe->state() == QProcess::NotRunning)
-            probe->deleteLater();
-        else if (name.isEmpty())
-            probe->kill();
-        else
-            QTimer::singleShot(2000, probe, [probe]() { probe->kill(); }); // "quit" was sent
-    }
     emit engineChanged();
 }

@@ -42,6 +42,7 @@ class UserManager : public QObject
     Q_PROPERTY(bool         dataDamaged      READ dataDamaged      NOTIFY usersChanged)
     Q_PROPERTY(bool         canRestoreBackup READ canRestoreBackup NOTIFY usersChanged)
     // Settings → Data: the backups that can be restored, newest first: { number, date, profiles, current }.
+    // current: the same profiles as users.json now.
     Q_PROPERTY(QVariantList backups          READ backups          NOTIFY backupsChanged)
 
 public:
@@ -153,7 +154,8 @@ public slots:
     // users.json → backups/users-1.json now (nothing to do when the newest backup is the same).
     Q_INVOKABLE bool backupNow();
     // Backup <n> replaces users.json; the current profiles become the newest backup first. The
-    // active profile stays logged in when the backup has it. Saved games aren't in backups.
+    // active profile stays logged in when the backup has it. A profile that exists now keeps its
+    // saved-game info (the files aren't in backups) and its Lichess sign-in.
     Q_INVOKABLE bool restoreBackup(int n);
 
 signals:

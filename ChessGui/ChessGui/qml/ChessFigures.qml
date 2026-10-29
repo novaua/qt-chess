@@ -86,16 +86,19 @@ Grid{
                 font.bold: true
             }
 
+            // Fades in when the piece appears; started once, so changing Reduce animations later
+            // doesn't replay it on every square.
             PropertyAnimation {
+                id: chessPiecesFadeIn
                 target: chessPiecesItm;
                 property: "opacity";
                 easing.type: Easing.InOutCirc
                 from: 0;
                 to: 1.0;
                 duration: 450;
-                running: !Theme.reduceMotion;
                 loops: 1;
             }
+            Component.onCompleted: if (!Theme.reduceMotion) chessPiecesFadeIn.start()
 
             MouseArea
             {

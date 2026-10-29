@@ -642,13 +642,14 @@ void UserManager::rotateBackups(const QByteArray& json)
 QVariantList UserManager::backups() const
 {
     QVariantList list;
-    const QByteArray current = readFile(usersFilePath());
+    // The profiles, not who was logged in: a restore keeps the active profile.
+    const QJsonValue current = parseObject(readFile(usersFilePath())).value(QStringLiteral("users"));
     for (int n = 1; n <= kBackupCount; ++n) {
-        const QByteArray json = readFile(backupFilePath(n));
-        if (!isUsersFile(json))
+        const QJsonValue users = parseObject(readFile(backupFilePath(n))).value(QStringLiteral("users"));
+        if (!users.isArray())
             continue;
         QStringList names;
-        for (const auto& u : usersFromJson(parseObject(json).value(QStringLiteral("users")).toArray()))
+        for (const auto& u : usersFromJson(users.toArray()))
             names.append(u.name);
         const QDateTime saved = QFileInfo(backupFilePath(n)).lastModified();
         list.append(QVariantMap{
@@ -656,7 +657,7 @@ QVariantList UserManager::backups() const
             { QStringLiteral("date"),     dayText(saved.date()) + QStringLiteral(", ")
                                           + QLocale().toString(saved.time(), QLocale::ShortFormat) },
             { QStringLiteral("profiles"), names },
-            { QStringLiteral("current"),  json == current }, // the same as users.json now
+            { QStringLiteral("current"),  users == current },
         });
     }
     return list;
@@ -689,7 +690,24 @@ bool UserManager::restoreBackup(int n)
 
     const QString userId = _activeUserId;
     const bool wasLoggedIn = _isLoggedIn;
+    const QList<User> before = _users;
     loadFrom(json);
+    // What belongs to this PC now stays: the save files on disk weren't restored, and a Lichess
+    // sign-in removed since the backup must not come back.
+    for (User& u : _users) {
+        for (const User& now : before) {
+            if (now.id != u.id)
+                continue;
+            u.autoSave              = now.autoSave;
+            u.savedGame             = now.savedGame;
+            u.lichessTokenEncrypted = now.lichessTokenEncrypted;
+            u.lichessUsername       = now.lichessUsername;
+            u.lichessExpired        = now.lichessExpired;
+            u.lichessRatings        = now.lichessRatings;
+            u.pendingChallengeId    = now.pendingChallengeId;
+            u.pendingChallengeUrl   = now.pendingChallengeUrl;
+        }
+    }
     if (wasLoggedIn && userById(userId)) {
         _activeUserId = userId;
         _isLoggedIn = true;
@@ -775,6 +793,7 @@ void UserManager::save()
     root[QStringLiteral("users")]        = usersArray;
 
     writeFileAtomically(usersFilePath(), QJsonDocument(root).toJson());
+    emit backupsChanged(); // which backup is "the same as now" may have changed
 }
 
 // ── Export / import ───────────────────────────────────────────────────────

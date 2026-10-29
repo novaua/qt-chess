@@ -21,6 +21,17 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Board colours fixed** (not P5, found while testing the coordinates on the squares): the squares were mirrored, with a1 and h8 light and the queens on the wrong colour. Now a1 is dark (`ChessBoxes.qml`).
 - **Scenes:** `about` (Settings scrolled to About) and `restore` (two seeded backups, the dialog open) are new; `settings` shows the page. All 21 scenes OK in light and dark, no QML warnings. The `run-chess-app` skill explains how to run a scene with other settings (an ini in `--data-dir`). After shots: `docs/design/after-p5/`. Debug and Release build OK.
 
+### Follow-ups on the same branch
+- **Move list colours** (user report): since P4 every piece was drawn in the text colour, so White's and Black's moves looked alike. Pieces have their own colour again, with a soft glow of the other colour (black glows white, white glows black: `MultiEffect`, `Theme.pieceGlowOnBlack/OnWhite`) so both show on either panel.
+- **Code review** (medium): 10 findings, 6 fixed.
+  - The engine probe tries every candidate, like `UciConnector::Init()`.
+  - `backupsChanged` fires on every save, so "the same as now" stays right; it compares the profiles, not who is logged in.
+  - A restore keeps, for profiles that exist now, the saved-game info (the files aren't restored) and the Lichess sign-in (a removed one doesn't come back).
+  - The piece fade and dot pop start once per piece, so switching Reduce animations doesn't replay them.
+  - The `APP_VERSION_*` C++ defines are for ChessGui only.
+  - Not changed: the coordinates are drawn over the pieces on purpose (as on Lichess); a glow per visible move is cheap (`ListView` only creates the visible rows); `backups` reads 4 small files, only while Settings is open.
+  - 2 more tests; all 151 pass.
+
 ### Not checked live
 - Clicking through the page in a real window: each switch in a game (legal-move dots need a selected piece, resign without confirmation, Reduce animations while flipping), the volume preview sound, Back up now / Restore… / the folder buttons / the About links. Listed in TASKS under P5.
 - The engine line when Stockfish is missing (here it is on the PATH).

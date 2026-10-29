@@ -234,6 +234,49 @@ namespace UserManagerTests
 			Assert::AreEqual(1, um.gamesPlayed());
 		}
 
+		TEST_METHOD(RestoreBackup_KeepsThisPcsLichessSignIn_AndCountsAsTheSameAsNow)
+		{
+			{
+				UserManager um;
+				um.createUser("A", "cat");
+				um.saveLichessCredentials("token", "a_li");
+				um.createUser("B", "fox");   // active: B
+			}
+			UserManager um;                  // backup 1: A (linked) and B, B active
+			const QString a = idOf(um, "A");
+			um.login(a);
+			um.clearLichessToken();          // signed out of Lichess since the backup
+			um.recordResult(a, 1, UserManager::computerKey(3), "Robot");
+
+			Assert::IsTrue(um.restoreBackup(1));
+			Assert::AreEqual(a, um.activeUserId(), L"A stays logged in, not the backup's B");
+			Assert::AreEqual(0, um.gamesPlayed(), L"statistics from the backup");
+			Assert::IsFalse(um.lichessConnected(), L"the removed sign-in doesn't come back");
+
+			const QVariantList list = um.backups();
+			Assert::AreEqual(2, (int)list.size());
+			Assert::IsFalse(list[0].toMap().value("current").toBool(), L"before the restore: A's win");
+			Assert::IsFalse(list[1].toMap().value("current").toBool(), L"the backup still has the Lichess link");
+		}
+
+		TEST_METHOD(RestoreBackup_ActiveProfileKept_TheBackupIsTheSameAsNow)
+		{
+			{
+				UserManager um;
+				um.createUser("A", "cat");
+				um.createUser("B", "fox");   // active: B
+			}
+			UserManager um;                  // backup 1: A and B, B active
+			um.login(idOf(um, "A"));
+			um.recordResult(um.activeUserId(), 1, UserManager::computerKey(3), "Robot");
+
+			Assert::IsTrue(um.restoreBackup(1));
+			const QVariantList list = um.backups();
+			Assert::AreEqual(2, (int)list.size());
+			Assert::IsTrue(list[1].toMap().value("current").toBool(),
+				L"the restored backup is the same profiles, though A (not B) is logged in");
+		}
+
 		TEST_METHOD(RestoreBackup_MissingOrDamaged_Refused)
 		{
 			UserManager um;

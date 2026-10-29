@@ -1,9 +1,8 @@
 #pragma once
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QUrl>
-
-class QProcess;
 
 // What Settings shows about the app: version and build, the data and log folders, and the chess
 // engine (found by a short "uci" run of stockfish.exe, the way UciConnector finds it).
@@ -41,11 +40,12 @@ signals:
     void engineChanged();
 
 private:
-    void finishProbe(const QString& name);
+    void probeNext();
+    void setEngine(const QString& name); // "" = none answered
 
-    QString   _engineState = QStringLiteral("checking");
-    QString   _engineName;
-    QString   _enginePath;
-    QProcess* _probe = nullptr;
-    bool      _probed = false;
+    QString     _engineState = QStringLiteral("checking");
+    QString     _engineName;
+    QString     _enginePath;
+    QStringList _candidates;   // not tried yet
+    bool        _probed = false;
 };
