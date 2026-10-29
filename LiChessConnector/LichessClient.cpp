@@ -312,11 +312,7 @@ void LichessClient::checkGameReady()
     }
 
     // Abort any still-in-flight probe before launching a new one.
-    if (_probeReply) {
-        _probeReply->abort();
-        _probeReply->deleteLater();
-        _probeReply = nullptr;
-    }
+    stopProbe();
 
     qDebug() << "LichessClient: polling stream" << _waitForGameId;
 
@@ -348,6 +344,16 @@ void LichessClient::checkGameReady()
                 if (_probeReply == probe) _probeReply = nullptr;
                 probe->deleteLater();
             });
+}
+
+void LichessClient::stopProbe()
+{
+    if (_probeReply) {
+        auto* probe = _probeReply;
+        _probeReply = nullptr; // before abort(): its errorOccurred handler runs inside abort()
+        probe->abort();
+        probe->deleteLater();
+    }
 }
 
 void LichessClient::onGameStartDetected(const QString& gameId)
@@ -730,11 +736,7 @@ void LichessClient::stopStream()
         reply->abort();
     }
     _pollTimer.stop();
-    if (_probeReply) {
-        _probeReply->abort();
-        _probeReply->deleteLater();
-        _probeReply = nullptr;
-    }
+    stopProbe();
     stopEventStream();
     if (_streamReply) {
         _streamReply->abort();

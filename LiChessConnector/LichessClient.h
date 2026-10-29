@@ -102,6 +102,7 @@ private:
 	void handleEventStreamData(QNetworkReply* reply);
 	void stopEventStream();
 	void checkGameReady();
+	void stopProbe(); // abort the /api/board/game/stream probe of checkGameReady()
 	void onGameStartDetected(const QString& gameId);
 
 	QNetworkAccessManager _nam;
