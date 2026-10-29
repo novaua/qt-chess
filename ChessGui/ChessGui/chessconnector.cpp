@@ -221,6 +221,7 @@ void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
 	if (emitHistoryChanged)
 		emit moveHistoryChanged();
 	emit reviewStateChanged(); // also capturedChanged (constructor)
+	emit canOfferDrawChanged();
 }
 
 void ChessConnector::resetMoveHistoryCache() {
@@ -557,6 +558,7 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	setOpponentGone(false);
 	_engineAutoPlay = false;
 	_onlineGameId = gameId;
+	_drawOfferPly = -1;
 	emit isOnlineGameChanged();
 	_wasVsComputer = false;
 	beginGame(true);
@@ -661,10 +663,21 @@ void ChessConnector::resignGame()
 	emit checkMateResult(whiteResigns ? QStringLiteral("Black Won") : QStringLiteral("White Won"));
 }
 
+bool ChessConnector::canOfferDraw() const
+{
+	// Lichess's rule (its own button is disabled the same way): not before both sides moved,
+	// and not again until 20 plies after our previous offer. Lichess ignores such an offer.
+	const int ply = _game->GetMoveCount();
+	return isOnlineGame() && ply >= 2 && (_drawOfferPly < 0 || _drawOfferPly < ply - 20);
+}
+
 void ChessConnector::offerDraw()
 {
-	if (!_onlineGameId.isEmpty() && _lichessClient)
-		_lichessClient->offerDraw(_onlineGameId, true);
+	if (!canOfferDraw() || !_lichessClient)
+		return;
+	_lichessClient->offerDraw(_onlineGameId, true);
+	_drawOfferPly = _game->GetMoveCount();
+	emit canOfferDrawChanged();
 }
 
 void ChessConnector::claimVictory()
