@@ -32,6 +32,7 @@ public:
         QString playerAvatarName  = "wizard";
         QString opponentAvatarName = "unicorn";
         QString opponentName;              // "Robot", a profile name or "Guest"; empty in older saves
+        QDate   startDate;                 // the day the game started (PGN Date); invalid in older saves
     };
     explicit UserManager(QObject* parent = nullptr);
 

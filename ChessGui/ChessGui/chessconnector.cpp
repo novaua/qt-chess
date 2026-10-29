@@ -958,6 +958,7 @@ void ChessConnector::saveGame()
 		info.isSinglePlayer = _engineWorker != nullptr;
 		info.playerPlaysWhite = _config.playerPlaysWhite;
 		info.opponentName = _opponentName;
+		info.startDate = _gameDate;
 		if (_avatarProvider) {
 			info.playerAvatarName = _avatarProvider->playerRawName();
 			info.opponentAvatarName = _avatarProvider->opponentRawName();
@@ -984,7 +985,7 @@ bool ChessConnector::loadGame()
 			_game->Load(savedGamePath().toStdString());
 			_game->Restart();
 			_player = _game->MakePlayer();
-			_gameDate = {}; // not in the save file
+			_gameDate = info.startDate; // invalid for saves made before it was kept
 			buildFullHistoryCache();
 			emit IsOnPlayerModeChanged();
 			EmitMoveCountUpdates();
@@ -1243,7 +1244,7 @@ bool ChessConnector::continueGame()
 	const bool isSingle = info.isSinglePlayer;
 	_wasVsComputer = isSingle;
 	beginGame(false);
-	_gameDate = {}; // started on an earlier day maybe: the autosave doesn't keep it
+	_gameDate = info.startDate; // maybe an earlier day; invalid in older autosaves
 
 	_config.playerPlaysWhite = info.playerPlaysWhite;
 	emit playerPlaysWhiteChanged();
@@ -1293,6 +1294,7 @@ void ChessConnector::autoSaveGame(bool isSinglePlayer)
 		info.isSinglePlayer = isSinglePlayer;
 		info.playerPlaysWhite = _config.playerPlaysWhite;
 		info.opponentName = _opponentName;
+		info.startDate = _gameDate;
 		if (_avatarProvider) {
 			info.playerAvatarName = _avatarProvider->playerRawName();
 			info.opponentAvatarName = _avatarProvider->opponentRawName();

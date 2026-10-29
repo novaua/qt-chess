@@ -4,6 +4,13 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-29 — PGN date kept in saves (branch: pgnGameDate_291026)
+
+- Hand check by the user: Copy PGN and Export PGN work, but a continued game exported `[Date "????.??.??"]`.
+- `GameSaveInfo.startDate` (`startDate` in users.json) is written with the autosave and the saved game, and read back by Continue and Open saved game. Saves made before this still give `????.??.??`. Checked: the `continue` scene's autosave holds `"startDate": "2026-10-29"`. `ChessTests` 85/85.
+
+---
+
 ## 2026-10-29 — P4 code review fixes (branch: p4ReviewFixes_291026); next: P3
 
 A `/code-review` of #81 found 10 issues. I checked all of them: 9 were real, and 1 (the overlapping review properties) was mostly style. This branch fixes 9, including the style one; #2 became backlog item BL-09.
