@@ -22,6 +22,14 @@ bool HistoryMove::IsEnPassantMove() const {
 		&& (int)To.Position % 8 != (int)From.Position % 8;
 }
 
+Piece HistoryMove::CapturedPiece() const {
+	if (IsCapturingMove())
+		return To.Piece;
+	if (IsEnPassantMove())
+		return { PAWN, OppositeSideOf(From.Piece.Color) };
+	return { EMPTY, PieceColors::Empty };
+}
+
 bool HistoryMove::IsCastlingMove() const {
 	return From.Piece.Type == KING
 		&& std::abs((int)To.Position % 8 - (int)From.Position % 8) == 2;

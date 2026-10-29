@@ -163,14 +163,9 @@ Page {
 
     // ── Status for the move panel and the sheet ──
     readonly property bool _playerToMove: (ChessConnector.IsWhiteMove === 1) === ChessConnector.PlayerPlaysWhite
-    readonly property int _plyCount: {
-        var rows = ChessConnector.MoveHistory
-        var last = rows[rows.length - 1]
-        return last ? (last.bPly > 0 ? last.bPly : last.wPly) : 0
-    }
     readonly property string status: {
         if (gameOver)                      return ChessConnector.ResultText
-        if (mode === "replay")             return "Move " + ChessConnector.ShownPly + " of " + _plyCount
+        if (mode === "replay")             return "Move " + ChessConnector.ShownPly + " of " + ChessConnector.PlyCount
         if (ChessConnector.EngineThinking) return "Robot is thinking…"
         return (_playerToMove ? ChessConnector.PlayerName : ChessConnector.OpponentName) + " to move"
     }
@@ -186,6 +181,10 @@ Page {
     readonly property string reviewText: !ChessConnector.ReviewMode ? ""
         : ChessConnector.ShownPly === 0 ? "Viewing the start position"
         : "Viewing " + shownMove
+
+    readonly property bool canRematch: gameOver && ChessConnector.CanRematch && !rematchPending
+    // The game is over and its result card closed: Rematch / New game move to the moves panel.
+    readonly property bool _resultHidden: gameOver && _resultShown && _resultCardClosed
 
     // The board flipped away from the player: the player's card goes on top.
     readonly property bool _flipped: chessBoard.angle !== (ChessConnector.PlayerPlaysWhite ? 0 : 180)
@@ -226,6 +225,7 @@ Page {
         readonly property real boardSize: Math.max(200, Math.min(width - panelW,
                                                 height - 2 * (Theme.playerCardHeight + gap)))
         readonly property real squaresSize: boardSize * 0.95
+        onWideChanged: if (wide) page.sheetOpen = false   // the sheet is hidden then
 
         Column {
             id: boardColumn
@@ -269,12 +269,13 @@ Page {
                     anchors.centerIn: parent
                     width: Math.min(area.squaresSize - 2 * Theme.s5, 440)
                     resultText: ChessConnector.ResultText
-                    canRematch: page.gameOver && ChessConnector.CanRematch && !page.rematchPending
+                    canRematch: page.canRematch
                     onRematchRequested: ChessConnector.rematch()
                     onNewGameRequested: page.newGameRequested()
                     onReviewRequested: {
                         page._resultCardClosed = true
                         page.sheetOpen = !area.wide
+                        ChessConnector.reviewFirst()
                     }
                     onCloseRequested: page._resultCardClosed = true
                 }
@@ -303,7 +304,11 @@ Page {
                 anchors.margins: 1
                 status: page.status
                 reviewText: page.reviewText
+                resultActions: page._resultHidden
+                canRematch: page.canRematch
                 onExportRequested: page.exportPgnRequested()
+                onRematchRequested: ChessConnector.rematch()
+                onNewGameRequested: page.newGameRequested()
             }
         }
     }
@@ -372,6 +377,13 @@ Page {
                     visible: page.reviewText !== ""
                     text: "Back to live"
                     onClicked: ChessConnector.reviewLast()
+                }
+                // The closed result card again: Rematch, New game.
+                Button {
+                    visible: page._resultHidden && page.reviewText === ""
+                    text: "Result"
+                    icon.source: Theme.icon("trophy")
+                    onClicked: page._resultCardClosed = false
                 }
                 IconImage {
                     Layout.rightMargin: Theme.s4

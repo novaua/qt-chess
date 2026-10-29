@@ -11,8 +11,12 @@ ColumnLayout {
     property string status        // e.g. "Bob to move", the result
     property string reviewText    // "Viewing 12. Nf3" while reviewing: shown with Back to live
     property bool   showTitle: true
+    property bool   resultActions: false   // the game is over and its result card closed
+    property bool   canRematch: false
 
     signal exportRequested()
+    signal rematchRequested()
+    signal newGameRequested()
 
     spacing: 0
 
@@ -96,6 +100,28 @@ ColumnLayout {
         color: Theme.textSecondary
         wrapMode: Text.WordWrap
         horizontalAlignment: Text.AlignHCenter
+    }
+
+    // What the closed result card offered.
+    RowLayout {
+        Layout.alignment: Qt.AlignHCenter
+        Layout.bottomMargin: Theme.s3
+        visible: panel.resultActions && panel.reviewText === ""
+        spacing: Theme.s2
+
+        Button {
+            visible: panel.canRematch
+            text: "Rematch"
+            icon.source: Theme.icon("rematch")
+            highlighted: true
+            onClicked: panel.rematchRequested()
+        }
+        Button {
+            text: "New game"
+            icon.source: Theme.icon("play")
+            highlighted: !panel.canRematch
+            onClicked: panel.newGameRequested()
+        }
     }
 
     // Reviewing: a slim InfoBar with the way back.

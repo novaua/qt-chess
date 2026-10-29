@@ -300,6 +300,7 @@ namespace Chess
 		}
 
 		_historyAptr->pop_back();
+		_checkMate = false; // a mate can only be the last move
 		NotifyBoardChangesListeners({ undoMove.From, undoMove.To });
 	}
 

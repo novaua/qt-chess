@@ -283,6 +283,56 @@ public:
     }
 };
 
+TEST_CLASS(CapturedPieceTests) {
+public:
+
+    TEST_METHOD(NormalCapture) {
+        Board board; ClearBoard(board);
+        board.Place(f3, { KNIGHT, PieceColors::Light });
+        board.Place(e5, { BISHOP, PieceColors::Dark  });
+        auto hm = board.DoMove({ f3, e5, true });
+        Assert::IsTrue(hm.CapturedPiece() == Piece{ BISHOP, PieceColors::Dark });
+    }
+
+    // Game moves the taken pawn onto the target square first: a normal capture in its record.
+    TEST_METHOD(EnPassantInAGame) {
+        auto rec = PlayMoves({ { e2, e4 }, { a7, a6 }, { e4, e5 }, { d7, d5 }, { e5, d6 } });
+        Assert::IsTrue(rec.back().CapturedPiece() == Piece{ PAWN, PieceColors::Dark });
+    }
+
+    // A bare Board move leaves the target square empty.
+    TEST_METHOD(EnPassantOnABoard) {
+        Board board; ClearBoard(board);
+        board.Place(e5, { PAWN, PieceColors::Light });
+        board.Place(d5, { PAWN, PieceColors::Dark  });
+        auto hm = board.DoMove({ e5, d6, true });
+        Assert::IsTrue(hm.IsEnPassantMove());
+        Assert::IsTrue(hm.CapturedPiece() == Piece{ PAWN, PieceColors::Dark });
+    }
+
+    TEST_METHOD(QuietMoveTakesNothing) {
+        auto rec = PlayMoves({ { e2, e4 } });
+        Assert::IsTrue(rec.back().CapturedPiece().IsEmpty());
+    }
+};
+
+TEST_CLASS(GameCheckMateTests) {
+public:
+
+    TEST_METHOD(SetByMateClearedByUndo) {
+        Game game;
+        game.Restart();
+        game.DoMove(f2, f3);
+        game.DoMove(e7, e5);
+        game.DoMove(g2, g4);
+        Assert::IsFalse(game.IsCheckMate());
+        game.DoMove(d8, h4);
+        Assert::IsTrue(game.IsCheckMate());
+        game.UndoMove();
+        Assert::IsFalse(game.IsCheckMate());
+    }
+};
+
 TEST_CLASS(PgnTests) {
 public:
 
