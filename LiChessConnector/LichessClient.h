@@ -10,6 +10,7 @@ class QJsonObject;
 // Settings of the last game, kept so a rematch can recreate it with colors swapped.
 struct RematchInfo
 {
+	QString gameId;              // the game itself: the opponent's rematch offer names it in rematchOf
 	QString opponentId;          // Lichess user id; empty = anonymous opponent
 	QString opponentName;
 	bool    playedAsWhite     = true;
@@ -47,6 +48,13 @@ public:
 	// challengeCreated). Either way gameStarted follows once the opponent joins.
 	void createRematch(); // via ChessConnector::rematch()
 	bool canRematch() const { return _lastGame.valid && !_token.isEmpty(); }
+	// After the game: listen for the opponent's rematch offer until stopStream(). Lichess sends it
+	// on the event stream as a challenge to us (emits rematchOffered, then maybe rematchOfferCanceled).
+	void watchForRematch();
+	void acceptRematch();  // the offer's id is the new game's id: gameStarted follows
+	void declineRematch();
+	// A "challenge" event's challenge that is the opponent's rematch offer after lastGameId.
+	static bool isRematchOffer(const QJsonObject& challenge, const QString& lastGameId, const QString& username);
 	const RematchInfo& lastGame() const { return _lastGame; }
 
 	// Settings of the game described by a Board API "gameFull" stream line, from our side.
@@ -81,6 +89,8 @@ signals:
 	void directChallengeSent(QString challengeId, QString opponentName);
 	void challengeDeclined(QString opponentName);
 	void canRematchChanged();
+	void rematchOffered();
+	void rematchOfferCanceled(); // withdrawn by the opponent
 	// The opponent left (gone) or came back. claimWinInSeconds: when claimVictory() becomes
 	// possible; -1 if Lichess didn't say.
 	void opponentGone(bool gone, int claimWinInSeconds);
@@ -100,8 +110,11 @@ private:
 	void handleStreamData(QNetworkReply* reply);
 
 	void handleEventStreamData(QNetworkReply* reply);
+	void handleRematchOffer(const QString& type, const QJsonObject& challenge);
+	void openEventStream();
 	void stopEventStream();
 	void checkGameReady();
+	void stopProbe(); // abort the /api/board/game/stream probe of checkGameReady()
 	void onGameStartDetected(const QString& gameId);
 
 	QNetworkAccessManager _nam;
@@ -123,4 +136,6 @@ private:
 	bool           _directChallengeDone     = false; // a {"done":...} line arrived
 	QTimer         _pollTimer;
 	RematchInfo    _lastGame;
+	bool           _watchingForRematch = false; // keep the event stream open for the opponent's offer
+	QString        _rematchOfferId;             // the opponent's offer we got; empty = none
 };

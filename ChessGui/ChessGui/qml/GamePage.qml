@@ -108,6 +108,7 @@ Page {
         }
         IconButton {
             visible: page.mode === "online" && !page.gameOver
+            enabled: ChessConnector.CanOfferDraw // Lichess allows one offer per 10 moves
             icon.source: Theme.icon("draw"); tip: "Offer draw"
             onClicked: ChessConnector.offerDraw()
         }

@@ -59,7 +59,8 @@ class ChessConnector : public QObject
 		Q_PROPERTY(QString PlayerName   READ playerName   NOTIFY gameInfoChanged) // the bottom player card
 		Q_PROPERTY(QString OpponentName READ opponentName NOTIFY gameInfoChanged) // the top one
 		Q_PROPERTY(QString ResultText READ resultText NOTIFY gameResultChanged) // e.g. "Bob wins by checkmate"
-		Q_PROPERTY(QString PendingOffer READ pendingOffer NOTIFY pendingOfferChanged) // Lichess opponent offers: "", "draw", "takeback"
+		Q_PROPERTY(QString PendingOffer READ pendingOffer NOTIFY pendingOfferChanged) // Lichess opponent offers: "", "draw", "takeback", "rematch"
+		Q_PROPERTY(bool CanOfferDraw    READ canOfferDraw    NOTIFY canOfferDrawChanged) // Lichess: from ply 2, then 20 plies after our last offer
 		Q_PROPERTY(bool OpponentGone    READ opponentGone    NOTIFY opponentGoneChanged)
 		Q_PROPERTY(int  ClaimWinSeconds READ claimWinSeconds NOTIFY opponentGoneChanged) // when it became gone; -1 = not said
 		Q_PROPERTY(QString ContinueDescription READ continueDescription NOTIFY canContinueChanged) // the autosaved game, e.g. "vs Bob"
@@ -106,6 +107,7 @@ public:
 	QString opponentName() const { return _opponentName; }
 	QString resultText() const { return _resultText; }
 	QString pendingOffer() const { return _pendingOffer; }
+	bool    canOfferDraw() const;
 	bool    opponentGone()    const { return _opponentGone; }
 	int     claimWinSeconds() const { return _claimWinSeconds; }
 	QString continueDescription() const;
@@ -147,6 +149,7 @@ signals:
 	void flaggedKingChanged();
 	void gameInfoChanged();
 	void pendingOfferChanged();
+	void canOfferDrawChanged();
 	void opponentGoneChanged();
 
 	void castlingNotify();
@@ -199,6 +202,7 @@ public slots:
 	Q_INVOKABLE void respondDraw(bool accept);
 	Q_INVOKABLE void requestTakeback();
 	Q_INVOKABLE void respondTakeback(bool accept);
+	Q_INVOKABLE void respondRematch(bool accept);
 	Q_INVOKABLE void rematch();
 
 private slots:
@@ -272,6 +276,7 @@ private:
 	QString _opponentName;
 	QString _opponentUserId;
 	QString _pendingOffer;
+	int  _drawOfferPly = -1; // ply of our last Lichess draw offer; -1 = none in this game
 	bool _opponentGone = false;
 	int  _claimWinSeconds = -1;
 	AppConfig _config;

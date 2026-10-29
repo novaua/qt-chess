@@ -392,6 +392,21 @@ ApplicationWindow {
             }
         }
 
+        InfoBar {
+            width: parent.width
+            visible: ChessConnector.PendingOffer === "rematch"
+            closable: false
+            text: ChessConnector.OpponentName + " offers a rematch"
+            Button {
+                text: "Accept"; highlighted: true
+                onClicked: ChessConnector.respondRematch(true)
+            }
+            Button {
+                text: "Decline"
+                onClicked: ChessConnector.respondRematch(false)
+            }
+        }
+
         // Lichess "opponentGone": counts down until Lichess allows claiming the win.
         InfoBar {
             id: opponentGoneBar
