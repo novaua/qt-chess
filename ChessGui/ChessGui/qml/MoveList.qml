@@ -58,15 +58,21 @@ ListView {
         contentItem: Row {
             leftPadding: Theme.s1
             spacing: 1
-            Image {
+            // The piece in its own colour, so White's and Black's moves differ at a glance. On a dark
+            // panel a black piece sits on a light square, or it would vanish.
+            Rectangle {
                 visible: cell.piece !== ""
                 anchors.verticalCenter: parent.verticalCenter
-                width: 18; height: 18
-                // In the text colour, like a figurine font: black pieces vanish on a dark panel.
-                source: cell.piece === "" ? ""
-                      : Theme.piece(Theme.dark ? cell.piece.toUpperCase() : cell.piece.toLowerCase())
-                fillMode: Image.PreserveAspectFit
-                sourceSize: Qt.size(36, 36)
+                width: 20; height: 20
+                radius: 3
+                color: Theme.dark && cell.piece === cell.piece.toLowerCase() ? Theme.squareLight : "transparent"
+                Image {
+                    anchors.centerIn: parent
+                    width: 18; height: 18
+                    source: cell.piece === "" ? "" : Theme.piece(cell.piece)
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize: Qt.size(36, 36)
+                }
             }
             Label {
                 anchors.verticalCenter: parent.verticalCenter
