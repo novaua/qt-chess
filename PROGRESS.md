@@ -4,6 +4,18 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — Moved to Qt 6.12.0 (branch: qt612Upgrade_301026)
+
+### What was done
+- **Every Qt project now builds against `6.12.0_msvc2022_64`**: ChessGui, LiChessConnector, UciConnector, ChessQtTests, and ChessTests, which used `$(DefaultQtVersion)` (still 6.10.2 in Qt VS Tools) and is now pinned like the others. CI (`release.yml`, `tests.yml`) installs 6.12.0 with only `qtmultimedia`: `qt5compat` and `qtshadertools` aren't used since BL-02 P1.
+- **Modules:** the app needs Qt Multimedia (the `SoundEffect`s in `ChessGame.qml` and `SettingsPage.qml`). It's an add-on that the 6.12.0 install didn't have at first; with it added, nothing else is missing. Also not installed, and not used: Qt5Compat, Charts, Quick3D, ShaderTools, Quick Timeline.
+- **Qt 6.11 change: `DialogButtonBox` sets `highlighted` on its buttons** and highlights only its new `defaultButton`. A `highlighted: true` on a footer button was overwritten to `false`, so every dialog's primary button lost its accent colour. The 8 dialogs with a primary button now set `defaultButton: primaryButton` on the box (see `AppDialog.qml`).
+- **Checked:** Debug and Release build clean; 86 + 71 tests pass; all 42 screenshot scenes render. Compared with the 6.10 baselines, the rest of the differences are 6.12's semibold Fluent dialog titles, text anti-aliasing, and the Qt version and build date on About.
+
+### Where to continue
+- Accept the new look as the baselines: `scripts\Compare-Screenshots.ps1 -Update` (local).
+- Locally, put `D:\Tools\Qt\6.12.0\msvc2022_64\bin` on `PATH` in place of 6.10.2's (the app takes Qt's DLLs from there). You can also make 6.12.0 the default in Qt VS Tools.
+
 ## 2026-10-29 — BL-09 engine move on the GUI thread done (branch: engineThreadMove_291026)
 
 ### What was done

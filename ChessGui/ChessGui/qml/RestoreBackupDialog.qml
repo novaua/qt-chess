@@ -54,9 +54,10 @@ AppDialog {
     }
 
     footer: DialogButtonBox {
+        defaultButton: primaryButton // highlighted (the box sets it, Qt 6.11+)
         Button {
+            id: primaryButton
             text: "Restore"
-            highlighted: true
             enabled: dialog._selected > 0
             DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
         }

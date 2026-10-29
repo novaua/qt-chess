@@ -7,7 +7,7 @@ on:
   workflow_call:
 
 env:
-  QT_VERSION: '6.10.2'
+  QT_VERSION: '6.12.0'
 
 jobs:
   test:
@@ -22,7 +22,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           arch: win64_msvc2022_64
-          modules: qt5compat qtshadertools qtmultimedia
+          modules: qtmultimedia
 
       # Puts msbuild on PATH (ilammy/msvc-dev-cmd has no Node 24 release yet).
       - name: Setup MSBuild

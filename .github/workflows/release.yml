@@ -7,7 +7,7 @@ on:
     tags: ['v*']
 
 env:
-  QT_VERSION: '6.10.2'
+  QT_VERSION: '6.12.0'
 
 jobs:
   test:
@@ -26,7 +26,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           arch: win64_msvc2022_64
-          modules: qt5compat qtshadertools qtmultimedia
+          modules: qtmultimedia
 
       # Puts msbuild on PATH (ilammy/msvc-dev-cmd has no Node 24 release yet).
       - name: Setup MSBuild
@@ -37,7 +37,7 @@ jobs:
       # The VSIX is a ZIP; we extract it, locate qt.targets, and hand the
       # directory to MSBuild via /p:QtMsBuild. The Qt installation is
       # registered in the HKCU registry under the version name that matches
-      # <QtInstall>6.10.2_msvc2022_64</QtInstall> in ChessGui.vcxproj.
+      # <QtInstall>6.12.0_msvc2022_64</QtInstall> in ChessGui.vcxproj.
       - name: Install Qt VS Tools MSBuild integration
         id: qtvstools
         shell: pwsh

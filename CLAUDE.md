@@ -12,7 +12,7 @@ Qt-chess is a chess application with a Qt QML frontend and C++ backend, supporti
 
 **Qt GUI project** also has a `.pro` file for Qt Creator: `ChessGui/ChessGui/ChessGui.pro`
 
-**Dependencies**: Qt 6.10+ only — no third-party C++ libraries and no package manager (vcpkg was removed once Boost was replaced by Qt).
+**Dependencies**: Qt 6.12+ only (with the Qt Multimedia add-on) — no third-party C++ libraries and no package manager (vcpkg was removed once Boost was replaced by Qt).
 
 **Build configurations**: Debug|x64 and Release|x64 are the relevant targets.
 

@@ -3,7 +3,8 @@ import QtQuick.Controls
 
 // Base for every modal dialog: centred over the window with a scrim behind it, Enter runs
 // accept() and Esc runs reject(). Give it a `footer: DialogButtonBox { … }`; the box's
-// Accept/Reject role buttons are wired to accept()/reject() by Dialog itself.
+// Accept/Reject role buttons are wired to accept()/reject() by Dialog itself. The box's
+// `defaultButton` is the highlighted one: since Qt 6.11 the box sets `highlighted` on its buttons.
 //
 // Opened with open(). The dialogs live in ChessGame.qml; pages ask for them through signals.
 Dialog {
