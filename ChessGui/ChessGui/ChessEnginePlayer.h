@@ -8,9 +8,10 @@ namespace Chess {
 	enum class PositionMode { StartPos, PureFen, FenWindow };
 	constexpr int FenWindowSize = 8;
 
+	// Asks the engine for a move. It never touches the app's Game: it gets a copy of the
+	// move list and returns the move, which the caller plays on its own thread (BL-09).
 	class ChessEnginePlayer
 	{
-		GameAptr _game;
 		UciConnectorAPtr _connector;
 		EngineLevel _level;
 		PositionMode _mode;
@@ -19,15 +20,16 @@ namespace Chess {
 		void StartEngine();
 
 	public:
-		ChessEnginePlayer(const GameAptr& game,
-		                  EngineLevel level = EngineLevel{3},
+		ChessEnginePlayer(EngineLevel level = EngineLevel{3},
 		                  PositionMode mode = PositionMode::FenWindow);
 
-		void DoMove();
+		// The engine's move in UCI notation (e.g. "e7e8q") for the game with these moves
+		// from the start position.
+		std::string FindMove(const MovesHistory& history);
 		void KillEngine();
 
 		// Position, move list and engine state as text, to log when a move request fails.
-		std::string DebugDump();
+		std::string DebugDump(const MovesHistory& history);
 	};
 
 	typedef std::shared_ptr<ChessEnginePlayer> ChessEnginePlayerAptr;

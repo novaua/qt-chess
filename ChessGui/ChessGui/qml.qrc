@@ -25,6 +25,7 @@
         <file>qml/SettingRow.qml</file>
         <file>qml/RestoreBackupDialog.qml</file>
         <file>qml/AvatarPicker.qml</file>
+        <file>qml/ScreenshotScene.qml</file>
         <file>qml/SectionCard.qml</file>
         <file>qml/ImportConflictDialog.qml</file>
         <file>qml/LichessGameDialog.qml</file>

@@ -172,76 +172,19 @@ ApplicationWindow {
         challengeDialog.close()
     }
 
-    // ── --screenshot mode (see main.cpp): set up the scene, then C++ grabs the window ──
-    readonly property var _shot: ChessConnector.ScreenshotScene
-    Component.onCompleted: {
-        route()
-        if (_shot.scene)
-            Qt.callLater(setUpScreenshotScene)
-    }
+    Component.onCompleted: route()
 
-    function setUpScreenshotScene() {
-        if (_shot.width)  root.width  = _shot.width
-        if (_shot.height) root.height = _shot.height
-        AppSettings.theme = _shot.dark ? 2 : 1   // not "system": stable screenshots
-        Theme.forceHighContrast = _shot.highContrast
-        Theme.forceReduceMotion = true   // repeatable pictures for Compare-Screenshots.ps1
-        var scene = ({ menu: "home", board: "game", login: "profiles" })[_shot.scene] ?? _shot.scene
-
-        // welcome and create-user: first run. profiles and import: profiles made by main.cpp, nobody
-        // logged in. The profile scenes: main.cpp's profiles, logged in as Tester.
-        if (scene === "create-user") {
-            createUserDialog.open()
-        } else if (scene === "import") {
-            inspectImport(_shot.importFile)   // Bob again: the conflict dialog
-        } else if (scene !== "welcome" && scene !== "profiles" && !UserManager.isLoggedIn) {
-            if (UserManager.hasUsers) UserManager.login(UserManager.users[0].id)
-            else                      UserManager.createUser("Tester", "wizard")
+    // ── --screenshot mode (see main.cpp): ScreenshotScene.qml sets up the scene, then C++ grabs the
+    // window. Loaded only when a scene is asked for.
+    readonly property bool _screenshotMode: !!ChessConnector.ScreenshotScene.scene
+    Loader {
+        active: root._screenshotMode
+        sourceComponent: ScreenshotScene {
+            window: root
+            pages: stack
+            dialogs: ({ createUser: createUserDialog, restoreBackup: restoreBackupDialog, levels: levelsHelp,
+                        online: onlineDialog, computer: computerDialog, twoPlayer: twoPlayerDialog })
         }
-        // A second profile to play against: same names and avatars every time.
-        var gameScene = ["game", "continue", "review", "result", "ended", "moves"].includes(scene)
-        if ((gameScene || scene === "players") && UserManager.userCount < 2) {
-            var me = UserManager.activeUserId
-            UserManager.createUser("Bob", "fox")
-            UserManager.login(me)
-        }
-
-        if (scene === "settings" || scene === "about" || scene === "restore") openSettings()
-        if (scene === "restore")  restoreBackupDialog.open()
-        if (scene === "about")    stack.currentItem.showAbout()
-        if (scene === "levels")   levelsHelp.open()
-        if (scene.startsWith("profile") && scene !== "profiles") openProfile()
-        if (scene === "online")   onlineDialog.open()
-        if (scene === "computer") computerDialog.openNew()
-        if (scene === "players")  twoPlayerDialog.open()
-        if (gameScene) {
-            // A Scandinavian with captures on both sides (Black +1), and Fool's mate for the result.
-            var middlegame = "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 c1d2 c7c6 "
-                           + "c3d5 a5d8 d5f6 d8f6 d1e2 f5c2"
-            var defaultMoves = ({ continue: "e2e4 e7e5", review: middlegame, moves: middlegame,
-                                  result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4" })[scene] ?? ""
-            var bob = UserManager.users.find(u => u.name === "Bob")
-            ChessConnector.startLocalGame(!_shot.black, bob ? bob.id : "")
-            if (_shot.moves || defaultMoves)
-                ChessConnector.applyMoves(_shot.moves || defaultMoves)
-            if (scene === "continue")
-                ChessConnector.endGame()   // autosaved: Home offers to continue it
-            if (scene === "review")
-                ChessConnector.reviewTo(9)
-            if (scene === "moves")
-                stack.currentItem.sheetOpen = true   // the move sheet (narrow window)
-            if (scene === "ended")
-                stack.currentItem._resultCardClosed = true   // Rematch / New game in the moves panel
-        }
-
-        // A finished game shows its result only after GamePage's resultTimer (1600 ms).
-        screenshotReadyTimer.interval = ChessConnector.GameResult !== "" ? 1700 : 0
-        screenshotReadyTimer.start()
-    }
-
-    Timer {
-        id: screenshotReadyTimer
-        onTriggered: ChessConnector.screenshotSceneReady()
     }
 
     Settings {
@@ -272,8 +215,8 @@ ApplicationWindow {
     // --screenshot: a real window (so the Fluent style gets the forced light/dark palette, which
     // -platform offscreen can't do) that the user never sees or clicks; grabWindow() still
     // captures the rendered scene.
-    opacity: _shot.scene ? 0 : 1
-    flags: _shot.scene ? Qt.Tool | Qt.FramelessWindowHint | Qt.WindowTransparentForInput
+    opacity: _screenshotMode ? 0 : 1
+    flags: _screenshotMode ? Qt.Tool | Qt.FramelessWindowHint | Qt.WindowTransparentForInput
                          | Qt.WindowDoesNotAcceptFocus
                        : Qt.Window
 

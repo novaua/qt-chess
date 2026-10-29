@@ -173,11 +173,7 @@ void ChessConnector::onHumanMoveDone()
 	}
 
 	if (_engineWorker && !_gameOver && _engineAutoPlay)
-	{
-		_engineThinking = true;
-		emit engineThinkingChanged();
-		emit requestEngineMove();
-	}
+		askEngineMove();
 }
 
 QStringList& ChessConnector::PossibleMoves()
@@ -831,9 +827,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_engineAutoPlay = true;
 	startEngineThread(Chess::EngineLevel(level));
 	if (!_config.playerPlaysWhite) {
-		_engineThinking = true;
-		emit engineThinkingChanged();
-		emit requestEngineMove();
+		askEngineMove();
 	}
 }
 
@@ -897,12 +891,11 @@ void ChessConnector::startEngineThread(Chess::EngineLevel level)
 	auto mode = _config.useFen
 		? Chess::PositionMode::FenWindow
 		: Chess::PositionMode::StartPos;
-	_engineWorker = new EngineWorker(_game, level, mode);
+	_engineWorker = new EngineWorker(level, mode);
 	_engineThread = new QThread(this);
 	_engineWorker->moveToThread(_engineThread);
 
-	connect(this, &ChessConnector::requestEngineMove, _engineWorker, &EngineWorker::doMove);
-	connect(_engineWorker, &EngineWorker::moveComplete, this, &ChessConnector::onEngineMoveComplete);
+	connect(_engineWorker, &EngineWorker::moveFound, this, &ChessConnector::onEngineMoveFound);
 	connect(_engineWorker, &EngineWorker::moveError, this, &ChessConnector::onEngineMoveError);
 
 	// Destroy the worker on the engine thread when it finishes.
@@ -918,7 +911,7 @@ void ChessConnector::stopEngineThread()
 	if (!_engineThread)
 		return;
 
-	disconnect(this, &ChessConnector::requestEngineMove, _engineWorker, &EngineWorker::doMove);
+	++_engineRequest; // an answer still on its way belongs to the old game: drop it
 
 	// Kill the stockfish process so any blocking waitForReadyRead() in the engine
 	// thread returns immediately, allowing the thread to exit cleanly.
@@ -940,8 +933,31 @@ void ChessConnector::stopEngineThread()
 	emit engineThinkingChanged();
 }
 
-void ChessConnector::onEngineMoveComplete()
+// The robot's turn. The engine thread gets a copy of the moves and only looks for a move;
+// onEngineMoveFound() plays it here, on the GUI thread, which owns _game (BL-09).
+void ChessConnector::askEngineMove()
 {
+	_engineThinking = true;
+	emit engineThinkingChanged();
+	auto worker = _engineWorker;
+	const int request = ++_engineRequest;
+	const auto history = _game->GetGameRecord();
+	QMetaObject::invokeMethod(worker, [worker, request, history] { worker->findMove(request, history); },
+		Qt::QueuedConnection);
+}
+
+void ChessConnector::onEngineMoveFound(int request, const QString& move)
+{
+	if (request != _engineRequest)
+		return;
+	try {
+		_game->DoMove(Chess::Move::Parse(move.toStdString()));
+	}
+	catch (const std::exception& ex) {
+		onEngineMoveError(request, QStringLiteral("the engine's move %1 can't be played: %2").arg(move, ex.what()),
+			QStringLiteral("fen: ") + QString::fromStdString(_game->MakeFen()));
+		return;
+	}
 	_engineThinking = false;
 	emit engineThinkingChanged();
 	if (reviewMode()) {
@@ -956,8 +972,10 @@ void ChessConnector::onEngineMoveComplete()
 	}
 }
 
-void ChessConnector::onEngineMoveError(const QString& message, const QString& details)
+void ChessConnector::onEngineMoveError(int request, const QString& message, const QString& details)
 {
+	if (request != _engineRequest)
+		return;
 	_engineThinking = false;
 	emit engineThinkingChanged();
 	qDebug() << "[Engine] move error:" << message;
@@ -1087,9 +1105,7 @@ void ChessConnector::movePrev()
 			EmitMoveCountUpdates();
 			// E.g. the robot's own first move was taken back: let it play again.
 			if (_game->IsWhiteMove() != _config.playerPlaysWhite) {
-				_engineThinking = true;
-				emit engineThinkingChanged();
-				emit requestEngineMove();
+				askEngineMove();
 			}
 			return;
 		}
@@ -1289,9 +1305,7 @@ bool ChessConnector::continueGame()
 		_engineAutoPlay = true;
 		startEngineThread(Chess::EngineLevel(_config.lastLevel));
 		if (_game->IsWhiteMove() != _config.playerPlaysWhite && !_promotionPending) {
-			_engineThinking = true;
-			emit engineThinkingChanged();
-			emit requestEngineMove();
+			askEngineMove();
 		}
 	}
 	// A deleted opponent profile: the game goes on, counted as against a Guest.

@@ -103,6 +103,7 @@ DISTFILES += \
     qml/ProfilePickerPage.qml \
     qml/ProfilePage.qml \
     qml/AvatarPicker.qml \
+    qml/ScreenshotScene.qml \
     qml/SectionCard.qml \
     qml/ImportConflictDialog.qml \
     qml/qmldir
