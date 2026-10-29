@@ -15,12 +15,11 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Scenes:** `review`, `result` and `moves` are new; `game` and `continue` work as before. `Take-Screenshot.ps1 -Offscreen` works when the screen is locked, dark only (see Notes). Debug and Release build OK; no QML warnings in the scene logs.
 
 ### Notes
-- **Locked screen:** while Windows is locked, a real window renders no frames. Animations freeze (half-closed dialogs, empty squares) and the mate scene times out, on `develop` too. Use `-Offscreen` there: Fluent is always dark offscreen, so `Theme.dark` follows it. Dialog backgrounds don't render offscreen. The after shots in `docs/design/after-p4/` are dark for this reason.
+- **Locked screen:** while Windows is locked, a real window renders no frames. Animations freeze (half-closed dialogs, empty squares) and the mate scene times out, on `develop` too. Use `-Offscreen` there: Fluent is always dark offscreen, so `Theme.dark` follows it. Dialog backgrounds don't render offscreen. After unlocking, all scenes (including the mate) worked in a real window. `docs/design/after-p4/` has the light shots (real window) and the dark ones (offscreen).
 - Board coordinates are still outside the squares (the inside/outside setting is P5).
 
 ### Where to continue
-1. With the screen unlocked: `.\scripts\Take-Screenshot.ps1 -Scene game,review,result,moves` (light) plus `-Size 1400x900`, then add the light shots to `docs/design/after-p4/`.
-2. P3 (Users and Lichess), on a new branch from `origin/develop` once this PR is merged.
+P3 (Users and Lichess), on a new branch from `origin/develop` once this PR is merged.
 
 ---
 

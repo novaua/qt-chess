@@ -12,7 +12,7 @@
     - [ ] Manual check with Lichess: challenge → game page, game end text, draw/takeback InfoBars, opponent gone + Claim victory, rematch
   - [ ] P3 Users and Lichess: welcome, profile picker, Profile page (ratings, Reconnect, OAuth Cancel: closes BL-08), Guest, statistics, `QSaveFile`, backups, export/import
   - [x] P4 Game chrome (`gameChrome_291026`): player cards, captured strip with +N (`MaterialBalance`), side panel or bottom sheet, one result card (Rematch / New game / Review moves), move list (click a move, piece images, `reviewTo`), Copy / Export PGN; `FormatHistorySan` (real mate detection), `FormatPgn`, `MaterialBalance` in ChessCore with 13 tests; `-Offscreen` screenshots for a locked screen
-    - [ ] Light-mode after shots (`docs/design/after-p4/` has dark only: the screen was locked) and a look at the result card and move sheet in a real window
+    - [x] Light-mode after shots in a real window (`docs/design/after-p4/`: light and dark)
     - [ ] Manual check: Export PGN… save dialog and the file, Copy PGN, Esc closes the move sheet, Review moves / New game on the result card (vs Robot, two players)
   - [ ] P5 Settings and About pages
   - [ ] P6 Polish: keyboard and accessibility, high contrast, motion, app icon, screenshot baselines (with BL-05)
