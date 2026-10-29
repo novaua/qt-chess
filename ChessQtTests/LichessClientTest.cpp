@@ -155,6 +155,7 @@ namespace LichessTests
 			})"), "me");
 
 			Assert::IsTrue(info.valid);
+			Assert::AreEqual(QString("AbCdEfGh"), info.gameId);
 			Assert::IsTrue(info.playedAsWhite);
 			Assert::AreEqual(QString("friend"), info.opponentId);
 			Assert::AreEqual(QString("Friend"), info.opponentName);
@@ -201,6 +202,44 @@ namespace LichessTests
 			})"), "me");
 
 			Assert::IsFalse(info.valid);
+		}
+
+		// isRematchOffer ————————————————————————————————————————————————————
+
+		TEST_METHOD(IsRematchOffer_OpponentsOfferAfterOurGame_True)
+		{
+			Assert::IsTrue(LichessClient::isRematchOffer(Json(R"({
+				"id": "NeXtGaMe", "rematchOf": "AbCdEfGh",
+				"challenger": { "id": "friend" }, "destUser": { "id": "me" }
+			})"), "AbCdEfGh", "me"));
+		}
+
+		TEST_METHOD(IsRematchOffer_OfAnotherGame_False)
+		{
+			Assert::IsFalse(LichessClient::isRematchOffer(Json(R"({
+				"id": "NeXtGaMe", "rematchOf": "OtHeRgAm", "challenger": { "id": "friend" }
+			})"), "AbCdEfGh", "me"));
+		}
+
+		TEST_METHOD(IsRematchOffer_PlainChallenge_False)
+		{
+			Assert::IsFalse(LichessClient::isRematchOffer(Json(R"({
+				"id": "NeXtGaMe", "challenger": { "id": "friend" }
+			})"), "AbCdEfGh", "me"));
+		}
+
+		TEST_METHOD(IsRematchOffer_OurOwnOffer_False)
+		{
+			Assert::IsFalse(LichessClient::isRematchOffer(Json(R"({
+				"id": "NeXtGaMe", "rematchOf": "AbCdEfGh", "challenger": { "id": "me" }
+			})"), "AbCdEfGh", "me"));
+		}
+
+		TEST_METHOD(IsRematchOffer_NoLastGame_False)
+		{
+			Assert::IsFalse(LichessClient::isRematchOffer(Json(R"({
+				"id": "NeXtGaMe", "rematchOf": "", "challenger": { "id": "friend" }
+			})"), "", "me"));
 		}
 
 		// parseRatings ———————————————————————————————————————————————————————

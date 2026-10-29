@@ -590,8 +590,10 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 
 void ChessConnector::onLichessGameEnded(const QString& status, const QString& winner)
 {
-	if (_lichessClient)
+	if (_lichessClient) {
 		_lichessClient->stopStream();
+		_lichessClient->watchForRematch();
+	}
 
 	// Checkmate is already announced by the local game when the mating move arrives.
 	if (status == QLatin1String("mate") && !_gameResult.isEmpty())
@@ -708,6 +710,17 @@ void ChessConnector::respondTakeback(bool accept)
 		_lichessClient->requestTakeback(_onlineGameId, accept);
 }
 
+void ChessConnector::respondRematch(bool accept)
+{
+	setPendingOffer({});
+	if (!_lichessClient)
+		return;
+	if (accept)
+		_lichessClient->acceptRematch(); // the game starts through LichessClient::gameStarted
+	else
+		_lichessClient->declineRematch();
+}
+
 void ChessConnector::setUserManager(UserManager* um)
 {
 	_userManager = um;
@@ -732,6 +745,12 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 		connect(_lichessClient, &LichessClient::takebackRequested, this, [this]() {
 			if (isOnlineGame() && !_gameOver) setPendingOffer(QStringLiteral("takeback"));
 		});
+		connect(_lichessClient, &LichessClient::rematchOffered, this, [this]() {
+			if (isOnlineGame() && _gameOver) setPendingOffer(QStringLiteral("rematch"));
+		});
+		connect(_lichessClient, &LichessClient::rematchOfferCanceled, this, [this]() {
+			if (_pendingOffer == QLatin1String("rematch")) setPendingOffer({});
+		});
 	}
 	emit canRematchChanged();
 }
@@ -753,7 +772,9 @@ void ChessConnector::rematch()
 	// Lichess has no rematch endpoint: send a new challenge with the same settings.
 	// The game starts through LichessClient::gameStarted → startOnlineGame().
 	if (_lastGameOnline) {
-		if (_lichessClient)
+		if (_pendingOffer == QLatin1String("rematch"))
+			respondRematch(true); // like Lichess: asking back accepts the opponent's offer
+		else if (_lichessClient)
 			_lichessClient->createRematch();
 		return;
 	}
