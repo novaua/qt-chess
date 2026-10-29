@@ -501,6 +501,26 @@ QStringList ChessConnector::capturedByLight() const
 	return capturedPieces(Chess::PieceColors::Dark);
 }
 
+// In the position on the board: live, reviewed, or a saved game's replay.
+int ChessConnector::checkedKing() const
+{
+	std::shared_ptr<Chess::Game> shown;
+	if (_player)
+		shown = replayHistory(_player->GetHistory(), _player->GetPointer());
+	else if (reviewMode())
+		shown = replayHistory(_game->GetGameRecord(), _reviewIndex);
+	Chess::Game& game = shown ? *shown : *_game;
+	if (!game.IsInCheck())
+		return -1;
+	const auto color = game.IsWhiteMove() ? Chess::PieceColors::Light : Chess::PieceColors::Dark;
+	for (int i = 0; i < 64; ++i) {
+		const auto piece = game.GetPieceAt(i);
+		if (piece.Type == Chess::KING && piece.Color == color)
+			return i;
+	}
+	return -1;
+}
+
 int ChessConnector::materialBalance() const
 {
 	if (!reviewMode())

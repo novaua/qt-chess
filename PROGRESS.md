@@ -31,6 +31,12 @@ A medium `/code-review` found 10 issues; 8 were real and are fixed, 2 can't happ
 ### Where to continue
 P5 (Settings and About pages), on a new branch from `origin/develop` once this PR is merged. Settings → Data can reuse `exportProfile` / `inspectImport` / `importProfile` and `restoreFromBackup`; "Back up now" needs a new `UserManager` call.
 
+## 2026-10-29 — Check glow on the king (branch: checkHighlight_291026)
+
+- The king in check glows red-yellow and pulses gently, so a missed "Check" InfoBar doesn't leave the player wondering why most moves are refused. `ChessConnector::CheckedKing` gives the square for the position on the board (live, reviewed, or a saved game's replay); `Game::IsInCheck()` (side to move) is new in ChessCore with a test. The glow is a `QtQuick.Shapes` radial gradient in `ChessBoxes.qml` (`Theme.checkGlowCenter` / `checkGlowEdge` replace the unused `checkSquare`).
+- Checked: `game` with `e2e4 f7f6 d1h5` (light; dark and flipped with Bb5+), a mate (the red flagged king on top), and a reviewed check that is blocked live. No QML warnings. ChessTests 86/86.
+- Independent of P3 (#84): branched from `develop`.
+
 ---
 
 ## 2026-10-29 — PGN date kept in saves (branch: pgnGameDate_291026)

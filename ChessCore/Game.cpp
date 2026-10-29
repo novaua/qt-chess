@@ -304,6 +304,12 @@ namespace Chess
 		NotifyBoardChangesListeners({ undoMove.From, undoMove.To });
 	}
 
+	bool Game::IsInCheck()
+	{
+		GameChecks check(_gameState);
+		return check.IsInCheck(IsWhiteMove() ? PieceColors::Light : PieceColors::Dark);
+	}
+
 	bool Game::IsWhiteMove()
 	{
 		auto isEven = GetMoveCount() % 2 == 0;

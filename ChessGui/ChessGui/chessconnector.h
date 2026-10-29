@@ -52,6 +52,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
 		Q_PROPERTY(bool CanRematch    READ canRematch    NOTIFY canRematchChanged)
 		Q_PROPERTY(int  FlaggedKing   READ flaggedKing   NOTIFY flaggedKingChanged) // square of a king that resigned / lost on time, or -1
+		Q_PROPERTY(int  CheckedKing   READ checkedKing   NOTIFY lastMoveChanged)    // square of the king in check on the board, or -1
 		// The game on screen: "" (none: Home), "computer", "local" (two players), "replay" (saved game), "online"
 		Q_PROPERTY(bool    InGame    READ inGame    NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString GameMode  READ gameMode  NOTIFY gameInfoChanged)
@@ -98,6 +99,7 @@ public:
 	bool canRematch()    const { return !_lastGameOnline || (_lichessClient && _lichessClient->canRematch()); }
 	// Hidden while reviewing earlier moves: the king may not be on that square then.
 	int  flaggedKing()   const { return reviewMode() ? -1 : _flaggedKing; }
+	int  checkedKing()   const;
 	bool    inGame()     const { return !_gameMode.isEmpty(); }
 	QString gameMode()   const { return _gameMode; }
 	QString gameTitle()  const;

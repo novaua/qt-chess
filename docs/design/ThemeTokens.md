@@ -57,7 +57,7 @@ picker can come later (out of scope).
 | `lastMove` | `#A8D8EA` at 70% | `ChessBoxes.qml:40` |
 | `selected` | accent at 45% | the blue `Glow` in `ChessFigures.qml` (Qt5Compat, removed in P1; now a tint on the selected piece's square) |
 | `legalMoveDot` | `#000000` at 22% | `NavigationLayer.qml` markers |
-| `checkSquare` | `critical` at 55% | `ChessBoxes.qml:51` (`#e74c3c`) |
+| `checkGlowCenter` / `checkGlowEdge` | `#FFD54A` / `#E5341F` | The king in check: a radial glow (yellow middle, red edge, fading corners) that pulses while in check (`ChessBoxes.qml`) |
 | `flaggedKing` | `critical` | the red flag on the losing king |
 | `coordOnLight` / `coordOnDark` | `#2F4F4F` / `#ECF0F1` | Coordinates drawn inside squares (option); today they sit outside the board in `#34495e` |
 
@@ -136,8 +136,9 @@ It is registered through `qmldir` (`singleton Theme 1.0 Theme.qml`) and listed i
   reviewed move), `textOnColor` (`#FFFFFF` on saturated fills such as the level badges),
   `iconSize` 20 / `iconSizeDense` 16, `radiusCard` / `radiusAvatar`, and `Theme.icon(name)` →
   `qrc:/icons/<name>.svg`.
-- **Board:** `flaggedKing` and `checkSquare` use a fixed red (`#C42B1C`, the light `critical`) in
-  both modes; the dark `critical` pink looked washed out on the board.
+- **Board:** `flaggedKing` uses a fixed red (`#C42B1C`, the light `critical`) in both modes; the
+  dark `critical` pink looked washed out on the board. The check glow replaced the flat
+  `checkSquare` tint: red-yellow, so it reads as "danger" on both square colours.
 - **Type ramp:** the tokens are `font` values (`font: Theme.bodyStrong`) with size and weight only;
   the family stays the app font.
 - **Colour scheme and `-platform offscreen`:** the offscreen platform can't force a colour scheme
