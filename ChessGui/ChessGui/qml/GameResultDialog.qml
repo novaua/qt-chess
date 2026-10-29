@@ -1,9 +1,8 @@
 import QtQuick
+import ChessPlusPlus
 
 Rectangle {
     id: dialog
-
-    property string winner: ""
 
     width: 160
     height: dialogContent.implicitHeight + 2 * Theme.s3
@@ -19,7 +18,7 @@ Rectangle {
         width: parent.width - 2 * Theme.s3
 
         Text {
-            text: dialog.winner
+            text: ChessConnector.ResultText
             font: Theme.bodyStrong
             color: Theme.textPrimary
             anchors.horizontalCenter: parent.horizontalCenter
@@ -36,9 +35,9 @@ Rectangle {
 
         Repeater {
             model: [
-                "Games played: " + userManager.gamesPlayed,
-                "Human won: "    + userManager.humanWins,
-                "Robot won: "    + userManager.computerWins
+                "Games played: " + UserManager.gamesPlayed,
+                "Human won: "    + UserManager.humanWins,
+                "Robot won: "    + UserManager.computerWins
             ]
             Text {
                 text: modelData
@@ -51,7 +50,7 @@ Rectangle {
         }
 
         Text {
-            text: "Since: " + userManager.statsCreatedDate
+            text: "Since: " + UserManager.statsCreatedDate
             color: Theme.textSecondary
             font: Theme.caption
             wrapMode: Text.WordWrap

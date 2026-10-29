@@ -1,4 +1,5 @@
 import QtQuick
+import ChessPlusPlus
 import QtQuick.Controls
 import QtQuick.Layouts
 
@@ -17,7 +18,7 @@ AppDialog {
     width: 400
     acceptEnabled: false
 
-    onRejected: lichessClient.cancelChallenge(dialog.challengeId)
+    onRejected: LichessClient.cancelChallenge(dialog.challengeId)
 
     ColumnLayout {
         anchors.fill: parent

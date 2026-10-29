@@ -1,4 +1,5 @@
 import QtQuick
+import ChessPlusPlus
 import QtQuick.Controls
 import QtQuick.Layouts
 
@@ -98,19 +99,19 @@ AppDialog {
             property bool _showTokenField: false
 
             Connections {
-                target: chessConnector
+                target: ChessConnector
                 function onLichessLoginResult(ok, username) {
                     lichessSection._validating = false
                     lichessSection._lichessStatus = ok ? ("ok:" + username) : "err"
                 }
             }
             Connections {
-                target: lichessClient
+                target: LichessClient
                 function onTokenValidated(ok, username) {
                     lichessSection._validating = false
                     if (ok) {
                         lichessSection._lichessStatus = "ok:" + username
-                        userManager.saveLichessCredentials(lichessTokenField.text, username)
+                        UserManager.saveLichessCredentials(lichessTokenField.text, username)
                     } else {
                         lichessSection._lichessStatus = "err"
                     }
@@ -124,17 +125,17 @@ AppDialog {
 
             // Already connected: show username + disconnect button
             RowLayout {
-                visible: userManager.lichessConnected && lichessSection._lichessStatus === ""
+                visible: UserManager.lichessConnected && lichessSection._lichessStatus === ""
                 spacing: Theme.s2
                 Label {
-                    text: "✓ " + userManager.lichessUsername
+                    text: "✓ " + UserManager.lichessUsername
                     color: Theme.success
                 }
                 Button {
                     text: "Disconnect"
                     icon.source: Theme.icon("sign-out")
                     onClicked: {
-                        userManager.clearLichessToken()
+                        UserManager.clearLichessToken()
                         lichessSection._lichessStatus = ""
                         lichessSection._showTokenField = false
                     }
@@ -143,7 +144,7 @@ AppDialog {
 
             // Primary: browser OAuth button
             RowLayout {
-                visible: !userManager.lichessConnected || lichessSection._lichessStatus !== ""
+                visible: !UserManager.lichessConnected || lichessSection._lichessStatus !== ""
                 spacing: Theme.s2
 
                 Button {
@@ -153,7 +154,7 @@ AppDialog {
                     onClicked: {
                         lichessSection._validating    = true
                         lichessSection._lichessStatus = ""
-                        chessConnector.loginWithLichess()
+                        ChessConnector.loginWithLichess()
                     }
                 }
 
@@ -168,7 +169,7 @@ AppDialog {
             // Fallback: manual API token (collapsed by default)
             RowLayout {
                 visible: lichessSection._showTokenField &&
-                         (!userManager.lichessConnected || lichessSection._lichessStatus !== "")
+                         (!UserManager.lichessConnected || lichessSection._lichessStatus !== "")
                 Layout.fillWidth: true
                 spacing: Theme.s2
 
@@ -185,7 +186,7 @@ AppDialog {
                     onClicked: {
                         lichessSection._validating    = true
                         lichessSection._lichessStatus = ""
-                        lichessClient.validateToken(lichessTokenField.text.trim())
+                        LichessClient.validateToken(lichessTokenField.text.trim())
                     }
                 }
             }

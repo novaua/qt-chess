@@ -7,6 +7,8 @@
 #include <QDir>
 #include <QDebug>
 #include <QFile>
+#include <QHash>
+#include <QRandomGenerator>
 #include <QThread>
 
 using namespace Chess;
@@ -51,19 +53,19 @@ ChessConnector::ChessConnector(QObject* parent)
 			{
 				emit checkMateNotify();
 				if (_player) return;
+				const bool whiteMated = _game->IsWhiteMove(); // the side to move is mated
 				_gameOver = true;
-				flagKing(_game->IsWhiteMove()); // the side to move is mated
+				flagKing(whiteMated);
 				// Once per game: undo after mate resumes the game, and a second mate must
 				// not count again.
 				if (_userManager && !_resultRecorded) {
 					_resultRecorded = true;
-					bool humanWon = _game->IsWhiteMove() != _config.playerPlaysWhite;
+					bool humanWon = whiteMated != _config.playerPlaysWhite;
 					_userManager->recordResult(humanWon, _engineWorker != nullptr);
 				}
-				_gameResult = _game->IsWhiteMove() ? MateResultBlack : MateResultWhite;
-				emit gameResultChanged();
-				QString winner = _game->IsWhiteMove() ? "Black Won" : "White Won";
-				emit checkMateResult(winner);
+				setResult(whiteMated ? MateResultBlack : MateResultWhite,
+					sideName(!whiteMated) + QStringLiteral(" wins by checkmate"));
+				emit checkMateResult(whiteMated ? QStringLiteral("Black Won") : QStringLiteral("White Won"));
 			}
 			else if (event.GetType() == EtCastling)
 			{
@@ -292,15 +294,83 @@ QVariantList ChessConnector::moveHistory() const
 	return _moveHistoryCache;
 }
 
-void ChessConnector::setGameResult(const QString& result)
+void ChessConnector::setResult(const QString& result, const QString& text)
 {
 	_gameResult = result;
+	_resultText = text;
 	if (!result.isEmpty()) {
 		_gameOver = true;
 		ClearBoard(_possibleMoves); // drop move highlights of a selected piece
 		emit PossibleMovesChanged();
+		setPendingOffer({});
+		setOpponentGone(false);
 	}
 	emit gameResultChanged();
+}
+
+void ChessConnector::setPendingOffer(const QString& offer)
+{
+	if (_pendingOffer == offer) return;
+	_pendingOffer = offer;
+	emit pendingOfferChanged();
+}
+
+void ChessConnector::setOpponentGone(bool gone, int claimWinInSeconds)
+{
+	if (!gone) claimWinInSeconds = -1;
+	if (_opponentGone == gone && _claimWinSeconds == claimWinInSeconds) return;
+	_opponentGone = gone;
+	_claimWinSeconds = claimWinInSeconds;
+	emit opponentGoneChanged();
+}
+
+void ChessConnector::setGameMode(const QString& mode, const QString& opponentName)
+{
+	_gameMode = mode;
+	_opponentName = opponentName;
+	emit gameInfoChanged(); // also when only the opponent changed: the title shows it
+}
+
+QString ChessConnector::playerName() const
+{
+	const QString name = _userManager ? _userManager->activeUserName() : QString();
+	return name.isEmpty() ? QStringLiteral("You") : name;
+}
+
+QString ChessConnector::sideName(bool white) const
+{
+	return white == _config.playerPlaysWhite ? playerName() : _opponentName;
+}
+
+// The source has no /utf-8: non-ASCII characters only as \u escapes in u"" (QStringLiteral) strings.
+static const QString Dot = QStringLiteral(" \u00B7 ");
+
+static QString vsRobotTitle(int level)
+{
+	return QStringLiteral("vs Robot") + Dot + QStringLiteral("Level %1").arg(level);
+}
+
+QString ChessConnector::gameTitle() const
+{
+	if (_gameMode == QLatin1String("computer"))
+		return vsRobotTitle(_config.lastLevel);
+	if (_gameMode == QLatin1String("online"))
+		return QStringLiteral("Lichess") + Dot + QStringLiteral("vs ") + _opponentName;
+	if (_gameMode == QLatin1String("replay"))
+		return QStringLiteral("Saved game") + Dot + sideName(true) + QStringLiteral(" vs ") + sideName(false);
+	if (_gameMode == QLatin1String("local"))
+		return sideName(true) + QStringLiteral(" vs ") + sideName(false);
+	return {};
+}
+
+QString ChessConnector::continueDescription() const
+{
+	if (!_userManager || !canContinue())
+		return {};
+	const auto info = _userManager->autoSaveInfo();
+	if (info.isSinglePlayer)
+		return vsRobotTitle(_config.lastLevel);
+	return QStringLiteral("vs ") + (info.opponentName.isEmpty() ? QStringLiteral("Guest") : info.opponentName);
 }
 
 void ChessConnector::flagKing(bool white)
@@ -381,8 +451,11 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	stopEngineThread();
 	_promotionPending = false;
 	_player = nullptr;
+	_reviewIndex = -1;
 	_gameOver = false;
-	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
+	if (!_gameResult.isEmpty()) setResult({}, {});
+	setPendingOffer({});
+	setOpponentGone(false);
 	_engineAutoPlay = false;
 	_onlineGameId = gameId;
 	emit isOnlineGameChanged();
@@ -392,6 +465,7 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	_config.playerPlaysWhite = playingAsWhite;
 	emit playerPlaysWhiteChanged();
 
+	resetMoveHistoryCache();
 	_game->Restart();
 	EmitMoveCountUpdates();
 	emit newGameStarted(false);
@@ -400,13 +474,67 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 		connect(_lichessClient, &LichessClient::opponentMoveReceived,
 			this, &ChessConnector::applyMoves,
 			Qt::UniqueConnection);
-		connect(_lichessClient, &LichessClient::drawOfferReceived,
-			this, &ChessConnector::drawOfferReceived,
-			Qt::UniqueConnection);
-		connect(_lichessClient, &LichessClient::takebackRequested,
-			this, &ChessConnector::takebackRequested,
-			Qt::UniqueConnection);
 	}
+}
+
+void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsWhite,
+	const QString& opponentName, const QString& opponentAvatar)
+{
+	startOnlineGame(gameId, playingAsWhite);
+	if (_avatarProvider)
+		_avatarProvider->setOpponentFromUser(opponentAvatar.isEmpty() ? QStringLiteral("unicorn") : opponentAvatar);
+	setGameMode(QStringLiteral("online"),
+		opponentName.isEmpty() ? QStringLiteral("Anonymous") : opponentName);
+}
+
+void ChessConnector::onLichessGameEnded(const QString& status, const QString& winner)
+{
+	if (_lichessClient)
+		_lichessClient->stopStream();
+
+	// Checkmate is already announced by the local game when the mating move arrives.
+	if (status == QLatin1String("mate") && !_gameResult.isEmpty())
+		return;
+
+	const bool hasWinner = winner == QLatin1String("white") || winner == QLatin1String("black");
+	const bool whiteWon  = winner == QLatin1String("white");
+	// The side that gave up, ran out of time or left.
+	static const QHash<QString, QString> loserText = {
+		{ QStringLiteral("resign"),    QStringLiteral(" resigned") },
+		{ QStringLiteral("outoftime"), QStringLiteral(" ran out of time") },
+		{ QStringLiteral("timeout"),   QStringLiteral(" left the game") },
+		{ QStringLiteral("noStart"),   QStringLiteral(" didn't move") },
+	};
+	const bool loserKnown = hasWinner && loserText.contains(status);
+
+	QString text;
+	if (status == QLatin1String("aborted"))
+		text = QStringLiteral("Game aborted");
+	else if (loserKnown)
+		text = sideName(!whiteWon) + loserText.value(status);
+	else if (hasWinner)
+		text = sideName(whiteWon) + (status == QLatin1String("mate") ? QStringLiteral(" wins by checkmate")
+		                                                              : QStringLiteral(" wins"));
+	else if (status == QLatin1String("stalemate"))
+		text = QStringLiteral("Draw by stalemate");
+	else
+		text = QStringLiteral("Draw"); // without a winner, e.g. time ran out against a bare king
+
+	// Like Lichess: a red flag on the king of the side that gave up or ran out of time.
+	if (loserKnown)
+		flagKing(!whiteWon);
+
+	const QString result = status == QLatin1String("aborted") ? QStringLiteral("*")
+		: hasWinner ? (whiteWon ? QStringLiteral("1-0") : QStringLiteral("0-1"))
+		: QStringLiteral("1/2-1/2");
+	setResult(result, text);
+}
+
+void ChessConnector::onLichessOpponentGone(bool gone, int claimWinInSeconds)
+{
+	if (_gameOver && gone)
+		return;
+	setOpponentGone(gone, claimWinInSeconds);
 }
 
 void ChessConnector::resignGame()
@@ -426,8 +554,8 @@ void ChessConnector::resignGame()
 	const bool whiteResigns = _wasVsComputer ? _config.playerPlaysWhite : IsWhiteMove() == 1;
 	_gameOver = true;
 	flagKing(whiteResigns);
-	_gameResult = whiteResigns ? "0-1 Black won by resignation" : "1-0 White won by resignation";
-	emit gameResultChanged();
+	setResult(whiteResigns ? QStringLiteral("0-1 Black won by resignation") : QStringLiteral("1-0 White won by resignation"),
+		sideName(whiteResigns) + QStringLiteral(" resigned"));
 	emit checkMateResult(whiteResigns ? QStringLiteral("Black Won") : QStringLiteral("White Won"));
 }
 
@@ -445,6 +573,7 @@ void ChessConnector::claimVictory()
 
 void ChessConnector::respondDraw(bool accept)
 {
+	setPendingOffer({});
 	if (!_onlineGameId.isEmpty() && _lichessClient)
 		_lichessClient->offerDraw(_onlineGameId, accept);
 }
@@ -459,16 +588,36 @@ void ChessConnector::requestTakeback()
 
 void ChessConnector::respondTakeback(bool accept)
 {
+	setPendingOffer({});
 	if (!_onlineGameId.isEmpty() && _lichessClient)
 		_lichessClient->requestTakeback(_onlineGameId, accept);
+}
+
+void ChessConnector::setUserManager(UserManager* um)
+{
+	_userManager = um;
+	// Saves are per user: Continue and Open saved game change with the user.
+	connect(_userManager, &UserManager::activeUserChanged, this, &ChessConnector::canContinueChanged);
+	connect(_userManager, &UserManager::activeUserChanged, this, &ChessConnector::canLoadChanged);
+	connect(_userManager, &UserManager::activeUserChanged, this, &ChessConnector::gameInfoChanged); // a renamed profile: the title
 }
 
 void ChessConnector::setLichessClient(LichessClient* lc)
 {
 	_lichessClient = lc;
-	if (_lichessClient)
+	if (_lichessClient) {
 		connect(_lichessClient, &LichessClient::canRematchChanged,
 			this, &ChessConnector::canRematchChanged, Qt::UniqueConnection);
+		connect(_lichessClient, &LichessClient::gameStarted, this, &ChessConnector::onLichessGameStarted);
+		connect(_lichessClient, &LichessClient::gameEnded,   this, &ChessConnector::onLichessGameEnded);
+		connect(_lichessClient, &LichessClient::opponentGone, this, &ChessConnector::onLichessOpponentGone);
+		connect(_lichessClient, &LichessClient::drawOfferReceived, this, [this]() {
+			if (isOnlineGame() && !_gameOver) setPendingOffer(QStringLiteral("draw"));
+		});
+		connect(_lichessClient, &LichessClient::takebackRequested, this, [this]() {
+			if (isOnlineGame() && !_gameOver) setPendingOffer(QStringLiteral("takeback"));
+		});
+	}
 	emit canRematchChanged();
 }
 
@@ -498,6 +647,37 @@ void ChessConnector::rematch()
 		startNewGame();
 }
 
+void ChessConnector::startComputerGame(int level, int side)
+{
+	setPlayerPlaysWhite(side == 2 ? QRandomGenerator::global()->bounded(2) == 0 : side == 0);
+	if (_avatarProvider)
+		_avatarProvider->randomize(true); // the opponent shows the robot
+	startNewGameWithComputer(level);
+	setGameMode(QStringLiteral("computer"), QStringLiteral("Robot"));
+}
+
+void ChessConnector::startLocalGame(bool playerPlaysWhite, const QString& opponentUserId)
+{
+	QString name = QStringLiteral("Guest");
+	QString avatar;
+	if (_userManager) {
+		for (const auto& u : _userManager->users()) {
+			const auto user = u.toMap();
+			if (!opponentUserId.isEmpty() && user.value(QStringLiteral("id")).toString() == opponentUserId) {
+				name   = user.value(QStringLiteral("name")).toString();
+				avatar = user.value(QStringLiteral("avatarName")).toString();
+			}
+		}
+	}
+	setPlayerPlaysWhite(playerPlaysWhite);
+	startNewGame();
+	if (_avatarProvider) {
+		if (avatar.isEmpty()) _avatarProvider->randomize(false); // a Guest gets a random avatar
+		else                  _avatarProvider->setOpponentFromUser(avatar);
+	}
+	setGameMode(QStringLiteral("local"), name);
+}
+
 void ChessConnector::startNewGame()
 {
 	_wasVsComputer = false;
@@ -509,7 +689,7 @@ void ChessConnector::startNewGame()
 	_player = nullptr;
 	_reviewIndex = -1;
 	_gameOver = false;
-	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
+	if (!_gameResult.isEmpty()) setResult({}, {});
 	_game->Restart();
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
@@ -535,7 +715,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_reviewIndex = -1;
 	_game->EndGame();
 	_gameOver = false;
-	if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
+	if (!_gameResult.isEmpty()) setResult({}, {});
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
 	emit newGameStarted(true);
@@ -559,6 +739,7 @@ QVariantList ChessConnector::levels() const
 				{ "name",         QString::fromUtf8(level.Name()) },
 				{ "elo",          level.DisplayElo() },
 				{ "eloEstimated", !level.UsesEngineElo() },
+				{ "rating",       QStringLiteral("%1%2 Elo").arg(level.UsesEngineElo() ? QString() : QStringLiteral("\u2248")).arg(level.DisplayElo()) },
 				{ "hint",         QString::fromUtf8(level.Hint()) },
 			});
 		}
@@ -600,15 +781,6 @@ void ChessConnector::setPlayerPlaysWhite(bool v)
 	_config.playerPlaysWhite = v;
 	_config.save();
 	emit playerPlaysWhiteChanged();
-}
-
-void ChessConnector::robotMove()
-{
-	if (!_engineThread)
-		startEngineThread(Chess::EngineLevel{ _config.lastLevel });
-	_engineThinking = true;
-	emit engineThinkingChanged();
-	emit requestEngineMove();
 }
 
 void ChessConnector::startEngineThread(Chess::EngineLevel level)
@@ -718,6 +890,7 @@ void ChessConnector::saveGame()
 		UserManager::GameSaveInfo info;
 		info.isSinglePlayer = _engineWorker != nullptr;
 		info.playerPlaysWhite = _config.playerPlaysWhite;
+		info.opponentName = _opponentName;
 		if (_avatarProvider) {
 			info.playerAvatarName = _avatarProvider->playerRawName();
 			info.opponentAvatarName = _avatarProvider->opponentRawName();
@@ -747,6 +920,7 @@ bool ChessConnector::loadGame()
 			buildFullHistoryCache();
 			emit IsOnPlayerModeChanged();
 			EmitMoveCountUpdates();
+			setGameMode(QStringLiteral("replay"), opponentNameOf(info));
 			success = true;
 		}
 	}
@@ -792,7 +966,7 @@ void ChessConnector::movePrev()
 			if (_gameOver) {
 				_gameOver = false;
 				setFlaggedKing(-1);
-				if (!_gameResult.isEmpty()) { _gameResult = ""; emit gameResultChanged(); }
+				if (!_gameResult.isEmpty()) setResult({}, {});
 			}
 			buildFullHistoryCache();
 			ClearBoard(_possibleMoves);
@@ -929,6 +1103,8 @@ void ChessConnector::endGame()
 	resetMoveHistoryCache();
 	setFlaggedKing(-1);
 	_resignAfterEngineMove = false;
+	setPendingOffer({});
+	setOpponentGone(false);
 	if (!_onlineGameId.isEmpty()) {
 		if (_lichessClient) _lichessClient->stopStream();
 		_onlineGameId.clear();
@@ -944,11 +1120,35 @@ void ChessConnector::endGame()
 	_player = nullptr;
 	_game->EndGame();
 	_gameOver = false;
+	_reviewIndex = -1;
+	if (!_gameResult.isEmpty()) setResult({}, {});
 	EmitMoveCountUpdates();
 	emit IsOnPlayerModeChanged();
 	ClearBoard(_possibleMoves);
 	emit PossibleMovesChanged();
 	emit canContinueChanged();
+	setGameMode({}, {});
+}
+
+void ChessConnector::switchUser()
+{
+	endGame(); // autosaves the game for the user who played it
+	if (_userManager)
+		_userManager->logout();
+}
+
+void ChessConnector::refreshBoard()
+{
+	const auto& board = _game->GetCurrentBoard();
+	for (int i = 0; i < 64; ++i)
+		emit boardChanged(i, QString::fromStdString(board.At(Chess::BoardPosition(i)).ToString()));
+}
+
+QString ChessConnector::opponentNameOf(const UserManager::GameSaveInfo& info) const
+{
+	if (!info.opponentName.isEmpty())
+		return info.opponentName;
+	return info.isSinglePlayer ? QStringLiteral("Robot") : QStringLiteral("Guest"); // saved before names were kept
 }
 
 bool ChessConnector::continueGame()
@@ -985,6 +1185,7 @@ bool ChessConnector::continueGame()
 			emit requestEngineMove();
 		}
 	}
+	setGameMode(isSingle ? QStringLiteral("computer") : QStringLiteral("local"), opponentNameOf(info));
 	return isSingle;
 }
 
@@ -1005,6 +1206,7 @@ void ChessConnector::autoSaveGame(bool isSinglePlayer)
 		UserManager::GameSaveInfo info;
 		info.isSinglePlayer = isSinglePlayer;
 		info.playerPlaysWhite = _config.playerPlaysWhite;
+		info.opponentName = _opponentName;
 		if (_avatarProvider) {
 			info.playerAvatarName = _avatarProvider->playerRawName();
 			info.opponentAvatarName = _avatarProvider->opponentRawName();

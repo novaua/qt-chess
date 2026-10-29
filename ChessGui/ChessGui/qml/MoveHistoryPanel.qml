@@ -1,11 +1,10 @@
 import QtQuick
+import ChessPlusPlus
 import QtQuick.Controls
 
 Rectangle {
     id: panel
 
-    property bool gameInProgress: false
-    property bool isOnlineGame: false
     property bool rematchPending: false // a rematch challenge is waiting for the opponent
 
     color: Theme.layerBg
@@ -24,7 +23,7 @@ Rectangle {
     Timer {
         id: blinkTimer
         interval: 1000; repeat: true
-        running: chessConnector.ReviewMode && panel.gameInProgress
+        running: ChessConnector.ReviewMode
         property bool blinkOn: true
         onTriggered: blinkOn = !blinkOn
         onRunningChanged: if (!running) blinkOn = true
@@ -45,15 +44,15 @@ Rectangle {
 
                 icon.source: Theme.icon(modelData)
                 tip: ["First move", "Previous move", "Next move", "Last move"][index]
-                enabled: index < 2 ? chessConnector.CanReviewPrev : chessConnector.CanReviewNext
+                enabled: index < 2 ? ChessConnector.CanReviewPrev : ChessConnector.CanReviewNext
                 // While reviewing, "Last move" blinks to show the way back to the game.
-                opacity: index === 3 && chessConnector.ReviewMode && panel.gameInProgress
+                opacity: index === 3 && ChessConnector.ReviewMode
                          && !blinkTimer.blinkOn ? 0.25 : 1.0
                 onClicked: {
-                    if      (index === 0) chessConnector.reviewFirst()
-                    else if (index === 1) chessConnector.reviewPrev()
-                    else if (index === 2) chessConnector.reviewNext()
-                    else                  chessConnector.reviewLast()
+                    if      (index === 0) ChessConnector.reviewFirst()
+                    else if (index === 1) ChessConnector.reviewPrev()
+                    else if (index === 2) ChessConnector.reviewNext()
+                    else                  ChessConnector.reviewLast()
                 }
             }
         }
@@ -61,7 +60,7 @@ Rectangle {
 
     Text {
         id: reviewIndicator
-        visible: chessConnector.ReviewMode
+        visible: ChessConnector.ReviewMode
         anchors {
             top: navButtons.bottom
             horizontalCenter: parent.horizontalCenter
@@ -79,22 +78,21 @@ Rectangle {
             top: reviewIndicator.bottom; topMargin: Theme.s1
             left: parent.left; leftMargin: Theme.s1
             right: parent.right; rightMargin: Theme.s1
-            bottom: actionButtons.visible ? actionButtons.top
-                  : rematchButton.visible ? rematchButton.top
+            bottom: rematchButton.visible ? rematchButton.top
                   : (resultBar.visible    ? resultBar.top : parent.bottom)
             bottomMargin: Theme.s1
         }
         clip: true
-        model: chessConnector.MoveHistory
+        model: ChessConnector.MoveHistory
         onCountChanged: Qt.callLater(function() { listView.positionViewAtEnd() })
 
         Connections {
-            target: chessConnector
+            target: ChessConnector
             function onReviewStateChanged() {
-                var ri = chessConnector.ReviewIndex
+                var ri = ChessConnector.ReviewIndex
                 if (ri > 0)
                     listView.positionViewAtIndex((ri - 1) >> 1, ListView.Contain)
-                else if (!chessConnector.ReviewMode)
+                else if (!ChessConnector.ReviewMode)
                     Qt.callLater(function() { listView.positionViewAtEnd() })
             }
         }
@@ -105,7 +103,7 @@ Rectangle {
             width: listView.width; height: 26
             color: "transparent"
 
-            readonly property int ri: chessConnector.ReviewIndex
+            readonly property int ri: ChessConnector.ReviewIndex
             readonly property int reviewRow: ri > 0 ? Math.floor((ri - 1) / 2) : -1
             readonly property bool hlW: reviewRow === index && ri % 2 === 1
             readonly property bool hlB: reviewRow === index && ri % 2 === 0
@@ -160,74 +158,11 @@ Rectangle {
         }
     }
 
-    // Action buttons: Undo / Draw / Resign
-    Row {
-        id: actionButtons
-        visible: panel.gameInProgress && chessConnector.GameResult === "" && !resignConfirm.visible
-        anchors {
-            bottom: resultBar.visible ? resultBar.top : parent.bottom
-            bottomMargin: Theme.s1
-            horizontalCenter: parent.horizontalCenter
-        }
-        spacing: Theme.s1
-
-        IconButton { dense: true
-            icon.source: Theme.icon("undo")
-            tip: panel.isOnlineGame ? "Propose takeback" : "Undo move"
-            onClicked: chessConnector.requestTakeback()
-        }
-        IconButton { dense: true
-            icon.source: Theme.icon("draw")
-            tip: "Offer draw"
-            visible: panel.isOnlineGame
-            onClicked: chessConnector.offerDraw()
-        }
-        IconButton { dense: true
-            icon.source: Theme.icon("flag")
-            tip: "Resign"
-            onClicked: resignConfirm.visible = true
-        }
-    }
-
-    // Resign confirmation strip
-    Column {
-        id: resignConfirm
-        visible: false
-        anchors {
-            bottom: resultBar.visible ? resultBar.top : parent.bottom
-            bottomMargin: Theme.s1
-            horizontalCenter: parent.horizontalCenter
-        }
-        spacing: Theme.s1
-
-        Text {
-            text: "Resign this game?"
-            color: Theme.textPrimary
-            font: Theme.caption
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
-        Row {
-            spacing: Theme.s1
-            // The panel is only 160 px wide: two equal halves.
-            Button {
-                width: (panel.width - 3 * Theme.s1) / 2
-                text: "Resign"
-                highlighted: true
-                onClicked: { resignConfirm.visible = false; chessConnector.resignGame() }
-            }
-            Button {
-                width: (panel.width - 3 * Theme.s1) / 2
-                text: "Cancel"
-                onClicked: resignConfirm.visible = false
-            }
-        }
-    }
-
     // Rematch — shown when the game is over. For a Lichess game it sends the opponent a new
     // challenge (ChessConnector::rematch()).
     Button {
         id: rematchButton
-        visible: chessConnector.GameResult !== "" && chessConnector.CanRematch && !panel.rematchPending
+        visible: ChessConnector.GameResult !== "" && ChessConnector.CanRematch && !panel.rematchPending
         anchors {
             bottom: resultBar.visible ? resultBar.top : parent.bottom
             left: parent.left; leftMargin: Theme.s1
@@ -236,15 +171,15 @@ Rectangle {
         text: "Rematch"
         icon.source: Theme.icon("rematch")
         highlighted: true
-        onClicked: chessConnector.rematch()
+        onClicked: ChessConnector.rematch()
     }
 
     Text {
         id: resultBar
-        visible: chessConnector.GameResult !== ""
+        visible: ChessConnector.GameResult !== ""
         anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
         padding: Theme.s2
-        text: chessConnector.GameResult
+        text: ChessConnector.ResultText
         font: Theme.bodyStrong
         color: Theme.textPrimary
         wrapMode: Text.WordWrap

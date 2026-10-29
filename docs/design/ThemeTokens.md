@@ -143,3 +143,10 @@ It is registered through `qmldir` (`singleton Theme 1.0 Theme.qml`) and listed i
 - **Colour scheme and `-platform offscreen`:** the offscreen platform can't force a colour scheme
   (it stays Unknown) and FluentWinUI3 then uses its dark palette, so screenshots use a transparent
   real window instead (`run-chess-app` skill).
+
+## 9. Added in P2
+
+- `successBg` (`#DFF6DD` / `#393D1B`) and `cautionBg` (`#FFF4CE` / `#433519`): InfoBar backgrounds,
+  from WinUI; `criticalBg` is reused for error InfoBars and `cardBg` for informational ones.
+- `iconSizeCard` 24 (Home cards, the account avatar) and `commandBarHeight` 48 (both page headers;
+  the InfoBars sit just below it).

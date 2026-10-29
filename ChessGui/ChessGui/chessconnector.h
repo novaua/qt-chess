@@ -45,6 +45,15 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
 		Q_PROPERTY(bool CanRematch    READ canRematch    NOTIFY canRematchChanged)
 		Q_PROPERTY(int  FlaggedKing   READ flaggedKing   NOTIFY flaggedKingChanged) // square of a king that resigned / lost on time, or -1
+		// The game on screen: "" (none: Home), "computer", "local" (two players), "replay" (saved game), "online"
+		Q_PROPERTY(bool    InGame    READ inGame    NOTIFY gameInfoChanged)
+		Q_PROPERTY(QString GameMode  READ gameMode  NOTIFY gameInfoChanged)
+		Q_PROPERTY(QString GameTitle READ gameTitle NOTIFY gameInfoChanged) // e.g. "vs Robot · Level 3", "Alice vs Bob"
+		Q_PROPERTY(QString ResultText READ resultText NOTIFY gameResultChanged) // e.g. "Bob wins by checkmate"
+		Q_PROPERTY(QString PendingOffer READ pendingOffer NOTIFY pendingOfferChanged) // Lichess opponent offers: "", "draw", "takeback"
+		Q_PROPERTY(bool OpponentGone    READ opponentGone    NOTIFY opponentGoneChanged)
+		Q_PROPERTY(int  ClaimWinSeconds READ claimWinSeconds NOTIFY opponentGoneChanged) // when it became gone; -1 = not said
+		Q_PROPERTY(QString ContinueDescription READ continueDescription NOTIFY canContinueChanged) // the autosaved game, e.g. "vs Bob"
 		// --screenshot mode: { scene, moves, black, dark, width, height }; empty in a normal run
 		Q_PROPERTY(QVariantMap ScreenshotScene READ screenshotScene CONSTANT)
 public:
@@ -52,7 +61,7 @@ public:
 	~ChessConnector();
 
 	void setAvatarProvider(AvatarProvider* ap) { _avatarProvider = ap; }
-	void setUserManager(UserManager* um)       { _userManager = um; }
+	void setUserManager(UserManager* um);
 	void setLichessClient(LichessClient* lc);
 	void setScreenshotScene(const QVariantMap& scene) { _screenshotScene = scene; }
 
@@ -62,7 +71,7 @@ public:
 	bool canContinue() const;
 	bool canLoad() const;
 	int lastLevel()        const { return _config.lastLevel; }
-	QVariantList levels()  const; // computer levels 1-5: { level, name, elo, eloEstimated, hint }
+	QVariantList levels()  const; // computer levels 1-5: { level, name, elo, eloEstimated, rating, hint }
 	int  lastMoveFrom()   const;
 	int  lastMoveTo()     const;
 	bool engineThinking()    const { return _engineThinking; }
@@ -79,6 +88,14 @@ public:
 	bool canRematch()    const { return !_lastGameOnline || (_lichessClient && _lichessClient->canRematch()); }
 	// Hidden while reviewing earlier moves: the king may not be on that square then.
 	int  flaggedKing()   const { return reviewMode() ? -1 : _flaggedKing; }
+	bool    inGame()     const { return !_gameMode.isEmpty(); }
+	QString gameMode()   const { return _gameMode; }
+	QString gameTitle()  const;
+	QString resultText() const { return _resultText; }
+	QString pendingOffer() const { return _pendingOffer; }
+	bool    opponentGone()    const { return _opponentGone; }
+	int     claimWinSeconds() const { return _claimWinSeconds; }
+	QString continueDescription() const;
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 	QVariantMap screenshotScene() const { return _screenshotScene; }
@@ -114,8 +131,9 @@ signals:
 	void isOnlineGameChanged();
 	void canRematchChanged();
 	void flaggedKingChanged();
-	void drawOfferReceived();
-	void takebackRequested();
+	void gameInfoChanged();
+	void pendingOfferChanged();
+	void opponentGoneChanged();
 	void lichessLoginResult(bool ok, QString username);
 
 	void castlingNotify();
@@ -130,18 +148,17 @@ signals:
 	void screenshotSceneReady(); // QML has set up the --screenshot scene: grab the window
 
 public slots:
-	void startNewGame();
-	void startNewGameWithComputer(int level = 3);
-	Q_INVOKABLE void robotMove();
-	Q_INVOKABLE void setGameResult(const QString& result); // non-empty: the game is over
-	Q_INVOKABLE void flagKing(bool white); // mark that side's king as the loser (resign / time)
-	void setUseFen(bool v);
-	Q_INVOKABLE void setPlayerPlaysWhite(bool v);
-	Q_INVOKABLE void applyMoves(const QString& movesStr);
+	// One call per user action (CLAUDE.md "Key Conventions"). A Lichess game starts and ends
+	// through LichessClient::gameStarted / gameEnded, handled below.
+	Q_INVOKABLE void startComputerGame(int level, int side); // side: 0 White, 1 Black, 2 Random
+	Q_INVOKABLE void startLocalGame(bool playerPlaysWhite, const QString& opponentUserId); // "" = Guest
 	Q_INVOKABLE bool continueGame();
-	Q_INVOKABLE void startOnlineGame(const QString& gameId, bool playingAsWhite);
+	void setUseFen(bool v);
+	Q_INVOKABLE void applyMoves(const QString& movesStr);
+	Q_INVOKABLE void refreshBoard(); // boardChanged for every square: a new board view fills itself
 
-	void endGame();
+	void endGame();              // leave the game for Home (autosaves an unfinished local game)
+	Q_INVOKABLE void switchUser(); // endGame(), then log out
 
 	void figureSelected(int index);
 	void pawnPromote(int index, const QString& piece);
@@ -170,8 +187,24 @@ public slots:
 private slots:
 	void onEngineMoveComplete();
 	void onEngineMoveError(const QString& message, const QString& details);
+	void onLichessGameStarted(const QString& gameId, bool playingAsWhite, const QString& opponentName,
+		const QString& opponentAvatar);
+	void onLichessGameEnded(const QString& status, const QString& winner);
+	void onLichessOpponentGone(bool gone, int claimWinInSeconds);
 
 private:
+	void startNewGame();
+	void startNewGameWithComputer(int level);
+	void startOnlineGame(const QString& gameId, bool playingAsWhite);
+	void setPlayerPlaysWhite(bool v);
+	void setGameMode(const QString& mode, const QString& opponentName);
+	void setResult(const QString& result, const QString& text); // non-empty: the game is over
+	void setPendingOffer(const QString& offer);
+	void setOpponentGone(bool gone, int claimWinInSeconds = -1);
+	void flagKing(bool white); // mark that side's king as the loser (resign / time)
+	QString playerName() const;
+	QString sideName(bool white) const; // who plays that colour
+	QString opponentNameOf(const UserManager::GameSaveInfo& info) const;
 	void makeMove(int from, int to);
 	void onHumanMoveDone();
 	void emitBoardState(int moveIndex);
@@ -212,6 +245,12 @@ private:
 	bool _resultRecorded = false; // stats recorded for this game (mate can recur after undo)
 	bool _resignAfterEngineMove = false; // resign pressed while the robot was thinking
 	QString _gameResult;
+	QString _resultText;
+	QString _gameMode;
+	QString _opponentName;
+	QString _pendingOffer;
+	bool _opponentGone = false;
+	int  _claimWinSeconds = -1;
 	AppConfig _config;
 	int _reviewIndex = -1;
 	LichessAuth* _lichessAuth = nullptr;

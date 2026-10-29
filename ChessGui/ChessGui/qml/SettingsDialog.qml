@@ -1,4 +1,5 @@
 import QtQuick
+import ChessPlusPlus
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtMultimedia
@@ -65,8 +66,8 @@ AppDialog {
 
         Label { text: "Send positions to the engine as FEN"; Layout.fillWidth: true; wrapMode: Text.WordWrap }
         Switch {
-            checked: chessConnector.UseFen
-            onToggled: chessConnector.UseFen = checked
+            checked: ChessConnector.UseFen
+            onToggled: ChessConnector.UseFen = checked
         }
     }
 

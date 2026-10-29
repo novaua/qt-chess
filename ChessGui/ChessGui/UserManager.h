@@ -31,6 +31,7 @@ public:
         bool    playerPlaysWhite  = true;
         QString playerAvatarName  = "wizard";
         QString opponentAvatarName = "unicorn";
+        QString opponentName;              // "Robot", a profile name or "Guest"; empty in older saves
     };
     explicit UserManager(QObject* parent = nullptr);
 

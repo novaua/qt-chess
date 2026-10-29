@@ -222,6 +222,7 @@ static QJsonObject saveInfoToJson(const UserManager::GameSaveInfo& info)
     o[QStringLiteral("playerPlaysWhite")] = info.playerPlaysWhite;
     o[QStringLiteral("playerAvatarName")]  = info.playerAvatarName;
     o[QStringLiteral("opponentAvatarName")] = info.opponentAvatarName;
+    o[QStringLiteral("opponentName")]       = info.opponentName;
     return o;
 }
 
@@ -232,6 +233,7 @@ static UserManager::GameSaveInfo saveInfoFromJson(const QJsonObject& o)
     info.playerPlaysWhite  = o.value(QStringLiteral("playerPlaysWhite")).toBool(true);
     info.playerAvatarName  = o.value(QStringLiteral("playerAvatarName")).toString(QStringLiteral("wizard"));
     info.opponentAvatarName = o.value(QStringLiteral("opponentAvatarName")).toString(QStringLiteral("unicorn"));
+    info.opponentName       = o.value(QStringLiteral("opponentName")).toString();
     return info;
 }
 

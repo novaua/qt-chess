@@ -1,4 +1,5 @@
 import QtQuick
+import ChessPlusPlus
 
 Rectangle{
     id:pawnPromotionRec
@@ -59,7 +60,7 @@ Rectangle{
                     anchors.fill:parent
                     onClicked: {
                         pawnPromotionTimer.start()
-                        chessConnector.pawnPromote(pawnPromotionRec.parent.index,modelData)
+                        ChessConnector.pawnPromote(pawnPromotionRec.parent.index,modelData)
                     }
                     onPressed: parent.scale=0.8
                     onReleased: parent.scale=1

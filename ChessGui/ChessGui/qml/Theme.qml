@@ -30,6 +30,8 @@ QtObject {
     readonly property color caution:       dark ? "#FCE100" : "#9D5D00"
     readonly property color critical:      dark ? "#FF99A4" : "#C42B1C"
     readonly property color criticalBg:    dark ? "#442726" : "#FDE7E9"
+    readonly property color successBg:     dark ? "#393D1B" : "#DFF6DD"   // InfoBar backgrounds (WinUI)
+    readonly property color cautionBg:     dark ? "#433519" : "#FFF4CE"
     readonly property color textOnColor:   "#FFFFFF"   // on a saturated fill, e.g. the level badges
     readonly property real  homeBackdropOpacity: dark ? 0.10 : 0.18
     // Selected card / list row (avatar pickers, current level).
@@ -64,6 +66,8 @@ QtObject {
     readonly property int radiusAvatar: 6
     readonly property int iconSize:      20
     readonly property int iconSizeDense: 16
+    readonly property int iconSizeCard:  24   // Home cards
+    readonly property int commandBarHeight: 48
 
     // ── Motion ──
     readonly property int fast:   83

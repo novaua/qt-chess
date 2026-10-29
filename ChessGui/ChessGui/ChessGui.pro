@@ -61,20 +61,36 @@ HEADERS += \
     UserManager.h
 
 DISTFILES += \
-    ApplyMovesDialog.qml \
-    ../../UciConnector/UciConnector.vcxproj \
-    ../../UciConnector/UciConnector.vcxproj.filters \
-    Button.qml \
-    ChessBoard.qml \
-    ChessBoxes.qml \
-    ChessFigures.qml \
-    ChessGame.qml \
-    CustomSlider.qml \
-    EmptyBoardModel.qml \
-    MarkerColumn.qml \
-    MarkerRow.qml \
-    NavigationLayer.qml \
-    Notificator.qml \
-    PawnPromotionOptions.qml \
-    NetworkPlayers.qml \
-    SelectPlayerDialog.qml
+    qml/AppDialog.qml \
+    qml/ApplyMovesDialog.qml \
+    qml/CapturedPanel.qml \
+    qml/ChallengeDialog.qml \
+    qml/ChessBoard.qml \
+    qml/ChessBoxes.qml \
+    qml/ChessFigures.qml \
+    qml/ChessGame.qml \
+    qml/ChoiceRow.qml \
+    qml/CommandBar.qml \
+    qml/ComputerGameDialog.qml \
+    qml/ConfirmDialog.qml \
+    qml/CreateUserDialog.qml \
+    qml/EmptyBoardModel.qml \
+    qml/GamePage.qml \
+    qml/GameResultCard.qml \
+    qml/GameResultDialog.qml \
+    qml/HomeCard.qml \
+    qml/HomePage.qml \
+    qml/IconButton.qml \
+    qml/InfoBar.qml \
+    qml/LevelsHelpDialog.qml \
+    qml/LichessGameDialog.qml \
+    qml/MarkerColumn.qml \
+    qml/MarkerRow.qml \
+    qml/MoveHistoryPanel.qml \
+    qml/NavigationLayer.qml \
+    qml/PawnPromotionOptions.qml \
+    qml/SettingsDialog.qml \
+    qml/Theme.qml \
+    qml/TwoPlayerDialog.qml \
+    qml/UserLoginScreen.qml \
+    qml/qmldir

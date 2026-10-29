@@ -1,4 +1,5 @@
 import QtQuick
+import ChessPlusPlus
 import QtQuick.Controls
 
 AppDialog {
@@ -8,7 +9,7 @@ AppDialog {
     width: 440
 
     onOpened: movesField.forceActiveFocus()
-    onAccepted: chessConnector.applyMoves(movesField.text)
+    onAccepted: ChessConnector.applyMoves(movesField.text)
     onClosed: movesField.text = ""
 
     TextField {

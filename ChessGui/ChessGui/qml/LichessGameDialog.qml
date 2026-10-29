@@ -1,4 +1,5 @@
 import QtQuick
+import ChessPlusPlus
 import QtQuick.Controls
 import QtQuick.Layouts
 
@@ -8,21 +9,20 @@ AppDialog {
     property bool   _busy:       false
     property string _statusText: ""
 
-    signal closeRequested()
+    signal profileRequested()   // link the Lichess account there
 
     title: "Play on Lichess"
     width: 420
     acceptEnabled: false   // two different actions (create / join): no default for Enter
 
     onRejected: {
-        lichessClient.stopStream()
+        LichessClient.stopStream()
         dialog._busy       = false
         dialog._statusText = ""
-        dialog.closeRequested()
     }
 
     Connections {
-        target: lichessClient
+        target: LichessClient
 
         function onChallengeCreated(gameId, joinUrl) {
             dialog._busy = false
@@ -38,31 +38,13 @@ AppDialog {
         }
     }
 
-    // A row of mutually exclusive option buttons (time control, side).
-    component ChoiceRow: Row {
-        id: choiceRow
-        property var options: []          // [{ label, ... }]
-        property int checkedIndex: 0
-        spacing: Theme.s1
-        Repeater {
-            model: choiceRow.options
-            delegate: Button {
-                required property var modelData
-                required property int index
-                text: modelData.label
-                checked: index === choiceRow.checkedIndex   // not checkable: a click can't uncheck it
-                onClicked: choiceRow.checkedIndex = index
-            }
-        }
-    }
-
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.s3
 
         // ── No token configured ─────────────────────────────────────────────
         ColumnLayout {
-            visible: !userManager.lichessConnected
+            visible: !UserManager.lichessConnected
             Layout.fillWidth: true
             spacing: Theme.s3
 
@@ -76,16 +58,13 @@ AppDialog {
                 text: "Open profile"
                 icon.source: Theme.icon("person")
                 highlighted: true
-                onClicked: {
-                    _showProfile = true
-                    dialog.closeRequested()
-                }
+                onClicked: dialog.profileRequested()
             }
         }
 
         // ── Connected — create + join ────────────────────────────────────────
         ColumnLayout {
-            visible: userManager.lichessConnected
+            visible: UserManager.lichessConnected
             Layout.fillWidth: true
             spacing: Theme.s2
 
@@ -136,7 +115,7 @@ AppDialog {
                     var variantValues = ["standard", "chess960"]
                     var chosenVariant = variantValues[comboVariant.currentIndex] || "standard"
                     dialog._busy = true
-                    lichessClient.createOpenChallenge(preset.min, preset.inc,
+                    LichessClient.createOpenChallenge(preset.min, preset.inc,
                                                       side.options[side.checkedIndex].value, chosenVariant)
                 }
             }
@@ -173,14 +152,14 @@ AppDialog {
                     highlighted: true
                     enabled: joinUrlField.text.trim() !== "" && !dialog._busy
                     onClicked: {
-                        var gameId = lichessClient.gameIdFromUrl(joinUrlField.text.trim())
+                        var gameId = LichessClient.gameIdFromUrl(joinUrlField.text.trim())
                         if (gameId === "") {
                             dialog._statusText = "Invalid URL or game ID"
                             return
                         }
                         dialog._busy       = true
                         dialog._statusText = ""
-                        lichessClient.acceptChallenge(gameId)
+                        LichessClient.acceptChallenge(gameId)
                     }
                 }
             }

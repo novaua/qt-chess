@@ -1,4 +1,5 @@
 import QtQuick
+import ChessPlusPlus
 
 Rectangle {
     id: chessBoard
@@ -6,7 +7,6 @@ Rectangle {
     property int angle:0;
     rotation:angle;
     color: "transparent"
-    visible: gameIsInProgress
 
     Behavior on rotation {
         id:chessBoardBehavior
@@ -65,16 +65,10 @@ Rectangle {
         anchors.leftMargin: 0
     }
 
+    // Messages (check, saved, …) are InfoBars in ChessGame.qml, not overlays on the board.
     Connections {
-        target: chessConnector
-
-        function onCheckNotify()                    { showNotification("Check") }
-        function onCheckMateNotify()                { showNotification("Checkmate") }
-        function onCastlingNotify()                 { showNotification("Castling") }
+        target: ChessConnector
         function onPawnPromotionNotify(index, side) { showPawnPromotionOptions(index, side) }
-        function onNoSavedGame()                    { showNotification("No saved Games!") }
-        function onSavedOk()                        { showNotification("Game saved") }
-        function onNoMoreMovesNotify()              { showNotification("No more moves!") }
     }
 
     NavigationLayer{
@@ -112,18 +106,5 @@ Rectangle {
         loader.side=side
         loader.source="PawnPromotionOptions.qml";
         loader.opacity=0.8
-    }
-
-    Notificator
-    {
-        id:notificator
-        rotation: -chessBoard.angle
-    }
-
-    function showNotification(notificationText)
-    {
-        notificator.opacity=0.8
-        notificator.children[0].text=notificationText
-        notificator.resources[0].start()
     }
 }

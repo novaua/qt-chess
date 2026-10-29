@@ -1,4 +1,5 @@
 import QtQuick
+import ChessPlusPlus
 
 Grid {
     width: parent.height<parent.width?0.95*parent.height:.95*parent.width
@@ -38,16 +39,16 @@ Grid {
             Rectangle {
                 anchors.fill: parent
                 color: Theme.lastMove
-                opacity: index === chessConnector.LastMoveTo ? 1 : 0.7
-                visible: index === chessConnector.LastMoveFrom
-                         || index === chessConnector.LastMoveTo
+                opacity: index === ChessConnector.LastMoveTo ? 1 : 0.7
+                visible: index === ChessConnector.LastMoveFrom
+                         || index === ChessConnector.LastMoveTo
                 z: 1
             }
 
             // King of the side that resigned / lost on time (like Lichess's red king)
             Rectangle {
                 anchors.fill: parent
-                visible: index === chessConnector.FlaggedKing
+                visible: index === ChessConnector.FlaggedKing
                 color: Theme.flaggedKing
                 opacity: 0.6
                 z: 2
