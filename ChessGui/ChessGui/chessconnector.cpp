@@ -433,7 +433,7 @@ QString ChessConnector::continueDescription() const
 		return {};
 	const auto info = _userManager->autoSaveInfo();
 	if (info.isSinglePlayer)
-		return vsRobotTitle(_config.lastLevel);
+		return vsRobotTitle(info.computerLevel > 0 ? info.computerLevel : _config.lastLevel);
 	return QStringLiteral("vs ") + (info.opponentName.isEmpty() ? QStringLiteral("Guest") : info.opponentName);
 }
 
@@ -982,6 +982,7 @@ void ChessConnector::saveGame()
 		info.opponentName = _opponentName;
 		info.opponentUserId = _opponentUserId;
 		info.startDate = _gameDate;
+		info.computerLevel = info.isSinglePlayer ? _config.lastLevel : 0;
 		if (_avatarProvider) {
 			info.playerAvatarName = _avatarProvider->playerRawName();
 			info.opponentAvatarName = _avatarProvider->opponentRawName();
@@ -1240,6 +1241,12 @@ bool ChessConnector::continueGame()
 	_wasVsComputer = isSingle;
 	beginGame(false);
 	_gameDate = info.startDate; // maybe an earlier day; invalid in older autosaves
+	_resultRecorded = info.resultRecorded; // mated, undone and left: the mate counted already
+	// The robot plays the game's own level; lastLevel may have changed since (another profile).
+	if (isSingle && info.computerLevel > 0 && info.computerLevel != _config.lastLevel) {
+		_config.lastLevel = info.computerLevel;
+		emit lastLevelChanged();
+	}
 
 	_config.playerPlaysWhite = info.playerPlaysWhite;
 	emit playerPlaysWhiteChanged();
@@ -1292,6 +1299,8 @@ void ChessConnector::autoSaveGame(bool isSinglePlayer)
 		info.playerPlaysWhite = _config.playerPlaysWhite;
 		info.opponentName = _opponentName;
 		info.opponentUserId = _opponentUserId;
+		info.computerLevel = isSinglePlayer ? _config.lastLevel : 0;
+		info.resultRecorded = _resultRecorded;
 		info.startDate = _gameDate;
 		if (_avatarProvider) {
 			info.playerAvatarName = _avatarProvider->playerRawName();

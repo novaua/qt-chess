@@ -51,6 +51,8 @@ public:
         QString opponentName;              // "Robot", a profile name or "Guest"; empty in older saves
         QString opponentUserId;            // the opponent's profile in a two-player game; empty = Guest
         QDate   startDate;                 // the day the game started (PGN Date); invalid in older saves
+        int     computerLevel  = 0;        // vs Robot: the level played; 0 in older saves
+        bool    resultRecorded = false;    // the statistics already have this game (a mate, then undo)
     };
 
     // One line of the statistics: the games against one opponent.
@@ -186,7 +188,11 @@ private:
     bool loadFrom(const QByteArray& json);
     void save();
     void rotateBackups(const QByteArray& json) const;
-    void keepDamagedFile();
+    bool keepDamagedFile(); // false: the damaged users.json couldn't be copied, so it must not be overwritten
+    QString uniqueName(const QString& name) const; // "Name", else "Name (2)", "Name (3)", …
+    // An export file: its profile (token-free), its saves and the profile here with the same id or
+    // name. Returns "" or an error.
+    QString readImport(const QUrl& file, User& user, QMap<QString, QByteArray>& files, const User*& conflict) const;
     void startLichessAuth(bool newUser);
     void finishLichessAuth();
     User*       activeUser();

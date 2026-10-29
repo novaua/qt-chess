@@ -29,11 +29,14 @@ LichessClient::LichessClient(QObject* parent)
 
 // Any call made with our token that Lichess answers with 401: the token was revoked or expired.
 // validateToken() sends a different token, so it doesn't count.
+// Both authenticationRequired and finished may see the same 401: reported once per reply.
 void LichessClient::checkAuthExpired(QNetworkReply* reply, bool unauthorized)
 {
-    if (_token.isEmpty() || reply->request().rawHeader("Authorization") != ("Bearer " + _token).toUtf8())
+    if (_token.isEmpty() || reply->property("authExpiredReported").toBool()
+        || reply->request().rawHeader("Authorization") != ("Bearer " + _token).toUtf8())
         return;
     if (unauthorized || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 401) {
+        reply->setProperty("authExpiredReported", true);
         qDebug() << "LichessClient: 401 for" << reply->url().path() << "- the token is no longer valid";
         emit authExpired();
     }

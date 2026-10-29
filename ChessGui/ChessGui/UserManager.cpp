@@ -66,6 +66,12 @@ static QJsonObject parseObject(const QByteArray& json)
     return err.error == QJsonParseError::NoError && doc.isObject() ? doc.object() : QJsonObject();
 }
 
+// What load() accepts as users.json: an object with a "users" array.
+static bool isUsersFile(const QByteArray& json)
+{
+    return parseObject(json).value(QStringLiteral("users")).isArray();
+}
+
 // "Today", "Yesterday", "Oct 12", "Oct 12, 2025"; "" = never.
 static QString dayText(const QDate& day)
 {
@@ -211,6 +217,7 @@ void UserManager::createUser(const QString& name, const QString& avatarName)
 void UserManager::login(const QString& userId)
 {
     if (!userById(userId)) return;
+    cancelLichessLink(); // a late browser sign-in must not switch or link another profile
     _activeUserId = userId;
     _isLoggedIn   = true;
     save();
@@ -357,7 +364,7 @@ void UserManager::startLichessAuth(bool newUser)
                 login(it->id);
             } else {
                 const auto& avatars = AvatarProvider::avatarNames();
-                createUser(username, avatars[QRandomGenerator::global()->bounded((int)avatars.size())]);
+                createUser(uniqueName(username), avatars[QRandomGenerator::global()->bounded((int)avatars.size())]);
             }
         }
         saveLichessCredentials(token, username);
@@ -487,6 +494,10 @@ static QJsonObject saveInfoToJson(const UserManager::GameSaveInfo& info)
         o[QStringLiteral("opponentUserId")] = info.opponentUserId;
     if (info.startDate.isValid())
         o[QStringLiteral("startDate")]      = info.startDate.toString(Qt::ISODate);
+    if (info.computerLevel > 0)
+        o[QStringLiteral("computerLevel")]  = info.computerLevel;
+    if (info.resultRecorded)
+        o[QStringLiteral("resultRecorded")] = true;
     return o;
 }
 
@@ -500,6 +511,8 @@ static UserManager::GameSaveInfo saveInfoFromJson(const QJsonObject& o)
     info.opponentName       = o.value(QStringLiteral("opponentName")).toString();
     info.opponentUserId     = o.value(QStringLiteral("opponentUserId")).toString();
     info.startDate          = QDate::fromString(o.value(QStringLiteral("startDate")).toString(), Qt::ISODate);
+    info.computerLevel      = o.value(QStringLiteral("computerLevel")).toInt(0);
+    info.resultRecorded     = o.value(QStringLiteral("resultRecorded")).toBool(false);
     return info;
 }
 
@@ -589,10 +602,9 @@ QList<UserManager::User> UserManager::usersFromJson(const QJsonArray& array)
 
 bool UserManager::loadFrom(const QByteArray& json)
 {
-    const QJsonObject root = parseObject(json);
-    if (root.isEmpty() || !root.value(QStringLiteral("users")).isArray())
+    if (!isUsersFile(json))
         return false;
-
+    const QJsonObject root = parseObject(json);
     _users = usersFromJson(root.value(QStringLiteral("users")).toArray());
     _activeUserId = root.value(QStringLiteral("activeUserId")).toString();
     // One profile: straight in. Several: the profile list asks who is playing.
@@ -628,29 +640,38 @@ bool UserManager::canRestoreBackup() const
 {
     if (!_damaged) return false;
     for (int n = 1; n <= kBackupCount; ++n)
-        if (!parseObject(readFile(backupFilePath(n))).isEmpty())
+        if (isUsersFile(readFile(backupFilePath(n))))
             return true;
     return false;
 }
 
-// users.damaged-<time>.json: never overwrite a file the user may still want to recover.
-void UserManager::keepDamagedFile()
+// users.damaged-<time>.json: never overwrite a file the user may still want to recover. A copy, so
+// a locked users.json doesn't matter; if even the copy fails, the caller must not write users.json.
+bool UserManager::keepDamagedFile()
 {
-    if (!_damaged) return;
+    if (!_damaged) return true;
+    const QString base = AppConfig::appDataDir() + "/users.damaged-"
+        + QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-hhmmss"));
+    QString target = base + ".json";
+    for (int n = 2; QFile::exists(target); ++n)
+        target = base + QStringLiteral("-%1.json").arg(n);
+    if (!QFile::copy(usersFilePath(), target)) {
+        qWarning() << "UserManager: can't keep the damaged users.json as" << target << "- not overwriting it";
+        return false;
+    }
     _damaged = false;
-    const QString target = AppConfig::appDataDir() + "/users.damaged-"
-        + QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-hhmmss")) + ".json";
-    if (!QFile::rename(usersFilePath(), target))
-        qWarning() << "UserManager: can't keep the damaged users.json as" << target;
+    return true;
 }
 
 bool UserManager::restoreFromBackup()
 {
     for (int n = 1; n <= kBackupCount; ++n) {
         const QByteArray json = readFile(backupFilePath(n));
-        if (!loadFrom(json))
+        if (!isUsersFile(json))
             continue;
-        keepDamagedFile();
+        if (!keepDamagedFile())
+            return false;
+        loadFrom(json);
         writeFileAtomically(usersFilePath(), json);
         qInfo() << "UserManager: restored users.json from" << backupFilePath(n);
         emit usersChanged();
@@ -665,7 +686,8 @@ bool UserManager::restoreFromBackup()
 
 void UserManager::save()
 {
-    keepDamagedFile(); // the user went on without restoring
+    if (!keepDamagedFile()) // the user went on without restoring
+        return;
 
     QJsonArray usersArray;
     for (const auto& u : _users) {
@@ -742,43 +764,62 @@ static QString readExport(const QUrl& file, QJsonObject& profile, QMap<QString, 
     return {};
 }
 
-QVariantMap UserManager::inspectImport(const QUrl& file) const
+QString UserManager::readImport(const QUrl& file, User& user, QMap<QString, QByteArray>& files,
+    const User*& conflict) const
 {
     QJsonObject profile;
-    QMap<QString, QByteArray> files;
     const QString error = readExport(file, profile, files);
     if (!error.isEmpty())
-        return { { QStringLiteral("error"), error } };
-
-    const QString id   = profile.value(QStringLiteral("id")).toString();
-    const QString name = profile.value(QStringLiteral("name")).toString().trimmed();
-    const User* conflict = userById(id);
-    for (const auto& u : _users)
-        if (!conflict && u.name.compare(name, Qt::CaseInsensitive) == 0)
-            conflict = &u;
-    return { { QStringLiteral("error"), QString() }, { QStringLiteral("name"), name },
-             { QStringLiteral("conflictId"),   conflict ? conflict->id   : QString() },
-             { QStringLiteral("conflictName"), conflict ? conflict->name : QString() } };
-}
-
-QString UserManager::importProfile(const QUrl& file, bool replace)
-{
-    const QVariantMap info = inspectImport(file);
-    if (!info.value(QStringLiteral("error")).toString().isEmpty())
-        return info.value(QStringLiteral("error")).toString();
-    QJsonObject profile;
-    QMap<QString, QByteArray> files;
-    readExport(file, profile, files);
-
+        return error;
     // Through the users.json reader, so an import gets the same defaults and migrations.
     const QList<User> read = usersFromJson(QJsonArray{ profile });
     if (read.isEmpty())
         return QStringLiteral("The profile in this file is incomplete");
-    User imported = read.first();
-    imported.name = imported.name.trimmed();
+    user = read.first();
+    user.name = user.name.trimmed();
+    conflict = userById(user.id);
+    for (const auto& u : _users)
+        if (!conflict && u.name.compare(user.name, Qt::CaseInsensitive) == 0)
+            conflict = &u;
+    return {};
+}
+
+QVariantMap UserManager::inspectImport(const QUrl& file) const
+{
+    User user;
+    QMap<QString, QByteArray> files;
+    const User* conflict = nullptr;
+    const QString error = readImport(file, user, files, conflict);
+    if (!error.isEmpty())
+        return { { QStringLiteral("error"), error } };
+    return { { QStringLiteral("error"), QString() }, { QStringLiteral("name"), user.name },
+             { QStringLiteral("conflictId"),   conflict ? conflict->id   : QString() },
+             { QStringLiteral("conflictName"), conflict ? conflict->name : QString() } };
+}
+
+QString UserManager::uniqueName(const QString& name) const
+{
+    auto taken = [this](const QString& candidate) {
+        return std::any_of(_users.cbegin(), _users.cend(),
+            [&](const User& u) { return u.name.compare(candidate, Qt::CaseInsensitive) == 0; });
+    };
+    QString result = name;
+    for (int n = 2; taken(result); ++n)
+        result = QStringLiteral("%1 (%2)").arg(name).arg(n);
+    return result;
+}
+
+QString UserManager::importProfile(const QUrl& file, bool replace)
+{
+    User imported;
+    QMap<QString, QByteArray> files;
+    const User* conflict = nullptr;
+    const QString error = readImport(file, imported, files, conflict);
+    if (!error.isEmpty())
+        return error;
     imported.lichessExpired = false; // no token: the profile asks to reconnect Lichess
 
-    const QString conflictId = info.value(QStringLiteral("conflictId")).toString();
+    const QString conflictId = conflict ? conflict->id : QString();
     if (replace && !conflictId.isEmpty()) {
         if (_isLoggedIn && conflictId == _activeUserId)
             return QStringLiteral("This profile is in use. Switch user first, then import it.");
@@ -787,13 +828,7 @@ QString UserManager::importProfile(const QUrl& file, bool replace)
         *userById(conflictId) = imported;
     } else {
         imported.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-        const QString base = imported.name;
-        auto taken = [this](const QString& name) {
-            return std::any_of(_users.cbegin(), _users.cend(),
-                [&](const User& u) { return u.name.compare(name, Qt::CaseInsensitive) == 0; });
-        };
-        for (int n = 2; taken(imported.name); ++n)
-            imported.name = QStringLiteral("%1 (%2)").arg(base).arg(n);
+        imported.name = uniqueName(imported.name);
         _users.append(imported);
     }
     for (auto it = files.cbegin(); it != files.cend(); ++it)

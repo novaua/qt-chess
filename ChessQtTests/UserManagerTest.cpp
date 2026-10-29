@@ -219,6 +219,33 @@ namespace UserManagerTests
 			Assert::IsTrue(readFile(_dir->path() + "/" + kept.first()) == "not json");
 		}
 
+		TEST_METHOD(DamagedFile_BackupWithoutUsers_NoRestoreOffered)
+		{
+			writeFile(UserManager::backupFilePath(1), R"({ "version": 2 })");
+			writeFile(UserManager::usersFilePath(), "broken");
+			UserManager um;
+			Assert::IsTrue(um.dataDamaged());
+			Assert::IsFalse(um.canRestoreBackup(), L"Restore would fail: no users array");
+			Assert::IsFalse(um.restoreFromBackup());
+			Assert::IsTrue(readFile(UserManager::usersFilePath()) == "broken", L"untouched");
+		}
+
+		TEST_METHOD(AutoSaveInfo_KeepsRobotLevelAndCountedResult)
+		{
+			{
+				UserManager um;
+				um.createUser("Alice", "girl");
+				UserManager::GameSaveInfo info;
+				info.isSinglePlayer = true;
+				info.computerLevel  = 5;
+				info.resultRecorded = true;
+				um.setAutoSaveInfo(info);
+			}
+			const auto info = UserManager().autoSaveInfo();
+			Assert::AreEqual(5, info.computerLevel);
+			Assert::IsTrue(info.resultRecorded);
+		}
+
 		// ── Export / import ─────────────────────────────────────────────────
 
 		TEST_METHOD(Export_HasProfileAndSaves_NeverTheToken)

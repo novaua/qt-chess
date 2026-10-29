@@ -15,7 +15,16 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Tests:** `ChessQtTests` has 16 new tests: `UserManagerTest.cpp` (14: restart, start page, per-opponent stats, v1 migration, delete, backup rotation, unchanged file, damaged file + restore, damaged file kept, export without token, import on another PC, conflict as new / replace, replace refused, bad files, file name) and `parseRatings` ×2. `UserManager.cpp`, `AppConfig.cpp` and `AvatarProvider.cpp` are compiled into the test DLL. All 143 tests pass (ChessTests + ChessQtTests).
 - **Scenes:** `welcome`, `profiles` (`login` is its old name), `profile`, `profile-local`, `profile-expired`, `import`; `create-user` is now the first-run dialog. Their profiles come from `seedScreenshotProfiles()` in `main.cpp` (placeholder token, no network in screenshot mode). All 19 scenes OK, no QML warnings. After shots: `docs/design/after-p3/` (light and dark).
 
+### Code review fixes (same branch)
+A medium `/code-review` found 10 issues; 8 were real and are fixed, 2 can't happen (Delete is off during a game; the autosave runs only when leaving a game, not per move).
+- A damaged `users.json` is **copied** to `users.damaged-<time>[-n].json`. If that fails, nothing overwrites it. Restore is only offered for a backup that has a `users` array.
+- A login cancels a pending Lichess sign-in, so a late browser sign-in can't switch profiles. A profile made by Continue with Lichess gets "Name (2)" if the name is taken, like an import.
+- The autosave keeps the robot's level (`computerLevel`): Continue plays at that level and the statistics use it, even if another profile changed `lastLevel`. It also keeps `resultRecorded`, so a mate that was undone and then played again after Continue doesn't count twice.
+- Import reads the file once. A 401 is reported once per reply.
+- `ChessQtTests`: 2 more tests (backup without users, autosave level and counted flag). All 145 pass, and all 19 scenes are OK.
+
 ### Not checked live
+- Continue of a game vs the robot at a level other than `lastLevel` (needs Stockfish; the saved fields are unit-tested).
 - Anything that needs lichess.org: OAuth from Welcome and Profile, Cancel, the API token, ratings, a real 401 (revoke the token on lichess.org). Listed in TASKS under P3.
 - Export / import through the real file dialogs, delete, and Restore from a damaged file in a real window (the logic is unit-tested).
 
