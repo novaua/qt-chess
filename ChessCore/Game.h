@@ -71,6 +71,7 @@ namespace Chess
 		void UndoMove();
 
 		bool IsWhiteMove();
+		bool IsCheckMate() const { return _checkMate; } // the last move mated
 		int GetMoveCount();
 		int GetHalfMovesCount();
 

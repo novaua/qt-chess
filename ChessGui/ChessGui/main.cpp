@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
 	// "menu" and "board" are the older names of "home" and "game".
 	static const QStringList screenshotScenes = {
 		"create-user", "login", "home", "continue", "game", "settings", "levels", "profile", "online",
-		"computer", "players", "review", "result", "moves", "menu", "board"
+		"computer", "players", "review", "result", "ended", "moves", "menu", "board"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();

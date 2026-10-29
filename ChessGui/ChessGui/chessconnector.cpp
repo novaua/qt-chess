@@ -162,7 +162,7 @@ void ChessConnector::pawnPromote(int index, const QString& piece)
 		<< piece;
 
 	// The move is only complete now; the history shows the chosen piece (c8=Q).
-	buildFullHistoryCache();
+	appendMoveToHistory();
 	onHumanMoveDone();
 }
 
@@ -228,10 +228,9 @@ void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
 	emit moveCountChanged();
 	emit IsWhiteMoveChanged();
 	emit lastMoveChanged();
-	emit capturedChanged();
 	if (emitHistoryChanged)
 		emit moveHistoryChanged();
-	emit reviewStateChanged();
+	emit reviewStateChanged(); // also capturedChanged (constructor)
 }
 
 void ChessConnector::resetMoveHistoryCache() {
@@ -244,20 +243,40 @@ const Chess::MovesHistory& ChessConnector::shownHistory() const
 	return _player ? _player->GetHistory() : _game->GetGameRecord();
 }
 
-// Rebuilt after every move: Game::FormatHistorySan replays the game to find check and mate.
-void ChessConnector::buildFullHistoryCache() {
-	_sanCache = Chess::Game::FormatHistorySan(shownHistory());
-	_moveHistoryCache.clear();
-	for (int i = 0; i < (int)_sanCache.size(); i += 2) {
+// The move-list row of _sanCache[i]: a new row for White's move, the second cell for Black's.
+void ChessConnector::addSanToRows(int i)
+{
+	if (i % 2 == 0) {
 		QVariantMap row;
 		row["n"] = i / 2 + 1;
 		addMoveCell(row, "w", i + 1, _sanCache[i]);
-		if (i + 1 < (int)_sanCache.size())
-			addMoveCell(row, "b", i + 2, _sanCache[i + 1]);
-		else
-			addMoveCell(row, "b", 0, {});
+		addMoveCell(row, "b", 0, {});
 		_moveHistoryCache.append(row);
 	}
+	else if (!_moveHistoryCache.isEmpty()) {
+		auto row = _moveHistoryCache.last().toMap();
+		addMoveCell(row, "b", i + 1, _sanCache[i]);
+		_moveHistoryCache.last() = row;
+	}
+}
+
+// After undo, load or several moves at once: Game::FormatHistorySan replays the game.
+void ChessConnector::buildFullHistoryCache() {
+	_sanCache = Chess::Game::FormatHistorySan(shownHistory());
+	_moveHistoryCache.clear();
+	for (int i = 0; i < (int)_sanCache.size(); ++i)
+		addSanToRows(i);
+}
+
+// After one move of the live game: only that move, with the game's own mate state.
+void ChessConnector::appendMoveToHistory() {
+	const auto& rec = _game->GetGameRecord();
+	if (_player || rec.size() != _sanCache.size() + 1) {
+		buildFullHistoryCache();
+		return;
+	}
+	_sanCache.push_back(Chess::FormatMoveSan(rec.back(), _game->GetCurrentBoard(), _game->IsCheckMate()));
+	addSanToRows((int)_sanCache.size() - 1);
 }
 
 QVariantList ChessConnector::moveHistory() const
@@ -273,7 +292,9 @@ int ChessConnector::shownPly() const
 
 QString ChessConnector::pgn() const
 {
-	const QString date = QDate::currentDate().toString(QStringLiteral("yyyy.MM.dd"));
+	// Unknown for a saved or continued game: the save files don't keep it.
+	const QString date = _gameDate.isValid() ? _gameDate.toString(QStringLiteral("yyyy.MM.dd"))
+	                                         : QStringLiteral("????.??.??");
 	const QString site = isOnlineGame() ? QStringLiteral("https://lichess.org/") + _onlineGameId
 	                                    : QStringLiteral("Chess++");
 	const QString result = _gameResult.isEmpty() ? QStringLiteral("*") : _gameResult.section(' ', 0, 0);
@@ -294,8 +315,9 @@ QString ChessConnector::pgn() const
 
 QString ChessConnector::pgnFileName() const
 {
-	QString name = sideName(true) + QStringLiteral(" vs ") + sideName(false) + QLatin1Char(' ')
-		+ QDate::currentDate().toString(Qt::ISODate) + QStringLiteral(".pgn");
+	QString name = sideName(true) + QStringLiteral(" vs ") + sideName(false)
+		+ (_gameDate.isValid() ? QLatin1Char(' ') + _gameDate.toString(Qt::ISODate) : QString())
+		+ QStringLiteral(".pgn");
 	static const QRegularExpression notInFileNames(QStringLiteral("[<>:\"/\\\\|?*]"));
 	return name.replace(notInFileNames, QStringLiteral("_"));
 }
@@ -310,7 +332,8 @@ void ChessConnector::exportPgn(const QUrl& file)
 {
 	const QString path = file.isLocalFile() ? file.toLocalFile() : file.toString();
 	QSaveFile out(path);
-	const bool ok = out.open(QIODevice::WriteOnly | QIODevice::Text)
+	const bool ok = file.isLocalFile()
+		&& out.open(QIODevice::WriteOnly | QIODevice::Text)
 		&& out.write(pgn().toUtf8()) >= 0
 		&& out.commit();
 	if (!ok)
@@ -440,11 +463,9 @@ QStringList ChessConnector::capturedPieces(Chess::PieceColors capturedColor) con
 	const int count = reviewMode() ? std::min(_reviewIndex, (int)rec.size()) : (int)rec.size();
 	std::vector<int> taken(Chess::EPC_MAX, 0);
 	for (int i = 0; i < count; ++i) {
-		const auto& m = rec[i];
-		if (m.IsCapturingMove() && m.To.Piece.Color == capturedColor)
-			++taken[m.To.Piece.Type];
-		else if (m.IsEnPassantMove() && m.From.Piece.Color != capturedColor)
-			++taken[Chess::PAWN]; // the pawn taken en passant isn't on the target square
+		const auto piece = rec[i].CapturedPiece(); // also en passant
+		if (piece.Color == capturedColor)
+			++taken[piece.Type];
 	}
 	QStringList result;
 	for (auto type : order)
@@ -475,19 +496,20 @@ void ChessConnector::makeMove(int from, int to)
 	try
 	{
 		_game->DoMove((BoardPosition)from, (BoardPosition)to);
-
-		// A pawn reaching the last rank waits for the player's piece choice; the rest
-		// of the move handling runs from pawnPromote() so nobody sees "c7c8" without a piece.
-		if (_promotionPending)
-			return;
-
-		buildFullHistoryCache();
-		onHumanMoveDone();
 	}
 	catch (ChessException& ex)
 	{
 		qDebug() << "Exception caught moving [" << from << ", " << to << "]:" << ex.what();
+		return;
 	}
+
+	// A pawn reaching the last rank waits for the player's piece choice; the rest
+	// of the move handling runs from pawnPromote() so nobody sees "c7c8" without a piece.
+	if (_promotionPending)
+		return;
+
+	appendMoveToHistory();
+	onHumanMoveDone();
 }
 
 void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
@@ -668,6 +690,7 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 // Called whenever a new game starts (local, vs Robot, continued, or online).
 void ChessConnector::beginGame(bool online)
 {
+	_gameDate = QDate::currentDate();
 	setFlaggedKing(-1);
 	_resultRecorded = false;
 	_resignAfterEngineMove = false;
@@ -807,7 +830,7 @@ void ChessConnector::applyMoves(const QString& movesStr)
 			break;
 		}
 	}
-	buildFullHistoryCache();
+	appendMoveToHistory(); // rebuilds the whole list when several moves came at once
 	EmitMoveCountUpdates();
 }
 
@@ -883,7 +906,7 @@ void ChessConnector::onEngineMoveComplete()
 		_reviewIndex = -1;
 		emitBoardState((int)_game->GetGameRecord().size());
 	}
-	buildFullHistoryCache();
+	appendMoveToHistory();
 	EmitMoveCountUpdates();
 	if (_resignAfterEngineMove) {
 		_resignAfterEngineMove = false;
@@ -961,6 +984,7 @@ bool ChessConnector::loadGame()
 			_game->Load(savedGamePath().toStdString());
 			_game->Restart();
 			_player = _game->MakePlayer();
+			_gameDate = {}; // not in the save file
 			buildFullHistoryCache();
 			emit IsOnPlayerModeChanged();
 			EmitMoveCountUpdates();
@@ -1219,6 +1243,7 @@ bool ChessConnector::continueGame()
 	const bool isSingle = info.isSinglePlayer;
 	_wasVsComputer = isSingle;
 	beginGame(false);
+	_gameDate = {}; // started on an earlier day maybe: the autosave doesn't keep it
 
 	_config.playerPlaysWhite = info.playerPlaysWhite;
 	emit playerPlaysWhiteChanged();

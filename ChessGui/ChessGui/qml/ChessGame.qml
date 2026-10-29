@@ -95,7 +95,9 @@ ApplicationWindow {
     }
 
     function exportPgn() {
-        pgnExportDialog.selectedFile = pgnExportDialog.currentFolder + "/" + ChessConnector.pgnFileName()
+        // Encoded: a '#' or '%' in a player's name is not URL syntax.
+        pgnExportDialog.selectedFile = pgnExportDialog.currentFolder + "/"
+                                     + encodeURIComponent(ChessConnector.pgnFileName())
         pgnExportDialog.open()
     }
 
@@ -133,7 +135,7 @@ ApplicationWindow {
             else                      UserManager.createUser("Tester", "wizard")
         }
         // A second profile to play against: same names and avatars every time.
-        var gameScene = ["game", "continue", "review", "result", "moves"].includes(scene)
+        var gameScene = ["game", "continue", "review", "result", "ended", "moves"].includes(scene)
         if ((gameScene || scene === "players") && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -151,7 +153,7 @@ ApplicationWindow {
             var middlegame = "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 c1d2 c7c6 "
                            + "c3d5 a5d8 d5f6 d8f6 d1e2 f5c2"
             var defaultMoves = ({ continue: "e2e4 e7e5", review: middlegame, moves: middlegame,
-                                  result: "f2f3 e7e5 g2g4 d8h4" })[scene] ?? ""
+                                  result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4" })[scene] ?? ""
             var bob = UserManager.users.find(u => u.name === "Bob")
             ChessConnector.startLocalGame(!_shot.black, bob ? bob.id : "")
             if (_shot.moves || defaultMoves)
@@ -162,6 +164,8 @@ ApplicationWindow {
                 ChessConnector.reviewTo(9)
             if (scene === "moves")
                 stack.currentItem.sheetOpen = true   // the move sheet (narrow window)
+            if (scene === "ended")
+                stack.currentItem._resultCardClosed = true   // Rematch / New game in the moves panel
         }
 
         // A finished game shows its result only after GamePage's resultTimer (1600 ms).

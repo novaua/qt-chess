@@ -4,6 +4,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-29 — P4 code review fixes (branch: p4ReviewFixes_291026); next: P3
+
+A `/code-review` of #81 found 10 issues. I checked all of them: 9 were real, and 1 (the overlapping review properties) was mostly style. This branch fixes 9, including the style one; #2 became backlog item BL-09.
+- **Rematch after closing the result card:** the moves panel now shows Rematch and New game, and the sheet handle shows a Result button that reopens the card. The new `ended` scene shows this.
+- **Review moves** on the result card goes to the start position (`reviewFirst()`); in a narrow window it also opens the sheet.
+- **Move list:** after a single move, only that move is formatted. `Game::IsCheckMate()` supplies the mate, and `UndoMove` now clears it. The full replay runs only after undo, load or several moves at once. In `makeMove`, an exception now only covers `DoMove`.
+- **Captured pieces:** they come from `HistoryMove::CapturedPiece()` in ChessCore. A `Game` records en passant as a normal capture, so the old GUI special case never ran.
+- **PGN:** the date is the day the game started. A saved or continued game gets `????.??.??` and no date in the file name. The suggested export name is URL-encoded, so `#` and `%` in names work. Export rejects URLs that aren't local files.
+- Esc no longer needs two presses after the window grows wide with the sheet open. `capturedChanged` fires once per update. `PlyCount` replaced `ReviewIndex`, which QML no longer used.
+- `ChessTests`: 85/85, 5 new (`CapturedPiece` ×3, `IsCheckMate` set by mate and cleared by undo). All 15 scenes OK in a real window.
+- **Not fixed here, now BL-09:** the engine thread changes `_game` while the GUI thread reads it.
+
+---
+
 ## 2026-10-29 — BL-02 P4 Game chrome done (branch: gameChrome_291026); next: P3
 
 ### What was done

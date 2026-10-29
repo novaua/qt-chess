@@ -1,6 +1,7 @@
 #ifndef CHESSCONNECTOR_H
 #define CHESSCONNECTOR_H
 
+#include <QDate>
 #include <QObject>
 #include <QStringList>
 #include <QUrl>
@@ -44,9 +45,9 @@ class ChessConnector : public QObject
 		// text = the SAN without the piece letter. No black move yet: bPly 0, bText "".
 		Q_PROPERTY(QVariantList MoveHistory READ moveHistory NOTIFY moveHistoryChanged)
 		Q_PROPERTY(int  ShownPly      READ shownPly      NOTIFY reviewStateChanged) // moves on the board now
+		Q_PROPERTY(int  PlyCount      READ plyCount      NOTIFY moveHistoryChanged) // moves in the list
 		Q_PROPERTY(QString      GameResult  READ gameResult  NOTIFY gameResultChanged)
 		Q_PROPERTY(bool ReviewMode    READ reviewMode    NOTIFY reviewStateChanged)
-		Q_PROPERTY(int  ReviewIndex   READ reviewIndex   NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool CanReviewPrev READ canReviewPrev NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
@@ -89,8 +90,8 @@ public:
 	QVariantList moveHistory() const;
 	QString      gameResult()  const { return _gameResult; }
 	bool reviewMode()    const { return _reviewIndex >= 0; }
-	int  reviewIndex()   const { return _player ? _player->GetPointer() : _reviewIndex; }
 	int  shownPly()      const;
+	int  plyCount()      const { return (int)_sanCache.size(); }
 	bool canReviewPrev() const;
 	bool canReviewNext() const;
 	bool isOnlineGame()  const { return !_onlineGameId.isEmpty(); }
@@ -231,7 +232,9 @@ private:
 	void onHumanMoveDone();
 	void emitBoardState(int moveIndex);
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
+	void addSanToRows(int i);
 	void buildFullHistoryCache();
+	void appendMoveToHistory();
 	void resetMoveHistoryCache();
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
 	void stopEngineThread();
@@ -277,6 +280,7 @@ private:
 
 	QVariantList _moveHistoryCache;
 	std::vector<std::string> _sanCache; // SAN of shownHistory(), for the PGN
+	QDate _gameDate;                    // when the game started; invalid for a saved or continued game
 	QVariantMap  _screenshotScene;
 };
 

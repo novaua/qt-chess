@@ -38,7 +38,7 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
 
 - Scenes: `create-user`, `login`, `home`, `continue` (Home with an autosaved game), `game` (two-player
   game, Tester vs Bob), `review` (a middlegame reviewed at move 5), `result` (Fool's mate: the result
-  card), `moves` (the middlegame with the move sheet open; narrow window only), `settings`, `levels`,
+  card), `ended` (the same with the card closed: Rematch / New game in the moves panel, Result in the sheet), `moves` (the middlegame with the move sheet open; narrow window only), `settings`, `levels`,
   `profile`, `online` (Lichess dialog, not connected), `computer` (vs-computer setup dialog), `players`
   (two-player setup dialog), `all`. `menu` and `board` still work as the old names of `home` and `game`.
   `-Moves` replaces a scene's own moves.

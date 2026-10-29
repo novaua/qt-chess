@@ -46,6 +46,10 @@ namespace Chess
 
 		bool IsEnPassantMove() const;
 
+		// The piece this move took, or an empty piece. Also en passant when the target square was
+		// empty (a bare Board move; Game records it as a normal capture).
+		Piece CapturedPiece() const;
+
 		Move ToMove() const;
 
 		std::string ToUciString() const;

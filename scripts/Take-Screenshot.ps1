@@ -23,7 +23,7 @@
 #>
 [CmdletBinding()]
 param(
-    # create-user, login, home, continue, game, review, result, moves, settings, levels, profile, online,
+    # create-user, login, home, continue, game, review, result, ended, moves, settings, levels, profile, online,
     # computer, players, or all (menu and board: the older names of home and game)
     [string[]]$Scene = @('home'),
     # game scene: UCI moves to play first, e.g. "e2e4 e7e5"
@@ -49,7 +49,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
-$allScenes = 'create-user', 'login', 'home', 'continue', 'game', 'review', 'result', 'moves', 'settings', 'levels',
+$allScenes = 'create-user', 'login', 'home', 'continue', 'game', 'review', 'result', 'ended', 'moves', 'settings', 'levels',
              'profile', 'online', 'computer', 'players'
 if ($Scene -contains 'all') { $Scene = $allScenes }
 foreach ($s in $Scene) {
