@@ -32,6 +32,9 @@ param(
     # game scene: play Black (board turned around)
     [switch]$Black,
     [switch]$Dark,
+    # The app's high-contrast colours (Theme.highContrast). The Fluent controls keep the normal
+    # look: they only follow Windows' own contrast theme.
+    [switch]$HighContrast,
     # Window size WxH, e.g. 1400x900 (landscape shows the move list beside the board). Default 768x1054.
     [string]$Size,
     # Extra wait in ms before the screenshot (default 1000)
@@ -74,13 +77,14 @@ $exitMeaning = @{ 1 = 'grabbing or saving the window failed'; 2 = 'timed out wai
                   3 = 'QML failed to load'; 4 = 'unknown scene' }
 $failed = 0
 foreach ($s in $Scene) {
-    $baseName = ($s, $(if ($Black) { 'black' }), $(if ($Dark -or $Offscreen) { 'dark' }), $Name | Where-Object { $_ }) -join '-'
+    $baseName = ($s, $(if ($Black) { 'black' }), $(if ($Dark -or $Offscreen) { 'dark' }), $(if ($HighContrast) { 'hc' }), $Name | Where-Object { $_ }) -join '-'
     $file = Join-Path $OutDir "$baseName.png"
     $argList = @('--screenshot', "`"$file`"", '--scene', $s, '--delay', $Delay)
     if ($Offscreen) { $argList = @('-platform', 'offscreen') + $argList }
     if ($Moves) { $argList += '--moves', "`"$Moves`"" }
     if ($Black) { $argList += '--black' }
     if ($Dark)  { $argList += '--dark' }
+    if ($HighContrast) { $argList += '--high-contrast' }
     if ($Size)  { $argList += '--size', $Size }
 
     $p = Start-Process $exe -ArgumentList $argList -Wait -PassThru

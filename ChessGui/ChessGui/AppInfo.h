@@ -14,6 +14,8 @@ class AppInfo : public QObject
     Q_PROPERTY(QString qtVersion  READ qtVersion  CONSTANT)
     Q_PROPERTY(QUrl    dataFolder READ dataFolder CONSTANT)
     Q_PROPERTY(QUrl    logFolder  READ logFolder  CONSTANT)
+    // Windows Settings → Accessibility → Visual effects → Animation effects is off (read at start).
+    Q_PROPERTY(bool    windowsAnimationsOff READ windowsAnimationsOff CONSTANT)
     // "checking" until probeEngine() is done, then "ok" or "missing" (none found, or it didn't answer).
     Q_PROPERTY(QString engineState READ engineState NOTIFY engineChanged)
     Q_PROPERTY(QString engineName  READ engineName  NOTIFY engineChanged) // "Stockfish 17.1"
@@ -28,6 +30,7 @@ public:
     static QUrl    dataFolder();
     static QUrl    logFolder();
     static QString logFolderPath();
+    static bool    windowsAnimationsOff();
 
     QString engineState() const { return _engineState; }
     QString engineName()  const { return _engineName; }

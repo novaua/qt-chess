@@ -34,6 +34,7 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
 .\scripts\Take-Screenshot.ps1 -Scene game -Moves "f2f3 e7e5 g2g4 d8h4" -Name foolsmate   # game end
 .\scripts\Take-Screenshot.ps1 -Scene game -Black -Dark -Size 1400x900       # flipped, dark, landscape
 .\scripts\Take-Screenshot.ps1 -Scene all -Offscreen                          # screen locked: dark only
+.\scripts\Take-Screenshot.ps1 -Scene home,game -HighContrast                 # the app's high-contrast colours
 ```
 
 - Scenes: `welcome` (first run), `create-user` (first run, Create profile dialog), `profiles` (Who's
@@ -50,7 +51,12 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   from `seedScreenshotProfiles()` in `main.cpp`.
   `-Moves` replaces a scene's own moves.
 - To review many shots at once, tile them into one contact sheet (System.Drawing) and Read that.
-- Output: `test-results\screens\<scene>[-black][-dark][-<Name>].png` (git-ignored). Exit code = number of failed scenes.
+- Output: `test-results\screens\<scene>[-black][-dark][-hc][-<Name>].png` (git-ignored). Exit code = number of failed scenes.
+- Screenshot mode turns animations off (`Theme.forceReduceMotion`, not saved): no pulse is caught
+  half-way, so the same scene gives the same picture. Page transitions and piece fades are off too.
+- `-HighContrast`: our own colours as in a Windows contrast theme (`Theme.highContrast`, system
+  palette, solid borders, no photo). The Fluent controls keep their normal look: they only follow
+  Windows' own setting, which the script doesn't change.
 - `-Size WxH`: default 768x1054 (portrait: the moves are in a sheet at the bottom). At least 960 wide,
   or wider than 1.15 × height, shows the move list beside the board.
 - `-Moves` are UCI (`e7e8q` for promotion); an illegal move stops the list there (see the log).
@@ -69,9 +75,29 @@ Not covered yet: a game vs the robot (needs Stockfish; a stub engine is planned)
 connected Lichess account and the challenge dialog. Sending keys to an interactive window
 (SendKeys) doesn't reach the Qt controls reliably and takes over the user's desktop: add a scene instead. Plan for the full UI test suite: `docs/UiTestSuitePlan.md`.
 
+## Did the look change? (screenshot baselines)
+
+`scripts\Compare-Screenshots.ps1` compares `test-results\screens\*.png` with
+`test-results\baselines\` and writes `test-results\diffs\<name>.png` (baseline greyed, changed pixels
+red) for each one that changed. Baselines are local (fonts and scaling differ per PC). Exit code =
+number of failures; `NEW` = no baseline yet.
+
+```powershell
+# On develop (or before the change): accept the current look
+.\scripts\Take-Screenshot.ps1 -Scene all; .\scripts\Take-Screenshot.ps1 -Scene all -Dark
+.\scripts\Compare-Screenshots.ps1 -Update
+# After the change: what looks different? Read the diffs of the failures.
+.\scripts\Take-Screenshot.ps1 -Scene all; .\scripts\Take-Screenshot.ps1 -Scene all -Dark
+.\scripts\Compare-Screenshots.ps1            # -Name home*,game* for some only
+```
+
+A pixel changed when a channel differs by more than `-Tolerance` (24); a shot fails above
+`-MaxChangedPercent` (0.05 %). Two runs of all 42 scenes match (`restore` differs by a few hundred
+pixels, within the limit). Needs PowerShell 7.
+
 ## The underlying switches (ChessGui.exe)
 
-`--screenshot <file.png> --scene <name> [--moves "..."] [--black] [--dark] [--size WxH] [--delay ms]`,
+`--screenshot <file.png> --scene <name> [--moves "..."] [--black] [--dark] [--high-contrast] [--size WxH] [--delay ms]`,
 `--screenshot` also sets `QT_ENABLE_HIGHDPI_SCALING=0` (unless already set). `--data-dir <dir>` (also usable without `--screenshot`) keeps
 users, settings (ini instead of registry), saves and logs in `<dir>` — use it to run the app
 interactively on a throwaway profile. Exit codes: 0 saved, 1 grab/save failed, 2 timed out,

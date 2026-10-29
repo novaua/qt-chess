@@ -43,6 +43,10 @@ LicenseFile=..\LICENSE
 OutputBaseFilename=ChessSetup-{#MyAppVersion}
 SetupIconFile=..\ChessGui\ChessGui\chess.ico
 UninstallDisplayIcon={app}\ChessGui.exe
+; Windows 11 look; the images come from scripts\make_icons.py (Setup picks the size for the DPI)
+WizardStyle=modern
+WizardImageFile=art\wizard-100.bmp,art\wizard-125.bmp,art\wizard-150.bmp,art\wizard-175.bmp,art\wizard-200.bmp,art\wizard-250.bmp
+WizardSmallImageFile=art\wizard-small-100.bmp,art\wizard-small-125.bmp,art\wizard-small-150.bmp,art\wizard-small-175.bmp,art\wizard-small-200.bmp,art\wizard-small-250.bmp
 Compression=lzma2/ultra64
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible

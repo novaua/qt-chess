@@ -119,9 +119,9 @@
     </QtRcc>
   </ItemGroup>
   <ItemGroup>
-    <None Include="pics\chess_icon.svg">
+    <Image Include="pics\app-icon.png">
       <Filter>Resource Files</Filter>
-    </None>
+    </Image>
     <None Include="qml\ChessBoard.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
@@ -204,6 +204,9 @@
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\HomeCard.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\FocusRing.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\ConfirmDialog.qml">

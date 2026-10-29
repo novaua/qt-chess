@@ -19,8 +19,15 @@ spacing and the type ramp. No QML file outside `Theme.qml` hard-codes a colour.
 - `Theme.dark` is simply `Application.styleHints.colorScheme === Qt.ColorScheme.Dark`.
 - **Accent:** the system accent colour, via `palette.accent` from the FluentWinUI3 style. The
   fallback is `#0078D4` (light) / `#60CDFF` (dark), the WinUI defaults.
-- High contrast: when Windows high contrast is on, use the palette's system colours and drop the
-  translucent fills. This is checked in P6.
+- **High contrast** (P6): when a Windows contrast theme is on
+  (`Application.styleHints.accessibility.contrastPreference === Qt.HighContrast`, Qt 6.10),
+  `Theme.highContrast` is true. The FluentWinUI3 controls switch to the system colours themselves;
+  our roles do the same through `SystemPalette`: surfaces are `window`, text, strokes and dividers
+  are `windowText`, disabled text is the disabled `windowText`, the accent is `highlight`. The
+  status colours become the text colour (the InfoBar keeps its border and icon), the selected fill
+  and the scrim go away (the accent border stays), and Home drops its photo. Hovered cards get an
+  accent border instead of a lighter fill. The board keeps its own colours. `--high-contrast`
+  (`Take-Screenshot.ps1 -HighContrast`) forces our part for a screenshot.
 
 ## 2. Colour roles
 
@@ -96,7 +103,14 @@ without Courier New.
 | `slow` | 250 ms | Board flip (replaces today's elastic easing), side-panel slide |
 | easing | `Easing.OutCubic` | Everything, unless the style animates it itself |
 
-There is also a "Reduce animations" setting (P5). It sets all durations to 0.
+There is also a "Reduce animations" setting (P5). It sets all durations to 0. Since P6
+`Theme.reduceMotion` is also on when Windows' animation effects are off
+(`AppInfo.windowsAnimationsOff`; Settings then shows the switch on and disabled), and in
+screenshot mode (`Theme.forceReduceMotion`, so pictures repeat).
+
+**Page transitions** (P6, `StackView` in `ChessGame.qml`): the new page fades in over `normal` and
+rises `s5` (24 px), the old one fades out over `fast`; Back does the reverse. They replace the
+Basic style's 400 ms horizontal slide, and a disabled `Transition` switches pages at once.
 
 ## 7. Sketch of `Theme.qml` (P1)
 
@@ -164,3 +178,13 @@ It is registered through `qmldir` (`singleton Theme 1.0 Theme.qml`) and listed i
   at 20 %). In P2 it was `success`.
 - `-platform offscreen` (screenshots on a locked screen) sets `Theme.dark`: the Fluent style is dark
   there and can't be switched.
+
+## 11. Added in P6
+
+- `highContrast`, `forceHighContrast` and the system colours behind every role (§1).
+- `focusStroke` (= `textPrimary`): the keyboard focus outline that `FocusRing.qml` draws around
+  items the style doesn't, such as the selected avatar or opponent when the group has focus.
+- `forceReduceMotion` (screenshots) and `AppInfo.windowsAnimationsOff` feed `reduceMotion` (§6).
+- App icon: the board's white knight on a rounded tile in the board's green with a 2×2 board
+  corner (`pics/app-icon.png`, `chess.ico`, installer images in `installer/art/`), drawn by
+  `scripts/make_icons.py`. It replaces `pics/chess_icon.svg`.

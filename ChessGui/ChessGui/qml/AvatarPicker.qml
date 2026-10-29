@@ -2,6 +2,7 @@ import QtQuick
 import ChessPlusPlus
 
 // The avatars to choose from (AvatarProvider.names); `selected` is the chosen one's name.
+// One Tab stop, like a group of radio buttons: the arrow keys pick the next avatar.
 Grid {
     id: picker
 
@@ -12,6 +13,23 @@ Grid {
 
     columns: 5
     spacing: Theme.s2
+    activeFocusOnTab: true
+    Accessible.role: Accessible.List
+    Accessible.name: "Avatar"
+
+    function pick(name) {
+        selected = name
+        picked(name)
+    }
+    function _step(delta) {
+        var names = AvatarProvider.names
+        var i = names.indexOf(selected)
+        pick(names[i < 0 ? 0 : Math.max(0, Math.min(names.length - 1, i + delta))])
+    }
+    Keys.onLeftPressed:  _step(-1)
+    Keys.onRightPressed: _step(1)
+    Keys.onUpPressed:    _step(-columns)
+    Keys.onDownPressed:  _step(columns)
 
     Repeater {
         model: AvatarProvider.names
@@ -37,15 +55,14 @@ Grid {
                 fillMode: Image.PreserveAspectFit
             }
 
+            FocusRing { visible: picker.activeFocus && isSelected }
+
             MouseArea {
                 id: avatarMouse
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    picker.selected = modelData
-                    picker.picked(modelData)
-                }
+                onClicked: picker.pick(modelData)
             }
         }
     }

@@ -10,6 +10,8 @@
 #include <QProcess>
 #include <QTimer>
 
+#include <windows.h>
+
 // Set by Directory.Build.props (the release workflow stamps the git tag); a Qt Creator build has none.
 #ifndef APP_VERSION_MAJOR
 #define APP_VERSION_MAJOR 0
@@ -52,6 +54,15 @@ QUrl AppInfo::dataFolder()
 QString AppInfo::logFolderPath()
 {
     return AppConfig::appDataDir() + QStringLiteral("/logs");
+}
+
+bool AppInfo::windowsAnimationsOff()
+{
+    static const bool off = [] {
+        BOOL animations = TRUE;
+        return SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animations, 0) && !animations;
+    }();
+    return off;
 }
 
 QUrl AppInfo::logFolder()

@@ -184,6 +184,8 @@ ApplicationWindow {
         if (_shot.width)  root.width  = _shot.width
         if (_shot.height) root.height = _shot.height
         AppSettings.theme = _shot.dark ? 2 : 1   // not "system": stable screenshots
+        Theme.forceHighContrast = _shot.highContrast
+        Theme.forceReduceMotion = true   // repeatable pictures for Compare-Screenshots.ps1
         var scene = ({ menu: "home", board: "game", login: "profiles" })[_shot.scene] ?? _shot.scene
 
         // welcome and create-user: first run. profiles and import: profiles made by main.cpp, nobody
@@ -279,6 +281,36 @@ ApplicationWindow {
     StackView {
         id: stack
         anchors.fill: parent
+
+        // WinUI page transitions: the new page fades in and rises a little; the old one fades out.
+        // Off with Reduce animations (a disabled transition switches the pages at once).
+        pushEnter: Transition {
+            enabled: !Theme.reduceMotion
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.normal; easing.type: Easing.OutCubic }
+            NumberAnimation { property: "y"; from: Theme.s5; to: 0; duration: Theme.normal; easing.type: Easing.OutCubic }
+        }
+        pushExit: Transition {
+            enabled: !Theme.reduceMotion
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.fast }
+        }
+        popEnter: Transition {
+            enabled: !Theme.reduceMotion
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.normal; easing.type: Easing.OutCubic }
+        }
+        popExit: Transition {
+            enabled: !Theme.reduceMotion
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.fast }
+            NumberAnimation { property: "y"; from: 0; to: Theme.s5; duration: Theme.fast }
+        }
+        replaceEnter: Transition {
+            enabled: !Theme.reduceMotion
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.normal; easing.type: Easing.OutCubic }
+            NumberAnimation { property: "y"; from: Theme.s5; to: 0; duration: Theme.normal; easing.type: Easing.OutCubic }
+        }
+        replaceExit: Transition {
+            enabled: !Theme.reduceMotion
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.fast }
+        }
     }
 
     Component {
@@ -708,6 +740,21 @@ ApplicationWindow {
             else if (_page === "settings")        closeSettings()
             else if (stack.currentItem.sheetOpen) stack.currentItem.sheetOpen = false   // an open move sheet first
             else                                  leaveGame()
+        }
+    }
+    // New game: on Home the game vs the computer; in a finished game the result card's New game
+    // (a running game isn't dropped).
+    Shortcut {
+        sequence: "Ctrl+N"
+        enabled: (_page === "home" || (_onGamePage && _gameOver)) && !_dialogOpen
+        onActivated: _page === "home" ? computerDialog.openNew() : root.newGameLikeThis()
+    }
+    Shortcut {
+        sequence: "Ctrl+O"
+        enabled: _page === "home" && !_dialogOpen
+        onActivated: {
+            if (ChessConnector.CanLoad) ChessConnector.loadGame()
+            else                        messageBar.show("No saved game yet: use Save during a game")
         }
     }
     Shortcut {

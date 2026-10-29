@@ -36,8 +36,9 @@ Page {
         spacing: Theme.s3
 
         Image {
-            source: "qrc:/app/pics/chess_icon.svg"
-            sourceSize.width: 72; sourceSize.height: 72
+            source: "qrc:/app/pics/app-icon.png"   // 256 px: sharp up to 300 % scaling
+            mipmap: true
+            Layout.preferredWidth: 72; Layout.preferredHeight: 72
             Layout.alignment: Qt.AlignHCenter
         }
         Label {

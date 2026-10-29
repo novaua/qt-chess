@@ -39,9 +39,22 @@ AppDialog {
             color: Theme.textSecondary; font: Theme.caption
             Layout.topMargin: Theme.s2
         }
+        // One Tab stop, like radio buttons: ← → pick the opponent.
         Flow {
+            id: opponents
             Layout.fillWidth: true
             spacing: Theme.s2
+            activeFocusOnTab: true
+            Accessible.role: Accessible.List
+            Accessible.name: "Opponent"
+
+            function step(delta) {
+                var list = dialog._opponents
+                var i = list.findIndex(o => o.id === dialog._opponentId)
+                dialog._opponentId = list[Math.max(0, Math.min(list.length - 1, i + delta))].id
+            }
+            Keys.onLeftPressed:  step(-1)
+            Keys.onRightPressed: step(1)
 
             Repeater {
                 model: dialog._opponents
@@ -91,6 +104,8 @@ AppDialog {
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                     }
+
+                    FocusRing { visible: opponents.activeFocus && isSelected }
 
                     MouseArea {
                         id: cardMouse

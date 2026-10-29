@@ -82,7 +82,7 @@ Page {
                         background: Rectangle {
                             radius: Theme.radiusCard
                             color: card.hovered || card.down ? Theme.cardBgHover : Theme.cardBg
-                            border.color: card.visualFocus || card.isLast ? Theme.accent : Theme.cardStroke
+                            border.color: card.visualFocus || card.isLast || (Theme.highContrast && card.hovered) ? Theme.accent : Theme.cardStroke
                             border.width: card.visualFocus ? 2 : 1
                         }
 
@@ -136,7 +136,8 @@ Page {
                         IconButton {
                             anchors { top: parent.top; right: parent.right; margins: 2 }
                             dense: true
-                            visible: card.hovered || card.visualFocus || cardMenu.visible
+                            // Hidden, not invisible: Tab still reaches it after the card.
+                            opacity: card.hovered || card.visualFocus || visualFocus || cardMenu.visible ? 1 : 0
                             icon.source: Theme.icon("more")
                             tip: "More for " + card.modelData.name
                             onClicked: cardMenu.popup(this, 0, height)

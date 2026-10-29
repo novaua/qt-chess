@@ -9,20 +9,27 @@ AbstractButton {
 
     property string description
     property bool   dimmed: false   // looks unavailable but still clicks: it then explains what's missing
+    property string shortcut        // shown as the tooltip, e.g. "Ctrl+N" (ChessGame.qml handles the keys)
 
     padding: Theme.s4
     implicitWidth:  implicitContentWidth + leftPadding + rightPadding
     implicitHeight: implicitContentHeight + topPadding + bottomPadding
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
+    // Space clicks any button; Enter too on a card, like a link.
+    Keys.onReturnPressed: click()
+    Keys.onEnterPressed:  click()
 
     Accessible.name: text
     Accessible.description: description
+    ToolTip.visible: hovered && shortcut !== ""
+    ToolTip.text: shortcut
+    ToolTip.delay: 600
 
     background: Rectangle {
         radius: Theme.radiusCard
         color: card.hovered || card.down ? Theme.cardBgHover : Theme.cardBg
-        border.color: card.visualFocus ? Theme.accent : Theme.cardStroke
+        border.color: card.visualFocus || (Theme.highContrast && card.hovered) ? Theme.accent : Theme.cardStroke
         border.width: card.visualFocus ? 2 : 1
     }
 

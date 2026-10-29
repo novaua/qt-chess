@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
 	}
 
 	QApplication app(argc, argv);
-	app.setWindowIcon(QIcon(":/app/pics/chess_icon.svg"));
+	app.setWindowIcon(QIcon(":/app/pics/app-icon.png")); // made by scripts/make_icons.py, like chess.ico
 	if (QGuiApplication::platformName() == "offscreen")
 		QGuiApplication::setFont(QFont("Segoe UI", 9)); // the Windows default; offscreen picks any font
 
@@ -140,11 +140,13 @@ int main(int argc, char* argv[])
 		"game scene: moves to play first, e.g. \"e2e4 e7e5\".", "moves");
 	const QCommandLineOption blackOption("black", "game scene: play Black (board turned around).");
 	const QCommandLineOption darkOption("dark", "Screenshot in dark mode.");
+	const QCommandLineOption highContrastOption("high-contrast",
+		"Screenshot with the app's high-contrast colours (the Fluent controls only follow Windows' own setting).");
 	const QCommandLineOption sizeOption("size", "Screenshot window size (default 768x1054).", "WxH");
 	const QCommandLineOption delayOption("delay",
 		"Milliseconds to wait before the screenshot (default 1000).", "ms", "1000");
 	parser.addOptions({ dataDirOption, screenshotOption, sceneOption, movesOption,
-		blackOption, darkOption, sizeOption, delayOption });
+		blackOption, darkOption, highContrastOption, sizeOption, delayOption });
 	// parse(), not process(): its errors would open a message box and block a scripted run.
 	if (!parser.parse(app.arguments())) {
 		OutputDebugStringW(reinterpret_cast<const WCHAR*>((parser.errorText() + u'\n').utf16()));
@@ -203,6 +205,7 @@ int main(int argc, char* argv[])
 			{ "moves", parser.value(movesOption) },
 			{ "black", parser.isSet(blackOption) },
 			{ "dark",  parser.isSet(darkOption) },
+			{ "highContrast", parser.isSet(highContrastOption) },
 		};
 		const QStringList size = parser.value(sizeOption).split('x');
 		if (size.size() == 2 && size[0].toInt() > 0 && size[1].toInt() > 0) {
