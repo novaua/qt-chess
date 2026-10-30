@@ -284,24 +284,48 @@ namespace Chess
 			throw CannotUndoException();
 		}
 
-		// undoing move
 		HistoryMove topMove = *_historyAptr->rbegin();
-		Move undoMove{ topMove.To.Position, topMove.From.Position };
-		_boardAptr->DoMove(undoMove);
-
-		// placing removed item
-		Piece lastPiece = {};
-		if (topMove.IsCapturingMove())
-		{
-			lastPiece = _captured.top();
-			_captured.pop();
-			_boardAptr->Place(topMove.To.Position, lastPiece);
-			assert(topMove.To.Piece == lastPiece && "Has to be the same Piece!");
-		}
-
 		_historyAptr->pop_back();
 		_checkMate = false; // a mate can only be the last move
-		NotifyBoardChangesListeners({ undoMove.From, undoMove.To });
+
+		const auto from = topMove.From.Position;
+		const auto to = topMove.To.Position;
+		std::vector<BoardPosition> changedPositions = { from, to };
+
+		// The piece goes back; a promoted one as the pawn it was.
+		Move undoMove{ to, from };
+		if (topMove.IsPawnPromotionMove())
+			undoMove.PromotedTo = topMove.From.Piece;
+		_boardAptr->DoMove(undoMove);
+
+		// Castling: the rook goes back to its corner too.
+		if (topMove.IsCastlingMove())
+		{
+			const bool kingside = to > from;
+			const auto rookFrom = (BoardPosition)(kingside ? to - 1 : to + 1);
+			const auto rookTo = (BoardPosition)(kingside ? to + 1 : to - 2);
+			_boardAptr->DoMove(Move{ rookFrom, rookTo });
+			changedPositions.push_back(rookFrom);
+			changedPositions.push_back(rookTo);
+		}
+
+		// placing removed item
+		if (topMove.IsCapturingMove())
+		{
+			Piece lastPiece = _captured.top();
+			_captured.pop();
+			assert(topMove.To.Piece == lastPiece && "Has to be the same Piece!");
+
+			// En passant is recorded as a capture on the target square (DoMove moves the taken pawn
+			// there first), but the pawn stood beside the capturing one: on the target's file and the
+			// capturer's rank. The move before it was then a double step over the target square.
+			const bool enPassant = topMove.From.Piece.Type == PAWN && ElPasantPosition() == to;
+			const auto capturedAt = enPassant ? (BoardPosition)(from / 8 * 8 + to % 8) : to;
+			_boardAptr->Place(capturedAt, lastPiece);
+			changedPositions.push_back(capturedAt);
+		}
+
+		NotifyBoardChangesListeners(changedPositions);
 	}
 
 	bool Game::IsInCheck()
