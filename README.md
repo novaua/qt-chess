@@ -23,6 +23,7 @@ Needs the tools above plus [Inno Setup 6](https://jrsoftware.org/isdl.php) and `
 .\installer\Build-Installer.ps1 -SkipBuild      # repackage existing x64\Release binaries
 ```
 The result is `installer\Output\ChessSetup-<version>.exe`. Local installers are unsigned; releases are built and signed by CI.
+`installer\Deploy-Qt.ps1` collects the Qt files (only what the app uses; plugins and QML go to `qt\`, see `qt.conf`).
 
 # Generate self-signed Code Signing certificate (run once, locally)
 # 1. Create the certificate in your personal store

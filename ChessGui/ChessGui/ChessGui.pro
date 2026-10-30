@@ -1,6 +1,6 @@
 TEMPLATE = app
 
-QT += qml quick widgets multimedia
+QT += qml quick quickcontrols2 multimedia
 
 SOURCES += main.cpp \
     AppConfig.cpp \

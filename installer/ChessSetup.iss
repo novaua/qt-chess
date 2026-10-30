@@ -71,6 +71,23 @@ Source: "..\deploy\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinsta
 ; Unzips and checks the downloaded engine; extracted to {tmp} on demand (ExtractTemporaryFile).
 Source: "Prepare-Stockfish.ps1"; Flags: dontcopy
 
+; Qt files of an earlier version, which this one may not ship: Qt also looks for plugins next to the
+; exe, so leftovers could still be loaded. Up to 0.1.3 the plugins and QML were there, not in qt\.
+[InstallDelete]
+Type: files; Name: "{app}\*.dll"
+Type: filesandordirs; Name: "{app}\qt"
+Type: filesandordirs; Name: "{app}\generic"
+Type: filesandordirs; Name: "{app}\iconengines"
+Type: filesandordirs; Name: "{app}\imageformats"
+Type: filesandordirs; Name: "{app}\multimedia"
+Type: filesandordirs; Name: "{app}\networkinformation"
+Type: filesandordirs; Name: "{app}\platforms"
+Type: filesandordirs; Name: "{app}\qml"
+Type: filesandordirs; Name: "{app}\qmltooling"
+Type: filesandordirs; Name: "{app}\styles"
+Type: filesandordirs; Name: "{app}\tls"
+Type: filesandordirs; Name: "{app}\translations"
+
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\engines"
 

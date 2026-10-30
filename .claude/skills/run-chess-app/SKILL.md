@@ -62,6 +62,8 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
 - `-Size WxH`: default 768x1054 (portrait: the moves are in a sheet at the bottom). At least 960 wide,
   or wider than 1.15 × height, shows the move list beside the board.
 - `-Moves` are UCI (`e7e8q` for promotion); an illegal move stops the list there (see the log).
+- `-Exe deploy\ChessGui.exe`: the installer's files (`installer\Deploy-Qt.ps1`) instead of x64\Release. Take
+  Qt off `PATH` first, so a file the deployment misses shows up as an error.
 - `-Delay ms` (default 1000) if an animation hasn't finished. A finished game waits for the result card itself.
 - On failure the script prints the exit code meaning and the tail of `<file>.png.log`
   (the app's qDebug/QML warnings) — read it for QML errors.

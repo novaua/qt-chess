@@ -4,6 +4,21 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — Smaller Qt deployment (branch: pruneQtDeploy_301026)
+
+### What was done
+- **`installer\Deploy-Qt.ps1`**, used by `Build-Installer.ps1` and `release.yml`, replaces their two `windeployqt` calls. It leaves out what the app never uses and puts plugins and QML in `deploy\qt\` (`qt.conf`: `Prefix = qt`); the Qt DLLs stay next to the exe, where Windows loads them. `-Full` deploys everything, as before.
+- **Left out:** translations (the app loads none), `opengl32sw.dll` (Qt Quick draws with D3D11), `dxcompiler`/`dxil` (D3D12 only), FFmpeg, qmltooling/generic plugins, and the Controls styles other than FluentWinUI3 and its fallbacks Fusion and Basic.
+- **Sounds:** `main.cpp` sets `QT_MEDIA_BACKEND=windows` (unless set): the `SoundEffect` WAVs play through Qt's Windows media backend, so FFmpeg isn't shipped.
+- **No Qt Widgets:** `QGuiApplication` instead of `QApplication`; `widgets` and `quickwidgets` dropped from `ChessGui.vcxproj` (and the `.pro`). `FileDialog` still opens the native Windows dialog.
+- **Installer:** `[InstallDelete]` removes the Qt DLLs and the old plugin/QML folders of an earlier version before installing (Qt also looks for plugins next to the exe).
+- **Size:** installed files 146 MB / 1,489 files → 67 MB / 1,165 files; installer 50.8 → 36 MB (unsigned, local). 845 of the files are the FluentWinUI3 style's own QML and images.
+- **Checked:** the deployed exe with Qt off `PATH`: every plugin and QML module loads from `deploy\qt\`, D3D11, media backend `windows`, a `SoundEffect` plays (`qml.exe` test). All 42 screenshot scenes from `deploy\ChessGui.exe` (`Take-Screenshot.ps1 -Exe`, new) match the x64\Release ones taken before the change.
+
+### Where to continue
+- Install the PR's installer over 0.1.3 and check that the old plugin folders are gone and sounds play.
+- The local baselines are still from Qt 6.10 (19 scenes differ on `develop`): `scripts\Compare-Screenshots.ps1 -Update`.
+
 ## 2026-10-30 — Moved to Qt 6.12.0 (branch: qt612Upgrade_301026)
 
 ### What was done
