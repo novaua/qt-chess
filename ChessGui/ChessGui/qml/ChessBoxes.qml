@@ -84,6 +84,16 @@ Item {
                 visible: index === ChessConnector.SelectedSquare
                 z: 4
             }
+
+            // The square under a dragged piece: where it would be dropped
+            Rectangle {
+                anchors.fill: parent
+                color: "transparent"
+                border.color: Theme.dropSquare
+                border.width: Math.max(2, Math.round(parent.width * 0.06))
+                visible: index === chessBoard.dropSquare
+                z: 5
+            }
         }
     }
 }

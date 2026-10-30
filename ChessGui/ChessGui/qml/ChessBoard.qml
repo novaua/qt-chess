@@ -22,6 +22,22 @@ Rectangle {
         return (file < 0 || file > 7 || row < 0 || row > 7) ? -1 : (7 - row) * 8 + file
     }
 
+    // The piece being dragged (ChessFigures' DragHandler sets it; the drag scene too): its square, its
+    // key ("N"), and the pointer in the squares' coordinates. -1: no drag. Esc cancels it.
+    property int dragFrom: -1
+    property string dragPiece: ""
+    property point dragPoint
+    property bool dragCancelled: false
+    readonly property bool dragging: dragFrom >= 0
+    readonly property int dropSquare: dragging ? squareAt(dragPoint.x, dragPoint.y) : -1
+    function endDrag() { dragFrom = -1; dragPiece = "" }
+
+    Shortcut {
+        sequence: "Escape"
+        enabled: chessBoard.dragging
+        onActivated: chessBoard.dragCancelled = true
+    }
+
     Behavior on rotation {
         id:chessBoardBehavior
         enabled: !Theme.reduceMotion
@@ -164,6 +180,24 @@ Rectangle {
         id:navigationLayerGrid
         objectName:"navigationLayerGrid"
         anchors.fill: chessBoxes
+    }
+
+    // The dragged piece under the pointer, above the move dots; its own square shows it faded.
+    Item {
+        anchors.fill: chessBoxes
+        visible: chessBoard.dragging
+        Image {
+            x: chessBoard.dragPoint.x - width / 2
+            y: chessBoard.dragPoint.y - height / 2
+            width: chessBoard.squareSize
+            height: width
+            scale: 1.1   // lifted
+            rotation: chessBoard.angle   // upright on the turned board, like the pieces
+            smooth: true
+            antialiasing: true
+            fillMode: Image.PreserveAspectFit
+            source: chessBoard.dragPiece ? Theme.piece(chessBoard.dragPiece) : ""
+        }
     }
 
     Loader{

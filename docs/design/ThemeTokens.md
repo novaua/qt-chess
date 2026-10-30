@@ -63,6 +63,7 @@ picker can come later (out of scope).
 | `squareDark` | `#2F4F4F` | `darkChessBoxColor` (`darkslategray`) |
 | `lastMove` | `#A8D8EA` at 70% | `ChessBoxes.qml:40` |
 | `selected` | accent at 45% | the blue `Glow` in `ChessFigures.qml` (Qt5Compat, removed in P1; now a tint on the selected piece's square) |
+| `dropSquare` | accent | outline of the square under a dragged piece (`ChessBoxes.qml`, BL-04) |
 | `legalMoveDot` | `#000000` at 22% | `NavigationLayer.qml` markers |
 | `checkGlowCenter` / `checkGlowEdge` | `#FFD54A` / `#E5341F` | The king in check: a radial glow (yellow middle, red edge, fading corners) that pulses while in check (`ChessBoxes.qml`) |
 | `flaggedKing` | `critical` | the red flag on the losing king |
