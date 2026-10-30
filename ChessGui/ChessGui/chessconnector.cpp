@@ -42,10 +42,14 @@ ChessConnector::ChessConnector(QObject* parent)
 	_game(GameAptr(new Game())),
 	_config(AppConfig::load())
 {
+	_pieces = new BoardPieces(this);
+	_pieces->sync(_game->GetCurrentBoard());
+
 	_game->RegisterBoardChanged(
 		[&](int index, const Piece& piece)
 		{
 			emit boardChanged(index, QString::fromStdString(piece.ToString()));
+			schedulePiecesSync();
 		});
 
 	_game->RegisterGameActionsListeners(
@@ -90,6 +94,14 @@ ChessConnector::ChessConnector(QObject* parent)
 
 	connect(this, &ChessConnector::reviewStateChanged, this, &ChessConnector::flaggedKingChanged);
 	connect(this, &ChessConnector::reviewStateChanged, this, &ChessConnector::capturedChanged); // of the reviewed position
+
+	// What canPlayerMove() depends on. (_gameOver changes with the result or a new game.)
+	for (auto changed : { &ChessConnector::moveCountChanged, &ChessConnector::engineThinkingChanged,
+	                      &ChessConnector::reviewStateChanged, &ChessConnector::IsOnPlayerModeChanged,
+	                      &ChessConnector::isOnlineGameChanged, &ChessConnector::playerPlaysWhiteChanged,
+	                      &ChessConnector::gameResultChanged })
+		connect(this, changed, this, &ChessConnector::movableColorChanged);
+	connect(this, &ChessConnector::pawnPromotionNotify, this, &ChessConnector::movableColorChanged);
 }
 
 int ChessConnector::MoveCount()
@@ -102,23 +114,38 @@ int ChessConnector::IsWhiteMove()
 	return _game->IsWhiteMove() ? 1 : 0;
 }
 
-void ChessConnector::figureSelected(int index)
+bool ChessConnector::canPlayerMove() const
 {
-	if (IsOnPlayerMode() || reviewMode() || _engineThinking || _promotionPending) {
-		return;
-	}
+	if (_player || reviewMode() || _engineThinking || _promotionPending)
+		return false;
 
 	// No moves once the game has ended (mate, resignation, Lichess result). Undo against the
 	// robot clears _gameOver to resume.
 	if (_gameOver)
-		return;
+		return false;
 
 	// In online games only allow moving when it's the local player's turn.
-	if (!_onlineGameId.isEmpty()) {
-		const bool localIsWhite = _config.playerPlaysWhite;
-		if (_game->IsWhiteMove() != localIsWhite)
-			return;
-	}
+	if (!_onlineGameId.isEmpty() && _game->IsWhiteMove() != _config.playerPlaysWhite)
+		return false;
+	return true;
+}
+
+int ChessConnector::movableColor() const
+{
+	return canPlayerMove() ? (_game->IsWhiteMove() ? 1 : 2) : 0;
+}
+
+void ChessConnector::clearPossibleMoves()
+{
+	ClearBoard(_possibleMoves);
+	_selectedSquare = -1;
+	emit PossibleMovesChanged();
+}
+
+void ChessConnector::figureSelected(int index)
+{
+	if (!canPlayerMove() || index < 0 || index >= 64)
+		return;
 
 	//find possible moves for the position and notify IU
 	auto pmString = _possibleMoves[index];
@@ -128,6 +155,7 @@ void ChessConnector::figureSelected(int index)
 		: pmString.toInt();
 
 	ClearBoard(_possibleMoves);
+	_selectedSquare = -1;
 	if (selected != -1)
 	{
 		makeMove(BoardPosition(selected), BoardPosition(index));
@@ -138,9 +166,25 @@ void ChessConnector::figureSelected(int index)
 		{
 			_possibleMoves[move.To] = QString::number(index);
 		}
+		const auto side = _game->IsWhiteMove() ? Chess::PieceColors::Light : Chess::PieceColors::Dark;
+		if (_game->GetPieceAt(index).Color == side)
+			_selectedSquare = index;
 	}
 
 	emit PossibleMovesChanged();
+}
+
+bool ChessConnector::movePiece(int from, int to)
+{
+	bool legal = false;
+	if (canPlayerMove() && 0 <= from && from < 64 && 0 <= to && to < 64) {
+		const auto moves = _game->GetAllowedMoves(from);
+		legal = std::any_of(moves.begin(), moves.end(), [to](const Chess::Move& m) { return m.To == to; });
+	}
+	clearPossibleMoves();
+	if (legal)
+		makeMove(from, to);
+	return legal;
 }
 
 void ChessConnector::pawnPromote(int index, const QString& piece)
@@ -211,6 +255,30 @@ namespace {
 		row[QStringLiteral("%1Piece").arg(side)] = hasPiece ? (ply % 2 == 1 ? text.left(1) : text.left(1).toLower()) : QString();
 		row[QStringLiteral("%1Text").arg(side)]  = hasPiece ? text.mid(1) : text;
 	}
+}
+
+// The game whose position is on the board: a saved game's replay up to the shown move, a replay
+// up to the reviewed move, or the game itself.
+std::shared_ptr<Chess::Game> ChessConnector::shownGame() const
+{
+	if (_player)
+		return replayHistory(_player->GetHistory(), _player->GetPointer());
+	if (reviewMode())
+		return replayHistory(_game->GetGameRecord(), _reviewIndex);
+	return _game;
+}
+
+// A move changes the board square by square (castling: four Place() calls, a takeback of two
+// moves: more), so Pieces is compared with the position once, when the change is complete.
+void ChessConnector::schedulePiecesSync()
+{
+	if (_piecesSyncPosted)
+		return;
+	_piecesSyncPosted = true;
+	QMetaObject::invokeMethod(this, [this] {
+		_piecesSyncPosted = false;
+		_pieces->sync(shownGame()->GetCurrentBoard());
+	}, Qt::QueuedConnection);
 }
 
 void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
@@ -338,8 +406,7 @@ void ChessConnector::setResult(const QString& result, const QString& text)
 	_resultText = text;
 	if (!result.isEmpty()) {
 		_gameOver = true;
-		ClearBoard(_possibleMoves); // drop move highlights of a selected piece
-		emit PossibleMovesChanged();
+		clearPossibleMoves(); // drop move highlights of a selected piece
 		setPendingOffer({});
 		setOpponentGone(false);
 	}
@@ -501,12 +568,8 @@ QStringList ChessConnector::capturedByLight() const
 // In the position on the board: live, reviewed, or a saved game's replay.
 int ChessConnector::checkedKing() const
 {
-	std::shared_ptr<Chess::Game> shown;
-	if (_player)
-		shown = replayHistory(_player->GetHistory(), _player->GetPointer());
-	else if (reviewMode())
-		shown = replayHistory(_game->GetGameRecord(), _reviewIndex);
-	Chess::Game& game = shown ? *shown : *_game;
+	const auto shown = shownGame();
+	Chess::Game& game = *shown;
 	if (!game.IsInCheck())
 		return -1;
 	const auto color = game.IsWhiteMove() ? Chess::PieceColors::Light : Chess::PieceColors::Dark;
@@ -520,9 +583,7 @@ int ChessConnector::checkedKing() const
 
 int ChessConnector::materialBalance() const
 {
-	if (!reviewMode())
-		return Chess::MaterialBalance(_game->GetCurrentBoard());
-	return Chess::MaterialBalance(replayHistory(_game->GetGameRecord(), _reviewIndex)->GetCurrentBoard());
+	return Chess::MaterialBalance(shownGame()->GetCurrentBoard());
 }
 
 void ChessConnector::makeMove(int from, int to)
@@ -1147,8 +1208,7 @@ void ChessConnector::movePrev()
 				if (!_gameResult.isEmpty()) setResult({}, {});
 			}
 			buildFullHistoryCache();
-			ClearBoard(_possibleMoves);
-			emit PossibleMovesChanged();
+			clearPossibleMoves();
 			EmitMoveCountUpdates();
 			// E.g. the robot's own first move was taken back: let it play again.
 			if (_game->IsWhiteMove() != _config.playerPlaysWhite) {
@@ -1185,8 +1245,8 @@ void ChessConnector::emitBoardState(int moveIndex) {
 	const auto& board = replayGame->GetCurrentBoard();
 	for (int i = 0; i < 64; ++i)
 		emit boardChanged(i, QString::fromStdString(board.At(Chess::BoardPosition(i)).ToString()));
-	ClearBoard(_possibleMoves);
-	emit PossibleMovesChanged();
+	schedulePiecesSync();
+	clearPossibleMoves();
 	emit lastMoveChanged();
 }
 
@@ -1289,8 +1349,7 @@ void ChessConnector::endGame()
 	if (!_gameResult.isEmpty()) setResult({}, {});
 	EmitMoveCountUpdates();
 	emit IsOnPlayerModeChanged();
-	ClearBoard(_possibleMoves);
-	emit PossibleMovesChanged();
+	clearPossibleMoves();
 	emit canContinueChanged();
 	setGameMode({}, {});
 }

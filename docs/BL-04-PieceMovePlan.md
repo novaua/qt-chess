@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-30 |
-| **Status** | Steps 1–2 done (`Game::UndoMove` fix, `BoardDiff`); step 3 next |
+| **Status** | Steps 1–3 done (`Game::UndoMove` fix, `BoardDiff`, `BoardPieces` + `ChessConnector`); step 4 next |
 | **Branch** | `pieceDrag_301026` (from `develop`) |
 | **Task** | BL-04 in `TASKS.md` |
 
@@ -101,7 +101,8 @@ like `UserManager`), one row per piece on the board:
 
 - `sync(const Board& shown)` compares `BoardDiff(_lastShown, shown)`: `Moved` → `dataChanged` on
   `square` (and `piece`); `Removed` → `taken = true`; `Added` → new rows. Too much changed →
-  `beginResetModel()` with fresh ids. Rows marked `taken` are dropped at the start of the next sync.
+  `beginResetModel()` with fresh ids. Rows marked `taken` stay until the next reset (at most one
+  per capture), so a capture still fades when the robot answers within milliseconds.
 - `ChessConnector` exposes it as `Q_PROPERTY(QAbstractItemModel* Pieces CONSTANT)` (instead of
   `boardChanged` + `refreshBoard()`, which go away).
 

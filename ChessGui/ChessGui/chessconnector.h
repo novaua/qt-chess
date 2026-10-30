@@ -12,6 +12,7 @@
 #include <functional>
 
 #include "Game.h"
+#include "boardpieces.h"
 #include "engineworker.h"
 #include "AppConfig.h"
 #include "AvatarProvider.h"
@@ -23,6 +24,11 @@ class ChessConnector : public QObject
 	Q_OBJECT
 		Q_PROPERTY(int MoveCount READ MoveCount NOTIFY moveCountChanged)
 		Q_PROPERTY(QStringList PossibleMoves READ PossibleMoves WRITE setPossibleMoves NOTIFY PossibleMovesChanged)
+		// The pieces of the position on the board (the reviewed one while reviewing), one row per
+		// piece that keeps its id while it moves: { pieceId, square, piece, taken } (BoardPieces).
+		Q_PROPERTY(QAbstractItemModel* Pieces READ pieces CONSTANT)
+		Q_PROPERTY(int SelectedSquare READ selectedSquare NOTIFY PossibleMovesChanged) // the piece whose moves show, or -1
+		Q_PROPERTY(int MovableColor READ movableColor NOTIFY movableColorChanged) // whose pieces the player can move now: 0 none, 1 White, 2 Black
 		Q_PROPERTY(int IsWhiteMove READ IsWhiteMove NOTIFY IsWhiteMoveChanged)
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
 		Q_PROPERTY(bool CanContinue READ canContinue NOTIFY canContinueChanged)
@@ -115,6 +121,9 @@ public:
 	QStringList capturedByLight() const;
 	int materialBalance() const;
 	QVariantMap screenshotScene() const { return _screenshotScene; }
+	QAbstractItemModel* pieces() const { return _pieces; }
+	int selectedSquare() const { return _selectedSquare; }
+	int movableColor() const;
 
 	QStringList& PossibleMoves();
 	void setPossibleMoves(const QStringList& moves);
@@ -123,6 +132,7 @@ signals:
 	void boardChanged(int position, const QString& newValue);
 
 	void PossibleMovesChanged();
+	void movableColorChanged();
 
 	void moveCountChanged();
 	void IsWhiteMoveChanged();
@@ -176,7 +186,8 @@ public slots:
 	void endGame();              // leave the game for Home (autosaves an unfinished local game)
 	Q_INVOKABLE void switchUser(); // endGame(), then log out
 
-	void figureSelected(int index);
+	void figureSelected(int index); // a click: show the piece's moves, or play the move to that square
+	Q_INVOKABLE bool movePiece(int from, int to); // a drop: plays it if legal, else false (the piece goes back)
 	void pawnPromote(int index, const QString& piece);
 
 	void saveGame();
@@ -230,6 +241,10 @@ private:
 	const Chess::MovesHistory& shownHistory() const; // the saved game in replay, else the game record
 	QString opponentNameOf(const UserManager::GameSaveInfo& info) const;
 	void makeMove(int from, int to);
+	bool canPlayerMove() const; // the player may move a piece now (not the robot's turn, not reviewing, ...)
+	void clearPossibleMoves();  // no piece selected, no move dots
+	std::shared_ptr<Chess::Game> shownGame() const; // the position on the board: a replay while reviewing
+	void schedulePiecesSync();  // update Pieces once, after the current change is complete
 	void onHumanMoveDone();
 	void emitBoardState(int moveIndex);
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
@@ -249,6 +264,9 @@ private:
 
 private:
 	QStringList _possibleMoves;
+	int _selectedSquare = -1;
+	BoardPieces* _pieces = nullptr;
+	bool _piecesSyncPosted = false;
 
 	Chess::GameAptr _game;
 	Chess::HistoryPlayerAptr _player;
