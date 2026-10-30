@@ -4,6 +4,19 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — BL-04 step 5: slides and fades (branch: pieceSlides_301026)
+
+### What was done
+- **Pieces slide** (`ChessFigures.qml`): when a piece's `square` changes it slides there (`Theme.slow`, `OutCubic`), whoever moved it — the player, the robot, a Lichess opponent, a takeback, one review step. The slide is an offset in squares (`slideFile`/`slideRank`, animated to 0), not a `Behavior on x/y`, so resizing the window or turning the board doesn't slide anything, and a slide that starts while another is under way starts from where the piece is drawn.
+- **Captures fade out** (`taken`, `Theme.normal`), under the piece that slides onto the square; **new pieces fade in** (a model reset — new game, review jump, Continue — or a piece put back by a takeback). This replaces the old 450 ms fade-in per piece.
+- **Promotion:** the pawn slides and turns into the new piece when it arrives (`shownPiece`); the player's choice after the pawn's move turns it in place. A queen taken back turns into a pawn once on the 7th rank.
+- Reduce animations (and screenshot mode): pieces jump and appear at once.
+- Release and Debug build; all 46 scenes (light, dark, `select -Black`) match the baselines, no QML warnings. A temporary scene with animations on (not committed) showed e4xd5 mid-slide: the pawn over d5's fading pawn at 60 ms, settled by 1 s.
+
+### Where to continue
+- Manual check by the owner (animations on): moves, castling and en passant slide and fade as planned.
+- Step 6 (plan §3.4): dragging — `DragHandler` (`target: null`) with a pixel `dragOffset` next to the slide offset, `movePiece`, slide back on a refused drop, Esc, cursors, the drop-square outline.
+
 ## 2026-10-30 — Continue fixes: autosave only vs the robot, check sound after the page shows (branch: continueFixes_301026)
 
 ### What was done
