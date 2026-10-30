@@ -9,6 +9,9 @@
     has no taskbar button and ignores the mouse, so nothing appears on screen. Screenshots are at 100%
     scale (one pixel per QML pixel), whatever the monitor's scaling.
 
+    Sanity gate: Qt's DLLs must be next to the exe or on PATH (checked first). If the first scene
+    fails, or the app doesn't run at all (a missing DLL, a crash), the remaining scenes are skipped.
+
 .EXAMPLE
     .\scripts\Take-Screenshot.ps1
     Home -> test-results\screens\home.png
@@ -73,9 +76,18 @@ if (-not (Test-Path $exe)) { throw "$exe not found - build it first (-Build)" }
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $OutDir = Resolve-Path $OutDir
 
+# Without Qt's DLLs Windows shows a "DLL not found" dialog for every run: check once, before the first.
+$qtCore = if ($Configuration -eq 'Debug') { 'Qt6Cored.dll' } else { 'Qt6Core.dll' }
+$dllDirs = @(Split-Path $exe) + ($env:PATH -split ';' | Where-Object { $_ })
+if (-not ($dllDirs | Where-Object { Test-Path (Join-Path $_ $qtCore) } | Select-Object -First 1)) {
+    throw "$qtCore not found next to the exe or on PATH. Add Qt's bin first, e.g. " +
+          "`$env:PATH = 'D:\Tools\Qt\6.12.0\msvc2022_64\bin;' + `$env:PATH"
+}
+
 $exitMeaning = @{ 1 = 'grabbing or saving the window failed'; 2 = 'timed out waiting for the scene';
                   3 = 'QML failed to load'; 4 = 'unknown scene' }
 $failed = 0
+$done = 0
 foreach ($s in $Scene) {
     $baseName = ($s, $(if ($Black) { 'black' }), $(if ($Dark -or $Offscreen) { 'dark' }), $(if ($HighContrast) { 'hc' }), $Name | Where-Object { $_ }) -join '-'
     $file = Join-Path $OutDir "$baseName.png"
@@ -96,6 +108,17 @@ foreach ($s in $Scene) {
         $failed++
         Write-Host "FAIL  $s - exit code $($p.ExitCode): $($exitMeaning[$p.ExitCode])" -ForegroundColor Red
         if (Test-Path "$file.log") { Write-Host "Log: $file.log"; Get-Content "$file.log" | Select-Object -Last 20 }
+    }
+    $done++
+
+    # Sanity gate: if the first scene fails, or the app didn't run at all (not one of its own exit
+    # codes: a missing DLL, a crash), the other scenes would only fail the same way. Stop here.
+    $appFailed = $p.ExitCode -ne 0 -and -not $exitMeaning.ContainsKey($p.ExitCode)
+    if ($done -lt $Scene.Count -and $p.ExitCode -ne 0 -and ($done -eq 1 -or $appFailed)) {
+        $skipped = $Scene.Count - $done
+        Write-Host "STOP  $skipped more scene(s) not run: fix the failure above first" -ForegroundColor Red
+        $failed += $skipped
+        break
     }
 }
 exit $failed
