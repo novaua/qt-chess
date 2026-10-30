@@ -35,7 +35,13 @@
     <ClCompile Include="MoveListModelTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MoveGateTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\ChessGui\ChessGui\movelistmodel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ChessGui\ChessGui\movegate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ChessGui\ChessGui\boardpieces.cpp">
@@ -74,6 +80,9 @@
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="..\ChessGui\ChessGui\movelistmodel.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="..\ChessGui\ChessGui\movegate.h">
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="..\ChessGui\ChessGui\engineworker.h">

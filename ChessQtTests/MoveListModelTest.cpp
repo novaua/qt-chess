@@ -1,13 +1,9 @@
 #include <QAbstractItemModelTester>
 #include <CppUnitTest.h>
 #include "movelistmodel.h"
+#include "TestSupport.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
-
-namespace Microsoft::VisualStudio::CppUnitTestFramework {
-	template<>
-	inline std::wstring ToString(const QString& q) { return q.toStdWString(); }
-}
 
 // MoveListModel: a new move changes one row (a new row for White, the second half of the last row
 // for Black), a takeback removes or clears only what it takes back, never a reset. As in

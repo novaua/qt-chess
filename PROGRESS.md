@@ -4,6 +4,38 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — BL-14 step 2: `MoveGate` and its tests (branch: moveGate_301026)
+
+### What was done
+- **`MoveGate`** (`ChessGui/movegate.h/.cpp`; not wired into `ChessConnector` yet — that is step 3): holds the moves that come from outside and releases them one at a time only when the board is idle.
+  - Idle = `setStageReady(true)` (the page has settled and the board isn't turning) and `now >= busyUntil`. `moveShown(byRobot)` sets `busyUntil = now + slideMs + pauseMs`; a robot move also waits `robotMinMs` after the player's move, an Online move does not.
+  - More than 2 waiting at once (a Lichess resync) are released together as one `releaseBatch`, so the receiver can show the position at once; otherwise one at a time.
+  - `clear()` drops a waiting move and the pacing of the old board; `idle()` fires once each time the gate becomes idle — when the page settles and after each shown move's slide (step 4 uses it for the check sound and the result card). `isIdle()` answers the same question on demand.
+  - Timing comes from QML later: `slideMs = Theme.slow`, `0` with Reduce animations; `pauseMs` stays, and `setTiming()` shortens a window already under way. A single-shot `QTimer` drives it; the clock is injectable and `tick()` is public so the tests drive time by hand.
+- **12 tests** (`ChessQtTests/MoveGateTest.cpp`, fake clock): a robot answer waits for slide + pause + `robotMinMs`; an Online move ignores `robotMinMs`; stage not ready holds; `clear()` drops, and resets the pacing; two Online moves come out one after the other; more than two at once as one batch; `slideMs = 0` still keeps the pause; shortening the timing under way; a release without `moveShown()` still settles; `idle()` once, after the last released move, and `isIdle()`.
+- `ChessQtTests/TestSupport.h`: the `ToString(QString)` specialization the test DLL needs, shared by its five test files instead of copied into each.
+- Debug and Release build; ChessTests 111, ChessQtTests 109 pass; the `home` screenshot still matches (no UI change).
+
+### Code review (medium, same branch)
+11 findings, 7 fixed:
+- `idle()` is edge-triggered, so a result without a move (resignation, draw, timeout) would never get one; added `isIdle()` for step 4 to ask.
+- A resync batch was N ordinary releases, which a receiver couldn't tell from N moves (a sound and a slide each); now one `releaseBatch`.
+- A released move that the receiver applies as a position reset (no `moveShown()`) left no busy window, so `idle()` never came; the gate now marks the board busy before it releases.
+- `clear()` kept the old board's pacing into the new game; it resets it now.
+- `setTiming()` claimed to shorten a running slide without doing so; it recomputes the window now.
+- The `schedule()` copy of `tick()`'s pacing rules is gone.
+- The `ToString` copy-paste is one shared header.
+Not changed: `setClock()`/`tick()` stay public as the documented test seam; non-move animations (the takeback/undo slide, the first paint, review jumps) still need the connector to call `moveShown()` — listed for step 3; a Robot answer's release also sets a busy window optimistically, which the connector's `moveShown()` simply confirms.
+
+### Where to continue
+- **Step 3 (new branch from `develop`)**: the robot through the gate — `onEngineMoveFound` does the stale check then `push`; the release plays the move (`playRobotMove()`), `EngineThinking` stays true until it is shown, `clear()` on new game / takeback / leaving / review; `GamePage` reports stage ready (at least 1 s after opening and not turning, with `Theme.slow` as the slide time).
+  - **Move the `_resignAfterEngineMove` consume block with the play tail into `playRobotMove()`**: it only works today because `onEngineMoveFound` clears `_engineThinking` before it; left behind, a resignation while the answer waits would be re-deferred and never happen.
+  - **A takeback while the robot's answer waits in the gate**: `movePrev()` returns at once when `_engineThinking` is set, so Undo would silently do nothing and the held answer would still slide in. Before that guard, step 3 must `_gate->clear()`, bump `_engineRequest`, clear `_engineThinking` and `emit engineThinkingChanged()`, then let the takeback run — the dropped answer never reaches `onEngineMoveFound()`, so nothing else would reset the thinking state.
+  - **Call `moveShown()` after a takeback** (and any other non-move board animation, e.g. the new game's first paint), so the engine's answer waits for the undo slide.
+  - Fixes the robot moving together with the player and while the board turns.
+- Then step 4 (check, mate and result on `idle`; `isIdle()` covers a result without a move), step 5 (the Lichess opponent's moves, and `releaseBatch` for the resync).
+- The owner's §3.4 decision is still open (recommended A: think during the animation, show the answer after).
+
 ## 2026-10-30 — BL-14 step 1: the freezes measured and fixed (branch: boardFreezes_301026)
 
 ### What was done

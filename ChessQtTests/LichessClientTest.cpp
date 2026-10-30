@@ -5,14 +5,9 @@
 #include <QTimer>
 #include <CppUnitTest.h>
 #include "LichessClient.h"
+#include "TestSupport.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
-
-// Teach CppUnitTest how to display QString in assertion failure messages.
-namespace Microsoft::VisualStudio::CppUnitTestFramework {
-	template<>
-	inline std::wstring ToString(const QString& q) { return q.toStdWString(); }
-}
 
 // ---------------------------------------------------------------------------
 // Unit tests — pure static methods, no network, no event loop needed

@@ -74,6 +74,9 @@
     <ClCompile Include="movelistmodel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="movegate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="engineworker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -110,6 +113,9 @@
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="movelistmodel.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="movegate.h">
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="engineworker.h">
