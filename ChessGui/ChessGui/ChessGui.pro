@@ -21,6 +21,7 @@ SOURCES += main.cpp \
     boardpieces.cpp \
     frametrace.cpp \
     movelistmodel.cpp \
+    movegate.cpp \
     ChessEnginePlayer.cpp \
     AppInfo.cpp \
     AvatarProvider.cpp \
@@ -63,6 +64,7 @@ HEADERS += \
     boardpieces.h \
     frametrace.h \
     movelistmodel.h \
+    movegate.h \
     ChessEnginePlayer.h \
     AppInfo.h \
     AvatarProvider.h \

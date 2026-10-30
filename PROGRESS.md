@@ -4,6 +4,22 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — BL-14 step 2: `MoveGate` and its tests (branch: moveGate_301026)
+
+### What was done
+- **`MoveGate`** (`ChessGui/movegate.h/.cpp`; not wired into `ChessConnector` yet — that is step 3): holds the moves that come from outside and releases them one at a time only when the board is idle.
+  - Idle = `setStageReady(true)` (the page has settled and the board isn't turning) and `now >= busyUntil`. `moveShown(byRobot)` sets `busyUntil = now + slideMs + pauseMs`; a robot move also waits `robotMinMs` after the player's move, an Online move does not.
+  - More than 2 waiting at once (a Lichess resync) are all released together; otherwise one at a time.
+  - `clear()` drops a waiting move; `idle()` fires once each time the gate becomes idle — when the page settles and after each shown move's slide (step 4 uses it for the check sound and the result card).
+  - Timing comes from QML later: `slideMs = Theme.slow`, `0` with Reduce animations; `pauseMs` stays. A single-shot `QTimer` drives it; the clock is injectable and `tick()` is public so the tests drive time by hand.
+- **9 tests** (`ChessQtTests/MoveGateTest.cpp`, fake clock): a robot answer waits for slide + pause + `robotMinMs`; an Online move ignores `robotMinMs`; stage not ready holds; `clear()` drops; two Online moves come out one after the other; more than two at once; `slideMs = 0` still keeps the pause; `idle()` once, and after the last released move.
+- Debug and Release build; ChessTests 111, ChessQtTests 106 pass; the `home` screenshot still matches (no UI change).
+
+### Where to continue
+- **Step 3 (new branch from `develop`)**: the robot through the gate — `onEngineMoveFound` does the stale check then `push`; the release plays the move (`playRobotMove()`), `EngineThinking` stays true until it is shown, `clear()` on new game / takeback / leaving / review; `GamePage` reports stage ready (at least 1 s after opening and not turning, with `Theme.slow` as the slide time). Fixes the robot moving together with the player and while the board turns.
+- Then step 4 (check, mate and result on `idle`), step 5 (the Lichess opponent's moves and the resync batch).
+- The owner's §3.4 decision is still open (recommended A: think during the animation, show the answer after).
+
 ## 2026-10-30 — BL-14 step 1: the freezes measured and fixed (branch: boardFreezes_301026)
 
 ### What was done
