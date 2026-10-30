@@ -33,6 +33,7 @@ public:
 	void push(const QString& uciMove, Source source);
 	void clear();                         // new game, takeback, leaving the game, review
 	bool holding() const { return !_queue.empty(); }
+	bool isIdle() const;                  // nothing waits and the board has settled
 
 	// Tests: the time now comes from this clock (ms); call tick() after moving it forward.
 	void setClock(std::function<qint64()> clock);
@@ -40,12 +41,13 @@ public:
 
 signals:
 	void release(const QString& uciMove, MoveGate::Source source);
+	void releaseBatch(const QStringList& uciMoves); // a Lichess resync (more than two at once): all at once
 	void idle(); // nothing waits and the board has settled
 
 private:
 	struct HeldMove { QString uciMove; Source source; };
 	qint64 allowedAt(Source source) const;
-	void schedule();
+	void updateBusy();
 
 	Timing _timing;
 	std::deque<HeldMove> _queue;
@@ -54,6 +56,8 @@ private:
 	std::function<qint64()> _clock;
 	qint64 _busyUntil = 0;
 	qint64 _robotEarliest = 0;
+	qint64 _shownAt = 0;       // when the last move was shown
+	qint64 _playerShownAt = 0; // when the player's last move was shown
 	bool _stageReady = false;
 	bool _wasIdle = false;
 };

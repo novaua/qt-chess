@@ -7,13 +7,9 @@
 #include <CppUnitTest.h>
 #include "AppConfig.h"
 #include "UserManager.h"
+#include "TestSupport.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
-
-namespace Microsoft::VisualStudio::CppUnitTestFramework {
-	template<>
-	inline std::wstring ToString(const QString& q) { return q.toStdWString(); }
-}
 
 // UserManager on a temporary data folder (AppConfig::setAppDataDir): users.json, backups,
 // recovery from a damaged file, statistics, export and import.

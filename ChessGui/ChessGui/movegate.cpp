@@ -15,7 +15,8 @@ MoveGate::MoveGate(QObject* parent)
 void MoveGate::setTiming(const Timing& timing)
 {
 	_timing = timing;
-	tick(); // the slide may have become shorter
+	updateBusy(); // a shorter slide shortens the window already under way
+	tick();
 }
 
 void MoveGate::setClock(std::function<qint64()> clock)
@@ -39,11 +40,18 @@ void MoveGate::setStageReady(bool ready)
 void MoveGate::moveShown(bool byRobot)
 {
 	const qint64 now = _clock();
-	_busyUntil = now + _timing.slideMs + _timing.pauseMs;
+	_shownAt = now;
 	if (!byRobot)
-		_robotEarliest = now + _timing.robotMinMs;
+		_playerShownAt = now;
+	updateBusy();
 	_wasIdle = false;
 	tick();
+}
+
+void MoveGate::updateBusy()
+{
+	_busyUntil = _shownAt + _timing.slideMs + _timing.pauseMs;
+	_robotEarliest = _playerShownAt + _timing.robotMinMs;
 }
 
 void MoveGate::push(const QString& uciMove, Source source)
@@ -55,7 +63,16 @@ void MoveGate::push(const QString& uciMove, Source source)
 void MoveGate::clear()
 {
 	_queue.clear();
+	_busyUntil = 0;
+	_robotEarliest = 0;
+	_shownAt = 0;
+	_playerShownAt = 0;
 	tick();
+}
+
+bool MoveGate::isIdle() const
+{
+	return _stageReady && _queue.empty() && _clock() >= _busyUntil;
 }
 
 qint64 MoveGate::allowedAt(Source source) const
@@ -77,19 +94,23 @@ void MoveGate::tick()
 			_timer.start((int)(due - now));
 			return;
 		}
-		// More than two at once is a Lichess resync after a reconnect: show the position at once.
+		// The board is busy from here on, even if the receiver doesn't call moveShown().
+		_busyUntil = std::max(_busyUntil, now + _timing.slideMs + _timing.pauseMs);
+		// More than two at once is a Lichess resync after a reconnect: show the position at once,
+		// as one batch, so the receiver applies it without a slide or a sound per move.
 		if (_queue.size() > 2) {
-			const auto moves = std::move(_queue);
+			QStringList moves;
+			for (const auto& move : _queue)
+				moves.append(move.uciMove);
 			_queue.clear();
-			for (const auto& move : moves)
-				emit release(move.uciMove, move.source);
+			emit releaseBatch(moves);
 		}
 		else {
 			const HeldMove move = _queue.front();
 			_queue.pop_front();
 			emit release(move.uciMove, move.source);
 		}
-		schedule(); // the receiver played it (moveShown) or not: wake up for what is left
+		tick(); // schedule what is left (moveShown() from the receiver has updated the times)
 		return;
 	}
 
@@ -100,20 +121,5 @@ void MoveGate::tick()
 	if (!_wasIdle) {
 		_wasIdle = true;
 		emit idle();
-	}
-}
-
-void MoveGate::schedule()
-{
-	_timer.stop();
-	if (!_stageReady)
-		return;
-	const qint64 now = _clock();
-	if (!_queue.empty()) {
-		const qint64 due = allowedAt(_queue.front().source);
-		_timer.start(due <= now ? 0 : (int)(due - now));
-	}
-	else if (_busyUntil > now) {
-		_timer.start((int)(_busyUntil - now));
 	}
 }

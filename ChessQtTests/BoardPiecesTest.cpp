@@ -2,13 +2,9 @@
 #include <CppUnitTest.h>
 #include "Game.h"
 #include "boardpieces.h"
+#include "TestSupport.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
-
-namespace Microsoft::VisualStudio::CppUnitTestFramework {
-	template<>
-	inline std::wstring ToString(const QString& q) { return q.toStdWString(); }
-}
 
 // BoardPieces: a piece keeps its row and id while it moves; captured pieces are marked taken;
 // a big change resets the model. QAbstractItemModelTester checks the model's signals; its
