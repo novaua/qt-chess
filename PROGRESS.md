@@ -4,6 +4,25 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — BL-14 step 3: the robot through the gate (branch: robotThroughGate_301026)
+
+### What was done
+- **The robot's answer is held, not played on arrival.** `onEngineMoveFound` pushes it into the gate as `Source::Robot`; `EngineThinking` stays true until the gate releases it, so the "Robot is thinking…" bar, the wait cursor and `MovableColor` stay until the move is shown. `playRobotMove()` is the old play tail moved out of the handler (play the move, history, counters); it consumes `_resignAfterEngineMove` too, so a resignation pressed meanwhile happens after the answer (the trap noted in step 2).
+- **The board settles** (`GamePage.qml`): `ChessConnector.setBoardSettled(bool)` after the page has been open for 1 s and the board isn't turning (`ChessBoard.turning`); a Flip or a new game as Black holds the answer until the turn ends. `setMoveTiming(Theme.reduceMotion ? 0 : Theme.slow)` on opening and whenever Reduce animations changes.
+- **The player's own move** calls `moveShown()` in `onHumanMoveDone()`: the robot's answer waits for its slide + pause and at least `robotMinMs`. The player's move itself stays instant.
+- **Clearing:** `beginGame()` (every new, continued and online game), `stopEngineThread()` (also when no engine is running, so every path that stops the robot), `endGame()`, `loadGame()`. A **takeback** drops the held or still-coming answer, bumps `_engineRequest` and clears the thinking state (otherwise `movePrev()`'s `_engineThinking` guard would make Undo a silent no-op); the undo slide is marked with `moveShown()`, so a re-asked answer waits for it. A **live review** drops the waiting answer; `reviewLast()` asks the engine again.
+- **Verified** with temporary scripted scenes (not committed):
+  - Continue as Black: Qh5# was held from its arrival until the page settled, then played (469 ms later);
+  - level 1, the player plays e4, with `robotMinMs` temporarily raised to 1500: the answer arrived after 751 ms and was held until exactly 1499 ms after the player's move;
+  - a takeback while that answer was held: it was never played, the thinking state cleared, and no new engine request was made.
+- Debug and Release build; ChessTests 111, ChessQtTests 109 pass; all 49 screenshot scenes match, the `robot` scene (Continue, Qh5#) included.
+
+### Where to continue
+- **Step 4 (new branch from `develop`)**: check sound and bar, mate and the result card on the gate's `idle`. Replace `GamePage.checkShownTimer` (PR #95's 1 s + turning poll) and the 1600 ms `resultTimer`; use `isIdle()` for a result that comes without a move (resignation, draw, timeout) — `idle()` alone is edge-triggered.
+- **Step 5**: the Lichess opponent's moves through the gate (`push(..., Source::Online)`, `releaseBatch` for a resync, `moveShown` after applying them).
+- **Manual check by the owner** (Release, animations on): level-1 quick moves (never both pieces sliding at once); a new game as Black (board turns first, then the robot's move); Flip board while it thinks; the robot gives check / mates; Continue in check; takeback / New game while its answer waits; review ←/→ while it thinks, then Back to live; Reduce animations on.
+- The owner's §3.4 decision is still open (currently A: think during the animation, show the answer after).
+
 ## 2026-10-30 — BL-14 step 2: `MoveGate` and its tests (branch: moveGate_301026)
 
 ### What was done

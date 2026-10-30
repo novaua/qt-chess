@@ -37,7 +37,10 @@ Page {
         _facePlayer()
         _resultShown = gameOver
         _movesWhenOpened = ChessConnector.MoveCount
+        _syncMoveTiming()
+        openTimer.start()
     }
+    Component.onDestruction: ChessConnector.setBoardSettled(false)
 
     // A resumed game may start in check. Say so when the page has settled — at least a second after
     // it opened and once the board has turned to the player — not while the saved moves are replayed.
@@ -56,6 +59,31 @@ Page {
                 page.checkShown()
             }
         }
+    }
+
+    // ── The board has settled (BL-14): the page has been open for a second and the board isn't
+    // turning. The move gate may then show a robot answer it is holding.
+    property bool _openSecondPassed: false
+    readonly property bool _boardSettled: _openSecondPassed && !chessBoard.turning
+    function _reportSettled() { ChessConnector.setBoardSettled(page._boardSettled) }
+    // Reduce animations: pieces don't slide, so the gate needs no slide time (it keeps the pause).
+    function _syncMoveTiming() { ChessConnector.setMoveTiming(Theme.reduceMotion ? 0 : Theme.slow) }
+
+    Timer {
+        id: openTimer
+        interval: 1000
+        onTriggered: {
+            page._openSecondPassed = true
+            page._reportSettled()
+        }
+    }
+    Connections {
+        target: chessBoard
+        function onTurningChanged() { page._reportSettled() }
+    }
+    Connections {
+        target: Theme
+        function onReduceMotionChanged() { page._syncMoveTiming() }
     }
 
     Connections {
