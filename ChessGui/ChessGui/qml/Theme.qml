@@ -60,6 +60,7 @@ QtObject {
     readonly property color squareDark:   "#2F4F4F"
     readonly property color lastMove:     Qt.alpha("#A8D8EA", 0.7)
     readonly property color selected:     Qt.alpha(accent, 0.45)
+    readonly property color dropSquare:   accent   // outline of the square under a dragged piece
     readonly property color legalMoveDot: Qt.alpha("#000000", 0.22)
     readonly property color checkGlowCenter: "#FFD54A"   // the king in check: yellow in the middle …
     readonly property color checkGlowEdge:   "#E5341F"   // … red towards the edges

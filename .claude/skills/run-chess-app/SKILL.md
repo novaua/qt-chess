@@ -40,7 +40,8 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
 - Scenes: `welcome` (first run), `create-user` (first run, Create profile dialog), `profiles` (Who's
   playing? with Bob, Alice and Tester, who has a Lichess account), `home`, `continue` (Home with an autosaved game), `game` (two-player
   game, Tester vs Bob), `review` (a middlegame reviewed at move 5), `result` (Fool's mate: the result
-  card), `ended` (the same with the card closed: Rematch / New game in the moves panel, Result in the sheet), `moves` (the middlegame with the move sheet open; narrow window only), `select` (1. e4 e5, the g1 knight selected: tinted square and its move dots; with `-Black` on the turned board), `settings` (Settings page, top),
+  card), `ended` (the same with the card closed: Rematch / New game in the moves panel, Result in the sheet), `moves` (the middlegame with the move sheet open; narrow window only), `select` (1. e4 e5, the g1 knight selected: tinted square and its move dots; with `-Black` on the turned board),
+  `drag` (the same knight held over f3: faded on g1, dots, f3 outlined; `-Black` too), `settings` (Settings page, top),
   `about` (Settings scrolled to About: version, licences, shortcuts), `restore` (Settings with the restore
   dialog: two backups, the newest the same as now), `levels`,
   `profile` (Profile page: Lichess linked with ratings, statistics), `profile-local` (no Lichess),
@@ -98,7 +99,7 @@ number of failures; `NEW` = no baseline yet.
 ```
 
 A pixel changed when a channel differs by more than `-Tolerance` (24); a shot fails above
-`-MaxChangedPercent` (0.05 %). Two runs of all 44 scenes (22 light, 22 dark) match exactly. A baseline without a new
+`-MaxChangedPercent` (0.05 %). Two runs of all 46 scenes (23 light, 23 dark) match exactly. A baseline without a new
 screenshot fails as `MISSING` (Take-Screenshot.ps1 deletes the old PNG first, so a failed scene leaves
 none): take the same scenes as the baselines, or use `-Name`. Needs PowerShell 7. A scene that shows
 the clock must use fixed times (`restore`: backups at 9:00 and 9:30).

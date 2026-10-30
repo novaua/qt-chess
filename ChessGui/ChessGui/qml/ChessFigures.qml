@@ -4,7 +4,11 @@ import ChessPlusPlus
 // The pieces of ChessConnector.Pieces, each on its square (ChessBoard.squareX/Y). A piece keeps
 // its item while it moves, so it slides; a captured one fades out (BL-04). Reduce animations:
 // pieces jump and appear at once.
+// A piece of the side to move can also be dragged: ChessBoard shows it under the pointer
+// (dragFrom/dragPoint) while it stays faded on its square; a drop plays the move or it slides back.
 Item {
+    id: chessFigures
+
     Repeater {
         id:chessPiecesRptr
         objectName: "chessPiecesRptr"
@@ -31,13 +35,25 @@ Item {
             z: taken ? 0 : 1   // the piece that captures slides over the one fading out
 
             onSquareChanged: {
-                if (!Theme.reduceMotion && lastSquare >= 0) {
-                    // From where it is drawn now, also when a slide is still under way.
+                if (lastSquare >= 0) {
+                    // From where it is drawn now, also when a slide is still under way, or from
+                    // where it was dropped (then it only settles into the square).
                     slideFile += lastSquare % 8 - square % 8
                     slideRank += Math.floor(lastSquare / 8) - Math.floor(square / 8)
-                    chessPiecesSlide.restart()
+                    settle()
                 }
                 lastSquare = square
+                dropTimer.stop()
+            }
+            function settle() {
+                if (Theme.reduceMotion) {
+                    chessPiecesSlide.stop()
+                    slideFile = 0
+                    slideRank = 0
+                    shownPiece = piece
+                } else {
+                    chessPiecesSlide.restart()
+                }
             }
             ParallelAnimation {
                 id: chessPiecesSlide
@@ -69,6 +85,71 @@ Item {
                 lastSquare = square
                 shown = true
             }
+            Component.onDestruction: if (dragged) chessBoard.endDrag()   // e.g. a new position
+
+            // ── Dragging ──
+            readonly property bool dragged: chessBoard.dragFrom === square && !taken
+            // Only the side to move, when the player may move (ChessConnector.MovableColor).
+            readonly property bool movable: !taken
+                && ChessConnector.MovableColor === (piece === piece.toUpperCase() ? 1 : 2)
+
+            HoverHandler {
+                enabled: chessPiecesItm.movable
+                cursorShape: Qt.OpenHandCursor
+            }
+
+            // target null: the item stays bound to its square; ChessBoard draws the piece under the
+            // pointer. A press without a drag is a click (ChessBoard's TapHandler). Stays enabled
+            // until released, so a drag that can't be played any more (Left: review) still ends.
+            DragHandler {
+                id: dragHandler
+                target: null
+                enabled: chessPiecesItm.movable || active
+                cursorShape: Qt.ClosedHandCursor
+                onActiveChanged: {
+                    if (active)                        chessPiecesItm.startDrag()
+                    else if (chessPiecesItm.dragged)   chessPiecesItm.drop()
+                    else                               chessBoard.dragCancelled = false   // released after Esc
+                }
+                onCentroidChanged: if (active && chessPiecesItm.dragged) chessPiecesItm.followPointer()
+            }
+            // Esc: put back at once; the release that follows does nothing more.
+            Connections {
+                target: chessBoard
+                enabled: chessPiecesItm.dragged
+                function onDragCancelledChanged() { if (chessBoard.dragCancelled) chessPiecesItm.drop() }
+            }
+
+            function followPointer() {
+                // In the squares' coordinates, so it is right on the turned board too.
+                chessBoard.dragPoint = chessFigures.mapFromItem(null, dragHandler.centroid.scenePosition)
+            }
+
+            function startDrag() {
+                chessBoard.dragCancelled = false
+                if (ChessConnector.SelectedSquare !== square)
+                    ChessConnector.figureSelected(square)   // its move dots
+                chessBoard.dragPiece = piece
+                followPointer()
+                chessBoard.dragFrom = square
+            }
+
+            function drop() {
+                const from = square
+                const to = chessBoard.dragCancelled ? -1 : chessBoard.dropSquare
+                // Drawn where it was dropped: the offset from its square, then it slides from there.
+                slideFile = (chessBoard.dragPoint.x - width / 2 - chessBoard.squareX(square)) / width
+                slideRank = -(chessBoard.dragPoint.y - height / 2 - chessBoard.squareY(square)) / width
+                chessBoard.endDrag()
+                if (to === from)
+                    settle()            // back on its square, still selected
+                else if (ChessConnector.movePiece(from, to))
+                    dropTimer.start()   // played: its square changes with the next sync
+                else
+                    settle()            // illegal square, off the board (-1), Esc: slides back, dots cleared
+            }
+            // A played drop that didn't change the square after all: back to it.
+            Timer { id: dropTimer; interval: 500; onTriggered: chessPiecesItm.settle() }
 
             // The board turns 180° for Black; the piece turns with it the other way, to stay upright.
             rotation: chessBoard.angle
@@ -93,6 +174,7 @@ Item {
                 width:height
                 fillMode: Image.PreserveAspectFit
                 source: Theme.piece(chessPiecesItm.shownPiece)
+                opacity: chessPiecesItm.dragged ? 0.35 : 1   // the dragged piece's place (ChessBoard draws it)
             }
 
             // Red flag on the king that resigned / lost on time

@@ -27,6 +27,8 @@ Page {
     readonly property bool gameOver: ChessConnector.GameResult !== ""
     property bool _resultShown: false       // a moment after the game ends, so the last move is seen first
     property bool _resultCardClosed: false
+    readonly property bool pieceDragging: chessBoard.dragging   // Esc puts the piece back, doesn't leave
+    property alias board: chessBoard                            // for ScreenshotScene's drag scene
 
     function flipBoard() { chessBoard.angle = chessBoard.angle === 0 ? 180 : 0 }
     function _facePlayer() { chessBoard.angle = ChessConnector.PlayerPlaysWhite ? 0 : 180 }

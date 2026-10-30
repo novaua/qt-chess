@@ -4,6 +4,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — BL-04 steps 6–7: dragging pieces (branch: dragPieces_301026)
+
+### What was done
+- **Drag and drop** (`ChessFigures.qml`): each piece has a `DragHandler` (`target: null`), enabled for the side to move when the player may move (`ChessConnector.MovableColor`). Starting a drag selects the piece (dots); the piece stays faded on its square and `ChessBoard` draws it under the pointer, a little lifted, above the dots. The square under it is outlined (`ChessBoxes`, `Theme.dropSquare` = accent). A drop calls `ChessConnector.movePiece(from, to)`: played → the piece only settles from the drop point into the square (the drop point becomes its slide offset), refused (illegal square, off the board) → slides back, dots cleared. Dropped on its own square → stays selected. A press without a drag is still a click (`TapHandler`).
+- **Esc** while dragging puts the piece back (`ChessBoard`'s Shortcut, `dragCancelled`); the window's Esc (leave the game) waits while a piece is held (`GamePage.pieceDragging`).
+- Cursors: open hand over a movable piece, closed hand while dragging. The pointer is mapped from scene coordinates into the board's, so it is right on the turned board.
+- **Screenshot scene `drag`** (in `all`): 1. e4 e5, the g1 knight held over f3; `-Black` too. `main.cpp` knows the name.
+- Tested with a temporary hook (not committed) that sent mouse events to the window: Nf3 by drag; g1→g4 refused (back, no dots); Nf6 as Black on the turned board; press-release = click (selected, dots); a7xb8 by drop (pawn on b8, promotion dialog); Esc mid-drag (back, no move, still on the game page). Synthetic events need timestamps, else each move looks like a new press.
+- Release and Debug build; all 49 shots (46 scenes, `select`/`drag -Black`) match, `drag` baselines new; no QML warnings.
+
+### Where to continue
+- **Manual check:** plan §5 rows 2, 3, 7, 11–14 — dragging with the mouse vs the robot (White and Black, after Flip board), refused drops, Esc, promotion by drop, no dragging while the robot thinks / in review / after mate / opponent's turn online, touch if available, Reduce animations on. Then tick BL-04.
+- Plan §7 risk still open: the last-move highlight comes one event-loop pass before the piece (not noticed so far).
+
 ## 2026-10-30 — BL-04 step 5: slides and fades (branch: pieceSlides_301026)
 
 ### What was done

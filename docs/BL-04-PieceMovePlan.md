@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-30 |
-| **Status** | Steps 1–5 done (`Game::UndoMove` fix, `BoardDiff`, `BoardPieces` + `ChessConnector`, the QML board on `Pieces`, slides and fades); step 6 (dragging) next |
+| **Status** | Steps 1–8 done (`Game::UndoMove` fix, `BoardDiff`, `BoardPieces` + `ChessConnector`, the QML board on `Pieces`, slides and fades, dragging, the `drag` scene); manual check of dragging open |
 | **Branch** | `pieceDrag_301026` (from `develop`) |
 | **Task** | BL-04 in `TASKS.md` |
 
@@ -199,6 +199,10 @@ outline on the square under the piece (`chessBoard.dropSquare`).
    scenes match (light/dark, White/Black, coordinates inside/outside) before going on.
 5. **Slides and fades** (§2), all on `Theme.reduceMotion`.
 6. **Dragging** (§3.4): handler, drop, slide back, Esc, cursors, drop-square outline, promotion by drop.
+   As built: the dragged piece is drawn by `ChessBoard` above the move dots (`dragFrom`, `dragPiece`,
+   `dragPoint`; the delegate stays on its square, faded), not moved by a `dragOffset` in the delegate,
+   which would have stayed under the dots layer. On a drop the delegate takes the drop point as its
+   slide offset, so a played drop only settles into the square and a refused one slides back.
 7. **Screenshot scene `drag`**: a piece held over a legal square, dots and outline showing
    (`ScreenshotScene` sets the drag state; the scene stays in `all`). Update the `run-chess-app`
    skill's scene list.

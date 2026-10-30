@@ -694,7 +694,9 @@ ApplicationWindow {
     }
     Shortcut {
         sequence: "Escape"
+        // Not while a piece is dragged: then Esc puts it back (ChessBoard).
         enabled: (_onGamePage || _page === "profile" || _page === "settings") && !_dialogOpen
+                 && !(_onGamePage && stack.currentItem.pieceDragging)
         onActivated: {
             if (_page === "profile")              closeProfile()
             else if (_page === "settings")        closeSettings()
