@@ -38,7 +38,7 @@
     <ClCompile Include="SanTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PieceMatchTests.cpp">
+    <ClCompile Include="BoardDiffTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UndoTests.cpp">

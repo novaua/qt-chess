@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include <CppUnitTest.h>
 #include "../ChessCore/Game.h"
-#include "../ChessCore/PieceMatch.h"
+#include "../ChessCore/BoardDiff.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace Chess;
@@ -29,8 +29,8 @@ static std::vector<std::string> Plus(std::vector<std::string> moves, const std::
 
 static bool HasTravel(const BoardDiff& diff, BoardPosition from, BoardPosition to, Piece before, Piece after)
 {
-    for (const auto& t : diff.Moved)
-        if (t.From == from && t.To == to && t.Before == before && t.After == after)
+    for (const auto& t : diff.Moved())
+        if (t.From() == from && t.To() == to && t.Before() == before && t.After() == after)
             return true;
     return false;
 }
@@ -43,12 +43,12 @@ static bool Has(const std::vector<PositionPiece>& pieces, BoardPosition position
     return false;
 }
 
-TEST_CLASS(PieceMatchTests) {
+TEST_CLASS(BoardDiffTests) {
 public:
 
     TEST_METHOD(SamePositionNothingChanged) {
         const auto board = Position({ "e2e4", "e7e5" });
-        Assert::IsTrue(MatchPieces(board, board).IsEmpty());
+        Assert::IsTrue(BoardDiff(board, board).IsEmpty());
     }
 
     TEST_METHOD(QuietMoveAndItsTakeback) {
@@ -56,11 +56,11 @@ public:
         const auto after = Position({ "g1f3" });
         const Piece knight{ KNIGHT, PieceColors::Light };
 
-        auto diff = MatchPieces(before, after);
+        auto diff = BoardDiff(before, after);
         Assert::AreEqual(size_t(1), diff.Size());
         Assert::IsTrue(HasTravel(diff, g1, f3, knight, knight));
 
-        diff = MatchPieces(after, before);
+        diff = BoardDiff(after, before);
         Assert::AreEqual(size_t(1), diff.Size());
         Assert::IsTrue(HasTravel(diff, f3, g1, knight, knight));
     }
@@ -70,15 +70,15 @@ public:
         const auto before = Position(moves);
         const auto after = Position(Plus(moves, "e4d5"));
 
-        auto diff = MatchPieces(before, after);
+        auto diff = BoardDiff(before, after);
         Assert::AreEqual(size_t(2), diff.Size());
         Assert::IsTrue(HasTravel(diff, e4, d5, WhitePawn, WhitePawn));
-        Assert::IsTrue(Has(diff.Removed, d5, BlackPawn));
+        Assert::IsTrue(Has(diff.Removed(), d5, BlackPawn));
 
-        diff = MatchPieces(after, before);
+        diff = BoardDiff(after, before);
         Assert::AreEqual(size_t(2), diff.Size());
         Assert::IsTrue(HasTravel(diff, d5, e4, WhitePawn, WhitePawn));
-        Assert::IsTrue(Has(diff.Added, d5, BlackPawn));
+        Assert::IsTrue(Has(diff.Added(), d5, BlackPawn));
     }
 
     // King and rook both travel, both ways, for every castling.
@@ -96,12 +96,12 @@ public:
             const Piece king{ KING, c.color }, rook{ ROOK, c.color };
             const auto kingFrom = c.color == PieceColors::Light ? e1 : e8;
 
-            auto diff = MatchPieces(before, after);
+            auto diff = BoardDiff(before, after);
             Assert::AreEqual(size_t(2), diff.Size());
             Assert::IsTrue(HasTravel(diff, kingFrom, c.kingTo, king, king));
             Assert::IsTrue(HasTravel(diff, c.rookFrom, c.rookTo, rook, rook));
 
-            diff = MatchPieces(after, before);
+            diff = BoardDiff(after, before);
             Assert::AreEqual(size_t(2), diff.Size());
             Assert::IsTrue(HasTravel(diff, c.kingTo, kingFrom, king, king));
             Assert::IsTrue(HasTravel(diff, c.rookTo, c.rookFrom, rook, rook));
@@ -113,15 +113,15 @@ public:
         const auto before = Position(moves);
         const auto after = Position(Plus(moves, "e5d6"));
 
-        auto diff = MatchPieces(before, after);
+        auto diff = BoardDiff(before, after);
         Assert::AreEqual(size_t(2), diff.Size());
         Assert::IsTrue(HasTravel(diff, e5, d6, WhitePawn, WhitePawn));
-        Assert::IsTrue(Has(diff.Removed, d5, BlackPawn));
+        Assert::IsTrue(Has(diff.Removed(), d5, BlackPawn));
 
-        diff = MatchPieces(after, before);
+        diff = BoardDiff(after, before);
         Assert::AreEqual(size_t(2), diff.Size());
         Assert::IsTrue(HasTravel(diff, d6, e5, WhitePawn, WhitePawn));
-        Assert::IsTrue(Has(diff.Added, d5, BlackPawn));
+        Assert::IsTrue(Has(diff.Added(), d5, BlackPawn));
     }
 
     TEST_METHOD(PromotionAndItsTakeback) {
@@ -130,11 +130,11 @@ public:
         const auto after = Position(Plus(moves, "h7h8q"));
         const Piece queen{ QUEEN, PieceColors::Light };
 
-        auto diff = MatchPieces(before, after);
+        auto diff = BoardDiff(before, after);
         Assert::AreEqual(size_t(1), diff.Size());
         Assert::IsTrue(HasTravel(diff, h7, h8, WhitePawn, queen));
 
-        diff = MatchPieces(after, before);
+        diff = BoardDiff(after, before);
         Assert::AreEqual(size_t(1), diff.Size());
         Assert::IsTrue(HasTravel(diff, h8, h7, queen, WhitePawn));
     }
@@ -145,15 +145,15 @@ public:
         const auto after = Position(Plus(moves, "h2g1q"));
         const Piece queen{ QUEEN, PieceColors::Dark }, knight{ KNIGHT, PieceColors::Light };
 
-        auto diff = MatchPieces(before, after);
+        auto diff = BoardDiff(before, after);
         Assert::AreEqual(size_t(2), diff.Size());
         Assert::IsTrue(HasTravel(diff, h2, g1, BlackPawn, queen));
-        Assert::IsTrue(Has(diff.Removed, g1, knight));
+        Assert::IsTrue(Has(diff.Removed(), g1, knight));
 
-        diff = MatchPieces(after, before);
+        diff = BoardDiff(after, before);
         Assert::AreEqual(size_t(2), diff.Size());
         Assert::IsTrue(HasTravel(diff, g1, h2, queen, BlackPawn));
-        Assert::IsTrue(Has(diff.Added, g1, knight));
+        Assert::IsTrue(Has(diff.Added(), g1, knight));
     }
 
     // The player's promotion: the pawn stands on the last rank until the piece is chosen.
@@ -164,14 +164,14 @@ public:
         before.Place(h8, WhitePawn);
         after.Place(h8, { ROOK, PieceColors::Light });
 
-        const auto diff = MatchPieces(before, after);
+        const auto diff = BoardDiff(before, after);
         Assert::AreEqual(size_t(1), diff.Size());
         Assert::IsTrue(HasTravel(diff, h8, h8, WhitePawn, { ROOK, PieceColors::Light }));
     }
 
     // Lichess can send several moves at once.
     TEST_METHOD(TwoMovesAtOnce) {
-        const auto diff = MatchPieces(Position({}), Position({ "e2e4", "e7e5" }));
+        const auto diff = BoardDiff(Position({}), Position({ "e2e4", "e7e5" }));
         Assert::AreEqual(size_t(2), diff.Size());
         Assert::IsTrue(HasTravel(diff, e2, e4, WhitePawn, WhitePawn));
         Assert::IsTrue(HasTravel(diff, e7, e5, BlackPawn, BlackPawn));
@@ -190,7 +190,7 @@ public:
         after.Place(h1, {});
         after.Place(h5, rook);
 
-        const auto diff = MatchPieces(before, after);
+        const auto diff = BoardDiff(before, after);
         Assert::AreEqual(size_t(1), diff.Size());
         Assert::IsTrue(HasTravel(diff, h1, h5, rook, rook));
     }
@@ -199,7 +199,7 @@ public:
     TEST_METHOD(NewGameIsABigChange) {
         const auto middlegame = Position({ "e2e4", "d7d5", "e4d5", "d8d5", "b1c3", "d5a5", "d2d4", "g8f6",
                                            "g1f3", "c8f5", "f1c4", "e7e6", "c1d2", "c7c6" });
-        Assert::IsTrue(MatchPieces(middlegame, Position({})).Size() > 4);
+        Assert::IsTrue(BoardDiff(middlegame, Position({})).Size() > 4);
     }
 };
 }

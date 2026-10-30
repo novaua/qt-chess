@@ -63,7 +63,7 @@
     <ClInclude Include="..\ChessGui\ChessGui\ChessEnginePlayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PieceMatch.h">
+    <ClInclude Include="BoardDiff.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="San.h">
@@ -101,7 +101,7 @@
     <ClCompile Include="Events.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PieceMatch.cpp">
+    <ClCompile Include="BoardDiff.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="San.cpp">

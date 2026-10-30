@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-30 |
-| **Status** | Steps 1–2 done (`Game::UndoMove` fix, `MatchPieces`); step 3 next |
+| **Status** | Steps 1–2 done (`Game::UndoMove` fix, `BoardDiff`); step 3 next |
 | **Branch** | `pieceDrag_301026` (from `develop`) |
 | **Task** | BL-04 in `TASKS.md` |
 
@@ -55,18 +55,24 @@ Out of scope: premoves, arrows/marking squares, keyboard play on the board, piec
 
 ## 3. Design
 
-### 3.1 ChessCore: which piece went where — `PieceMatch`
+### 3.1 ChessCore: which piece went where — `BoardDiff`
 
-A pure function in `Chess::`, no Qt, tested in `ChessTests`:
+A class in `Chess::` (`BoardDiff.h`), no Qt, tested in `ChessTests`. The constructor compares the two positions; the result is read-only:
 
 ```cpp
-struct PieceTravel { BoardPosition From, To; Piece Before, After; };   // After != Before: promotion
-struct BoardDiff {
-    std::vector<PieceTravel> Moved;      // includes promotions (and their reverse, for takeback)
-    std::vector<BoardPosition> Removed;  // captured, en passant
-    std::vector<PositionPiece> Added;    // a captured piece put back by a takeback
+class PieceTravel {      // one piece from a square to another; ChangesType(): a promotion or its takeback
+public:
+    BoardPosition From() const; BoardPosition To() const;
+    const Piece& Before() const; const Piece& After() const; bool ChangesType() const;
 };
-BoardDiff MatchPieces(const Board& before, const Board& after);
+class BoardDiff {
+public:
+    BoardDiff(const Board& before, const Board& after);
+    const std::vector<PieceTravel>& Moved() const;     // includes promotions (and their takeback)
+    const std::vector<PositionPiece>& Removed() const; // captured, en passant
+    const std::vector<PositionPiece>& Added() const;   // a captured piece put back by a takeback
+    size_t Size() const;
+};
 ```
 
 1. Squares with the same piece before and after are left alone.
@@ -93,7 +99,7 @@ like `UserManager`), one row per piece on the board:
 | `piece` | `"N"`, `"n"`, … (as `boardChanged` sends today) |
 | `taken` | true while a captured piece fades out |
 
-- `sync(const Board& shown)` runs `MatchPieces(_lastShown, shown)`: `Moved` → `dataChanged` on
+- `sync(const Board& shown)` compares `BoardDiff(_lastShown, shown)`: `Moved` → `dataChanged` on
   `square` (and `piece`); `Removed` → `taken = true`; `Added` → new rows. Too much changed →
   `beginResetModel()` with fresh ids. Rows marked `taken` are dropped at the start of the next sync.
 - `ChessConnector` exposes it as `Q_PROPERTY(QAbstractItemModel* Pieces CONSTANT)` (instead of
@@ -180,7 +186,7 @@ outline on the square under the piece (`chessBoard.dropSquare`).
    (pushed on `_captured` in `DoMove`), promotion turns back into a pawn; all changed squares are
    notified. Tests in `ChessTests` (`UndoTests.cpp`): undo castling both sides and colours, en
    passant, promotion with and without capture, then redo; position and FEN equal before and after.
-2. **`MatchPieces`** (ChessCore) + tests: quiet move, capture, castling ×4, en passant, promotion
+2. **`BoardDiff`** (ChessCore) + tests: quiet move, capture, castling ×4, en passant, promotion
    (straight, capturing, choice in place), each reversed (takeback), two moves at once (Lichess
    batch), unchanged position, new game (too much changed).
 3. **`BoardPieces` model** + `ChessConnector` wiring (queued `syncPieces()`, shown position helper,
