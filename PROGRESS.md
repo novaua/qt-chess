@@ -4,6 +4,18 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — BL-14 plan: one thing at a time on the board (branch: movePacingPlan_301026)
+
+### What was done
+- The owner tried BL-04 (#96, #98 merged; slides, castling, en passant fine) and found: the level-1 robot's answer slides together with the player's move; as Black the robot moves while the board turns; sounds follow the game, not the board; slides sometimes stop for a few ms.
+- **Plan:** `docs/BL-14-MovePacingPlan.md`, task BL-14 in TASKS. A `MoveGate` (ChessGui) holds moves from outside — the robot's answer, the Lichess opponent's move — and plays one only when the board is idle: page open ≥ 1 s and not turning (PR #95's rule, now general), last slide done, a short pause (and ≥ ~400 ms after the player's move for the robot). A held move isn't played on `Game` until shown, so last move, check, move list and sounds stay in step by themselves; `EngineThinking` lasts until the move is shown. #95's `checkShownTimer` and the 1600 ms `resultTimer` become "the gate is idle". Freezes: measure first (frame trace in Debug); suspect `NavigationLayer`'s `Repeater` over the `PossibleMoves` string list (64 delegates rebuilt on every click and after every move).
+- Checked while planning: Lichess echoes of our own moves are skipped (`LichessClient::postMove` appends to `_lastMovesList`); a resync on joining comes as one batch.
+
+### Where to continue
+- **Owner's decision** (plan §3.4): the robot thinks during the animation and its move is shown after (recommended, planned), or it is asked only once the board is idle.
+- Step 1 (measure the freezes, `NavigationLayer` without rebuilds) and step 2 (`MoveGate` + tests) can start in either order, each on a new branch from `develop`.
+- BL-04: the manual check of dragging is still open.
+
 ## 2026-10-30 — BL-04 steps 6–7: dragging pieces (branch: dragPieces_301026)
 
 ### What was done
