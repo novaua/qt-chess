@@ -4,6 +4,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — BL-04 step 4: the QML board on `Pieces` (branch: boardQml_301026)
+
+### What was done
+- **One board geometry** (`ChessBoard.qml`): `squaresSize`, `squareSize`, `squareX(square)`, `squareY(square)` (a1 at the bottom left, in the board's own coordinates) and `squareAt(x, y)`. `ChessBoxes`, `ChessFigures` and `NavigationLayer` place their items with them; the three X-mirrored `Grid`s and the per-item Y-mirror/180° counter-rotations are gone. The board still turns for Black with `rotation`; a piece turns back with `rotation: chessBoard.angle` (same animation as before).
+- **`ChessFigures.qml`**: a `Repeater` over `ChessConnector.Pieces`, one item per piece at its square (`taken` ones hidden until step 5 fades them). Before, every move removed and re-inserted `ListModel` rows, rebuilding square delegates (64 on page creation and on every review step).
+- **Clicks**: one `TapHandler` on the pieces layer → `figureSelected(squareAt(...))`, instead of 64 `MouseArea`s. The selected piece's tint is in `ChessBoxes` (`SelectedSquare`), above the other highlights.
+- **Removed**: `EmptyBoardModel.qml`, `ChessConnector::boardChanged`, `refreshBoard()`, the QML-only `selectedIndex`. `emitBoardState()` (review) now only syncs `Pieces` and clears the dots.
+- **Screenshot scene `select`** (in `all`): 1. e4 e5 with the g1 knight selected — tint and dots; `-Black` shows the turned board.
+- Debug and Release build; ChessTests 111, ChessQtTests 85 pass; all 44 scenes (light, dark) and `robot` match the baselines, no QML warnings. The old `robot` baseline was still from Qt 6.10 (`all` doesn't take it): renewed, only its text antialiasing differed.
+
+### Where to continue
+- **Manual check (needs a person, screenshot mode ignores the mouse):** click-select-click moves vs the robot as White and as Black, in a two-player game, after Flip board; clicking an opponent's piece or an empty square; promotion; review ← →; takeback.
+- Step 5 (plan §2, §3.4): slides (`Behavior on x/y`, `Theme.slow`), captured pieces fading out (`taken`), resets without slides, all off with Reduce animations.
+
 ## 2026-10-30 — BL-04 step 3: the pieces model (branch: boardPieces_301026, from pieceDrag_301026 / #92)
 
 ### What was done

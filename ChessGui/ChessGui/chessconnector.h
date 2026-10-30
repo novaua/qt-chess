@@ -129,8 +129,6 @@ public:
 	void setPossibleMoves(const QStringList& moves);
 
 signals:
-	void boardChanged(int position, const QString& newValue);
-
 	void PossibleMovesChanged();
 	void movableColorChanged();
 
@@ -181,7 +179,6 @@ public slots:
 	Q_INVOKABLE bool continueGame();
 	void setUseFen(bool v);
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
-	Q_INVOKABLE void refreshBoard(); // boardChanged for every square: a new board view fills itself
 
 	void endGame();              // leave the game for Home (autosaves an unfinished local game)
 	Q_INVOKABLE void switchUser(); // endGame(), then log out
@@ -246,7 +243,7 @@ private:
 	std::shared_ptr<Chess::Game> shownGame() const; // the position on the board: a replay while reviewing
 	void schedulePiecesSync();  // update Pieces once, after the current change is complete
 	void onHumanMoveDone();
-	void emitBoardState(int moveIndex);
+	void emitBoardState(); // after _reviewIndex changed
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
 	void addSanToRows(int i);
 	void buildFullHistoryCache();

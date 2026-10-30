@@ -425,7 +425,6 @@
     <None Include="qml\ChessFigures.qml" />
     <None Include="qml\ChessGame.qml" />
     <None Include="qml\CreateUserDialog.qml" />
-    <None Include="qml\EmptyBoardModel.qml" />
     <None Include="qml\IconButton.qml" />
     <None Include="qml\CommandBar.qml" />
     <None Include="qml\InfoBar.qml" />

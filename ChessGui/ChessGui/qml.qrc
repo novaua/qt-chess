@@ -39,7 +39,6 @@
         <file>qml/ChessBoxes.qml</file>
         <file>qml/ChessFigures.qml</file>
         <file>qml/ChessGame.qml</file>
-        <file>qml/EmptyBoardModel.qml</file>
         <file>qml/MarkerColumn.qml</file>
         <file>qml/MarkerRow.qml</file>
         <file>qml/NavigationLayer.qml</file>

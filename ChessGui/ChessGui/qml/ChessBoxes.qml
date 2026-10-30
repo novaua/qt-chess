@@ -2,18 +2,10 @@ import QtQuick
 import QtQuick.Shapes
 import ChessPlusPlus
 
-Grid {
-    width: Theme.boardSquares * Math.min(parent.width, parent.height)
-    height:width
-    rows: 8
-    columns: 8
-
-    transform: Rotation {
-        id:chessBoxesTrns
-        origin.y: chessBoxes.height/2
-        axis.x: 1; axis.y: 0; axis.z: 0
-        angle: 180
-    }
+// The squares with their highlights, placed by ChessBoard.squareX/Y (a1 at the bottom left).
+Item {
+    width: chessBoard.squaresSize
+    height: width
 
     Repeater
     {
@@ -23,13 +15,12 @@ Grid {
             id:chessBox
             smooth: true
             antialiasing: true
-            width: (parent.height < parent.width)
-                   ? parent.height / 8
-                   : parent.width / 8
-
+            x: chessBoard.squareX(index)
+            y: chessBoard.squareY(index)
+            width: chessBoard.squareSize
             height: width
 
-            // index 0 = a1 (the grid is flipped upside down): row = rank, column = file
+            // index 0 = a1: row = rank, column = file
             property int rowIndex: Math.floor(index/8)
             property int columnIndex: index%8
             color: (rowIndex + columnIndex) % 2 === 0 ? Theme.squareDark : Theme.squareLight   // a1 is dark
@@ -86,19 +77,12 @@ Grid {
                 z: 3
             }
 
-            Text {
+            // The selected piece: accent tint on its square
+            Rectangle {
                 anchors.fill: parent
-                id: name
-                text: ""
-                font.bold: true
-                font.pointSize: 14
-                rotation: 180 + chessBoard.angle
-
-                transform: Rotation {
-                    origin.x: width/2
-                    axis.x: 0; axis.y: 1; axis.z: 0
-                    angle: 180
-                }
+                color: Theme.selected
+                visible: index === ChessConnector.SelectedSquare
+                z: 4
             }
         }
     }

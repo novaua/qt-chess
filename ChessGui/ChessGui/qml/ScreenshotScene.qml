@@ -37,7 +37,7 @@ Item {
             else                      UserManager.createUser("Tester", "wizard")
         }
         // A second profile to play against: same names and avatars every time.
-        var gameScene = ["game", "continue", "review", "result", "ended", "moves"].includes(name)
+        var gameScene = ["game", "continue", "review", "result", "ended", "moves", "select"].includes(name)
         if ((gameScene || name === "players") && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -64,7 +64,7 @@ Item {
             // A Scandinavian with captures on both sides (Black +1), and Fool's mate for the result.
             var middlegame = "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 c1d2 c7c6 "
                            + "c3d5 a5d8 d5f6 d8f6 d1e2 f5c2"
-            var defaultMoves = ({ continue: "e2e4 e7e5", review: middlegame, moves: middlegame,
+            var defaultMoves = ({ continue: "e2e4 e7e5", review: middlegame, moves: middlegame, select: "e2e4 e7e5",
                                   result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4" })[name] ?? ""
             var bob = UserManager.users.find(u => u.name === "Bob")
             ChessConnector.startLocalGame(!shot.black, bob ? bob.id : "")
@@ -78,6 +78,8 @@ Item {
                 pages.currentItem.sheetOpen = true   // the move sheet (narrow window)
             if (name === "ended")
                 pages.currentItem._resultCardClosed = true   // Rematch / New game in the moves panel
+            if (name === "select")
+                ChessConnector.figureSelected(6)   // the g1 knight: tinted square, dots on its moves
         }
 
         if (ChessConnector.EngineThinking) _waitsForEngine = true   // the robot's move comes later
