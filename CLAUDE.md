@@ -31,7 +31,7 @@ vstest.console.exe x64\Debug\ChessQtTests.dll
 
 - `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`). Plain C++, no Qt.
 - `ChessQtTests/` — the Qt parts: `UciConnectorTest.cpp` (UCI protocol), `ChessEnginePlayerTest.cpp`, `LichessClientTest.cpp`, `BoardPiecesTest.cpp`,
-  `UserManagerTest.cpp`. Needs Qt's `bin` on `PATH`; the engine tests need Stockfish.
+  `MoveListModelTest.cpp`, `UserManagerTest.cpp`. Needs Qt's `bin` on `PATH`; the engine tests need Stockfish.
 
 ## Seeing the UI
 

@@ -76,6 +76,25 @@ void MoveListModel::show(const std::vector<std::string>& san)
 	const int oldRows = rowsFor(_san.size());
 	const int newRows = rowsFor(san.size());
 	const int keptRows = std::min(oldRows, newRows);
+	const int firstChanged = (int)same / 2;
+
+	// The usual case — one move, or a few at once (Lichess) — adds to the end of the list: only the
+	// new plies are copied. If the last old ply was White's, a new Black move fills its row, so that
+	// row changes too; a new row comes after it when the list may go on to White's next move.
+	if (same == _san.size()) {
+		const bool lastRowChanged = same % 2 == 1;
+		if (newRows > oldRows) {
+			beginInsertRows({}, oldRows, newRows - 1);
+			_san.insert(_san.end(), san.begin() + same, san.end());
+			endInsertRows();
+		}
+		else {
+			_san.insert(_san.end(), san.begin() + same, san.end());
+		}
+		if (lastRowChanged)
+			emit dataChanged(index(firstChanged), index(firstChanged));
+		return;
+	}
 
 	// In three steps, so each signal sees only its own change: rows that go, then the rows that
 	// stay get their new moves, then new rows.
@@ -86,12 +105,11 @@ void MoveListModel::show(const std::vector<std::string>& san)
 	}
 	const size_t keptPlies = std::min(san.size(), (size_t)keptRows * 2);
 	_san.assign(san.begin(), san.begin() + keptPlies);
-	const int firstChanged = (int)same / 2;
 	if (firstChanged < keptRows)
 		emit dataChanged(index(firstChanged), index(keptRows - 1));
 	if (newRows > oldRows) {
 		beginInsertRows({}, oldRows, newRows - 1);
-		_san = san;
+		_san.insert(_san.end(), san.begin() + keptPlies, san.end());
 		endInsertRows();
 	}
 }

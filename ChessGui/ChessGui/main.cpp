@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
 	static const QStringList screenshotScenes = {
 		"welcome", "create-user", "profiles", "home", "continue", "game", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online",
-		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board"
+		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();

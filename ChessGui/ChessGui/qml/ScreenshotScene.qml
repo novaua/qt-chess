@@ -37,7 +37,7 @@ Item {
             else                      UserManager.createUser("Tester", "wizard")
         }
         // A second profile to play against: same names and avatars every time.
-        var gameScene = ["game", "continue", "review", "result", "ended", "moves", "select", "drag"].includes(name)
+        var gameScene = ["game", "continue", "review", "result", "ended", "moves", "select", "drag", "slides"].includes(name)
         if ((gameScene || name === "players") && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -65,6 +65,7 @@ Item {
             var middlegame = "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 c1d2 c7c6 "
                            + "c3d5 a5d8 d5f6 d8f6 d1e2 f5c2"
             var defaultMoves = ({ continue: "e2e4 e7e5", review: middlegame, moves: middlegame, select: "e2e4 e7e5", drag: "e2e4 e7e5",
+                                  slides: "e2e4 e7e5",
                                   result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4" })[name] ?? ""
             var bob = UserManager.users.find(u => u.name === "Bob")
             if (name === "continue")   // only a game vs the robot is autosaved; White: no engine needed
@@ -92,6 +93,18 @@ Item {
                                            board.squareY(21) + 0.35 * board.squareSize)
                 board.dragFrom = 6
             }
+            if (name === "slides") {
+                // BL-14 measurement, not a screenshot: animations on (unlike every other scene),
+                // a selection, then four moves. Run with --delay 5200 and
+                // QT_LOGGING_RULES="chess.frames.debug=true", then read the .png.log for the
+                // FrameTrace lines (frametrace.h). The saved picture is an arbitrary frame.
+                Theme.forceReduceMotion = false
+                slideSelectTimer.start()
+                slideMove1Timer.start()
+                slideMove2Timer.start()
+                slideMove3Timer.start()
+                slideMove4Timer.start()
+            }
         }
 
         if (ChessConnector.EngineThinking) _waitsForEngine = true   // the robot's move comes later
@@ -118,4 +131,11 @@ Item {
         id: readyTimer
         onTriggered: ChessConnector.screenshotSceneReady()
     }
+
+    // Scene "slides" (BL-14): select the g1 knight, then Nf3, Nf6, Bc4, Nc6, 0.4–1 s apart.
+    Timer { id: slideSelectTimer; interval: 900;  onTriggered: ChessConnector.figureSelected(6) }
+    Timer { id: slideMove1Timer;  interval: 1300; onTriggered: ChessConnector.movePiece(6, 21) }
+    Timer { id: slideMove2Timer;  interval: 2300; onTriggered: ChessConnector.movePiece(62, 45) }
+    Timer { id: slideMove3Timer;  interval: 3300; onTriggered: ChessConnector.movePiece(5, 26) }
+    Timer { id: slideMove4Timer;  interval: 4300; onTriggered: ChessConnector.movePiece(58, 42) }
 }

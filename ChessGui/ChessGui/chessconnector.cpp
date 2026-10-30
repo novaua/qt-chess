@@ -1036,7 +1036,6 @@ void ChessConnector::onEngineMoveFound(int request, const QString& move)
 		return;
 	}
 	ENGINE_TRACE("answer" << move << "to request" << request << "playing");
-	FrameTraceScope trace("robot's move played");
 	try {
 		_game->DoMove(Chess::Move::Parse(move.toStdString()));
 	}

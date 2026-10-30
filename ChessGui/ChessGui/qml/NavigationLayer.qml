@@ -32,8 +32,16 @@ Item {
                 width:height
                 radius: 0.5*height
                 visible: AppSettings.showLegalMoves && (navigationLayer.moves[navigationLayerItm.index] ?? " ") !== " "
-                // Pops in when it appears.
-                onVisibleChanged: if (visible && !Theme.reduceMotion) navigationLayerPopIn.restart()
+                // Pops in when it appears. Hiding stops it: a quick selection change would otherwise
+                // leave an invisible animation running, which keeps the board rendering.
+                onVisibleChanged: {
+                    if (visible) {
+                        if (!Theme.reduceMotion) navigationLayerPopIn.restart()
+                    } else {
+                        navigationLayerPopIn.stop()
+                        navigationLayerRec.scale = 1
+                    }
+                }
             }
 
             PropertyAnimation {

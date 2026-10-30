@@ -5,7 +5,8 @@
 
 // The move list for QML: one row per move number, White's move and Black's. show() compares the
 // new moves with the shown ones and changes only the rows that differ, so a new move adds one row
-// (or fills in Black's half of the last one) instead of rebuilding the whole list (BL-14).
+// (or fills in Black's half of the last one) instead of rebuilding the whole list (BL-14). The model
+// keeps its own copy of the moves it shows; ChessConnector calls show() whenever its SAN changes.
 class MoveListModel : public QAbstractListModel
 {
 	Q_OBJECT

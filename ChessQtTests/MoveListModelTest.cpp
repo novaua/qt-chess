@@ -22,15 +22,36 @@ namespace MoveListModelTests
 			g_modelWarnings << message;
 	}
 
+	// The signals and the rows they cover, so a test checks what changed, not only how often.
 	struct Signals {
 		int dataChanged = 0, inserted = 0, removed = 0, resets = 0;
+		int changedFirst = -1, changedLast = -1;
+		bool changedAllRoles = false;
+		int insertFirst = -1, insertLast = -1;
+		int removeFirst = -1, removeLast = -1;
 	};
 
 	static void count(MoveListModel& model, Signals& s)
 	{
-		QObject::connect(&model, &QAbstractItemModel::dataChanged, [&s] { ++s.dataChanged; });
-		QObject::connect(&model, &QAbstractItemModel::rowsInserted, [&s] { ++s.inserted; });
-		QObject::connect(&model, &QAbstractItemModel::rowsRemoved, [&s] { ++s.removed; });
+		QObject::connect(&model, &QAbstractItemModel::dataChanged,
+			[&s](const QModelIndex& first, const QModelIndex& last, const QList<int>& roles) {
+				++s.dataChanged;
+				s.changedFirst = first.row();
+				s.changedLast = last.row();
+				s.changedAllRoles = roles.isEmpty();
+			});
+		QObject::connect(&model, &QAbstractItemModel::rowsInserted,
+			[&s](const QModelIndex&, int first, int last) {
+				++s.inserted;
+				s.insertFirst = first;
+				s.insertLast = last;
+			});
+		QObject::connect(&model, &QAbstractItemModel::rowsRemoved,
+			[&s](const QModelIndex&, int first, int last) {
+				++s.removed;
+				s.removeFirst = first;
+				s.removeLast = last;
+			});
 		QObject::connect(&model, &QAbstractItemModel::modelReset, [&s] { ++s.resets; });
 	}
 
@@ -111,6 +132,9 @@ namespace MoveListModelTests
 			Assert::AreEqual(1, _model.rowCount());
 			Assert::AreEqual(QString("e5"), role(_model, 0, MoveListModel::BlackTextRole).toString());
 			Assert::AreEqual(1, _signals.dataChanged);
+			Assert::AreEqual(0, _signals.changedFirst);
+			Assert::AreEqual(0, _signals.changedLast);
+			Assert::IsTrue(_signals.changedAllRoles);
 			Assert::AreEqual(0, _signals.inserted + _signals.removed);
 			assertModelOk();
 		}
@@ -122,6 +146,8 @@ namespace MoveListModelTests
 
 			Assert::AreEqual(2, _model.rowCount());
 			Assert::AreEqual(1, _signals.inserted);
+			Assert::AreEqual(1, _signals.insertFirst);
+			Assert::AreEqual(1, _signals.insertLast);
 			Assert::AreEqual(0, _signals.dataChanged + _signals.removed);
 			assertModelOk();
 		}
@@ -135,7 +161,11 @@ namespace MoveListModelTests
 			Assert::AreEqual(2, _model.rowCount());
 			Assert::AreEqual(QString("e5"), role(_model, 0, MoveListModel::BlackTextRole).toString());
 			Assert::AreEqual(1, _signals.dataChanged);
+			Assert::AreEqual(0, _signals.changedFirst);
+			Assert::AreEqual(0, _signals.changedLast);
 			Assert::AreEqual(1, _signals.inserted);
+			Assert::AreEqual(1, _signals.insertFirst);
+			Assert::AreEqual(1, _signals.insertLast);
 			assertModelOk();
 		}
 
@@ -147,6 +177,8 @@ namespace MoveListModelTests
 
 			Assert::AreEqual(1, _model.rowCount());
 			Assert::AreEqual(1, _signals.removed);
+			Assert::AreEqual(1, _signals.removeFirst);
+			Assert::AreEqual(1, _signals.removeLast);
 			Assert::AreEqual(0, _signals.dataChanged + _signals.inserted);
 			assertModelOk();
 		}
@@ -160,6 +192,8 @@ namespace MoveListModelTests
 			Assert::AreEqual(0, role(_model, 0, MoveListModel::BlackPlyRole).toInt());
 			Assert::AreEqual(QString(), role(_model, 0, MoveListModel::BlackTextRole).toString());
 			Assert::AreEqual(1, _signals.dataChanged);
+			Assert::AreEqual(0, _signals.changedFirst);
+			Assert::AreEqual(0, _signals.changedLast);
 			Assert::AreEqual(0, _signals.inserted + _signals.removed);
 			assertModelOk();
 		}
@@ -191,7 +225,29 @@ namespace MoveListModelTests
 			Assert::AreEqual(QString("d4"), role(_model, 0, MoveListModel::WhiteTextRole).toString());
 			Assert::AreEqual(QString("c4"), role(_model, 1, MoveListModel::WhiteTextRole).toString());
 			Assert::AreEqual(1, _signals.dataChanged);
+			Assert::AreEqual(0, _signals.changedFirst);
+			Assert::AreEqual(1, _signals.changedLast);
 			Assert::AreEqual(0, _signals.inserted + _signals.removed);
+			assertModelOk();
+		}
+
+		// Fewer moves than before, the kept row changed too: the removal and the changed rows are
+		// reported separately, each with its own range.
+		TEST_METHOD(ShorterGameWithOtherMoves)
+		{
+			start({ "e4", "e5", "Nf3", "Nc6" });
+			_model.show({ "d4", "d5" });
+
+			Assert::AreEqual(1, _model.rowCount());
+			Assert::AreEqual(QString("d4"), role(_model, 0, MoveListModel::WhiteTextRole).toString());
+			Assert::AreEqual(QString("d5"), role(_model, 0, MoveListModel::BlackTextRole).toString());
+			Assert::AreEqual(1, _signals.removed);
+			Assert::AreEqual(1, _signals.removeFirst);
+			Assert::AreEqual(1, _signals.removeLast);
+			Assert::AreEqual(1, _signals.dataChanged);
+			Assert::AreEqual(0, _signals.changedFirst);
+			Assert::AreEqual(0, _signals.changedLast);
+			Assert::AreEqual(0, _signals.inserted);
 			assertModelOk();
 		}
 
