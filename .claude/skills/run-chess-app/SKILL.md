@@ -19,7 +19,7 @@ Or build only (MSBuild comes from the VS install; `vswhere` finds it):
 ```
 
 The exe is `x64\Release\ChessGui.exe` (or `x64\Debug\`). Qt DLLs come from `PATH`
-(`D:\Tools\Qt\6.10.2\msvc2022_64\bin`); nothing is deployed next to the exe.
+(`D:\Tools\Qt\6.12.0\msvc2022_64\bin`); nothing is deployed next to the exe.
 
 ## Screenshots (preferred way to look at a view)
 

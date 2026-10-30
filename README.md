@@ -13,7 +13,7 @@ All versions: [Releases](https://github.com/novaua/qt-chess/releases). Release n
 
 Tools required to compile:
 * MS Visual Studio 2022
-* Qt 6.10+ with [Qt VS Tools](https://marketplace.visualstudio.com/items?itemName=TheQtCompany.QtVisualStudioTools2022)
+* Qt 6.12+ (with the Qt Multimedia add-on) and [Qt VS Tools](https://marketplace.visualstudio.com/items?itemName=TheQtCompany.QtVisualStudioTools2022)
 
 ## Build the installer locally
 Needs the tools above plus [Inno Setup 6](https://jrsoftware.org/isdl.php) and `windeployqt` on `PATH` (or pass `-QtBinDir`):

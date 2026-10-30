@@ -117,9 +117,10 @@ AppDialog {
     }
 
     footer: DialogButtonBox {
+        defaultButton: primaryButton // highlighted (the box sets it, Qt 6.11+)
         Button {
+            id: primaryButton
             text: "Done"
-            highlighted: true
             DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
         }
     }

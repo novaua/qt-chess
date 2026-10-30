@@ -12,7 +12,7 @@ Qt-chess is a chess application with a Qt QML frontend and C++ backend, supporti
 
 **Qt GUI project** also has a `.pro` file for Qt Creator: `ChessGui/ChessGui/ChessGui.pro`
 
-**Dependencies**: Qt 6.10+ only — no third-party C++ libraries and no package manager (vcpkg was removed once Boost was replaced by Qt).
+**Dependencies**: Qt 6.12+ only (with the Qt Multimedia add-on) — no third-party C++ libraries and no package manager (vcpkg was removed once Boost was replaced by Qt).
 
 **Build configurations**: Debug|x64 and Release|x64 are the relevant targets.
 
@@ -21,14 +21,17 @@ Qt-chess is a chess application with a Qt QML frontend and C++ backend, supporti
 Tests use **Microsoft CppUnitTest Framework** (built into Visual Studio).
 
 - Open `ChessCore.sln` in Visual Studio
-- Build the `ChessTests` project
+- Build the `ChessTests` and `ChessQtTests` projects
 - Run via **Test Explorer** (Test → Test Explorer) or:
 
 ```
 vstest.console.exe x64\Debug\ChessTests.dll
+vstest.console.exe x64\Debug\ChessQtTests.dll
 ```
 
-Test files are in `ChessTests/` — `BasicTest.cpp` (board logic) and `UciConnectorTest.cpp` (UCI protocol).
+- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`). Plain C++, no Qt.
+- `ChessQtTests/` — the Qt parts: `UciConnectorTest.cpp` (UCI protocol), `ChessEnginePlayerTest.cpp`, `LichessClientTest.cpp`,
+  `UserManagerTest.cpp`. Needs Qt's `bin` on `PATH`; the engine tests need Stockfish.
 
 ## Seeing the UI
 
@@ -97,7 +100,8 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
 
 ### ChessTests (test DLL)
 
-Builds as a DLL consumed by the VS test runner. Tests exercise `Game`, `Board`, `MoveGeneration`, and `UciConnector` directly — no QML involved.
+Builds as a DLL consumed by the VS test runner. Tests exercise `Game`, `Board`, `MoveGeneration` and SAN/FEN directly.
+It links only `ChessCore` and does **not** use Qt; tests that need Qt (UCI engine, Lichess, users) go in `ChessQtTests`.
 
 ## Key Conventions
 

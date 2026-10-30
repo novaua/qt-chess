@@ -4,6 +4,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — Moved to Qt 6.12.0 (branch: qt612Upgrade_301026)
+
+### What was done
+- **Every Qt project now builds against `6.12.0_msvc2022_64`**: ChessGui, LiChessConnector, UciConnector, ChessQtTests. ChessCore was already plain C++.
+- **ChessTests no longer uses Qt.** It was still a Qt VS Tools project (`QtVS_v304`, `core;network`, the QtMsBuild imports, include paths to UciConnector and ChessGui), but its tests use only ChessCore. Now it's a plain `Win32Proj`: its DLL depends only on the test framework and the C++ runtime, and its 86 tests pass with no Qt on `PATH`. CI (`release.yml`, `tests.yml`) installs 6.12.0 with only `qtmultimedia`: `qt5compat` and `qtshadertools` aren't used since BL-02 P1.
+- **Modules:** the app needs Qt Multimedia (the `SoundEffect`s in `ChessGame.qml` and `SettingsPage.qml`). It's an add-on that the 6.12.0 install didn't have at first; with it added, nothing else is missing. Also not installed, and not used: Qt5Compat, Charts, Quick3D, ShaderTools, Quick Timeline.
+- **Qt 6.11 change: `DialogButtonBox` sets `highlighted` on its buttons** and highlights only its new `defaultButton`. A `highlighted: true` on a footer button was overwritten to `false`, so every dialog's primary button lost its accent colour. The 8 dialogs with a primary button now set `defaultButton: primaryButton` on the box (see `AppDialog.qml`).
+- **Checked:** Debug and Release build clean; 86 + 71 tests pass; all 42 screenshot scenes render. Compared with the 6.10 baselines, the rest of the differences are 6.12's semibold Fluent dialog titles, text anti-aliasing, and the Qt version and build date on About.
+
+### Where to continue
+- **CI installs aqtinstall from a pinned `master` commit** (`aqtsource:` in `release.yml` and `tests.yml`): 3.3.0, its latest release, can't find Qt 6.11+ for Windows (one repository folder per compiler since 6.11; fix miurahr/aqtinstall#1000 is merged but unreleased). Drop the `aqtsource` line once an aqtinstall release after 3.3.0 is out.
+- Accept the new look as the baselines: `scripts\Compare-Screenshots.ps1 -Update` (local).
+- Locally, put `D:\Tools\Qt\6.12.0\msvc2022_64\bin` on `PATH` in place of 6.10.2's (the app takes Qt's DLLs from there). You can also make 6.12.0 the default in Qt VS Tools.
+
 ## 2026-10-29 — BL-09 engine move on the GUI thread done (branch: engineThreadMove_291026)
 
 ### What was done

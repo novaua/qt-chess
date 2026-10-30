@@ -7,7 +7,7 @@ on:
   workflow_call:
 
 env:
-  QT_VERSION: '6.10.2'
+  QT_VERSION: '6.12.0'
 
 jobs:
   test:
@@ -22,7 +22,12 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           arch: win64_msvc2022_64
-          modules: qt5compat qtshadertools qtmultimedia
+          modules: qtmultimedia
+          # Qt 6.11+ moved to one repository folder per compiler (qt6_6120/qt6_6120_msvc2022_64);
+          # aqtinstall 3.3.0, the latest release, still looks in qt6_6120/qt6_6120 and fails with
+          # "Failed to locate XML data". The fix (miurahr/aqtinstall#1000) is only on master: pinned
+          # here. Drop this line once an aqtinstall release after 3.3.0 is out.
+          aqtsource: git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7
 
       # Puts msbuild on PATH (ilammy/msvc-dev-cmd has no Node 24 release yet).
       - name: Setup MSBuild
