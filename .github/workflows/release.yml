@@ -108,7 +108,8 @@ jobs:
           # (setup-msbuild, unlike a VS dev prompt, doesn't set it).
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
           $env:VCINSTALLDIR = "$vs\VC\"
-          windeployqt --release --verbose 2 --qmldir ChessGui\ChessGui deploy\ChessGui.exe
+          # windeployqt without what the app doesn't use; plugins and QML in deploy\qt (qt.conf)
+          installer\Deploy-Qt.ps1 deploy\ChessGui.exe -WindeployqtVerbose 2
           if (-not (Test-Path deploy\vc_redist.x64.exe)) { throw "windeployqt did not deploy vc_redist.x64.exe" }
           Write-Host "=== deploy folder contents ==="
           Get-ChildItem deploy -Recurse | Select-Object FullName

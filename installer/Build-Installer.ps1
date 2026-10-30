@@ -1,6 +1,6 @@
 # Build-Installer.ps1
 # Build the Chess++ installer locally, mirroring the steps in .github/workflows/release.yml:
-#   MSBuild Release|x64  ->  deploy\ (windeployqt)  ->  Resolve-Stockfish.ps1  ->  Inno Setup
+#   MSBuild Release|x64  ->  deploy\ (Deploy-Qt.ps1)  ->  Resolve-Stockfish.ps1  ->  Inno Setup
 #   ->  installer\Output\ChessSetup-<version>.exe
 #
 # The local installer is NOT code-signed (CI signs releases).
@@ -99,7 +99,7 @@ try {
         $vsPath = & $vswhere -latest -products '*' -property installationPath
         if ($vsPath) { $env:VCINSTALLDIR = "$vsPath\VC\" }
     }
-    Invoke-Native $windeployqt @('--release', '--qmldir', 'ChessGui\ChessGui', 'deploy\ChessGui.exe')
+    & "$PSScriptRoot\Deploy-Qt.ps1" deploy\ChessGui.exe -Windeployqt $windeployqt
     if (-not (Test-Path deploy\vc_redist.x64.exe)) {
         throw "windeployqt did not deploy vc_redist.x64.exe (VCINSTALLDIR='$env:VCINSTALLDIR')"
     }

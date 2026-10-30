@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include <QApplication>
+#include <QGuiApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QtQml/qqml.h>
@@ -110,14 +110,19 @@ int main(int argc, char* argv[])
 	if (!qEnvironmentVariableIsSet("QT_QPA_FONTDIR"))
 		qputenv("QT_QPA_FONTDIR", qgetenv("WINDIR") + "\\Fonts");
 
-	// --screenshot (parsed properly below, after QApplication): 1 screenshot pixel = 1 QML pixel,
-	// whatever the monitor's scaling. It has to be set before QApplication exists.
+	// The sounds are short WAVs (SoundEffect): Windows' own media backend plays them, so the
+	// installer doesn't ship FFmpeg (installer\Deploy-Qt.ps1).
+	if (!qEnvironmentVariableIsSet("QT_MEDIA_BACKEND"))
+		qputenv("QT_MEDIA_BACKEND", "windows");
+
+	// --screenshot (parsed properly below, after QGuiApplication): 1 screenshot pixel = 1 QML pixel,
+	// whatever the monitor's scaling. It has to be set before QGuiApplication exists.
 	for (int i = 1; i < argc; ++i) {
 		if (qstrcmp(argv[i], "--screenshot") == 0 && !qEnvironmentVariableIsSet("QT_ENABLE_HIGHDPI_SCALING"))
 			qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
 	}
 
-	QApplication app(argc, argv);
+	QGuiApplication app(argc, argv);
 	app.setWindowIcon(QIcon(":/app/pics/app-icon.png")); // made by scripts/make_icons.py, like chess.ico
 	if (QGuiApplication::platformName() == "offscreen")
 		QGuiApplication::setFont(QFont("Segoe UI", 9)); // the Windows default; offscreen picks any font

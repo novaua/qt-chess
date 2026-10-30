@@ -44,6 +44,8 @@ param(
     [string]$OutDir = (Join-Path $PSScriptRoot '..\test-results\screens'),
     [ValidateSet('Release', 'Debug')]
     [string]$Configuration = 'Release',
+    # Another ChessGui.exe, e.g. deploy\ChessGui.exe (the installer's files, see installer\Deploy-Qt.ps1)
+    [string]$Exe,
     # Build ChessGui first (MSBuild found with vswhere)
     [switch]$Build,
     # -platform offscreen: works on a locked screen (where a real window renders no frames and
@@ -68,7 +70,7 @@ if ($Build) {
     if ($LASTEXITCODE -ne 0) { throw "Build failed ($LASTEXITCODE)" }
 }
 
-$exe = "$root\x64\$Configuration\ChessGui.exe"
+$exe = if ($Exe) { (Resolve-Path $Exe).Path } else { "$root\x64\$Configuration\ChessGui.exe" }
 if (-not (Test-Path $exe)) { throw "$exe not found - build it first (-Build)" }
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $OutDir = Resolve-Path $OutDir
