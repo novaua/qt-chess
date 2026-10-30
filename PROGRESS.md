@@ -14,7 +14,7 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - Release and Debug build; all 46 scenes (light, dark, `select -Black`) match the baselines, no QML warnings. A temporary scene with animations on (not committed) showed e4xd5 mid-slide: the pawn over d5's fading pawn at 60 ms, settled by 1 s.
 
 ### Where to continue
-- **Manual check (animations on):** plan §5 rows 1, 4–10 and 14 — slides for the player's, the robot's and a Lichess move; castling (king and rook), en passant, promotion (player and robot), takeback after each; review ← →; no slides on a review jump, new game, Continue; Reduce animations on.
+- Manual check by the owner (animations on): moves, castling and en passant slide and fade as planned.
 - Step 6 (plan §3.4): dragging — `DragHandler` (`target: null`) with a pixel `dragOffset` next to the slide offset, `movePiece`, slide back on a refused drop, Esc, cursors, the drop-square outline.
 
 ## 2026-10-30 — Continue fixes: autosave only vs the robot, check sound after the page shows (branch: continueFixes_301026)
