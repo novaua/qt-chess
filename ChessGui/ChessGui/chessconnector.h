@@ -254,7 +254,8 @@ private:
 	void askEngineMove(); // the robot's turn: start the engine on a copy of the moves
 	void beginGame(bool online); // resets per-game end state; online: rematch goes to Lichess
 	void setFlaggedKing(int square);
-	void autoSaveGame(bool isSinglePlayer);
+	bool canAutoSave(); // an unfinished game vs the robot: the only kind Continue can resume
+	void autoSaveGame();
 	void deleteAutoSave();
 	QString autoSavePath()  const;
 	QString savedGamePath() const;
@@ -281,6 +282,7 @@ private:
 	bool _promotionPending = false; // a pawn is on the last rank, waiting for pawnPromote()
 	bool _gameOver = false;
 	bool _wasVsComputer = false;
+	bool _resuming = false; // Continue replays the saved moves: their checks were heard already
 	bool _lastGameOnline = false; // the current/last game is a Lichess game: rematch goes online
 	int  _flaggedKing    = -1;
 	bool _resultRecorded = false; // stats recorded for this game (mate can recur after undo)

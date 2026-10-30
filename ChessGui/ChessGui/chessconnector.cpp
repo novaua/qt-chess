@@ -15,6 +15,7 @@
 #include <QRandomGenerator>
 #include <QRegularExpression>
 #include <QSaveFile>
+#include <QScopeGuard>
 #include <QThread>
 
 using namespace Chess;
@@ -56,7 +57,9 @@ ChessConnector::ChessConnector(QObject* parent)
 		{
 			if (event.GetType() == EtCheck)
 			{
-				emit checkNotify();
+				// The game page tells about a check in the resumed position once it is shown.
+				if (!_resuming)
+					emit checkNotify();
 			}
 			else if (event.GetType() == EtCheckMate)
 			{
@@ -495,9 +498,7 @@ QString ChessConnector::continueDescription() const
 	if (!_userManager || !canContinue())
 		return {};
 	const auto info = _userManager->autoSaveInfo();
-	if (info.isSinglePlayer)
-		return vsRobotTitle(info.computerLevel > 0 ? info.computerLevel : _config.lastLevel);
-	return QStringLiteral("vs ") + (info.opponentName.isEmpty() ? QStringLiteral("Guest") : info.opponentName);
+	return vsRobotTitle(info.computerLevel > 0 ? info.computerLevel : _config.lastLevel);
 }
 
 void ChessConnector::flagKing(bool white)
@@ -1325,14 +1326,12 @@ void ChessConnector::endGame()
 	_resignAfterEngineMove = false;
 	setPendingOffer({});
 	setOpponentGone(false);
+	if (canAutoSave())
+		autoSaveGame();
 	if (!_onlineGameId.isEmpty()) {
 		if (_lichessClient) _lichessClient->stopStream();
 		_onlineGameId.clear();
 		emit isOnlineGameChanged();
-	}
-	else if (_game->GetMoveCount() > 0 && !_gameOver && !IsOnPlayerMode()) {
-		// A finished game (mate / resignation) is not offered for Continue.
-		autoSaveGame(_engineWorker != nullptr);
 	}
 
 	stopEngineThread();
@@ -1363,17 +1362,19 @@ QString ChessConnector::opponentNameOf(const UserManager::GameSaveInfo& info) co
 	return info.isSinglePlayer ? QStringLiteral("Robot") : QStringLiteral("Guest"); // saved before names were kept
 }
 
+// The autosaved game vs the robot (the only kind there is: canAutoSave()).
 bool ChessConnector::continueGame()
 {
+	if (!canContinue())
+		return false;
 	resetMoveHistoryCache();
 	const auto info = _userManager ? _userManager->autoSaveInfo() : UserManager::GameSaveInfo{};
-	const bool isSingle = info.isSinglePlayer;
-	_wasVsComputer = isSingle;
+	_wasVsComputer = true;
 	beginGame(false);
 	_gameDate = info.startDate; // maybe an earlier day; invalid in older autosaves
 	_resultRecorded = info.resultRecorded; // mated, undone and left: the mate counted already
 	// The robot plays the game's own level; lastLevel may have changed since (another profile).
-	if (isSingle && info.computerLevel > 0 && info.computerLevel != _config.lastLevel) {
+	if (info.computerLevel > 0 && info.computerLevel != _config.lastLevel) {
 		_config.lastLevel = info.computerLevel;
 		emit lastLevelChanged();
 	}
@@ -1382,12 +1383,16 @@ bool ChessConnector::continueGame()
 	emit playerPlaysWhiteChanged();
 
 	if (_avatarProvider)
-		_avatarProvider->restore(info.playerAvatarName, info.opponentAvatarName, isSingle);
+		_avatarProvider->restore(info.playerAvatarName, info.opponentAvatarName, true);
 
 	stopEngineThread();
 	_promotionPending = false;
 	_game->Load(autoSavePath().toStdString());
-	_game->ResumeFromLoad();
+	{
+		_resuming = true;
+		const auto resumed = qScopeGuard([this] { _resuming = false; });
+		_game->ResumeFromLoad();
+	}
 	_gameOver = false;
 
 	deleteAutoSave();
@@ -1395,22 +1400,24 @@ bool ChessConnector::continueGame()
 	emit canContinueChanged();
 	EmitMoveCountUpdates();
 
-	if (isSingle) {
-		_engineAutoPlay = true;
-		startEngineThread(Chess::EngineLevel(_config.lastLevel));
-		if (_game->IsWhiteMove() != _config.playerPlaysWhite && !_promotionPending) {
-			askEngineMove();
-		}
+	_engineAutoPlay = true;
+	startEngineThread(Chess::EngineLevel(_config.lastLevel));
+	if (_game->IsWhiteMove() != _config.playerPlaysWhite && !_promotionPending) {
+		askEngineMove();
 	}
-	// A deleted opponent profile: the game goes on, counted as against a Guest.
-	const QString opponentId = !isSingle && _userManager && !_userManager->nameOf(info.opponentUserId).isEmpty() ? info.opponentUserId : QString();
-	setGameMode(isSingle ? QStringLiteral("computer") : QStringLiteral("local"), opponentNameOf(info), opponentId);
-	return isSingle;
+	setGameMode(QStringLiteral("computer"), opponentNameOf(info));
+	return true;
 }
 
+// An autosave of a two-player or Lichess game (kept by older versions) is not offered.
 bool ChessConnector::canContinue() const
 {
-	return fileExists(autoSavePath());
+	return fileExists(autoSavePath()) && (!_userManager || _userManager->autoSaveInfo().isSinglePlayer);
+}
+
+bool ChessConnector::canAutoSave()
+{
+	return _wasVsComputer && _onlineGameId.isEmpty() && !_player && !_gameOver && _game->GetMoveCount() > 0;
 }
 
 bool ChessConnector::canLoad() const
@@ -1418,16 +1425,16 @@ bool ChessConnector::canLoad() const
 	return fileExists(savedGamePath());
 }
 
-void ChessConnector::autoSaveGame(bool isSinglePlayer)
+void ChessConnector::autoSaveGame()
 {
 	_game->Save(autoSavePath().toStdString());
 	if (_userManager) {
 		UserManager::GameSaveInfo info;
-		info.isSinglePlayer = isSinglePlayer;
+		info.isSinglePlayer = true;
 		info.playerPlaysWhite = _config.playerPlaysWhite;
 		info.opponentName = _opponentName;
 		info.opponentUserId = _opponentUserId;
-		info.computerLevel = isSinglePlayer ? _config.lastLevel : 0;
+		info.computerLevel = _config.lastLevel;
 		info.resultRecorded = _resultRecorded;
 		info.startDate = _gameDate;
 		if (_avatarProvider) {
@@ -1446,8 +1453,8 @@ void ChessConnector::deleteAutoSave()
 
 ChessConnector::~ChessConnector()
 {
-	if (_game->GetMoveCount() > 0 && !_gameOver && !IsOnPlayerMode())
-		autoSaveGame(_engineWorker != nullptr);
+	if (canAutoSave()) // closing the app during a game vs the robot: Continue offers it next time
+		autoSaveGame();
 
 	stopEngineThread();
 	qDebug() << "Game Exited.";

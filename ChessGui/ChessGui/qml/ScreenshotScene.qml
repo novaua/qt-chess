@@ -67,7 +67,10 @@ Item {
             var defaultMoves = ({ continue: "e2e4 e7e5", review: middlegame, moves: middlegame, select: "e2e4 e7e5",
                                   result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4" })[name] ?? ""
             var bob = UserManager.users.find(u => u.name === "Bob")
-            ChessConnector.startLocalGame(!shot.black, bob ? bob.id : "")
+            if (name === "continue")   // only a game vs the robot is autosaved; White: no engine needed
+                ChessConnector.startComputerGame(3, 0)
+            else
+                ChessConnector.startLocalGame(!shot.black, bob ? bob.id : "")
             if (shot.moves || defaultMoves)
                 ChessConnector.applyMoves(shot.moves || defaultMoves)
             if (name === "continue")
