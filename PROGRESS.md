@@ -14,6 +14,7 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Checked:** Debug and Release build clean; 86 + 71 tests pass; all 42 screenshot scenes render. Compared with the 6.10 baselines, the rest of the differences are 6.12's semibold Fluent dialog titles, text anti-aliasing, and the Qt version and build date on About.
 
 ### Where to continue
+- **CI installs aqtinstall from a pinned `master` commit** (`aqtsource:` in `release.yml` and `tests.yml`): 3.3.0, its latest release, can't find Qt 6.11+ for Windows (one repository folder per compiler since 6.11; fix miurahr/aqtinstall#1000 is merged but unreleased). Drop the `aqtsource` line once an aqtinstall release after 3.3.0 is out.
 - Accept the new look as the baselines: `scripts\Compare-Screenshots.ps1 -Update` (local).
 - Locally, put `D:\Tools\Qt\6.12.0\msvc2022_64\bin` on `PATH` in place of 6.10.2's (the app takes Qt's DLLs from there). You can also make 6.12.0 the default in Qt VS Tools.
 
