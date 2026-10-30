@@ -97,8 +97,13 @@ ListView {
 
     delegate: Item {
         id: row
-        required property var modelData
-        required property int index
+        required property int n
+        required property int wPly
+        required property string wPiece
+        required property string wText
+        required property int bPly
+        required property string bPiece
+        required property string bText
 
         width: list.width
         height: 30
@@ -109,7 +114,7 @@ ListView {
             height: parent.height
             leftPadding: Theme.s2
             verticalAlignment: Text.AlignVCenter
-            text: row.modelData.n + "."
+            text: row.n + "."
             font.pixelSize: Theme.caption.pixelSize
             font.features: { "tnum": 1 }
             color: Theme.textSecondary
@@ -117,19 +122,19 @@ ListView {
         MoveCell {
             anchors.verticalCenter: parent.verticalCenter
             x: list.numberWidth
-            moveNumber: row.modelData.n
-            ply:   row.modelData.wPly
-            piece: row.modelData.wPiece
-            san:   row.modelData.wText
+            moveNumber: row.n
+            ply:   row.wPly
+            piece: row.wPiece
+            san:   row.wText
         }
         MoveCell {
             anchors.verticalCenter: parent.verticalCenter
             x: list.numberWidth + list.cellWidth + Theme.s2
-            visible: row.modelData.bPly > 0
-            moveNumber: row.modelData.n
-            ply:   row.modelData.bPly
-            piece: row.modelData.bPiece
-            san:   row.modelData.bText
+            visible: row.bPly > 0
+            moveNumber: row.n
+            ply:   row.bPly
+            piece: row.bPiece
+            san:   row.bText
         }
     }
 }

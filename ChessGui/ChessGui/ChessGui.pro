@@ -19,6 +19,8 @@ SOURCES += main.cpp \
     chessconnector.cpp \
     engineworker.cpp \
     boardpieces.cpp \
+    frametrace.cpp \
+    movelistmodel.cpp \
     ChessEnginePlayer.cpp \
     AppInfo.cpp \
     AvatarProvider.cpp \
@@ -59,6 +61,8 @@ HEADERS += \
     chessconnector.h \
     engineworker.h \
     boardpieces.h \
+    frametrace.h \
+    movelistmodel.h \
     ChessEnginePlayer.h \
     AppInfo.h \
     AvatarProvider.h \

@@ -150,13 +150,13 @@ Page {
                 MenuItem {
                     text: "Copy PGN"
                     icon.source: Theme.icon("copy")
-                    enabled: ChessConnector.MoveHistory.length > 0
+                    enabled: ChessConnector.PlyCount > 0
                     onTriggered: ChessConnector.copyPgn()
                 }
                 MenuItem {
                     text: "Export PGN…"
                     icon.source: Theme.icon("export")
-                    enabled: ChessConnector.MoveHistory.length > 0
+                    enabled: ChessConnector.PlyCount > 0
                     onTriggered: page.exportPgnRequested()
                 }
                 MenuSeparator {}
@@ -194,13 +194,7 @@ Page {
         return (_playerToMove ? ChessConnector.PlayerName : ChessConnector.OpponentName) + " to move"
     }
     // The move on the board, e.g. "12. Nf3" or "12… exd5"
-    readonly property string shownMove: {
-        var ply = ChessConnector.ShownPly
-        var row = ply > 0 ? ChessConnector.MoveHistory[(ply - 1) >> 1] : undefined
-        if (!row) return ""
-        return ply % 2 === 1 ? row.n + ". " + row.wPiece.toUpperCase() + row.wText
-                             : row.n + "… " + row.bPiece.toUpperCase() + row.bText
-    }
+    readonly property string shownMove: ChessConnector.ShownMove
     // Reviewing earlier moves of the game (a saved game has no live end, so not there).
     readonly property string reviewText: !ChessConnector.ReviewMode ? ""
         : ChessConnector.ShownPly === 0 ? "Viewing the start position"

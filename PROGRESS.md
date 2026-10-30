@@ -4,6 +4,30 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — BL-14 step 1: the freezes measured and fixed (branch: boardFreezes_301026)
+
+### What was done
+- **Frame trace** (`frametrace.h/.cpp`, off unless `QT_LOGGING_RULES="chess.frames.debug=true"`, Release too): the app log gets every frame gap over 25 ms between animation steps (over 500 ms is the window resting, not a stop), and how long the board's own work took — the move dots, the pieces sync, the signals after a move — with log timestamps to line them up. `FrameTrace::watch(window)` in `main.cpp`.
+- **`NavigationLayer.qml` without rebuilds:** the 64 dots stay for the page's life; a selection only shows and hides them. Before, the `Repeater` was bound to `PossibleMoves`, so every click and every move (dots cleared) destroyed and created all 64 delegates in the same frame a slide starts — and each new delegate started its 450 ms pop-in **even when its dot was hidden**, which kept the board rendering at ~30 fps for the next ~0.5 s. Now the pop-in starts from `onVisibleChanged`, only for a dot that appears.
+- **`MoveListModel`** (`movelistmodel.h/.cpp`, `QAbstractListModel`, 11 tests in `ChessQtTests/MoveListModelTest.cpp`): the move list is `ChessConnector.MoveHistory` as a model; a move adds a row (White) or fills Black's half of the last one, a takeback removes or clears that row, never a reset. Before, the whole `QVariantList` was rebuilt on every move and `MoveList.qml` read `modelData`. `ChessConnector.ShownMove` (e.g. "12. Nf3", "12… exd5") replaces the QML computation from the list; Copy/Export PGN use `PlyCount` instead of `MoveHistory.length`.
+
+### Measurements (Release, animations on; a temporary `slides` scene, not committed: select g1, then Nf3, Nf6, Bc4, Nc6, 0.4–1 s apart)
+| | before | after |
+|---|---|---|
+| Selecting a piece (`PossibleMovesChanged` work) | 4.8 ms | 0.8 ms |
+| Clearing the dots when the move is played | 3.8 ms | 0.8 ms |
+| Frame gaps over 25 ms after the first window frame | 21 frames at 32–34 ms spread over ~3 s (~30 fps), including the 250 ms slide | none |
+| `select` scene in screenshot mode (no animations) | 2.9 ms | 0.3 ms |
+
+The 30 fps stretches followed every rebuild, not just the selection: each of the four moves cleared the dots, which rebuilt the 64 delegates and started 64 invisible pop-ins. That is the "slide stops for a few ms" the owner saw: a missed frame (33 ms) during the slide, and a stutter lasting ~0.5 s after each move.
+
+- Debug and Release build; ChessTests 111, ChessQtTests 96 pass; all 49 screenshot scenes match the baselines (light, dark, `select`/`drag -Black`), `robot` scene OK, no QML warnings.
+
+### Where to continue
+- **BL-14 step 2 (`MoveGate`) and step 3 (the robot through the gate)** — the next branch from `develop`; the plan is `docs/BL-14-MovePacingPlan.md`. The owner's decision on §3.4 is still open (recommended: think during the animation, show after).
+- The frame trace stays for step 6: if the owner still sees stops after the gate is in, it will say whether GUI-thread work or the render side is left.
+- BL-04's manual drag check is still open.
+
 ## 2026-10-30 — BL-14 plan: one thing at a time on the board (branch: movePacingPlan_301026)
 
 ### What was done

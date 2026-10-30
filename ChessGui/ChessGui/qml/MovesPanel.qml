@@ -36,14 +36,14 @@ ColumnLayout {
             dense: true
             icon.source: Theme.icon("copy")
             tip: "Copy PGN"
-            enabled: ChessConnector.MoveHistory.length > 0
+            enabled: ChessConnector.PlyCount > 0
             onClicked: ChessConnector.copyPgn()
         }
         IconButton {
             dense: true
             icon.source: Theme.icon("export")
             tip: "Export PGN…"
-            enabled: ChessConnector.MoveHistory.length > 0
+            enabled: ChessConnector.PlyCount > 0
             onClicked: panel.exportRequested()
         }
     }

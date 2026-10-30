@@ -13,6 +13,7 @@
 
 #include "Game.h"
 #include "boardpieces.h"
+#include "movelistmodel.h"
 #include "engineworker.h"
 #include "AppConfig.h"
 #include "AvatarProvider.h"
@@ -44,11 +45,11 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool EngineThinking    READ engineThinking    NOTIFY engineThinkingChanged)
 		Q_PROPERTY(bool UseFen            READ useFen            WRITE setUseFen NOTIFY useFenChanged)
 		Q_PROPERTY(bool PlayerPlaysWhite  READ playerPlaysWhite  NOTIFY playerPlaysWhiteChanged)
-		// One row per move number: { n, wPly, wPiece, wText, bPly, bPiece, bText }. Ply = moves on the
-		// board after that move (for reviewTo); piece = "N"/"n" etc. or "" for pawns and castling;
-		// text = the SAN without the piece letter. No black move yet: bPly 0, bText "".
-		Q_PROPERTY(QVariantList MoveHistory READ moveHistory NOTIFY moveHistoryChanged)
+		// One row per move number: { n, wPly, wPiece, wText, bPly, bPiece, bText } (MoveListModel);
+		// a move changes one row, not the whole list.
+		Q_PROPERTY(QAbstractItemModel* MoveHistory READ moveHistory CONSTANT)
 		Q_PROPERTY(int  ShownPly      READ shownPly      NOTIFY reviewStateChanged) // moves on the board now
+		Q_PROPERTY(QString ShownMove  READ shownMove     NOTIFY reviewStateChanged) // the move on the board, e.g. "12. Nf3", "12… exd5"; "" at the start
 		Q_PROPERTY(int  PlyCount      READ plyCount      NOTIFY moveHistoryChanged) // moves in the list
 		Q_PROPERTY(QString      GameResult  READ gameResult  NOTIFY gameResultChanged)
 		Q_PROPERTY(bool ReviewMode    READ reviewMode    NOTIFY reviewStateChanged)
@@ -93,7 +94,8 @@ public:
 	bool engineThinking()    const { return _engineThinking; }
 	bool useFen()            const { return _config.useFen; }
 	bool playerPlaysWhite()  const { return _config.playerPlaysWhite; }
-	QVariantList moveHistory() const;
+	QAbstractItemModel* moveHistory() const { return _moveList; }
+	QString shownMove() const;
 	QString      gameResult()  const { return _gameResult; }
 	bool reviewMode()    const { return _reviewIndex >= 0; }
 	int  shownPly()      const;
@@ -245,7 +247,6 @@ private:
 	void onHumanMoveDone();
 	void emitBoardState(); // after _reviewIndex changed
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
-	void addSanToRows(int i);
 	void buildFullHistoryCache();
 	void appendMoveToHistory();
 	void resetMoveHistoryCache();
@@ -299,7 +300,7 @@ private:
 	AppConfig _config;
 	int _reviewIndex = -1;
 
-	QVariantList _moveHistoryCache;
+	MoveListModel* _moveList = nullptr;
 	std::vector<std::string> _sanCache; // SAN of shownHistory(), for the PGN
 	QDate _gameDate;                    // when the game started; invalid for a saved or continued game
 	QVariantMap  _screenshotScene;

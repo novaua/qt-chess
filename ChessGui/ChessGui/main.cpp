@@ -5,6 +5,7 @@
 #include <QQmlApplicationEngine>
 #include <QtQml/qqml.h>
 #include "chessconnector.h"
+#include "frametrace.h"
 #include "AppInfo.h"
 #include "AvatarProvider.h"
 #include "UserManager.h"
@@ -273,6 +274,8 @@ int main(int argc, char* argv[])
 	engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
 	if (screenshotMode && engine.rootObjects().isEmpty())
 		return 3;
+	if (!engine.rootObjects().isEmpty())
+		FrameTrace::watch(qobject_cast<QQuickWindow*>(engine.rootObjects().first()));
 
 	return app.exec();
 }
