@@ -5,6 +5,7 @@
 #include <QQmlApplicationEngine>
 #include <QtQml/qqml.h>
 #include "chessconnector.h"
+#include "frametrace.h"
 #include "AppInfo.h"
 #include "AvatarProvider.h"
 #include "UserManager.h"
@@ -131,7 +132,7 @@ int main(int argc, char* argv[])
 	static const QStringList screenshotScenes = {
 		"welcome", "create-user", "profiles", "home", "continue", "game", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online",
-		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board"
+		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -273,6 +274,8 @@ int main(int argc, char* argv[])
 	engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
 	if (screenshotMode && engine.rootObjects().isEmpty())
 		return 3;
+	if (!engine.rootObjects().isEmpty())
+		FrameTrace::watch(qobject_cast<QQuickWindow*>(engine.rootObjects().first()));
 
 	return app.exec();
 }

@@ -49,6 +49,11 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   dialog), `online` (Lichess dialog, not connected), `computer` (vs-computer setup dialog), `players`
   (two-player setup dialog), `all`. `robot` (not in `all`: needs Stockfish): a saved game vs the robot at
   level 5, continued, where the robot mates with Qh5# (the engine's answer is played on the GUI thread).
+  `slides` (not in `all`): the BL-14 frame-trace scene — animations on (every other scene forces them
+  off), selects the g1 knight and plays Nf3, Nf6, Bc4, Nc6 0.4–1 s apart, so a run with
+  `$env:QT_LOGGING_RULES='chess.frames.debug=true'` and `-Delay 5200` gets `[Frame trace]` lines in the
+  `.png.log` (frame gaps over 25 ms, the work of the dots/pieces/list). Its picture is an arbitrary
+  frame, never a baseline.
   `login`, `menu` and `board` still work as the old names of `profiles`, `home` and `game`.
   The profile scenes get their profiles, Lichess link (a placeholder token, no network) and statistics
   from `seedScreenshotProfiles()` in `main.cpp`.

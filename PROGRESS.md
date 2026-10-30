@@ -4,6 +4,34 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — BL-14 step 1: the freezes measured and fixed (branch: boardFreezes_301026)
+
+### What was done
+- **Frame trace** (`frametrace.h/.cpp`, off unless `QT_LOGGING_RULES="chess.frames.debug=true"`, Release too): the app log gets gaps between two frames the board drew over 25 ms ("slow frame"; over 500 ms "no frame for" — the window resting, or a long stall), a 16 ms GUI-thread heartbeat's late ticks ("GUI thread busy", however long — this also catches the page-open stalls), and how long the board's own work took — the move dots, the pieces sync, the signals after a move — with log timestamps to line them up. `FrameTrace::watch(window)` in `main.cpp`.
+- **`slides` screenshot scene** (not in `all`): animations on (every other scene forces them off), selects the g1 knight and plays Nf3, Nf6, Bc4, Nc6 0.4–1 s apart. It makes the numbers below reproducible: `ChessGui.exe --screenshot out.png --scene slides --delay 5200` with `QT_LOGGING_RULES="chess.frames.debug=true"`, then read `out.png.log`.
+- **`NavigationLayer.qml` without rebuilds:** the 64 dots stay for the page's life; a selection only shows and hides them. Before, the `Repeater` was bound to `PossibleMoves`, so every click and every move (dots cleared) destroyed and created all 64 delegates, and each new delegate started its 450 ms pop-in **even when its dot was hidden**. Now the pop-in starts from `onVisibleChanged`, only for a dot that appears, and hiding a dot stops it.
+- **`MoveListModel`** (`movelistmodel.h/.cpp`, `QAbstractListModel`, 12 tests in `ChessQtTests/MoveListModelTest.cpp`): the move list is `ChessConnector.MoveHistory` as a model; a move adds a row (White) or fills Black's half of the last one, a takeback removes or clears that row, never a reset; only the new plies are copied. Before, the whole `QVariantList` was rebuilt on every move and `MoveList.qml` read `modelData`. `ChessConnector.ShownMove` (e.g. "12. Nf3", "12… exd5") replaces the QML computation from the list; Copy/Export PGN use `PlyCount` instead of `MoveHistory.length`.
+
+### Measurements (Release, the `slides` scene above, animations on; 3 runs of the old code, 2 of the new)
+| | before | after |
+|---|---|---|
+| Selecting a piece (`PossibleMovesChanged` work) | 3.5–4.3 ms | 0.5–0.8 ms |
+| The move right after a selection (dots cleared) | 3.5–4.2 ms | 0.4–1.1 ms |
+| Later moves, dots already hidden | 0.2–0.4 ms | 0.4–0.8 ms |
+| `select` scene in screenshot mode (no animations) | 2.9 ms | 0.3 ms |
+
+What the owner sees as "the slide stops for a few ms" is the thread that runs the animation doing this rebuild in the same frame the slide starts; it is ~4 ms, a quarter of a 60 Hz frame, plus the hidden pop-ins that keep animating. Frame gaps over 25 ms during the slides were **not** reproducible: one run of the old code showed 21 frames at 32–34 ms stretched over ~3 s, but later runs of the same build showed none, so that was not the delegate rebuilds alone. The trace now reports frame gaps and GUI-thread stalls, so if the owner still sees stops, the log says which side it is. (Checked with the code review: the original frame trace silently dropped gaps of 500 ms and more, and had no GUI-thread measure; both are fixed.)
+
+- Debug and Release build; ChessTests 111, ChessQtTests 97 pass; all 49 screenshot scenes match the baselines (light, dark, `select`/`drag -Black`), `robot` scene OK, no QML warnings.
+
+### Code review (medium, same branch)
+12 findings, 8 fixed: the frame trace's 500 ms blind spot and its missing GUI-thread measure (now the heartbeat), the pop-in that kept running when its dot hid, test assertions that counted signals but not their rows/roles (now they check both, and a new test covers a shorter game with other moves), the redundant full copy of the move history on every move, the robot's move trace that double-counted its inner scopes and claimed a rejected move was played, and the test inventory in `CLAUDE.md`. The rest, not changed: the model keeps its own copy of the moves (a model owns its data; only `ChessConnector` calls `show()`), SAN piece letters are inherent to SAN, `ShownMove` and the cells' accessible names are built separately, the test scaffolding repeats `BoardPiecesTest`'s, and `GamePage`'s `shownMove` alias is a plain pass-through.
+
+### Where to continue
+- **BL-14 step 2 (`MoveGate`) and step 3 (the robot through the gate)** — the next branch from `develop`; the plan is `docs/BL-14-MovePacingPlan.md`. The owner's decision on §3.4 is still open (recommended: think during the animation, show after).
+- The frame trace and the `slides` scene stay for step 6: if the owner still sees stops after the gate is in, they will say whether GUI-thread work or the render side is left.
+- BL-04's manual drag check is still open.
+
 ## 2026-10-30 — BL-14 plan: one thing at a time on the board (branch: movePacingPlan_301026)
 
 ### What was done

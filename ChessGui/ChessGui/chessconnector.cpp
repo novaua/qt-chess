@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "chessconnector.h"
+#include "frametrace.h"
 #include "ChessException.h"
 #include "AppConfig.h"
 #include "San.h"
@@ -44,6 +45,7 @@ ChessConnector::ChessConnector(QObject* parent)
 	_config(AppConfig::load())
 {
 	_pieces = new BoardPieces(this);
+	_moveList = new MoveListModel(this);
 	_pieces->sync(_game->GetCurrentBoard());
 
 	_game->RegisterBoardChanged(
@@ -141,6 +143,7 @@ void ChessConnector::clearPossibleMoves()
 {
 	ClearBoard(_possibleMoves);
 	_selectedSquare = -1;
+	FrameTraceScope trace("move dots cleared");
 	emit PossibleMovesChanged();
 }
 
@@ -173,6 +176,7 @@ void ChessConnector::figureSelected(int index)
 			_selectedSquare = index;
 	}
 
+	FrameTraceScope trace("move dots");
 	emit PossibleMovesChanged();
 }
 
@@ -247,16 +251,6 @@ namespace {
 			game->DoMove(history[i].ToMove());
 		return game;
 	}
-
-	// A move for the move list: the piece image key (none for pawns and castling) and the rest.
-	void addMoveCell(QVariantMap& row, const char* side, int ply, const std::string& san) {
-		static const std::string letters = "NBRQK";
-		const bool hasPiece = !san.empty() && letters.find(san[0]) != std::string::npos;
-		const QString text = QString::fromStdString(san);
-		row[QStringLiteral("%1Ply").arg(side)]   = ply;
-		row[QStringLiteral("%1Piece").arg(side)] = hasPiece ? (ply % 2 == 1 ? text.left(1) : text.left(1).toLower()) : QString();
-		row[QStringLiteral("%1Text").arg(side)]  = hasPiece ? text.mid(1) : text;
-	}
 }
 
 // The game whose position is on the board: a saved game's replay up to the shown move, a replay
@@ -279,12 +273,14 @@ void ChessConnector::schedulePiecesSync()
 	_piecesSyncPosted = true;
 	QMetaObject::invokeMethod(this, [this] {
 		_piecesSyncPosted = false;
+		FrameTraceScope trace("pieces sync");
 		_pieces->sync(shownGame()->GetCurrentBoard());
 	}, Qt::QueuedConnection);
 }
 
 void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
 {
+	FrameTraceScope trace("after-move signals");
 	emit moveCountChanged();
 	emit IsWhiteMoveChanged();
 	emit lastMoveChanged();
@@ -295,8 +291,8 @@ void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
 }
 
 void ChessConnector::resetMoveHistoryCache() {
-	_moveHistoryCache.clear();
 	_sanCache.clear();
+	_moveList->show(_sanCache);
 }
 
 const Chess::MovesHistory& ChessConnector::shownHistory() const
@@ -304,29 +300,10 @@ const Chess::MovesHistory& ChessConnector::shownHistory() const
 	return _player ? _player->GetHistory() : _game->GetGameRecord();
 }
 
-// The move-list row of _sanCache[i]: a new row for White's move, the second cell for Black's.
-void ChessConnector::addSanToRows(int i)
-{
-	if (i % 2 == 0) {
-		QVariantMap row;
-		row["n"] = i / 2 + 1;
-		addMoveCell(row, "w", i + 1, _sanCache[i]);
-		addMoveCell(row, "b", 0, {});
-		_moveHistoryCache.append(row);
-	}
-	else if (!_moveHistoryCache.isEmpty()) {
-		auto row = _moveHistoryCache.last().toMap();
-		addMoveCell(row, "b", i + 1, _sanCache[i]);
-		_moveHistoryCache.last() = row;
-	}
-}
-
 // After undo, load or several moves at once: Game::FormatHistorySan replays the game.
 void ChessConnector::buildFullHistoryCache() {
 	_sanCache = Chess::Game::FormatHistorySan(shownHistory());
-	_moveHistoryCache.clear();
-	for (int i = 0; i < (int)_sanCache.size(); ++i)
-		addSanToRows(i);
+	_moveList->show(_sanCache);
 }
 
 // After one move of the live game: only that move, with the game's own mate state.
@@ -337,12 +314,17 @@ void ChessConnector::appendMoveToHistory() {
 		return;
 	}
 	_sanCache.push_back(Chess::FormatMoveSan(rec.back(), _game->GetCurrentBoard(), _game->IsCheckMate()));
-	addSanToRows((int)_sanCache.size() - 1);
+	_moveList->show(_sanCache);
 }
 
-QVariantList ChessConnector::moveHistory() const
+QString ChessConnector::shownMove() const
 {
-	return _moveHistoryCache;
+	const int ply = shownPly();
+	if (ply <= 0 || ply > (int)_sanCache.size())
+		return {};
+	return QStringLiteral("%1%2%3").arg((ply + 1) / 2)
+		.arg(ply % 2 == 1 ? QStringLiteral(". ") : QStringLiteral("\u2026 "))
+		.arg(QString::fromStdString(_sanCache[ply - 1]));
 }
 
 int ChessConnector::shownPly() const

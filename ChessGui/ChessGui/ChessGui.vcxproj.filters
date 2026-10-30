@@ -68,6 +68,12 @@
     <ClCompile Include="boardpieces.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="frametrace.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="movelistmodel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="engineworker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -103,6 +109,9 @@
     <QtMoc Include="boardpieces.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="movelistmodel.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
     <QtMoc Include="engineworker.h">
       <Filter>Header Files</Filter>
     </QtMoc>
@@ -116,6 +125,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AppConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="frametrace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
