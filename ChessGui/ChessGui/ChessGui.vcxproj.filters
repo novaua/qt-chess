@@ -158,9 +158,6 @@
     <None Include="qml\ChessGame.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
-    <None Include="qml\EmptyBoardModel.qml">
-      <Filter>Source Files\Qml</Filter>
-    </None>
     <None Include="qml\MarkerColumn.qml">
       <Filter>Source Files\Qml</Filter>
     </None>

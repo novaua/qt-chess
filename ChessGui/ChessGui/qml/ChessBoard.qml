@@ -8,6 +8,19 @@ Rectangle {
     rotation:angle;
     color: "transparent"
 
+    // The squares, in the board's own coordinates: a1 at the bottom left, h8 at the top right.
+    // For Black the whole board turns (`rotation`); pieces, dots and labels turn back to stay upright.
+    readonly property real squaresSize: Theme.boardSquares * Math.min(width, height)
+    readonly property real squareSize: squaresSize / 8
+    function squareX(square) { return (square % 8) * squareSize }
+    function squareY(square) { return (7 - Math.floor(square / 8)) * squareSize }
+    // The square at a point of the squares area (chessBoxes), or -1 outside it.
+    function squareAt(x, y) {
+        const file = Math.floor(x / squareSize)
+        const row = Math.floor(y / squareSize)
+        return (file < 0 || file > 7 || row < 0 || row > 7) ? -1 : (7 - row) * 8 + file
+    }
+
     Behavior on rotation {
         id:chessBoardBehavior
         enabled: !Theme.reduceMotion
@@ -29,7 +42,17 @@ Rectangle {
     ChessFigures{
         id:chessPiecesGrid
         objectName:"chessPiecesGrid"
-        anchors.centerIn: parent
+        anchors.fill: chessBoxes
+
+        // A click on a square: select a piece (its moves show as dots), or play the selected
+        // piece's move to it.
+        TapHandler {
+            onTapped: (eventPoint) => {
+                const square = chessBoard.squareAt(eventPoint.position.x, eventPoint.position.y)
+                if (square >= 0)
+                    ChessConnector.figureSelected(square)
+            }
+        }
     }
 
     MarkerColumn {
@@ -139,7 +162,7 @@ Rectangle {
     NavigationLayer{
         id:navigationLayerGrid
         objectName:"navigationLayerGrid"
-        anchors.centerIn: parent
+        anchors.fill: chessBoxes
     }
 
     Loader{

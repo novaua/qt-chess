@@ -46,9 +46,8 @@ ChessConnector::ChessConnector(QObject* parent)
 	_pieces->sync(_game->GetCurrentBoard());
 
 	_game->RegisterBoardChanged(
-		[&](int index, const Piece& piece)
+		[&](int, const Piece&)
 		{
-			emit boardChanged(index, QString::fromStdString(piece.ToString()));
 			schedulePiecesSync();
 		});
 
@@ -1067,7 +1066,7 @@ void ChessConnector::onEngineMoveFound(int request, const QString& move)
 	ENGINE_TRACE("answer to request" << request << "played, the player's turn");
 	if (reviewMode()) {
 		_reviewIndex = -1;
-		emitBoardState((int)_game->GetGameRecord().size());
+		emitBoardState();
 	}
 	appendMoveToHistory();
 	EmitMoveCountUpdates();
@@ -1239,12 +1238,8 @@ bool ChessConnector::canReviewNext() const {
 	return reviewMode() && _reviewIndex < (int)_game->GetGameRecord().size();
 }
 
-void ChessConnector::emitBoardState(int moveIndex) {
-	const auto& rec = _player ? _player->GetHistory() : _game->GetGameRecord();
-	auto replayGame = replayHistory(rec, moveIndex);
-	const auto& board = replayGame->GetCurrentBoard();
-	for (int i = 0; i < 64; ++i)
-		emit boardChanged(i, QString::fromStdString(board.At(Chess::BoardPosition(i)).ToString()));
+// _reviewIndex changed: show that position (Pieces follows shownGame()).
+void ChessConnector::emitBoardState() {
 	schedulePiecesSync();
 	clearPossibleMoves();
 	emit lastMoveChanged();
@@ -1257,7 +1252,7 @@ void ChessConnector::reviewFirst() {
 		return;
 	}
 	_reviewIndex = 0;
-	emitBoardState(0);
+	emitBoardState();
 	emit reviewStateChanged();
 }
 
@@ -1271,7 +1266,7 @@ void ChessConnector::reviewPrev() {
 	int cur = reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
 	if (cur <= 0) return;
 	_reviewIndex = cur - 1;
-	emitBoardState(_reviewIndex);
+	emitBoardState();
 	emit reviewStateChanged();
 }
 
@@ -1285,7 +1280,7 @@ void ChessConnector::reviewNext() {
 	if (!reviewMode()) return;
 	if (_reviewIndex >= (int)_game->GetGameRecord().size() - 1) { reviewLast(); return; }
 	_reviewIndex++;
-	emitBoardState(_reviewIndex);
+	emitBoardState();
 	emit reviewStateChanged();
 }
 
@@ -1297,7 +1292,7 @@ void ChessConnector::reviewLast() {
 	}
 	if (!reviewMode()) return;
 	_reviewIndex = -1;
-	emitBoardState((int)_game->GetGameRecord().size());
+	emitBoardState();
 	emit reviewStateChanged();
 }
 
@@ -1314,7 +1309,7 @@ void ChessConnector::reviewTo(int ply) {
 		return;
 	}
 	_reviewIndex = std::max(0, ply);
-	emitBoardState(_reviewIndex);
+	emitBoardState();
 	emit reviewStateChanged();
 }
 
@@ -1359,13 +1354,6 @@ void ChessConnector::switchUser()
 	endGame(); // autosaves the game for the user who played it
 	if (_userManager)
 		_userManager->logout();
-}
-
-void ChessConnector::refreshBoard()
-{
-	const auto& board = _game->GetCurrentBoard();
-	for (int i = 0; i < 64; ++i)
-		emit boardChanged(i, QString::fromStdString(board.At(Chess::BoardPosition(i)).ToString()));
 }
 
 QString ChessConnector::opponentNameOf(const UserManager::GameSaveInfo& info) const

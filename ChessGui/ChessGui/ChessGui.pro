@@ -78,7 +78,6 @@ DISTFILES += \
     qml/ComputerGameDialog.qml \
     qml/ConfirmDialog.qml \
     qml/CreateUserDialog.qml \
-    qml/EmptyBoardModel.qml \
     qml/GamePage.qml \
     qml/HomeCard.qml \
     qml/FocusRing.qml \

@@ -1,20 +1,8 @@
 import QtQuick
 import ChessPlusPlus
 
-Grid {
-
-    width: Theme.boardSquares * Math.min(parent.width, parent.height)
-    height:width
-    rows:8
-    columns: 8
-
-    transform: Rotation {
-        id:navigationLayerTrns
-        origin.y: chessBoxes.height/2
-        axis.x: 1; axis.y: 0; axis.z: 0
-        angle: 180
-    }
-
+// The selected piece's legal moves: a dot on each target square (ChessBoard.squareX/Y).
+Item {
     Repeater{
         id:navigationLayerRptr
         objectName: "navigationLayerRptr"
@@ -22,27 +10,10 @@ Grid {
         delegate:
             Item{
             id:navigationLayerItm
-            rotation: 180+chessBoard.angle
-            width: navigationLayerRptr.parent.height<navigationLayerRptr.parent.width?navigationLayerRptr.parent.height/8:navigationLayerRptr.parent.width/8
+            x: chessBoard.squareX(index)
+            y: chessBoard.squareY(index)
+            width: chessBoard.squareSize
             height: width
-
-            transform: Rotation {
-                origin.x: width/2
-                axis.x: 0; axis.y: 1; axis.z: 0
-                angle: 180
-            }
-
-            Behavior on rotation  {
-                enabled: !Theme.reduceMotion
-                NumberAnimation {
-                    id: navigationLayerRotation
-                    easing {
-                        type: Easing.InCirc
-                        amplitude: 6.0
-                        period: 30
-                    }
-                }
-            }
 
             Rectangle{
                 id:navigationLayerRec
