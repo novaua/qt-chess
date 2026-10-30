@@ -54,6 +54,10 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   `-Moves` replaces a scene's own moves.
 - To review many shots at once, tile them into one contact sheet (System.Drawing) and Read that.
 - Output: `test-results\screens\<scene>[-black][-dark][-hc][-<Name>].png` (git-ignored). Exit code = number of failed scenes.
+- **Sanity gate:** the script first checks that `Qt6Core.dll` is next to the exe or on `PATH` (without it
+  Windows shows a "DLL not found" dialog per run) and stops with the line to add Qt's `bin`. If the first
+  scene fails, or any run ends with a code that isn't the app's own (missing DLL, crash), the other scenes
+  aren't run (`STOP`, counted as failed).
 - Screenshot mode turns animations off (`Theme.forceReduceMotion`, not saved): no pulse is caught
   half-way, so the same scene gives the same picture. Page transitions and piece fades are off too.
 - `-HighContrast`: our own colours as in a Windows contrast theme (`Theme.highContrast`, system
