@@ -17,11 +17,15 @@ void EngineWorker::killEngine()
 // so they are owned by and always accessed from the engine thread.
 void EngineWorker::findMove(int request, const Chess::MovesHistory& history)
 {
+    ENGINE_TRACE("worker: request" << request << "started," << history.size() << "plies, thread" << QThread::currentThreadId());
     try {
         if (!_enginePlayer)
             _enginePlayer = std::make_shared<Chess::ChessEnginePlayer>(_level, _mode);
-        emit moveFound(request, QString::fromStdString(_enginePlayer->FindMove(history)));
+        const auto move = QString::fromStdString(_enginePlayer->FindMove(history));
+        ENGINE_TRACE("worker: request" << request << "answers" << move);
+        emit moveFound(request, move);
     } catch (const std::exception& e) {
+        ENGINE_TRACE("worker: request" << request << "failed:" << e.what());
         QString details;
         try {
             if (_enginePlayer)
