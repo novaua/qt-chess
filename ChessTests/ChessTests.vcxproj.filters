@@ -38,6 +38,9 @@
     <ClCompile Include="SanTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PieceMatchTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="UndoTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
