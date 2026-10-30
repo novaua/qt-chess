@@ -88,7 +88,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
     two `PlayerCard`s with a `CapturedStrip` and "+N", the moves (`MovesPanel` + `MoveList`) beside
     the board or in a bottom sheet, `ResultCard` over the board)
   - `ChessBoard.qml` — the board: one geometry for all layers (`squareX/Y`, `squareAt`, a1 bottom left; turned for Black by `rotation`), the click `TapHandler`, coordinates, promotion dialog
-  - `ChessFigures.qml` — the pieces, one item per row of `ChessConnector.Pieces` on its square
+  - `ChessFigures.qml` — the pieces, one item per row of `ChessConnector.Pieces` on its square; it slides when the square changes, a captured one fades out
   - `ChessBoxes.qml` — the squares and their highlights (last move, check, flagged king, selected piece); `NavigationLayer.qml` — the legal-move dots
   - Shared: `Theme.qml` and `AppSettings.qml` (singletons; `AppSettings` is the QtCore `Settings` with the
     app's own options), `SettingRow`, `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`, `SectionCard`, `AvatarPicker`, `FocusRing` (keyboard focus outline for custom-drawn items)

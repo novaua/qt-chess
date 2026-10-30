@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-30 |
-| **Status** | Steps 1–4 done (`Game::UndoMove` fix, `BoardDiff`, `BoardPieces` + `ChessConnector`, the QML board on `Pieces`); step 5 next |
+| **Status** | Steps 1–5 done (`Game::UndoMove` fix, `BoardDiff`, `BoardPieces` + `ChessConnector`, the QML board on `Pieces`, slides and fades); step 6 (dragging) next |
 | **Branch** | `pieceDrag_301026` (from `develop`) |
 | **Task** | BL-04 in `TASKS.md` |
 
