@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-30 |
-| **Status** | Plan, not started |
+| **Status** | Steps 1–2 done (`Game::UndoMove` fix, `MatchPieces`); step 3 next |
 | **Branch** | `pieceDrag_301026` (from `develop`) |
 | **Task** | BL-04 in `TASKS.md` |
 
