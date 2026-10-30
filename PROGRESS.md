@@ -4,6 +4,19 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — BL-04 plan, steps 1–2: takeback fix and BoardDiff (branch: pieceDrag_301026)
+
+### What was done
+- **Plan:** `docs/BL-04-PieceMovePlan.md` (pieces with an identity that slide, drag and drop, one board geometry), linked from BL-04 in TASKS.
+- **Step 1, `Game::UndoMove` fixed.** It only moved the piece back and put a captured piece on the target square. After a takeback the castled rook stayed on f1/d1 (d8/f8), a pawn taken en passant came back on the target square instead of beside it, and a promoted piece went back to the 7th rank as itself. Takeback vs the robot (`ChessConnector::movePrev`) and stepping back in a loaded game (`HistoryPlayer::MoveBack`) use it; review (←/→) replays and wasn't affected. All changed squares are reported to the board listeners. En passant is recognised by the move before being a double step over the target square (`Game` records en passant as a capture on the target square). `ChessTests/UndoTests.cpp`: 14 tests (each castling, en passant both colours, promotion with and without capture, the player's promotion choice, two moves back), comparing FENs and the reported squares; 11 failed before the fix.
+- **Step 2, `Chess::BoardDiff(before, after)`** (`ChessCore/BoardDiff.h/.cpp`; a class after review, first a free function `MatchPieces`): which piece went where between two positions: `Moved()` (`PieceTravel`: from, to, piece before/after), `Removed()`, `Added()`. Equal pieces pair nearest first; a pawn leaving the 7th (2nd) rank and a piece arriving beside it on the last rank is a promotion, reversed a takeback of one, on the same square the player's choice. `ChessTests/BoardDiffTests.cpp`: 11 tests, each case both ways.
+- Debug and Release build; ChessTests 111, ChessQtTests 76 pass. No UI change yet.
+- **Robot trace in Debug builds** (`ENGINE_TRACE` in `engineworker.h`, nothing in Release): the app log gets a line when the robot is asked (request number), when the worker starts and answers, when the answer is played or dropped as stale, and when the engine thread stops. For a flaky hang seen once in manual testing: playing Black vs a weak level, the board stayed on "Robot is thinking" although `uci_debug_log.txt` shows Stockfish answered in 40 ms; not reproduced since (8 runs of the `robot` scene, and the user's second try). If it happens again in a Debug build, the log shows where the answer stopped.
+
+### Where to continue
+- BL-04 step 3: the `BoardPieces` model and the `ChessConnector` wiring (plan §3.2–3.3), on a new branch from `develop` once this PR is in.
+- Locally: after switching from #91's branch, ChessGui needs a Rebuild (its Qt build cache still has Widgets dropped).
+
 ## 2026-10-30 — Moved to Qt 6.12.0 (branch: qt612Upgrade_301026)
 
 ### What was done

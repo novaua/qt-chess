@@ -925,6 +925,7 @@ void ChessConnector::startEngineThread(Chess::EngineLevel level)
 	auto mode = _config.useFen
 		? Chess::PositionMode::FenWindow
 		: Chess::PositionMode::StartPos;
+	ENGINE_TRACE("start thread: level" << level.Level() << (_config.useFen ? "FenWindow" : "StartPos"));
 	_engineWorker = new EngineWorker(level, mode);
 	_engineThread = new QThread(this);
 	_engineWorker->moveToThread(_engineThread);
@@ -946,6 +947,7 @@ void ChessConnector::stopEngineThread()
 		return;
 
 	++_engineRequest; // an answer still on its way belongs to the old game: drop it
+	ENGINE_TRACE("stop thread: was thinking" << _engineThinking << ", next answer must be" << _engineRequest + 1);
 
 	// Kill the stockfish process so any blocking waitForReadyRead() in the engine
 	// thread returns immediately, allowing the thread to exit cleanly.
@@ -976,14 +978,21 @@ void ChessConnector::askEngineMove()
 	auto worker = _engineWorker;
 	const int request = ++_engineRequest;
 	const auto history = _game->GetGameRecord();
-	QMetaObject::invokeMethod(worker, [worker, request, history] { worker->findMove(request, history); },
+	ENGINE_TRACE("ask: request" << request << "," << history.size() << "plies, worker" << (const void*)worker);
+	const bool posted = QMetaObject::invokeMethod(worker, [worker, request, history] { worker->findMove(request, history); },
 		Qt::QueuedConnection);
+	ENGINE_TRACE("ask: request" << request << (posted ? "posted" : "NOT posted"));
+	Q_UNUSED(posted);
 }
 
 void ChessConnector::onEngineMoveFound(int request, const QString& move)
 {
-	if (request != _engineRequest)
+	if (request != _engineRequest) {
+		ENGINE_TRACE("answer" << move << "to request" << request << "dropped: waiting for" << _engineRequest
+			<< ", thinking" << _engineThinking);
 		return;
+	}
+	ENGINE_TRACE("answer" << move << "to request" << request << "playing");
 	try {
 		_game->DoMove(Chess::Move::Parse(move.toStdString()));
 	}
@@ -994,6 +1003,7 @@ void ChessConnector::onEngineMoveFound(int request, const QString& move)
 	}
 	_engineThinking = false;
 	emit engineThinkingChanged();
+	ENGINE_TRACE("answer to request" << request << "played, the player's turn");
 	if (reviewMode()) {
 		_reviewIndex = -1;
 		emitBoardState((int)_game->GetGameRecord().size());
@@ -1008,8 +1018,11 @@ void ChessConnector::onEngineMoveFound(int request, const QString& move)
 
 void ChessConnector::onEngineMoveError(int request, const QString& message, const QString& details)
 {
-	if (request != _engineRequest)
+	if (request != _engineRequest) {
+		ENGINE_TRACE("error to request" << request << "dropped: waiting for" << _engineRequest
+			<< ", thinking" << _engineThinking);
 		return;
+	}
 	_engineThinking = false;
 	emit engineThinkingChanged();
 	qDebug() << "[Engine] move error:" << message;

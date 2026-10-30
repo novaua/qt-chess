@@ -29,7 +29,7 @@ vstest.console.exe x64\Debug\ChessTests.dll
 vstest.console.exe x64\Debug\ChessQtTests.dll
 ```
 
-- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`). Plain C++, no Qt.
+- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`). Plain C++, no Qt.
 - `ChessQtTests/` — the Qt parts: `UciConnectorTest.cpp` (UCI protocol), `ChessEnginePlayerTest.cpp`, `LichessClientTest.cpp`,
   `UserManagerTest.cpp`. Needs Qt's `bin` on `PATH`; the engine tests need Stockfish.
 
@@ -68,6 +68,7 @@ All chess logic, isolated in the `Chess::` namespace. Key types:
 - `MoveGeneration` — generates pseudo-legal and legal moves including castling and en passant
 - `ChessEnginePlayer` — wraps `UciConnector` to produce computer moves
 - `Serializer` — binary save/load of game history
+- `BoardDiff` (`BoardDiff.h`) — which piece went where between two positions (moved, removed, added), for the board's piece animations
 
 ### UciConnector (static library)
 
