@@ -21,6 +21,7 @@ Page {
     signal settingsRequested()
     signal profileRequested()
     signal switchUserRequested()
+    signal checkShown()            // the page opened on a position with the king in check (Continue)
 
     readonly property string mode: ChessConnector.GameMode
     readonly property bool gameOver: ChessConnector.GameResult !== ""
@@ -33,6 +34,26 @@ Page {
     Component.onCompleted: {
         _facePlayer()
         _resultShown = gameOver
+        _movesWhenOpened = ChessConnector.MoveCount
+    }
+
+    // A resumed game may start in check. Say so when the page has settled — at least a second after
+    // it opened and once the board has turned to the player — not while the saved moves are replayed.
+    // A move made meanwhile announces its own check.
+    property int _movesWhenOpened: -1   // set once when the page opens
+    Timer {
+        id: checkShownTimer
+        interval: 1000
+        running: true
+        onTriggered: {
+            if (chessBoard.turning) {   // still turning: look again shortly
+                interval = 100
+                start()
+            } else if (ChessConnector.MoveCount === page._movesWhenOpened
+                       && ChessConnector.CheckedKing >= 0 && !page.gameOver) {
+                page.checkShown()
+            }
+        }
     }
 
     Connections {

@@ -7,6 +7,7 @@ Rectangle {
     property int angle:0;
     rotation:angle;
     color: "transparent"
+    readonly property bool turning: chessBoardRotation.running // turning to the other side (pieces turn with it)
 
     // The squares, in the board's own coordinates: a1 at the bottom left, h8 at the top right.
     // For Black the whole board turns (`rotation`); pieces, dots and labels turn back to stay upright.

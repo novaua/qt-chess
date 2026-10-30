@@ -163,6 +163,13 @@ ApplicationWindow {
         pgnExportDialog.open()
     }
 
+    // A move gave check, or a resumed game opened in check: the sound and the bar.
+    function announceCheck() {
+        if (AppSettings.musicEnabled)
+            sndCheck.play()
+        messageBar.show("Check", "caution")
+    }
+
     function clearPendingChallenge() {
         UserManager.clearPendingChallenge()
         _pendingChallengeId  = ""
@@ -317,6 +324,7 @@ ApplicationWindow {
             onSettingsRequested:    root.openSettings()
             onProfileRequested:     root.openProfile()
             onSwitchUserRequested:  root.switchUser()
+            onCheckShown:           root.announceCheck()
         }
     }
 
@@ -449,11 +457,7 @@ ApplicationWindow {
             if (snd.status === SoundEffect.Ready)
                 snd.play()
         }
-        function onCheckNotify() {
-            if (AppSettings.musicEnabled)
-                sndCheck.play()
-            messageBar.show("Check", "caution")
-        }
+        function onCheckNotify() { root.announceCheck() }
         function onCheckMateNotify() {
             if (AppSettings.musicEnabled)
                 sndCheckmate.play()

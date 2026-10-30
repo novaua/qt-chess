@@ -4,6 +4,17 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — Continue fixes: autosave only vs the robot, check sound after the page shows (branch: continueFixes_301026)
+
+### What was done
+- **Only a game vs the robot is autosaved.** Closing the app (`~ChessConnector`) autosaved any unfinished game, a Lichess game too; `endGame()` also autosaved two-player games. Home then offered them as a local game, but neither can really be resumed. Now one rule, `canAutoSave()` (vs the robot, not online, not a replay, not over, at least one move), decides in both places. `canContinue()` ignores an older autosave of another kind (`autoSaveInfo().isSinglePlayer`), so it isn't offered; `continueGame()` lost its two-player branch. Two-player games can no longer be continued (owner's decision: neither they nor Lichess games can be resumed properly today).
+- **Check sound on Continue.** `continueGame()` replays the saved moves (`ResumeFromLoad`), and every check in them emitted `checkNotify`: the sound (once per check of the game) and the "Check" bar came before the game page appeared. The replay is quiet now (`_resuming`), and `GamePage` signals `checkShown()` when it has settled — at least 1 s after it opened and after the board has turned to the player (`ChessBoard.turning`; Black) — if the position is in check and no move was made meanwhile (that move announces its own check); `ChessGame.qml` plays the sound and shows the bar (`announceCheck()`, shared with `onCheckNotify`).
+- Screenshot scene `continue` now autosaves a game vs the robot (Level 3, as White: no engine needed); its Home card says "vs Robot · Level 3".
+- Debug and Release build; ChessTests 111, ChessQtTests 85 pass; all scenes match (`continue` baselines renewed).
+
+### Where to continue
+- Manual check: Continue a robot game that stands in check (sound and bar once, after the board shows); close the app during a Lichess game and a two-player game (no Continue offered on Home next time).
+
 ## 2026-10-30 — BL-04 step 4: the QML board on `Pieces` (branch: boardQml_301026)
 
 ### What was done
