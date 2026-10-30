@@ -30,7 +30,7 @@ vstest.console.exe x64\Debug\ChessQtTests.dll
 ```
 
 - `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`). Plain C++, no Qt.
-- `ChessQtTests/` — the Qt parts: `UciConnectorTest.cpp` (UCI protocol), `ChessEnginePlayerTest.cpp`, `LichessClientTest.cpp`,
+- `ChessQtTests/` — the Qt parts: `UciConnectorTest.cpp` (UCI protocol), `ChessEnginePlayerTest.cpp`, `LichessClientTest.cpp`, `BoardPiecesTest.cpp`,
   `UserManagerTest.cpp`. Needs Qt's `bin` on `PATH`; the engine tests need Stockfish.
 
 ## Seeing the UI
@@ -77,6 +77,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
 ### ChessGui (Qt QML application)
 
 - **`chessconnector.h/cpp`** — the C++/QML bridge for the chess game; exposes `Q_PROPERTY` bindings and slots that QML calls
+- **`boardpieces.h/cpp`** — `BoardPieces`, the pieces model behind `ChessConnector.Pieces`: one row per piece that keeps its id while it moves (`BoardDiff`), so the board can slide it
 - **`UserManager`**, **`LichessClient`** (LiChessConnector project), **`AvatarProvider`**, **`AppInfo`** (version, data/log folders, the engine's name) — app services without chess logic, also visible to QML (see Key Conventions)
 - QML files in `ChessGui/ChessGui/qml/`:
   - `ChessGame.qml` — the window: a `StackView` with one page (`WelcomePage` on first run,

@@ -354,6 +354,7 @@
     <ClCompile Include="UserManager.cpp" />
     <ClCompile Include="chessconnector.cpp" />
     <ClCompile Include="ChessEnginePlayer.cpp" />
+    <ClCompile Include="boardpieces.cpp" />
     <ClCompile Include="engineworker.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="..\..\ChessCore\stdafx.cpp" />
@@ -366,6 +367,7 @@
     <QtMoc Include="UserManager.h" />
     <ClInclude Include="EngineLevel.h" />
     <QtMoc Include="chessconnector.h" />
+    <QtMoc Include="boardpieces.h" />
     <QtMoc Include="engineworker.h" />
     <ClInclude Include="..\..\ChessCore\stdafx.h" />
     <ClInclude Include="..\..\ChessCore\targetver.h" />

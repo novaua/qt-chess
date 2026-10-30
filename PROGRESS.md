@@ -4,6 +4,23 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-30 — BL-04 step 3: the pieces model (branch: boardPieces_301026, from pieceDrag_301026 / #92)
+
+### What was done
+- **`BoardPieces`** (`ChessGui/boardpieces.h/.cpp`, a `QAbstractListModel`): one row per piece, roles `pieceId`, `square`, `piece` ("N"/"n"), `taken`. `sync(board)` compares with the last shown position (`BoardDiff`): a moved or promoted piece keeps its row and id (`dataChanged`), a captured one is marked `taken` (its row stays until the next reset, so the fade isn't cut when the robot answers at once), a piece put back by a takeback is a new row. More than 4 changes (new game, review jump) → model reset with new ids.
+- **`ChessConnector`:**
+  - `Pieces` (CONSTANT). The board listener and `emitBoardState()` (review) post one queued `sync` per change (`schedulePiecesSync()`), so castling's four squares, a two-move takeback or a Lichess batch become one comparison. It syncs the **shown** position: `shownGame()` (a saved game's replay, a reviewed replay, or the game), now also used by `checkedKing()` and `materialBalance()`.
+  - `canPlayerMove()`: the checks `figureSelected` had (replay, review, robot thinking, promotion choice, game over, the Lichess opponent's turn), now shared. `MovableColor` (0 none, 1 White, 2 Black) on it, notified by the signals its inputs change with.
+  - `SelectedSquare`: the clicked piece of the side to move, or -1 (today's tint is QML-only). `clearPossibleMoves()` resets it with the dots, in the 4 places that cleared the dots.
+  - `movePiece(from, to)`: a drop. Plays it if legal (`GetAllowedMoves(from)`), else returns false; clears the dots either way.
+  - `boardChanged` / `refreshBoard()` stay until step 4 moves the QML board to `Pieces`.
+- **Tests:** `ChessQtTests/BoardPiecesTest.cpp`, 9 tests with `QAbstractItemModelTester` (warnings collected, expected none): every piece on the first sync, nothing on the same position, id kept on a move, capture marks taken, takeback of a capture, castling (2 rows), promotion keeps the pawn's id, a big change resets, role names. ChessQtTests now uses Qt Test (`testlib`).
+- Debug and Release build; ChessTests 111, ChessQtTests 85 pass; all 43 screenshot scenes match the baselines (no QML change yet).
+
+### Where to continue
+- Step 4 (plan §3.4): one board geometry, `ChessFigures` on `Pieces`, a board `TapHandler`, the selection tint in `ChessBoxes`.
+- Locally, after changing a project's `QtModules` (here `testlib`), Rebuild that project once: Qt's build cache keeps the old module list.
+
 ## 2026-10-30 — BL-04 plan, steps 1–2: takeback fix and BoardDiff (branch: pieceDrag_301026)
 
 ### What was done

@@ -37,12 +37,12 @@
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="QtSettings">
     <QtInstall>6.12.0_msvc2022_64</QtInstall>
-    <QtModules>core;network</QtModules>
+    <QtModules>core;network;testlib</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="QtSettings">
     <QtInstall>6.12.0_msvc2022_64</QtInstall>
-    <QtModules>core;network</QtModules>
+    <QtModules>core;network;testlib</QtModules>
     <QtBuildConfig>release</QtBuildConfig>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
@@ -107,6 +107,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BoardPiecesTest.cpp" />
     <ClCompile Include="ChessEnginePlayerTest.cpp" />
     <ClCompile Include="LichessClientTest.cpp" />
     <ClCompile Include="UciConnectorTest.cpp" />
@@ -118,9 +119,12 @@
     <!-- The engine player and its thread worker -->
     <ClCompile Include="..\ChessGui\ChessGui\ChessEnginePlayer.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\engineworker.cpp" />
+    <!-- The board's piece model -->
+    <ClCompile Include="..\ChessGui\ChessGui\boardpieces.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="..\ChessGui\ChessGui\AvatarProvider.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\boardpieces.h" />
     <QtMoc Include="..\ChessGui\ChessGui\engineworker.h" />
     <QtMoc Include="..\ChessGui\ChessGui\UserManager.h" />
   </ItemGroup>

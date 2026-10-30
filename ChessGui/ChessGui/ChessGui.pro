@@ -18,6 +18,7 @@ SOURCES += main.cpp \
     ../../UciConnector/pch.cpp \
     chessconnector.cpp \
     engineworker.cpp \
+    boardpieces.cpp \
     ChessEnginePlayer.cpp \
     AppInfo.cpp \
     AvatarProvider.cpp \
@@ -57,6 +58,7 @@ HEADERS += \
     ../../UciConnector/pch.h \
     chessconnector.h \
     engineworker.h \
+    boardpieces.h \
     ChessEnginePlayer.h \
     AppInfo.h \
     AvatarProvider.h \
