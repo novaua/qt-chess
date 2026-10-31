@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <memory>
+#include <atomic>
 #include <chrono>
 #include <deque>
 #include <map>
@@ -46,6 +47,7 @@ std::string PickWeakMove(const std::vector<EngineCandidate>& candidates, int tem
 class UciConnector
 {
 	bool _initOk = false;
+	std::atomic<bool> _killed{ false }; // Kill() ran: the process is gone even if QProcess hasn't noticed
 	std::unique_ptr<QProcess> _uciEngine;
 	std::map<std::string, std::string> _opt;
 	std::string _enginePath;
@@ -71,7 +73,8 @@ public:
 	static std::vector<std::string> EngineCandidates();
 	void Init();
 	bool IsInitialized();
-	bool IsRunning() const; // false once the engine process has exited; Init() starts a fresh one
+	// False once the engine process has exited or Kill() ran; Init() starts a fresh one.
+	bool IsRunning() const;
 	bool CheckReady();
 	bool NewGame();
 	std::string GetOption(const std::string& op);

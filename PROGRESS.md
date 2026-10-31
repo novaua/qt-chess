@@ -25,6 +25,7 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Silent handle failures** are logged (`OpenProcess` pid + error, `TerminateProcess` error).
 - **Raw `HANDLE` as `void*`** replaced by a `std::unique_ptr` with a `CloseHandle` deleter.
 - **No automated test** for the cross-thread kill — added.
+- **Late sweep addendum:** `IsRunning()` now reports a killed engine immediately (`_killed` flag), so `ChessEnginePlayer::FindMove`'s restart recovery cannot send the next request to the process that was just terminated; test `IsRunning_IsFalseRightAfterKill_Test`.
 Not changed (with reasons): the GUI can still wait up to 3 s when the kill misses (the engine process normally dies in ms; the alternative, `terminate()`, is worse); on non-Windows `Kill()` is a no-op (the app is Windows-only); the public `Connector()` accessor was removed in favour of the atomic player pointer.
 
 ### Where to continue

@@ -103,6 +103,7 @@ void UciConnector::Init()
 		if (_uciEngine->waitForStarted(5000)) {
 			started = true;
 			_enginePath = sfPath;
+			_killed.store(false);
 			OpenProcessHandle();
 			Trace("-- engine started: " + _enginePath);
 			break;
@@ -245,7 +246,7 @@ bool UciConnector::IsInitialized()
 
 bool UciConnector::IsRunning() const
 {
-	return _uciEngine && _uciEngine->state() == QProcess::Running;
+	return !_killed.load() && _uciEngine && _uciEngine->state() == QProcess::Running;
 }
 
 bool UciConnector::CheckReady()
@@ -277,6 +278,7 @@ void UciConnector::Kill()
 	// Terminate the process through its own Win32 handle: QProcess is thread-affine and must not be
 	// touched here (2026-10-31, BL-15). The lock keeps a concurrent restart from closing the handle
 	// underneath TerminateProcess(); the engine thread closes it.
+	_killed.store(true); // QProcess may not notice the death until it next polls; IsRunning() must
 	std::lock_guard<std::mutex> lock(_processMutex);
 #ifdef Q_OS_WIN
 	if (!_processHandle)
