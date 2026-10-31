@@ -50,6 +50,7 @@ ChessConnector::ChessConnector(QObject* parent)
 	connect(_gate, &MoveGate::release, this, [this](const QString& uciMove, MoveGate::Source source) {
 		onGateRelease(uciMove, source);
 	});
+	connect(_gate, &MoveGate::idle, this, &ChessConnector::boardIdle);
 	_pieces->sync(_game->GetCurrentBoard());
 
 	_game->RegisterBoardChanged(
@@ -134,6 +135,11 @@ bool ChessConnector::canPlayerMove() const
 
 	// In online games only allow moving when it's the local player's turn.
 	if (!_onlineGameId.isEmpty() && _game->IsWhiteMove() != _config.playerPlaysWhite)
+		return false;
+
+	// Vs the robot, only the player's own pieces: if its answer never came, the human must not be
+	// able to move the robot's pieces and silently swap the sides.
+	if (_wasVsComputer && _game->IsWhiteMove() != _config.playerPlaysWhite)
 		return false;
 	return true;
 }
@@ -1094,26 +1100,6 @@ void ChessConnector::setMoveTiming(int slideMs)
 	_gate->setTiming(timing);
 }
 
-// A live review while the robot's answer waits: drop it and stop thinking; returning to the live
-// position asks the engine again. Otherwise the move would snap the board back to live.
-void ChessConnector::dropAnswerForReview()
-{
-	if (_player || !_engineWorker || _gameOver || !_engineThinking)
-		return;
-	_gate->clear();
-	++_engineRequest;
-	_engineThinking = false;
-	emit engineThinkingChanged();
-}
-
-void ChessConnector::resumeEngineAfterReview()
-{
-	if (_player || !_engineWorker || !_engineAutoPlay || _gameOver || _engineThinking || _promotionPending)
-		return;
-	if (_game->IsWhiteMove() != _config.playerPlaysWhite)
-		askEngineMove();
-}
-
 void ChessConnector::onEngineMoveError(int request, const QString& message, const QString& details)
 {
 	if (request != _engineRequest) {
@@ -1233,14 +1219,23 @@ void ChessConnector::movePrev()
 			if (_engineThinking) {
 				// The robot's answer may be waiting in the gate or still on its way: the takeback
 				// drops it, so stop waiting for it (nothing else would clear the thinking state).
+				// A resignation confirmed while it thought is cancelled by the takeback.
 				_gate->clear();
 				++_engineRequest;
 				_engineThinking = false;
+				_resignAfterEngineMove = false;
 				emit engineThinkingChanged();
 			}
 			if (_promotionPending) return;
 			int count = _game->GetMoveCount();
-			if (count == 0) { emit noMoreMovesNotify(); return; }
+			if (count == 0) {
+				// Nothing to take back. If the answer just dropped was the robot's first move (or
+				// its re-asked first move), ask again; otherwise the robot would never move.
+				if (_game->IsWhiteMove() != _config.playerPlaysWhite)
+					askEngineMove();
+				emit noMoreMovesNotify();
+				return;
+			}
 			// Take back until it is the player's turn: normally the robot's reply and the
 			// player's move; after the player mated the robot, only the player's move.
 			const bool robotToMove = _game->IsWhiteMove() != _config.playerPlaysWhite;
@@ -1299,7 +1294,6 @@ void ChessConnector::reviewFirst() {
 		EmitMoveCountUpdates(false);
 		return;
 	}
-	dropAnswerForReview();
 	_reviewIndex = 0;
 	emitBoardState();
 	emit reviewStateChanged();
@@ -1314,7 +1308,6 @@ void ChessConnector::reviewPrev() {
 	}
 	int cur = reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
 	if (cur <= 0) return;
-	dropAnswerForReview();
 	_reviewIndex = cur - 1;
 	emitBoardState();
 	emit reviewStateChanged();
@@ -1329,7 +1322,6 @@ void ChessConnector::reviewNext() {
 	}
 	if (!reviewMode()) return;
 	if (_reviewIndex >= (int)_game->GetGameRecord().size() - 1) { reviewLast(); return; }
-	dropAnswerForReview();
 	_reviewIndex++;
 	emitBoardState();
 	emit reviewStateChanged();
@@ -1344,8 +1336,10 @@ void ChessConnector::reviewLast() {
 	if (!reviewMode()) return;
 	_reviewIndex = -1;
 	emitBoardState();
+	// The jump back to the live position animates the pieces: a held robot answer (the board wasn't
+	// settled while reviewing) waits for it.
+	_gate->moveShown();
 	emit reviewStateChanged();
-	resumeEngineAfterReview(); // back to live, the robot's turn: ask again (the review dropped it)
 }
 
 void ChessConnector::reviewTo(int ply) {
@@ -1360,7 +1354,6 @@ void ChessConnector::reviewTo(int ply) {
 		reviewLast();
 		return;
 	}
-	dropAnswerForReview();
 	_reviewIndex = std::max(0, ply);
 	emitBoardState();
 	emit reviewStateChanged();

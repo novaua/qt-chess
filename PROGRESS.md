@@ -15,12 +15,22 @@ Use this file to record where work stopped and what to do next. Newest entry at 
   - Continue as Black: Qh5# was held from its arrival until the page settled, then played (469 ms later);
   - level 1, the player plays e4, with `robotMinMs` temporarily raised to 1500: the answer arrived after 751 ms and was held until exactly 1499 ms after the player's move;
   - a takeback while that answer was held: it was never played, the thinking state cleared, and no new engine request was made.
+  - Continue in check (Qxf7+ and the robot to move): the answer was held to the settle and played; the first `boardIdle` came after it (count changed), so no check was announced — the check sound/bar now follow the gate (fixing the 1 s race below).
 - Debug and Release build; ChessTests 111, ChessQtTests 109 pass; all 49 screenshot scenes match, the `robot` scene (Continue, Qh5#) included.
 
+### Code review (medium, same branch)
+5 findings, all fixed:
+- **Undo while the robot's first answer was pending**: the thinking block dropped the answer, then `count == 0` returned before re-asking, so the robot never moved — and `canPlayerMove()` let the human move its pieces. Now a count-0 Undo re-asks when the robot is to move, and, as a safety net, a computer game only lets the player move its own colour.
+- **The deferred resignation (`_resignAfterEngineMove`) survived a takeback**: the next answer would resign on its own. A takeback now cancels it.
+- **Review jumps**: dropping the answer on review and re-asking wasted the running search and could show the answer during the jump. New design: a live review reports the board as not settled (`_boardSettled` excludes `ReviewMode`), so the answer simply stays held — no drop, no re-ask; `reviewLast()` marks the jump with `moveShown()` so the answer waits for it.
+- **The resumed-check announcement raced the held answer**: `checkShownTimer` and the settle timer fired in the same tick, announcing a check that the answer parried in the same pass. The check is now announced on the gate's first `boardIdle` (new `ChessConnector.boardIdle`), which is silent while an answer waits. This is part of step 4's §3.3, pulled in here because step 3 introduced the race.
+- **Stacked searches after review round-trips**: gone with the no-drop review design.
+Not changed: a takeback during a search still lets that search finish before the re-ask — the engine cannot be cancelled mid-search without more work in `EngineWorker`; the answer is simply dropped (request number) and a new search queued.
+
 ### Where to continue
-- **Step 4 (new branch from `develop`)**: check sound and bar, mate and the result card on the gate's `idle`. Replace `GamePage.checkShownTimer` (PR #95's 1 s + turning poll) and the 1600 ms `resultTimer`; use `isIdle()` for a result that comes without a move (resignation, draw, timeout) — `idle()` alone is edge-triggered.
+- **Step 4 (new branch from `develop`)**: the result card on the gate's `idle` (replace the 1600 ms `resultTimer`; use `isIdle()` for a result that comes without a move — resignation, draw, timeout). The check sound/bar already follow `boardIdle` (done here); mate and the result card are left.
 - **Step 5**: the Lichess opponent's moves through the gate (`push(..., Source::Online)`, `releaseBatch` for a resync, `moveShown` after applying them).
-- **Manual check by the owner** (Release, animations on): level-1 quick moves (never both pieces sliding at once); a new game as Black (board turns first, then the robot's move); Flip board while it thinks; the robot gives check / mates; Continue in check; takeback / New game while its answer waits; review ←/→ while it thinks, then Back to live; Reduce animations on.
+- **Manual check by the owner** (Release, animations on): level-1 quick moves (never both pieces sliding at once); a new game as Black (board turns first, then the robot's move); Flip board while it thinks; the robot gives check / mates; Continue in check; takeback / New game while its answer waits; **Undo before the robot's first move** (as Black; the robot must still move); review ←/→ while it thinks, then Back to live; Reduce animations on.
 - The owner's §3.4 decision is still open (currently A: think during the animation, show the answer after).
 
 ## 2026-10-30 — BL-14 step 2: `MoveGate` and its tests (branch: moveGate_301026)

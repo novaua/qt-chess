@@ -173,6 +173,7 @@ signals:
 	void pgnExported(bool ok, const QString& path);
 
 	void screenshotSceneReady(); // QML has set up the --screenshot scene: grab the window
+	void boardIdle();            // the page has settled and no move waits to be shown (BL-14)
 
 public slots:
 	// One call per user action (CLAUDE.md "Key Conventions"). A Lichess game starts and ends
@@ -252,8 +253,6 @@ private:
 	void onHumanMoveDone();
 	void playRobotMove(const QString& uciMove); // the gate released it: play it on the GUI thread
 	void onGateRelease(const QString& uciMove, MoveGate::Source source);
-	void dropAnswerForReview();  // a live review drops a waiting robot answer
-	void resumeEngineAfterReview();
 	void emitBoardState(); // after _reviewIndex changed
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
 	void buildFullHistoryCache();
