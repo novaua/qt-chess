@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "UciConnector.h"
 #include <QCoreApplication>
+#include <QDebug>
 #include <QProcess>
 #include <QStandardPaths>
 #include <QString>
@@ -118,8 +119,15 @@ void UciConnector::Init()
 
 	sendLine(_uciEngine.get(), UciInitCommand);
 
+	// A process that starts but never sends "uciok" (a wrong executable, a corrupt download) must
+	// not keep the engine thread here forever: bound the whole handshake.
+	const auto handshakeDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
 	while (_uciEngine->state() == QProcess::Running) {
+		if (std::chrono::steady_clock::now() > handshakeDeadline)
+			throw std::runtime_error("UciConnector: the engine did not answer 'uci' within 10 s");
 		std::string line = readLineBlocking(_uciEngine.get(), 5000);
+		if (line.empty())
+			continue; // a read timeout: the deadline above bounds it
 
 		if (line.find(UciOkCommand) != std::string::npos)
 			break;
@@ -253,6 +261,16 @@ bool UciConnector::NewGame()
 	return CheckReady();
 }
 
+void UciConnector::ProcessHandleDeleter::operator()(void* handle) const
+{
+#ifdef Q_OS_WIN
+	if (handle)
+		CloseHandle(static_cast<HANDLE>(handle));
+#else
+	(void)handle;
+#endif
+}
+
 void UciConnector::Kill()
 {
 	// Called from the GUI thread while the engine thread may be inside a blocking UCI read.
@@ -261,8 +279,10 @@ void UciConnector::Kill()
 	// underneath TerminateProcess(); the engine thread closes it.
 	std::lock_guard<std::mutex> lock(_processMutex);
 #ifdef Q_OS_WIN
-	if (_processHandle)
-		TerminateProcess(static_cast<HANDLE>(_processHandle), 1);
+	if (!_processHandle)
+		return; // the process already exited, or was never started
+	if (!TerminateProcess(static_cast<HANDLE>(_processHandle.get()), 1))
+		qWarning() << "UciConnector: TerminateProcess failed, error" << int(GetLastError());
 #endif
 }
 
@@ -276,22 +296,19 @@ void UciConnector::OpenProcessHandle()
 	if (pid <= 0)
 		return;
 	HANDLE handle = OpenProcess(PROCESS_TERMINATE, FALSE, static_cast<DWORD>(pid));
-	if (!handle)
+	if (!handle) {
+		qWarning() << "UciConnector: OpenProcess failed for pid" << pid << ", error" << int(GetLastError());
 		return;
+	}
 	std::lock_guard<std::mutex> lock(_processMutex);
-	_processHandle = handle;
+	_processHandle.reset(handle);
 #endif
 }
 
 void UciConnector::CloseProcessHandle()
 {
 	std::lock_guard<std::mutex> lock(_processMutex);
-#ifdef Q_OS_WIN
-	if (_processHandle) {
-		CloseHandle(static_cast<HANDLE>(_processHandle));
-		_processHandle = nullptr;
-	}
-#endif
+	_processHandle.reset(); // ProcessHandleDeleter closes it (under the lock)
 }
 
 UciConnector::~UciConnector()

@@ -1010,29 +1010,19 @@ void ChessConnector::stopEngineThread()
 	_engineWorker->killEngine();
 	_engineThread->quit();
 
-	// Give the thread time to leave a UCI wait. If it doesn't, terminate it — and if even that
-	// fails, leave the thread alone: destroying a running QThread aborts the process (BL-15).
-	if (!_engineThread->wait(5000)) {
-		qWarning() << "Engine thread did not stop within 5 s; terminating it";
-		_engineThread->terminate();
-		if (!_engineThread->wait(2000)) {
-			qWarning() << "Engine thread is still running; leaving it behind";
-			_engineThread->setParent(nullptr); // the connector must not delete it either
-			_engineThread = nullptr;
-			_engineWorker = nullptr;
-			_engineThinking = false;
-			_engineAutoPlay = false;
-			emit engineThinkingChanged();
-			return;
-		}
+	// Give the thread time to leave a UCI wait. Never call QThread::terminate() (TerminateThread):
+	// the thread can die inside the heap or the log lock and leave it held. If it doesn't stop,
+	// leave it (detached) — destroying a running QThread aborts the process (BL-15).
+	if (_engineThread->wait(3000)) {
+		// _engineWorker was deleted on the engine thread via the finished->deleteLater connection.
+		delete _engineThread;
 	}
-
-	// _engineWorker was deleted on the engine thread via the finished->deleteLater
-	// connection above. Just null the pointer here.
-	_engineWorker = nullptr;
-
-	delete _engineThread;
+	else {
+		qWarning() << "Engine thread did not stop within 3 s; leaving it behind";
+		_engineThread->setParent(nullptr); // the connector must not delete it either
+	}
 	_engineThread = nullptr;
+	_engineWorker = nullptr;
 
 	_engineThinking = false;
 	_engineAutoPlay = false;

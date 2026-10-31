@@ -53,10 +53,11 @@ class UciConnector
 
 	// The engine process's own Win32 handle (PROCESS_TERMINATE), so Kill() can stop it from
 	// another thread without touching QProcess, which belongs to the engine thread.
-	std::mutex _processMutex;       // guards _processHandle
-	void* _processHandle = nullptr; // nullptr when not open
-	void OpenProcessHandle();       // after a successful start (engine thread)
-	void CloseProcessHandle();      // called with the lock released for the OS call
+	struct ProcessHandleDeleter { void operator()(void* handle) const; };
+	std::mutex _processMutex; // guards _processHandle
+	std::unique_ptr<void, ProcessHandleDeleter> _processHandle; // owns CloseHandle
+	void OpenProcessHandle();  // after a successful start (engine thread)
+	void CloseProcessHandle(); // takes the lock; the handle is closed inside `operator()`
 
 	void Trace(const std::string& line);
 

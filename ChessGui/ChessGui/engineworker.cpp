@@ -11,8 +11,8 @@ EngineWorker::EngineWorker(Chess::EngineLevel level, Chess::PositionMode mode, Q
 void EngineWorker::killEngine()
 {
     _abandoned.store(true);
-    if (auto* connector = _connector.load())
-        connector->Kill();
+    if (auto* player = _playerForKill.load())
+        player->KillEngine();
 }
 
 // Runs on the engine thread. ChessEnginePlayer (and its QProcess) are created here
@@ -25,7 +25,9 @@ void EngineWorker::findMove(int request, const Chess::MovesHistory& history)
     try {
         if (!_enginePlayer) {
             _enginePlayer = std::make_shared<Chess::ChessEnginePlayer>(_level, _mode);
-            _connector.store(_enginePlayer->Connector());
+            _playerForKill.store(_enginePlayer.get());
+            // FindMove restarts the engine itself when it died; that start must give up too.
+            _enginePlayer->SetCancelCheck([this] { return _abandoned.load(); });
         }
         if (_abandoned.load())
             return; // stopped while the engine was starting

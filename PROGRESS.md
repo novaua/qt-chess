@@ -8,14 +8,27 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ### What was done
 - The `robot` scene — it ends a game while the engine is still thinking — crashed at shutdown in **2 of 3** offscreen runs: `QThread: Destroyed while thread '' is still running`. The steps: `stopEngineThread()` called `killEngine()` → `QProcess::kill()`/`state()` **from the GUI thread** (QProcess is thread-affine), which could fail to unblock the engine thread's UCI read; after `wait(3000)` it deleted the `QThread` anyway, and Qt aborts on a running thread.
-- **`UciConnector::Kill()`** now terminates the engine through its own Win32 process handle: `OpenProcess(PROCESS_TERMINATE)` after a successful start, `TerminateProcess` on Kill, `CloseHandle` on restart/destruction. The handle sits behind a mutex; QProcess is never touched from another thread. A stale pid can't kill an unrelated process (the handle pins the process object).
-- **`EngineWorker`:** `killEngine()` sets an `_abandoned` atomic and kills through an atomic `UciConnector*` stored when the player is created (the shared_ptr is no longer read from the GUI thread). `findMove()` gives up before creating the engine and again before searching if the request was abandoned, so a request that had not reached the engine doesn't start a search.
-- **`stopEngineThread()`:** kill → `quit()` → wait 5 s; if still running, `terminate()` + wait 2 s; if it still runs, detach the `QThread` (`setParent(nullptr)`) and leave it — deleting a running thread aborts the process. The thinking state is cleared on every path.
+- **`UciConnector::Kill()`** now terminates the engine through its own Win32 process handle: `OpenProcess(PROCESS_TERMINATE)` after a successful start, `TerminateProcess` on Kill, `CloseHandle` on restart/destruction. The handle is owned by a `std::unique_ptr` with a `CloseHandle` deleter and sits behind a mutex; QProcess is never touched from another thread, and a failed `OpenProcess`/`TerminateProcess` is logged. A stale pid can't kill an unrelated process (the handle pins the process object).
+- **`EngineWorker`:** `killEngine()` sets an `_abandoned` atomic and calls the player's thread-safe `KillEngine()` through an atomic player pointer stored when the player is created (no shared_ptr read from the GUI thread). `findMove()` gives up before creating the engine and again before searching; `ChessEnginePlayer::FindMove` checks the same flag after it restarts a dead engine, so a restart cannot slip through a stop.
+- **`stopEngineThread()`:** kill → `quit()` → wait 3 s. If it doesn't stop, the thread is **left behind** (`setParent(nullptr)`, pointers dropped) — never `QThread::terminate()`: TerminateThread can kill the thread inside the heap or the log lock and leave it held. The thinking state is cleared on both paths.
+- **`UciConnector::Init()`**'s `uci`/`uciok` handshake now has a 10 s deadline (it previously looped forever on an engine that starts but never answers — a thread that could not be stopped cleanly).
+- New test `EngineWorkerTest.Kill_StopsAThinkingWorker_FromAnotherThread_Test`: the worker on its own `QThread`, a 2.5 s search, `killEngine()` from the test thread, the thread must exit within 2.5 s.
 - `ChessEnginePlayer::KillEngine()` stays as the thread-safe wrapper the engine tests use.
-- Verified: `robot` scene **5/5** offscreen runs pass (before: 1/3); Debug and Release build; ChessTests 111, ChessQtTests 110 pass in both.
+- Verified: `robot` scene **5/5** offscreen runs pass (before: 1/3); Debug and Release build; ChessTests 111, ChessQtTests **111** (the new test) pass in both.
+
+### Code review (medium, same branch)
+14 findings; fixed:
+- **`QThread::terminate()` removed** — TerminateThread can leave the CRT heap or `AppLog`'s mutex locked (the GUI thread then hangs); the leave-behind path is now the only fallback, and both stop paths share one cleanup tail.
+- The terminate path's worker/process leak is gone with it.
+- **Stop during Init/restart**: the cancel check inside `FindMove` closes the window where a restart started after `killEngine()`.
+- **A hung handshake** no longer lasts forever (10 s deadline).
+- **Silent handle failures** are logged (`OpenProcess` pid + error, `TerminateProcess` error).
+- **Raw `HANDLE` as `void*`** replaced by a `std::unique_ptr` with a `CloseHandle` deleter.
+- **No automated test** for the cross-thread kill — added.
+Not changed (with reasons): the GUI can still wait up to 3 s when the kill misses (the engine process normally dies in ms; the alternative, `terminate()`, is worse); on non-Windows `Kill()` is a no-op (the app is Windows-only); the public `Connector()` accessor was removed in favour of the atomic player pointer.
 
 ### Where to continue
-- **BL-14 step 4** (`resultOnIdle_311026`, not pushed yet) must be rebased onto this and its screenshot check re-run; then step 5 (the Lichess opponent through the gate).
+- **BL-15 must be merged (or explicitly approved) before BL-14 step 4 is rebased onto it** (CLAUDE.md's unmerged-dependency rule). Step 4 (`resultOnIdle_311026`) is committed locally and waits for that; then its screenshot check is re-run, then step 5 (the Lichess opponent through the gate).
 - The real-window screenshot comparison (step 4) still waits for the screen to be unlocked.
 
 ## 2026-10-31 — Debug crash fixed: the log handler wrote from two threads (branch: logRaceFix_311026)

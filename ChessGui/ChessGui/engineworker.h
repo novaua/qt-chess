@@ -26,10 +26,10 @@ class EngineWorker : public QObject
     Chess::PositionMode _mode;
 
     // killEngine() runs on the GUI thread while findMove() may be creating the player here: keep
-    // the pieces it needs in atomics. _connector points into _enginePlayer (stable until the worker
-    // is destroyed on this thread after it stops).
+    // the pieces it needs in atomics. _playerForKill is owned by _enginePlayer (stable until the
+    // worker is destroyed on this thread after it stops).
     std::atomic<bool> _abandoned{false};
-    std::atomic<UciConnector*> _connector{nullptr};
+    std::atomic<Chess::ChessEnginePlayer*> _playerForKill{nullptr};
 
 public:
     explicit EngineWorker(Chess::EngineLevel level = Chess::EngineLevel{3},

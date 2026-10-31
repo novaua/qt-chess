@@ -47,6 +47,8 @@ std::string ChessEnginePlayer::FindMove(const MovesHistory& history)
 	// instead of failing every following move with an empty response.
 	if (!_connector->IsRunning())
 		StartEngine();
+	if (_cancelled && _cancelled())
+		throw std::logic_error("engine request cancelled");
 
 	StartPosMoveRequest req;
 
