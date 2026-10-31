@@ -39,7 +39,7 @@ Not changed (with reasons): the GUI can still wait up to 3 s when the kill misse
   - Undo after mate/resign still clears the pending result and hides the card.
 - `ScreenshotScene`: a finished game's ready delay is 2000 ms (the card now comes after the settle + beat).
 - Verified with the Debug build **offscreen** (the screen was locked): `result`, `ended` and `robot` logs show result → page settle (`openTimer` at 1 s) → `boardIdle` → card 600 ms later → screenshot; the `result` and `robot` frames were inspected (card, mate, flagged king correct). ChessTests 111, ChessQtTests 110 pass in Debug and Release.
-- **Still to check:** the real-window light/dark screenshot comparison (`Take-Screenshot.ps1 -Scene all`, `-Scene all -Dark`, `-Scene robot`, then `Compare-Screenshots.ps1`) — offscreen renders differ from the real-window baselines, so the comparison must wait until the screen is unlocked. The `robot` scene also hits **BL-15** at shutdown while locked (2 of 3 offscreen runs: `QThread: Destroyed while thread '' is still running`, the scene ends the game while the engine thinks); fixing BL-15 is the next task.
+- **Real-window comparison done after the unlock:** `Take-Screenshot.ps1 -Scene all`, `-Scene all -Dark` and `-Scene robot` on this branch, then `Compare-Screenshots.ps1`: **49 compared, 0 failed** (`result`/`result-dark` show the card over the settled board, `robot` too). The `about` pair failed at 0.09 % first — only the build timestamp of the fresh build (`Version 0.1.0 Build Oct 31, 2026, 4:13:12`) — and both were re-accepted with `-Update -Name 'about*'` (local baselines). The `robot` scene passed in a real window this run; the BL-15 shutdown crash is intermittent on this branch, so it is re-run after the rebase.
 
 ### Code review (medium, same branch)
 3 findings, all fixed:
@@ -48,8 +48,7 @@ Not changed (with reasons): the GUI can still wait up to 3 s when the kill misse
 - **ScreenshotScene guessed the card timing** (2000 ms): it now polls `_resultShown` instead, so it grabs only once the card is actually up.
 
 ### Where to continue
-- **BL-15 first** (branch `engineKillFix_311026`): the robot scene reproduces the shutdown crash; fix the engine teardown before re-running the robot scene and the screenshot comparison.
-- **After unlocking and BL-15:** run the three screenshot commands above and the comparison; the expected change is none (same card, later by ~1 s; the `result`/`ended`/`robot` scenes still show it).
+- **BL-15 first** (branch `engineKillFix_311026`, PR #104, CI green): the user merges it, then this branch is rebased onto the updated `develop` (CLAUDE.md's unmerged-dependency rule), rebuilt, and the `robot` scene re-run (it ends the game while the engine thinks — the BL-15 crash path).
 - **Step 5**: the Lichess opponent's moves through the gate (`push(..., Source::Online)`, `releaseBatch` for a resync, `moveShown` after applying them).
 - Manual checks for step 3 are still open (see the step-3 entry below).
 
