@@ -95,7 +95,12 @@ Page {
             page.sheetOpen = false
         }
         function onPlayerPlaysWhiteChanged() { page._facePlayer() }
-        function onReviewStateChanged() { page._reportSettled() }   // the board shows an earlier move
+        function onReviewStateChanged() {
+            page._reportSettled()   // the board shows an earlier move
+            // No live animation to wait for while reviewing: a result that arrives then shows now.
+            if (page._resultPending && ChessConnector.ReviewMode)
+                page._showResultSoon()
+        }
         // Undo after mate / resign vs Robot resumes the game: the result goes away again.
         function onGameResultChanged() {
             if (ChessConnector.GameResult !== "") {
@@ -118,7 +123,8 @@ Page {
         resultTimer.restart()
     }
     function _resultIdleCheck() {
-        if (page._resultPending && ChessConnector.isBoardIdle())
+        // While reviewing, the gate deliberately stays not-ready: the card must not wait for it.
+        if (page._resultPending && (ChessConnector.isBoardIdle() || ChessConnector.ReviewMode))
             page._showResultSoon()
     }
 

@@ -278,5 +278,31 @@ namespace MoveGateTests
 			_gate.tick();
 			Assert::AreEqual(2, _idle);
 		}
+
+		// Reduce animations switched off after the idle edge (a longer slide for the same move):
+		// the gate is busy again and must emit the idle edge once more, or a consumer waiting for
+		// it (the result card) would never be woken.
+		TEST_METHOD(RetimingAfterIdleEmitsTheNextIdle)
+		{
+			setTiming(0, 150, 400);
+			ready();
+			_now = 1000;
+			_gate.moveShown(true); // busy until 1150
+			_now = 1150;
+			_gate.tick();
+			Assert::AreEqual(2, _idle);
+			Assert::IsTrue(_gate.isIdle());
+
+			setTiming(250, 150, 400); // the same shown move: busy until 1400 now
+			Assert::IsFalse(_gate.isIdle());
+
+			_now = 1399;
+			_gate.tick();
+			Assert::AreEqual(2, _idle);
+
+			_now = 1400;
+			_gate.tick();
+			Assert::AreEqual(3, _idle);
+		}
 	};
 }
