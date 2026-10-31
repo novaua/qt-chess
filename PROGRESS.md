@@ -4,6 +4,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-31 — Debug crash fixed: the log handler wrote from two threads (branch: logRaceFix_311026)
+
+### What was done
+- The owner's **Debug** build crashed during a normal robot game: Qt's `ASSERT: "bytes <= bufferSize"` in `QRingBuffer::free()` (`qringbuffer.cpp:76`, Qt 6.12.0). The screenshot, dump analysis and a standalone repro are in [`docs/bugs/2026-10-31-qringbuffer-assert-crash.md`](docs/bugs/2026-10-31-qringbuffer-assert-crash.md).
+- **Dump:** the faulting thread was the engine worker (`0x476c0`), inside `EngineWorker::findMove` → the Qt read path of its `QProcess`; no `stopEngineThread`/`killEngine` frames. **Log:** in 1,985 lines there was exactly one duplicated consecutive line — `ask: request 37 posted` twice — at the crash moment, i.e. the GUI and engine threads wrote the log at the same time. Missing request numbers (4, 8, 11) show the owner pressing Undo while robot answers were held.
+- **Root cause:** `customLogMessageHandler()` writes the shared `g_logFile` with a `QTextStream`, and Qt calls message handlers from any thread without serializing them. Two streams writing the same `QFile` corrupt the heap; the corruption surfaced as the ring-buffer assert in the engine thread. In Release there is no assert, so it would be silent.
+- **Reproduced:** a standalone Qt console program with the same handler and two logging threads dies with `STATUS_HEAP_CORRUPTION` after 4 lines, duplicate line included; with a `QMutex` + flush around the write it writes 40,001 intact lines and exits cleanly.
+- **Fix:** `QMutex g_logMutex` + `QMutexLocker` around the write, and `g_logFile->flush()` per line so a crash keeps the last lines.
+- Debug and Release build; ChessTests 111, ChessQtTests 109 pass; `home` and `robot` scenes unchanged.
+
+### Where to continue
+- **The owner re-tests the Debug build**: normal robot play, pressing Undo often; the duplicated log lines and the assert should be gone. The stress program in the report is the regression test.
+- **BL-15 (new, TASKS):** `stopEngineThread()` still calls `QProcess::kill()`/`state()` from the GUI thread while the engine thread uses the same `QProcess`, reads `_enginePlayer` unsynchronized, and deletes the thread even if `wait(3000)` timed out — a separate cross-thread hazard, documented in the crash report.
+- BL-14 step 4 is next (PR #102 is merged).
 ## 2026-10-30 — BL-14 step 3: the robot through the gate (branch: robotThroughGate_301026)
 
 ### What was done

@@ -21,6 +21,7 @@
 #include <QTextStream>
 #include <QDateTime>
 #include <QSettings>
+#include <QMutex>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -29,14 +30,20 @@
 #include <windows.h>
 
 static QFile* g_logFile = nullptr;
+// Qt calls a message handler from any thread and does not serialize the calls. The GUI thread
+// logs while the engine thread logs the robot's requests; two QTextStreams writing the same QFile
+// at once corrupt the heap (crash 2026-10-31: QRingBuffer assert on the engine thread).
+static QMutex g_logMutex;
 
 void customLogMessageHandler(QtMsgType type, const QMessageLogContext&, const QString& msg)
 {
 	static const char* typeStr[] = { "DEBUG", "WARN ", "CRIT ", "FATAL", "INFO " };
 	if (g_logFile) {
+		QMutexLocker lock(&g_logMutex);
 		QTextStream(g_logFile)
 		    << '[' << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
 		    << "] [" << typeStr[type] << "] " << msg << '\n';
+		g_logFile->flush(); // a crash must not lose the last lines
 	}
 	OutputDebugStringW(reinterpret_cast<const WCHAR*>((msg + u'\n').utf16()));
 }
