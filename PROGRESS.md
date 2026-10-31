@@ -4,6 +4,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-10-31 — BL-15 fixed: the engine thread stops without crossing threads (branch: engineKillFix_311026)
+
+### What was done
+- The `robot` scene — it ends a game while the engine is still thinking — crashed at shutdown in **2 of 3** offscreen runs: `QThread: Destroyed while thread '' is still running`. The steps: `stopEngineThread()` called `killEngine()` → `QProcess::kill()`/`state()` **from the GUI thread** (QProcess is thread-affine), which could fail to unblock the engine thread's UCI read; after `wait(3000)` it deleted the `QThread` anyway, and Qt aborts on a running thread.
+- **`UciConnector::Kill()`** now terminates the engine through its own Win32 process handle: `OpenProcess(PROCESS_TERMINATE)` after a successful start, `TerminateProcess` on Kill, `CloseHandle` on restart/destruction. The handle sits behind a mutex; QProcess is never touched from another thread. A stale pid can't kill an unrelated process (the handle pins the process object).
+- **`EngineWorker`:** `killEngine()` sets an `_abandoned` atomic and kills through an atomic `UciConnector*` stored when the player is created (the shared_ptr is no longer read from the GUI thread). `findMove()` gives up before creating the engine and again before searching if the request was abandoned, so a request that had not reached the engine doesn't start a search.
+- **`stopEngineThread()`:** kill → `quit()` → wait 5 s; if still running, `terminate()` + wait 2 s; if it still runs, detach the `QThread` (`setParent(nullptr)`) and leave it — deleting a running thread aborts the process. The thinking state is cleared on every path.
+- `ChessEnginePlayer::KillEngine()` stays as the thread-safe wrapper the engine tests use.
+- Verified: `robot` scene **5/5** offscreen runs pass (before: 1/3); Debug and Release build; ChessTests 111, ChessQtTests 110 pass in both.
+
+### Where to continue
+- **BL-14 step 4** (`resultOnIdle_311026`, not pushed yet) must be rebased onto this and its screenshot check re-run; then step 5 (the Lichess opponent through the gate).
+- The real-window screenshot comparison (step 4) still waits for the screen to be unlocked.
+
 ## 2026-10-31 — Debug crash fixed: the log handler wrote from two threads (branch: logRaceFix_311026)
 
 ### What was done

@@ -1005,13 +1005,27 @@ void ChessConnector::stopEngineThread()
 	++_engineRequest; // an answer still on its way belongs to the old game: drop it
 	ENGINE_TRACE("stop thread: was thinking" << _engineThinking << ", next answer must be" << _engineRequest + 1);
 
-	// Kill the stockfish process so any blocking waitForReadyRead() in the engine
-	// thread returns immediately, allowing the thread to exit cleanly.
-	// QProcess::kill() → TerminateProcess() is an OS-level call, safe cross-thread.
+	// Stop the search: the process is terminated through its own handle (BL-15); a request that
+	// has not started yet gives up. Never touch QProcess here: it belongs to the engine thread.
 	_engineWorker->killEngine();
-
 	_engineThread->quit();
-	_engineThread->wait(3000);
+
+	// Give the thread time to leave a UCI wait. If it doesn't, terminate it — and if even that
+	// fails, leave the thread alone: destroying a running QThread aborts the process (BL-15).
+	if (!_engineThread->wait(5000)) {
+		qWarning() << "Engine thread did not stop within 5 s; terminating it";
+		_engineThread->terminate();
+		if (!_engineThread->wait(2000)) {
+			qWarning() << "Engine thread is still running; leaving it behind";
+			_engineThread->setParent(nullptr); // the connector must not delete it either
+			_engineThread = nullptr;
+			_engineWorker = nullptr;
+			_engineThinking = false;
+			_engineAutoPlay = false;
+			emit engineThinkingChanged();
+			return;
+		}
+	}
 
 	// _engineWorker was deleted on the engine thread via the finished->deleteLater
 	// connection above. Just null the pointer here.

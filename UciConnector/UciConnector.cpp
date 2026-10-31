@@ -17,6 +17,11 @@
 #include <fstream>
 #include <format>
 
+#ifdef Q_OS_WIN
+#define NOMINMAX // keep std::min/std::max usable below
+#include <windows.h>
+#endif
+
 const QString UciEngineProgrammExe = "stockfish.exe";
 
 const std::string UciInitCommand = "uci";
@@ -80,6 +85,7 @@ void UciConnector::Init()
 {
 	// Init() is also the restart path after the engine exited (Stockfish 18+ quits on
 	// an illegal move in "position ... moves"), so drop any previous process state.
+	CloseProcessHandle();
 	if (_uciEngine->state() != QProcess::NotRunning) {
 		_uciEngine->kill();
 		_uciEngine->waitForFinished(1000);
@@ -96,6 +102,7 @@ void UciConnector::Init()
 		if (_uciEngine->waitForStarted(5000)) {
 			started = true;
 			_enginePath = sfPath;
+			OpenProcessHandle();
 			Trace("-- engine started: " + _enginePath);
 			break;
 		}
@@ -248,11 +255,43 @@ bool UciConnector::NewGame()
 
 void UciConnector::Kill()
 {
-	// Safe to call cross-thread: TerminateProcess() is an OS-level call.
-	// Causes any blocking waitForReadyRead() in the engine thread to return,
-	// allowing the thread to exit cleanly before we destroy it.
-	if (_uciEngine && _uciEngine->state() != QProcess::NotRunning)
-		_uciEngine->kill();
+	// Called from the GUI thread while the engine thread may be inside a blocking UCI read.
+	// Terminate the process through its own Win32 handle: QProcess is thread-affine and must not be
+	// touched here (2026-10-31, BL-15). The lock keeps a concurrent restart from closing the handle
+	// underneath TerminateProcess(); the engine thread closes it.
+	std::lock_guard<std::mutex> lock(_processMutex);
+#ifdef Q_OS_WIN
+	if (_processHandle)
+		TerminateProcess(static_cast<HANDLE>(_processHandle), 1);
+#endif
+}
+
+void UciConnector::OpenProcessHandle()
+{
+	CloseProcessHandle();
+#ifdef Q_OS_WIN
+	if (!_uciEngine || _uciEngine->state() == QProcess::NotRunning)
+		return;
+	const qint64 pid = _uciEngine->processId();
+	if (pid <= 0)
+		return;
+	HANDLE handle = OpenProcess(PROCESS_TERMINATE, FALSE, static_cast<DWORD>(pid));
+	if (!handle)
+		return;
+	std::lock_guard<std::mutex> lock(_processMutex);
+	_processHandle = handle;
+#endif
+}
+
+void UciConnector::CloseProcessHandle()
+{
+	std::lock_guard<std::mutex> lock(_processMutex);
+#ifdef Q_OS_WIN
+	if (_processHandle) {
+		CloseHandle(static_cast<HANDLE>(_processHandle));
+		_processHandle = nullptr;
+	}
+#endif
 }
 
 UciConnector::~UciConnector()
@@ -264,6 +303,7 @@ UciConnector::~UciConnector()
 			_uciEngine->waitForFinished(1000);
 		}
 	}
+	CloseProcessHandle();
 }
 
 std::string UciConnector::GetOption(const std::string& op)

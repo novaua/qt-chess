@@ -26,7 +26,11 @@ namespace Chess {
 		// The engine's move in UCI notation (e.g. "e7e8q") for the game with these moves
 		// from the start position.
 		std::string FindMove(const MovesHistory& history);
+		// Stops the engine process; thread-safe (the worker calls it through Connector()->Kill()).
 		void KillEngine();
+
+		// The connector that owns the engine process.
+		UciConnector* Connector() const { return _connector.get(); }
 
 		// Position, move list and engine state as text, to log when a move request fails.
 		std::string DebugDump(const MovesHistory& history);

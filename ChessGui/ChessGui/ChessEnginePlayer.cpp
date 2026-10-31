@@ -78,7 +78,7 @@ std::string ChessEnginePlayer::FindMove(const MovesHistory& history)
 
 void ChessEnginePlayer::KillEngine()
 {
-	_connector->Kill();
+	_connector->Kill(); // thread-safe: terminates the process, never touches QProcess
 }
 
 std::string ChessEnginePlayer::DebugDump(const MovesHistory& history)

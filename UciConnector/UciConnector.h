@@ -4,6 +4,7 @@
 #include <chrono>
 #include <deque>
 #include <map>
+#include <mutex>
 #include <random>
 #include <vector>
 
@@ -49,6 +50,13 @@ class UciConnector
 	std::map<std::string, std::string> _opt;
 	std::string _enginePath;
 	std::deque<std::string> _traffic; // last lines sent (">>") and received ("<<"), for DebugState()
+
+	// The engine process's own Win32 handle (PROCESS_TERMINATE), so Kill() can stop it from
+	// another thread without touching QProcess, which belongs to the engine thread.
+	std::mutex _processMutex;       // guards _processHandle
+	void* _processHandle = nullptr; // nullptr when not open
+	void OpenProcessHandle();       // after a successful start (engine thread)
+	void CloseProcessHandle();      // called with the lock released for the OS call
 
 	void Trace(const std::string& line);
 
