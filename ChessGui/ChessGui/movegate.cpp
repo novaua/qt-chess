@@ -115,6 +115,7 @@ void MoveGate::tick()
 	}
 
 	if (now < _busyUntil) {
+		_wasIdle = false; // busy again (e.g. a longer slide after retiming): the edge must fire again
 		_timer.start((int)(_busyUntil - now));
 		return;
 	}

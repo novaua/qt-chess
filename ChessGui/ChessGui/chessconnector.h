@@ -187,6 +187,8 @@ public slots:
 	Q_INVOKABLE void setBoardSettled(bool settled);
 	// Theme.slow, or 0 with Reduce animations: how long a piece slides.
 	Q_INVOKABLE void setMoveTiming(int slideMs);
+	// The gate: the page has settled, it shows the live position, and no move waits to be shown.
+	Q_INVOKABLE bool isBoardIdle() const;
 
 	void endGame();              // leave the game for Home (autosaves an unfinished local game)
 	Q_INVOKABLE void switchUser(); // endGame(), then log out

@@ -112,9 +112,28 @@ Item {
     }
 
     function startReadyTimer() {
-        // A finished game shows its result only after GamePage's resultTimer (1600 ms).
-        readyTimer.interval = ChessConnector.GameResult !== "" ? 1700 : 0
-        readyTimer.start()
+        // A finished game: wait until the result card is actually up, not for a guessed delay.
+        if (ChessConnector.GameResult !== "") {
+            resultCardTimer.start()
+        } else {
+            readyTimer.interval = 0
+            readyTimer.start()
+        }
+    }
+
+    // The card comes after the page settles and the board idles (GamePage's chain); poll for it.
+    Timer {
+        id: resultCardTimer
+        interval: 50
+        repeat: true
+        onTriggered: {
+            const page = pages.currentItem
+            if (page && page._resultShown) {
+                stop()
+                readyTimer.interval = 0
+                readyTimer.start()
+            }
+        }
     }
 
     Connections {

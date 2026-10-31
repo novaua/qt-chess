@@ -25,7 +25,8 @@ Page {
 
     readonly property string mode: ChessConnector.GameMode
     readonly property bool gameOver: ChessConnector.GameResult !== ""
-    property bool _resultShown: false       // a moment after the game ends, so the last move is seen first
+    property bool _resultShown: false       // a beat after the game ends and the board has settled
+    property bool _resultPending: false     // the result waits for the board to settle (gate idle)
     property bool _resultCardClosed: false
     readonly property bool pieceDragging: chessBoard.dragging   // Esc puts the piece back, doesn't leave
     property alias board: chessBoard                            // for ScreenshotScene's drag scene
@@ -51,6 +52,8 @@ Page {
     Connections {
         target: ChessConnector
         function onBoardIdle() {
+            if (page._resultPending)
+                page._showResultSoon()   // the mating move has finished its slide
             if (page._checkAsked) return
             page._checkAsked = true
             if (ChessConnector.MoveCount === page._movesWhenOpened
@@ -92,22 +95,42 @@ Page {
             page.sheetOpen = false
         }
         function onPlayerPlaysWhiteChanged() { page._facePlayer() }
-        function onReviewStateChanged() { page._reportSettled() }   // the board shows an earlier move
+        function onReviewStateChanged() {
+            page._reportSettled()   // the board shows an earlier move
+            // No live animation to wait for while reviewing: a result that arrives then shows now.
+            if (page._resultPending && ChessConnector.ReviewMode)
+                page._showResultSoon()
+        }
         // Undo after mate / resign vs Robot resumes the game: the result goes away again.
         function onGameResultChanged() {
             if (ChessConnector.GameResult !== "") {
                 page._resultCardClosed = false
-                resultTimer.restart()
+                page._resultPending = true
+                // A resignation, a draw or a timeout comes with no move; a mate comes with one,
+                // which marks the board busy in the same call. Ask on the next pass, once it has.
+                Qt.callLater(page._resultIdleCheck)
             } else {
                 resultTimer.stop()
+                page._resultPending = false
                 page._resultShown = false
             }
         }
     }
 
+    // The card comes a beat after the board has settled, so the last move (and a mate) is seen first.
+    function _showResultSoon() {
+        page._resultPending = false
+        resultTimer.restart()
+    }
+    function _resultIdleCheck() {
+        // While reviewing, the gate deliberately stays not-ready: the card must not wait for it.
+        if (page._resultPending && (ChessConnector.isBoardIdle() || ChessConnector.ReviewMode))
+            page._showResultSoon()
+    }
+
     Timer {
         id: resultTimer
-        interval: 1600
+        interval: 600
         onTriggered: page._resultShown = true
     }
 
