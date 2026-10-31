@@ -14,6 +14,7 @@
 #include "Game.h"
 #include "boardpieces.h"
 #include "movelistmodel.h"
+#include "movegate.h"
 #include "engineworker.h"
 #include "AppConfig.h"
 #include "AvatarProvider.h"
@@ -172,6 +173,7 @@ signals:
 	void pgnExported(bool ok, const QString& path);
 
 	void screenshotSceneReady(); // QML has set up the --screenshot scene: grab the window
+	void boardIdle();            // the page has settled and no move waits to be shown (BL-14)
 
 public slots:
 	// One call per user action (CLAUDE.md "Key Conventions"). A Lichess game starts and ends
@@ -181,6 +183,10 @@ public slots:
 	Q_INVOKABLE bool continueGame();
 	void setUseFen(bool v);
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
+	// The game page has settled (open for a second, the board not turning): a held move may show.
+	Q_INVOKABLE void setBoardSettled(bool settled);
+	// Theme.slow, or 0 with Reduce animations: how long a piece slides.
+	Q_INVOKABLE void setMoveTiming(int slideMs);
 
 	void endGame();              // leave the game for Home (autosaves an unfinished local game)
 	Q_INVOKABLE void switchUser(); // endGame(), then log out
@@ -245,6 +251,8 @@ private:
 	std::shared_ptr<Chess::Game> shownGame() const; // the position on the board: a replay while reviewing
 	void schedulePiecesSync();  // update Pieces once, after the current change is complete
 	void onHumanMoveDone();
+	void playRobotMove(const QString& uciMove); // the gate released it: play it on the GUI thread
+	void onGateRelease(const QString& uciMove, MoveGate::Source source);
 	void emitBoardState(); // after _reviewIndex changed
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
 	void buildFullHistoryCache();
@@ -277,6 +285,7 @@ private:
 	QString         _onlineGameId;
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
+	MoveGate* _gate = nullptr; // holds the robot's answer until the board is idle (BL-14)
 	bool _engineThinking = false;
 	int  _engineRequest  = 0; // the engine answer we wait for; older answers are dropped
 	bool _engineAutoPlay = false;

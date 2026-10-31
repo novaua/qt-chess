@@ -79,6 +79,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
 - **`chessconnector.h/cpp`** — the C++/QML bridge for the chess game; exposes `Q_PROPERTY` bindings and slots that QML calls
 - **`boardpieces.h/cpp`** — `BoardPieces`, the pieces model behind `ChessConnector.Pieces`: one row per piece that keeps its id while it moves (`BoardDiff`), so the board can slide it
 - **`movelistmodel.h/cpp`** — `MoveListModel`, the move list behind `ChessConnector.MoveHistory`: one row per move number, and a move changes only its row instead of rebuilding the list
+- **`movegate.h/cpp`** — `MoveGate`, which holds the moves from outside (the robot's answer, later the Lichess opponent's) and releases them one at a time when the board is idle; `ChessConnector` owns one, `GamePage` reports the board settled and the slide time
 - **`frametrace.h/cpp`** — `FrameTrace`, frame timing in the app log, off unless `QT_LOGGING_RULES="chess.frames.debug=true"` (BL-14)
 - **`UserManager`**, **`LichessClient`** (LiChessConnector project), **`AvatarProvider`**, **`AppInfo`** (version, data/log folders, the engine's name) — app services without chess logic, also visible to QML (see Key Conventions)
 - QML files in `ChessGui/ChessGui/qml/`:

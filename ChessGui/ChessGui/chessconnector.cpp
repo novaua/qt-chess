@@ -46,6 +46,11 @@ ChessConnector::ChessConnector(QObject* parent)
 {
 	_pieces = new BoardPieces(this);
 	_moveList = new MoveListModel(this);
+	_gate = new MoveGate(this);
+	connect(_gate, &MoveGate::release, this, [this](const QString& uciMove, MoveGate::Source source) {
+		onGateRelease(uciMove, source);
+	});
+	connect(_gate, &MoveGate::idle, this, &ChessConnector::boardIdle);
 	_pieces->sync(_game->GetCurrentBoard());
 
 	_game->RegisterBoardChanged(
@@ -131,6 +136,11 @@ bool ChessConnector::canPlayerMove() const
 	// In online games only allow moving when it's the local player's turn.
 	if (!_onlineGameId.isEmpty() && _game->IsWhiteMove() != _config.playerPlaysWhite)
 		return false;
+
+	// Vs the robot, only the player's own pieces: if its answer never came, the human must not be
+	// able to move the robot's pieces and silently swap the sides.
+	if (_wasVsComputer && _game->IsWhiteMove() != _config.playerPlaysWhite)
+		return false;
 	return true;
 }
 
@@ -214,6 +224,7 @@ void ChessConnector::pawnPromote(int index, const QString& piece)
 void ChessConnector::onHumanMoveDone()
 {
 	EmitMoveCountUpdates();
+	_gate->moveShown(); // the player's move is on the board: the robot's answer waits for it
 
 	if (!_onlineGameId.isEmpty() && _lichessClient) {
 		const auto& rec = _game->GetGameRecord();
@@ -801,6 +812,7 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 // Called whenever a new game starts (local, vs Robot, continued, or online).
 void ChessConnector::beginGame(bool online)
 {
+	_gate->clear(); // a held move belongs to the game being left
 	_gameDate = QDate::currentDate();
 	setFlaggedKing(-1);
 	_resultRecorded = false;
@@ -986,6 +998,7 @@ void ChessConnector::startEngineThread(Chess::EngineLevel level)
 
 void ChessConnector::stopEngineThread()
 {
+	_gate->clear(); // an answer waiting for the board belongs to the game being left
 	if (!_engineThread)
 		return;
 
@@ -1035,28 +1048,56 @@ void ChessConnector::onEngineMoveFound(int request, const QString& move)
 			<< ", thinking" << _engineThinking);
 		return;
 	}
-	ENGINE_TRACE("answer" << move << "to request" << request << "playing");
+	ENGINE_TRACE("answer" << move << "to request" << request << "held until the board is idle");
+	_gate->push(move, MoveGate::Source::Robot); // playRobotMove() plays it when the board is idle
+}
+
+// The gate released the robot's answer: play it on the GUI thread, which owns _game (BL-09).
+// EngineThinking stays true until here, so the player cannot move while the answer waits.
+void ChessConnector::playRobotMove(const QString& move)
+{
+	ENGINE_TRACE("answer" << move << "playing");
 	try {
 		_game->DoMove(Chess::Move::Parse(move.toStdString()));
 	}
 	catch (const std::exception& ex) {
-		onEngineMoveError(request, QStringLiteral("the engine's move %1 can't be played: %2").arg(move, ex.what()),
+		onEngineMoveError(_engineRequest, QStringLiteral("the engine's move %1 can't be played: %2").arg(move, ex.what()),
 			QStringLiteral("fen: ") + QString::fromStdString(_game->MakeFen()));
 		return;
 	}
 	_engineThinking = false;
 	emit engineThinkingChanged();
-	ENGINE_TRACE("answer to request" << request << "played, the player's turn");
+	ENGINE_TRACE("answer" << move << "played, the player's turn");
 	if (reviewMode()) {
 		_reviewIndex = -1;
 		emitBoardState();
 	}
 	appendMoveToHistory();
 	EmitMoveCountUpdates();
+	_gate->moveShown(true);
 	if (_resignAfterEngineMove) {
 		_resignAfterEngineMove = false;
 		resignGame(); // no-op if the robot's move ended the game
 	}
+}
+
+void ChessConnector::onGateRelease(const QString& uciMove, MoveGate::Source source)
+{
+	if (source == MoveGate::Source::Robot)
+		playRobotMove(uciMove);
+	// The Lichess opponent's moves go through the gate in BL-14 step 5.
+}
+
+void ChessConnector::setBoardSettled(bool settled)
+{
+	_gate->setStageReady(settled);
+}
+
+void ChessConnector::setMoveTiming(int slideMs)
+{
+	auto timing = _gate->timing();
+	timing.slideMs = slideMs;
+	_gate->setTiming(timing);
 }
 
 void ChessConnector::onEngineMoveError(int request, const QString& message, const QString& details)
@@ -1128,6 +1169,7 @@ bool ChessConnector::loadGame()
 	try {
 		if (fileExists(savedGamePath()))
 		{
+			_gate->clear(); // a held move belongs to the game being left
 			const auto info = _userManager ? _userManager->savedGameInfo() : UserManager::GameSaveInfo{};
 			_config.playerPlaysWhite = info.playerPlaysWhite;
 			emit playerPlaysWhiteChanged();
@@ -1174,9 +1216,26 @@ void ChessConnector::movePrev()
 {
 	if (!_player) {
 		if (_engineWorker && !reviewMode()) {
-			if (_engineThinking || _promotionPending) return;
+			if (_engineThinking) {
+				// The robot's answer may be waiting in the gate or still on its way: the takeback
+				// drops it, so stop waiting for it (nothing else would clear the thinking state).
+				// A resignation confirmed while it thought is cancelled by the takeback.
+				_gate->clear();
+				++_engineRequest;
+				_engineThinking = false;
+				_resignAfterEngineMove = false;
+				emit engineThinkingChanged();
+			}
+			if (_promotionPending) return;
 			int count = _game->GetMoveCount();
-			if (count == 0) { emit noMoreMovesNotify(); return; }
+			if (count == 0) {
+				// Nothing to take back. If the answer just dropped was the robot's first move (or
+				// its re-asked first move), ask again; otherwise the robot would never move.
+				if (_game->IsWhiteMove() != _config.playerPlaysWhite)
+					askEngineMove();
+				emit noMoreMovesNotify();
+				return;
+			}
 			// Take back until it is the player's turn: normally the robot's reply and the
 			// player's move; after the player mated the robot, only the player's move.
 			const bool robotToMove = _game->IsWhiteMove() != _config.playerPlaysWhite;
@@ -1192,6 +1251,7 @@ void ChessConnector::movePrev()
 			buildFullHistoryCache();
 			clearPossibleMoves();
 			EmitMoveCountUpdates();
+			_gate->moveShown(); // the undo slides the pieces back: the next answer waits for it
 			// E.g. the robot's own first move was taken back: let it play again.
 			if (_game->IsWhiteMove() != _config.playerPlaysWhite) {
 				askEngineMove();
@@ -1276,6 +1336,9 @@ void ChessConnector::reviewLast() {
 	if (!reviewMode()) return;
 	_reviewIndex = -1;
 	emitBoardState();
+	// The jump back to the live position animates the pieces: a held robot answer (the board wasn't
+	// settled while reviewing) waits for it.
+	_gate->moveShown();
 	emit reviewStateChanged();
 }
 
