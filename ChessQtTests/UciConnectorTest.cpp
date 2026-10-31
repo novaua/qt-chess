@@ -200,6 +200,19 @@ namespace ConnectorTests
 			Assert::IsFalse(response.BestMove.empty(), L"Restarted engine must answer");
 		}
 
+		// Kill() terminates the process behind QProcess's back; IsRunning() must say so at once, or
+		// ChessEnginePlayer::FindMove would send the next request to the dead process instead of
+		// restarting it (BL-15 review addendum).
+		TEST_METHOD(IsRunning_IsFalseRightAfterKill_Test)
+		{
+			Assert::IsTrue(_connector->IsRunning());
+			_connector->Kill();
+			Assert::IsFalse(_connector->IsRunning());
+
+			_connector->Init(); // the recovery FindMove() does
+			Assert::IsTrue(_connector->IsRunning());
+		}
+
 		TEST_METHOD(DebugState_AfterEngineDied_DescribesRequestAndProcess_Test)
 		{
 			_connector->Kill();

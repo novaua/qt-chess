@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <atomic>
 #include "ChessEnginePlayer.h"
 #include "EngineLevel.h"
 
@@ -23,6 +24,12 @@ class EngineWorker : public QObject
     Chess::ChessEnginePlayerAptr _enginePlayer;
     Chess::EngineLevel _level;
     Chess::PositionMode _mode;
+
+    // killEngine() runs on the GUI thread while findMove() may be creating the player here: keep
+    // the pieces it needs in atomics. _playerForKill is owned by _enginePlayer (stable until the
+    // worker is destroyed on this thread after it stops).
+    std::atomic<bool> _abandoned{false};
+    std::atomic<Chess::ChessEnginePlayer*> _playerForKill{nullptr};
 
 public:
     explicit EngineWorker(Chess::EngineLevel level = Chess::EngineLevel{3},

@@ -103,10 +103,14 @@ with a Debug Error (`ASSERT: "size_t(d.size) <= MaxSize"` in Qt's `qbytearray.h:
 of the same corrupted heap), and `vstest` reports no results (exit 3). With the `QMutex` it passes in
 0.7 s. That is the regression guard: if the lock is ever removed, the suite crashes.
 
-## Related, not fixed here
+## Related: BL-15 (fixed on `engineKillFix_311026`)
 
-`ChessConnector::stopEngineThread()` calls `EngineWorker::killEngine()` from the GUI thread, which
-reaches `QProcess::kill()` / `QProcess::state()` while the engine thread uses the same `QProcess`;
-Qt objects are thread-affine, so this is a separate cross-thread hazard (as is the unsynchronized
-`_enginePlayer` shared_ptr), and `stopEngineThread()` deletes the `QThread` even if `wait(3000)`
-times out. Logged as **BL-15** in `TASKS.md`.
+`ChessConnector::stopEngineThread()` called `EngineWorker::killEngine()` from the GUI thread, which
+reached `QProcess::kill()` / `QProcess::state()` while the engine thread used the same `QProcess`;
+Qt objects are thread-affine. It also read the `_enginePlayer` shared_ptr without synchronization
+and deleted the `QThread` even if `wait(3000)` timed out, which aborts the process
+(`QThread: Destroyed while thread '' is still running` — reproduced 2 of 3 runs by the `robot`
+scene, which ends a game while the engine thinks). BL-15 fixed it: the process is terminated through
+its own Win32 handle (never through `QProcess` from another thread), the worker has an abandoned
+flag and an atomic connector pointer, and `stopEngineThread()` waits, terminates, or leaves a
+running thread instead of deleting it. The `robot` scene now passes 5 of 5 runs.

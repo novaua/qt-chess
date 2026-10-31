@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include <CppUnitTest.h>
 #include <CppUnitTestAssert.h>
+#include <QElapsedTimer>
+#include <QThread>
+#include <atomic>
 #include "Game.h"
 #include "ChessEnginePlayer.h"
 #include "engineworker.h"
@@ -94,6 +97,37 @@ namespace EnginePlayerTests
 			Assert::AreEqual(0, found);
 			Assert::AreEqual(3, request);
 			Assert::IsTrue(details.contains("b7a8"), L"the dump lists the moves");
+		}
+
+		// The worker on its own thread, as ChessConnector runs it: killEngine() from another thread
+		// (the GUI thread's stop) must end a blocking search and let the thread exit (BL-15).
+		TEST_METHOD(Kill_StopsAThinkingWorker_FromAnotherThread_Test)
+		{
+			auto* worker = new EngineWorker(EngineLevel{ 5 }); // movetime 2500 ms
+			auto* thread = new QThread();
+			worker->moveToThread(thread);
+			QObject::connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+			thread->start();
+
+			std::atomic<bool> started{ false };
+			const auto history = Play(MateInOne);
+			QMetaObject::invokeMethod(worker, [worker, &started, history] {
+				started = true;
+				worker->findMove(1, history);
+			}, Qt::QueuedConnection);
+
+			// Let the engine start and the search begin, then stop it like the GUI thread does.
+			for (int i = 0; i < 300 && !started.load(); ++i)
+				QThread::msleep(10);
+			QThread::msleep(300);
+			QElapsedTimer timer;
+			timer.start();
+			worker->killEngine();
+			thread->quit();
+
+			Assert::IsTrue(thread->wait(3000), L"the engine thread stopped");
+			Assert::IsTrue(timer.elapsed() < 2500, L"killEngine unblocked the search");
+			delete thread;
 		}
 	};
 }

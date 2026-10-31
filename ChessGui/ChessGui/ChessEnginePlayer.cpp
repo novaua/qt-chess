@@ -47,6 +47,8 @@ std::string ChessEnginePlayer::FindMove(const MovesHistory& history)
 	// instead of failing every following move with an empty response.
 	if (!_connector->IsRunning())
 		StartEngine();
+	if (_cancelled && _cancelled())
+		throw std::logic_error("engine request cancelled");
 
 	StartPosMoveRequest req;
 
@@ -78,7 +80,7 @@ std::string ChessEnginePlayer::FindMove(const MovesHistory& history)
 
 void ChessEnginePlayer::KillEngine()
 {
-	_connector->Kill();
+	_connector->Kill(); // thread-safe: terminates the process, never touches QProcess
 }
 
 std::string ChessEnginePlayer::DebugDump(const MovesHistory& history)

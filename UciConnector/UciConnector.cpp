@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "UciConnector.h"
 #include <QCoreApplication>
+#include <QDebug>
 #include <QProcess>
 #include <QStandardPaths>
 #include <QString>
@@ -16,6 +17,11 @@
 #include <string>
 #include <fstream>
 #include <format>
+
+#ifdef Q_OS_WIN
+#define NOMINMAX // keep std::min/std::max usable below
+#include <windows.h>
+#endif
 
 const QString UciEngineProgrammExe = "stockfish.exe";
 
@@ -80,6 +86,7 @@ void UciConnector::Init()
 {
 	// Init() is also the restart path after the engine exited (Stockfish 18+ quits on
 	// an illegal move in "position ... moves"), so drop any previous process state.
+	CloseProcessHandle();
 	if (_uciEngine->state() != QProcess::NotRunning) {
 		_uciEngine->kill();
 		_uciEngine->waitForFinished(1000);
@@ -96,6 +103,8 @@ void UciConnector::Init()
 		if (_uciEngine->waitForStarted(5000)) {
 			started = true;
 			_enginePath = sfPath;
+			_killed.store(false);
+			OpenProcessHandle();
 			Trace("-- engine started: " + _enginePath);
 			break;
 		}
@@ -111,8 +120,15 @@ void UciConnector::Init()
 
 	sendLine(_uciEngine.get(), UciInitCommand);
 
+	// A process that starts but never sends "uciok" (a wrong executable, a corrupt download) must
+	// not keep the engine thread here forever: bound the whole handshake.
+	const auto handshakeDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
 	while (_uciEngine->state() == QProcess::Running) {
+		if (std::chrono::steady_clock::now() > handshakeDeadline)
+			throw std::runtime_error("UciConnector: the engine did not answer 'uci' within 10 s");
 		std::string line = readLineBlocking(_uciEngine.get(), 5000);
+		if (line.empty())
+			continue; // a read timeout: the deadline above bounds it
 
 		if (line.find(UciOkCommand) != std::string::npos)
 			break;
@@ -230,7 +246,7 @@ bool UciConnector::IsInitialized()
 
 bool UciConnector::IsRunning() const
 {
-	return _uciEngine && _uciEngine->state() == QProcess::Running;
+	return !_killed.load() && _uciEngine && _uciEngine->state() == QProcess::Running;
 }
 
 bool UciConnector::CheckReady()
@@ -246,13 +262,55 @@ bool UciConnector::NewGame()
 	return CheckReady();
 }
 
+void UciConnector::ProcessHandleDeleter::operator()(void* handle) const
+{
+#ifdef Q_OS_WIN
+	if (handle)
+		CloseHandle(static_cast<HANDLE>(handle));
+#else
+	(void)handle;
+#endif
+}
+
 void UciConnector::Kill()
 {
-	// Safe to call cross-thread: TerminateProcess() is an OS-level call.
-	// Causes any blocking waitForReadyRead() in the engine thread to return,
-	// allowing the thread to exit cleanly before we destroy it.
-	if (_uciEngine && _uciEngine->state() != QProcess::NotRunning)
-		_uciEngine->kill();
+	// Called from the GUI thread while the engine thread may be inside a blocking UCI read.
+	// Terminate the process through its own Win32 handle: QProcess is thread-affine and must not be
+	// touched here (2026-10-31, BL-15). The lock keeps a concurrent restart from closing the handle
+	// underneath TerminateProcess(); the engine thread closes it.
+	_killed.store(true); // QProcess may not notice the death until it next polls; IsRunning() must
+	std::lock_guard<std::mutex> lock(_processMutex);
+#ifdef Q_OS_WIN
+	if (!_processHandle)
+		return; // the process already exited, or was never started
+	if (!TerminateProcess(static_cast<HANDLE>(_processHandle.get()), 1))
+		qWarning() << "UciConnector: TerminateProcess failed, error" << int(GetLastError());
+#endif
+}
+
+void UciConnector::OpenProcessHandle()
+{
+	CloseProcessHandle();
+#ifdef Q_OS_WIN
+	if (!_uciEngine || _uciEngine->state() == QProcess::NotRunning)
+		return;
+	const qint64 pid = _uciEngine->processId();
+	if (pid <= 0)
+		return;
+	HANDLE handle = OpenProcess(PROCESS_TERMINATE, FALSE, static_cast<DWORD>(pid));
+	if (!handle) {
+		qWarning() << "UciConnector: OpenProcess failed for pid" << pid << ", error" << int(GetLastError());
+		return;
+	}
+	std::lock_guard<std::mutex> lock(_processMutex);
+	_processHandle.reset(handle);
+#endif
+}
+
+void UciConnector::CloseProcessHandle()
+{
+	std::lock_guard<std::mutex> lock(_processMutex);
+	_processHandle.reset(); // ProcessHandleDeleter closes it (under the lock)
 }
 
 UciConnector::~UciConnector()
@@ -264,6 +322,7 @@ UciConnector::~UciConnector()
 			_uciEngine->waitForFinished(1000);
 		}
 	}
+	CloseProcessHandle();
 }
 
 std::string UciConnector::GetOption(const std::string& op)
