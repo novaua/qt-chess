@@ -358,6 +358,7 @@
     <ClCompile Include="frametrace.cpp" />
     <ClCompile Include="movelistmodel.cpp" />
     <ClCompile Include="movegate.cpp" />
+    <ClCompile Include="applog.cpp" />
     <ClCompile Include="engineworker.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="..\..\ChessCore\stdafx.cpp" />
@@ -374,6 +375,7 @@
     <QtMoc Include="boardpieces.h" />
     <QtMoc Include="movelistmodel.h" />
     <QtMoc Include="movegate.h" />
+    <ClInclude Include="applog.h" />
     <QtMoc Include="engineworker.h" />
     <ClInclude Include="..\..\ChessCore\stdafx.h" />
     <ClInclude Include="..\..\ChessCore\targetver.h" />

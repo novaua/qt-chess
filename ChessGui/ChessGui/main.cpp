@@ -5,6 +5,7 @@
 #include <QQmlApplicationEngine>
 #include <QtQml/qqml.h>
 #include "chessconnector.h"
+#include "applog.h"
 #include "frametrace.h"
 #include "AppInfo.h"
 #include "AvatarProvider.h"
@@ -28,16 +29,10 @@
 #include <memory>
 #include <windows.h>
 
-static QFile* g_logFile = nullptr;
-
 void customLogMessageHandler(QtMsgType type, const QMessageLogContext&, const QString& msg)
 {
 	static const char* typeStr[] = { "DEBUG", "WARN ", "CRIT ", "FATAL", "INFO " };
-	if (g_logFile) {
-		QTextStream(g_logFile)
-		    << '[' << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
-		    << "] [" << typeStr[type] << "] " << msg << '\n';
-	}
+	AppLog::write(typeStr[type], msg);
 	OutputDebugStringW(reinterpret_cast<const WCHAR*>((msg + u'\n').utf16()));
 }
 
@@ -185,12 +180,7 @@ int main(int argc, char* argv[])
 	const QString logPath = screenshotMode ? screenshotPath + ".log"
 		: AppInfo::logFolderPath() + "/ChessPlusPlus_AppDebug.log";
 	QDir().mkpath(QFileInfo(logPath).absolutePath());
-	g_logFile = new QFile(logPath);
-	const auto logMode = screenshotMode ? QIODevice::Truncate : QIODevice::Append;
-	if (!g_logFile->open(QIODevice::WriteOnly | logMode | QIODevice::Text)) {
-		delete g_logFile;
-		g_logFile = nullptr;
-	}
+	AppLog::open(logPath, screenshotMode);
 	qInstallMessageHandler(customLogMessageHandler);
 
 	// The QML singletons below must outlive the engine: children of the app, not of the engine.

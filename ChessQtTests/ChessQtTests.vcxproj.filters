@@ -38,10 +38,16 @@
     <ClCompile Include="MoveGateTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AppLogTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\ChessGui\ChessGui\movelistmodel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ChessGui\ChessGui\movegate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ChessGui\ChessGui\applog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ChessGui\ChessGui\boardpieces.cpp">
