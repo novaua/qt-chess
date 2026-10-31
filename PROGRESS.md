@@ -11,8 +11,9 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Dump:** the faulting thread was the engine worker (`0x476c0`), inside `EngineWorker::findMove` → the Qt read path of its `QProcess`; no `stopEngineThread`/`killEngine` frames. **Log:** in 1,985 lines there was exactly one duplicated consecutive line — `ask: request 37 posted` twice — at the crash moment, i.e. the GUI and engine threads wrote the log at the same time. Missing request numbers (4, 8, 11) show the owner pressing Undo while robot answers were held.
 - **Root cause:** `customLogMessageHandler()` writes the shared `g_logFile` with a `QTextStream`, and Qt calls message handlers from any thread without serializing them. Two streams writing the same `QFile` corrupt the heap; the corruption surfaced as the ring-buffer assert in the engine thread. In Release there is no assert, so it would be silent.
 - **Reproduced:** a standalone Qt console program with the same handler and two logging threads dies with `STATUS_HEAP_CORRUPTION` after 4 lines, duplicate line included; with a `QMutex` + flush around the write it writes 40,001 intact lines and exits cleanly.
-- **Fix:** `QMutex g_logMutex` + `QMutexLocker` around the write, and `g_logFile->flush()` per line so a crash keeps the last lines.
-- Debug and Release build; ChessTests 111, ChessQtTests 109 pass; `home` and `robot` scenes unchanged.
+- **Fix:** the log writer is now `AppLog` (`ChessGui/applog.h/.cpp`): `open` / `close` / `write`, with a `QMutex` + `QMutexLocker` around each and a flush per line so a crash keeps the last lines. `main.cpp`'s message handler calls it.
+- **Regression test** (`ChessQtTests/AppLogTest.cpp`): two threads write 2,000 lines each; it requires the exact line count, the documented format, and every line exactly once. It was written first against the unsynchronized writer: the test host died with no results (`vstest` exit 3) — the same crash as the app, now caught by the suite; with the mutex it passes in 0.7 s.
+- Debug and Release build; ChessTests 111, ChessQtTests 110 pass; `home` and `robot` scenes unchanged.
 
 ### Where to continue
 - **The owner re-tests the Debug build**: normal robot play, pressing Undo often; the duplicated log lines and the assert should be gone. The stress program in the report is the regression test.

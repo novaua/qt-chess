@@ -5,6 +5,7 @@
 #include <QQmlApplicationEngine>
 #include <QtQml/qqml.h>
 #include "chessconnector.h"
+#include "applog.h"
 #include "frametrace.h"
 #include "AppInfo.h"
 #include "AvatarProvider.h"
@@ -21,7 +22,6 @@
 #include <QTextStream>
 #include <QDateTime>
 #include <QSettings>
-#include <QMutex>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -29,22 +29,10 @@
 #include <memory>
 #include <windows.h>
 
-static QFile* g_logFile = nullptr;
-// Qt calls a message handler from any thread and does not serialize the calls. The GUI thread
-// logs while the engine thread logs the robot's requests; two QTextStreams writing the same QFile
-// at once corrupt the heap (crash 2026-10-31: QRingBuffer assert on the engine thread).
-static QMutex g_logMutex;
-
 void customLogMessageHandler(QtMsgType type, const QMessageLogContext&, const QString& msg)
 {
 	static const char* typeStr[] = { "DEBUG", "WARN ", "CRIT ", "FATAL", "INFO " };
-	if (g_logFile) {
-		QMutexLocker lock(&g_logMutex);
-		QTextStream(g_logFile)
-		    << '[' << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz")
-		    << "] [" << typeStr[type] << "] " << msg << '\n';
-		g_logFile->flush(); // a crash must not lose the last lines
-	}
+	AppLog::write(typeStr[type], msg);
 	OutputDebugStringW(reinterpret_cast<const WCHAR*>((msg + u'\n').utf16()));
 }
 
@@ -192,12 +180,7 @@ int main(int argc, char* argv[])
 	const QString logPath = screenshotMode ? screenshotPath + ".log"
 		: AppInfo::logFolderPath() + "/ChessPlusPlus_AppDebug.log";
 	QDir().mkpath(QFileInfo(logPath).absolutePath());
-	g_logFile = new QFile(logPath);
-	const auto logMode = screenshotMode ? QIODevice::Truncate : QIODevice::Append;
-	if (!g_logFile->open(QIODevice::WriteOnly | logMode | QIODevice::Text)) {
-		delete g_logFile;
-		g_logFile = nullptr;
-	}
+	AppLog::open(logPath, screenshotMode);
 	qInstallMessageHandler(customLogMessageHandler);
 
 	// The QML singletons below must outlive the engine: children of the app, not of the engine.

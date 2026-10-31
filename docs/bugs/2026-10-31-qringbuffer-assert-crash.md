@@ -84,12 +84,22 @@ int main(int argc, char** argv) {
 
 ## Fix
 
-`main.cpp`: a `QMutex g_logMutex`, a `QMutexLocker` around the `QTextStream` write, and
-`g_logFile->flush()` per line (so a crash does not lose the last lines either). Nothing else in the
-app writes that file.
+The log writer is now `AppLog` (`ChessGui/applog.h/.cpp`): `open` / `close` / `write`, with a
+`QMutex` + `QMutexLocker` around each and `flush()` per line, so a crash does not lose the last
+lines either. `main.cpp`'s message handler calls it; nothing else writes that file.
 
 To check: play the Debug build against the robot (Undo often); the duplicated log lines and the
-assert should be gone. The stress program above is the regression test.
+assert should be gone.
+
+## Regression test
+
+`ChessQtTests/AppLogTest.cpp` (`AppLogTest.ConcurrentWritesKeepEveryLineWhole`): `AppLog::open`
+a temporary file, two `std::thread`s write 2,000 lines each, close, then require exactly 4,000
+lines, each matching `[yyyy-MM-dd hh:mm:ss.zzz] [DEBUG] thread N message M`, each appearing once.
+
+The test was written **before** the fix: with the unsynchronized `AppLog::write`, `vstest` reports
+the test host dead (exit 3, no results — the same heap corruption as the app); with the `QMutex` it
+passes in 0.7 s. That is the regression guard: if the lock is ever removed, the suite crashes.
 
 ## Related, not fixed here
 

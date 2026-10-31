@@ -110,6 +110,7 @@
     <ClCompile Include="BoardPiecesTest.cpp" />
     <ClCompile Include="MoveListModelTest.cpp" />
     <ClCompile Include="MoveGateTest.cpp" />
+    <ClCompile Include="AppLogTest.cpp" />
     <ClCompile Include="ChessEnginePlayerTest.cpp" />
     <ClCompile Include="LichessClientTest.cpp" />
     <ClCompile Include="UciConnectorTest.cpp" />
@@ -126,6 +127,7 @@
     <ClCompile Include="..\ChessGui\ChessGui\movelistmodel.cpp" />
     <!-- The move pacing gate -->
     <ClCompile Include="..\ChessGui\ChessGui\movegate.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\applog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="..\ChessGui\ChessGui\AvatarProvider.h" />
