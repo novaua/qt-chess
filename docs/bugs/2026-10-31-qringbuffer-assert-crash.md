@@ -1,8 +1,8 @@
 # 2026-10-31 — Debug crash: QRingBuffer assert on the engine thread
 
 **Status:** fixed on branch `logRaceFix_311026` (mutex in the message handler).
-**Screenshot:** [`Screenshot 2026-10-31 013022.png`](Screenshot%202026-10-31%20013022.png)
-(test host crash from the regression test, before the fix: [`Screenshot 2026-10-31 020333-test.png`](Screenshot%202026-10-31%20020333-test.png))
+**Screenshots** were taken of both dialogs (the app's `QRingBuffer` assert and the test host's
+`QByteArray` assert); they are not kept in the repo.
 **Dump:** `%LOCALAPPDATA%\CrashDumps\ChessGui.exe.417660.dmp`
 
 ## What happened
@@ -99,10 +99,9 @@ a temporary file, two `std::thread`s write 2,000 lines each, close, then require
 lines, each matching `[yyyy-MM-dd hh:mm:ss.zzz] [DEBUG] thread N message M`, each appearing once.
 
 The test was written **before** the fix: with the unsynchronized `AppLog::write`, the test host dies
-— [`Screenshot 2026-10-31 020333-test.png`](Screenshot%202026-10-31%20020333-test.png) shows its
-Debug Error (`ASSERT: "size_t(d.size) <= MaxSize"` in Qt's `qbytearray.h:525`, another symptom of the
-same corrupted heap), and `vstest` reports no results (exit 3). With the `QMutex` it passes in 0.7 s.
-That is the regression guard: if the lock is ever removed, the suite crashes.
+with a Debug Error (`ASSERT: "size_t(d.size) <= MaxSize"` in Qt's `qbytearray.h:525`, another symptom
+of the same corrupted heap), and `vstest` reports no results (exit 3). With the `QMutex` it passes in
+0.7 s. That is the regression guard: if the lock is ever removed, the suite crashes.
 
 ## Related, not fixed here
 
