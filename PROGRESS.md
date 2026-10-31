@@ -29,8 +29,22 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 Not changed (with reasons): the GUI can still wait up to 3 s when the kill misses (the engine process normally dies in ms; the alternative, `terminate()`, is worse); on non-Windows `Kill()` is a no-op (the app is Windows-only); the public `Connector()` accessor was removed in favour of the atomic player pointer.
 
 ### Where to continue
-- **BL-15 must be merged (or explicitly approved) before BL-14 step 4 is rebased onto it** (CLAUDE.md's unmerged-dependency rule). Step 4 (`resultOnIdle_311026`) is committed locally and waits for that; then its screenshot check is re-run, then step 5 (the Lichess opponent through the gate).
-- The real-window screenshot comparison (step 4) still waits for the screen to be unlocked.
+- BL-15 is merged (#104). BL-14 step 4 (`resultOnIdle_311026`) is rebased onto it; the `robot` scene is re-run on the rebased branch, then step 5 (the Lichess opponent through the gate).
+
+## 2026-10-31 — BL-14 step 4: the result card on the gate's idle (branch: resultOnIdle_311026)
+
+### What was done
+- **The result card no longer waits a fixed 1600 ms from the result.** On a result, `GamePage` now waits for the board to settle — the move gate's idle: the mating move's slide and pause are over, or, for a resignation / draw / timeout (no move), the board was already still — and then shows the card after a **600 ms beat**, so the final position is seen first.
+  - `ChessConnector.isBoardIdle()` (Q_INVOKABLE, `MoveGate::isIdle()`) lets the page check the state when the result arrives: a result that comes with a move is checked on the next pass (`Qt.callLater`), after the move has marked the board busy; otherwise the next `boardIdle` shows it.
+  - Undo after mate/resign still clears the pending result and hides the card.
+- `ScreenshotScene`: a finished game's ready delay is 2000 ms (the card now comes after the settle + beat).
+- Verified with the Debug build **offscreen** (the screen was locked): `result`, `ended` and `robot` logs show result → page settle (`openTimer` at 1 s) → `boardIdle` → card 600 ms later → screenshot; the `result` and `robot` frames were inspected (card, mate, flagged king correct). ChessTests 111, ChessQtTests 110 pass in Debug and Release.
+- **Still to check:** the real-window light/dark screenshot comparison (`Take-Screenshot.ps1 -Scene all`, `-Scene all -Dark`, `-Scene robot`, then `Compare-Screenshots.ps1`) — offscreen renders differ from the real-window baselines, so the comparison must wait until the screen is unlocked.
+
+### Where to continue
+- **After unlocking:** run the three screenshot commands above and the comparison; the expected change is none (same card, later by ~1 s; the `result`/`ended`/`robot` scenes still show it).
+- **Step 5**: the Lichess opponent's moves through the gate (`push(..., Source::Online)`, `releaseBatch` for a resync, `moveShown` after applying them). Then BL-15 (engine kill without crossing threads).
+- Manual checks for step 3 are still open (see the step-3 entry below).
 
 ## 2026-10-31 — Debug crash fixed: the log handler wrote from two threads (branch: logRaceFix_311026)
 

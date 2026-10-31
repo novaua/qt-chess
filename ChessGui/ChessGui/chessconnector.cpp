@@ -1104,6 +1104,11 @@ void ChessConnector::setMoveTiming(int slideMs)
 	_gate->setTiming(timing);
 }
 
+bool ChessConnector::isBoardIdle() const
+{
+	return _gate->isIdle();
+}
+
 void ChessConnector::onEngineMoveError(int request, const QString& message, const QString& details)
 {
 	if (request != _engineRequest) {

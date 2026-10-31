@@ -112,8 +112,8 @@ Item {
     }
 
     function startReadyTimer() {
-        // A finished game shows its result only after GamePage's resultTimer (1600 ms).
-        readyTimer.interval = ChessConnector.GameResult !== "" ? 1700 : 0
+        // A finished game shows its result card a beat after the board has settled.
+        readyTimer.interval = ChessConnector.GameResult !== "" ? 2000 : 0
         readyTimer.start()
     }
 
