@@ -31,6 +31,8 @@ public:
 	void setStageReady(bool ready);       // the page has settled and the board isn't turning
 	void moveShown(bool byRobot = false); // a move was played: the board is busy for slideMs + pauseMs
 	void push(const QString& uciMove, Source source);
+	void push(const QStringList& uciMoves, Source source); // together: more than two make one batch
+	void releaseAll();                    // let everything held through now (the board is about to show another position)
 	void clear();                         // new game, takeback, leaving the game, review
 	bool holding() const { return !_queue.empty(); }
 	bool isIdle() const;                  // nothing waits and the board has settled
@@ -48,6 +50,7 @@ private:
 	struct HeldMove { QString uciMove; Source source; };
 	qint64 allowedAt(Source source) const;
 	void updateBusy();
+	void releaseFront(qint64 now); // one move, or all of them for a resync
 
 	Timing _timing;
 	std::deque<HeldMove> _queue;

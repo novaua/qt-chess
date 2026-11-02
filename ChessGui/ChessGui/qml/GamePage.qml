@@ -67,6 +67,10 @@ Page {
     // answer.
     property bool _openSecondPassed: false
     readonly property bool _boardSettled: _openSecondPassed && !chessBoard.turning && !ChessConnector.ReviewMode
+    // Reported when the binding itself changes: a handler of ReviewMode's or turning's signal may run
+    // before the binding is updated and would report the old value. On the next pass, because the gate
+    // may play a held move at once, which changes ReviewMode while the binding is being updated.
+    on_BoardSettledChanged: Qt.callLater(page._reportSettled)
     function _reportSettled() { ChessConnector.setBoardSettled(page._boardSettled) }
     // Reduce animations: pieces don't slide, so the gate needs no slide time (it keeps the pause).
     function _syncMoveTiming() { ChessConnector.setMoveTiming(Theme.reduceMotion ? 0 : Theme.slow) }
@@ -74,14 +78,7 @@ Page {
     Timer {
         id: openTimer
         interval: 1000
-        onTriggered: {
-            page._openSecondPassed = true
-            page._reportSettled()
-        }
-    }
-    Connections {
-        target: chessBoard
-        function onTurningChanged() { page._reportSettled() }
+        onTriggered: page._openSecondPassed = true
     }
     Connections {
         target: Theme
@@ -96,7 +93,6 @@ Page {
         }
         function onPlayerPlaysWhiteChanged() { page._facePlayer() }
         function onReviewStateChanged() {
-            page._reportSettled()   // the board shows an earlier move
             // No live animation to wait for while reviewing: a result that arrives then shows now.
             if (page._resultPending && ChessConnector.ReviewMode)
                 page._showResultSoon()

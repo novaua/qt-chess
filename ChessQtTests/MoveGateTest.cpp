@@ -104,6 +104,38 @@ namespace MoveGateTests
 			Assert::IsFalse(isRobot(_released[0]));
 		}
 
+		// A resync pushed as one list into an idle gate: one batch, not the first move alone.
+		TEST_METHOD(ResyncPushedTogetherIntoAnIdleGateIsOneBatch)
+		{
+			setTiming(250, 150, 400);
+			ready();
+			_now = 5000; // long idle
+			_gate.push(QStringList{ "e2e4", "e7e5", "g1f3" }, MoveGate::Source::Online);
+
+			Assert::IsTrue(_released.empty(), L"no move released on its own");
+			Assert::AreEqual(1, _batches);
+			Assert::AreEqual(3, (int)_batch.size());
+		}
+
+		// The player opens the review while the opponent's move waits: it is shown now, in order.
+		TEST_METHOD(ReleaseAllLetsTheHeldMovesThroughAtOnce)
+		{
+			setTiming(250, 150, 400);
+			ready();
+			_now = 1000;
+			_gate.moveShown(false);
+			_gate.push("e7e5", MoveGate::Source::Online);
+			_gate.push("g8f6", MoveGate::Source::Online);
+			Assert::IsTrue(_released.empty());
+
+			_gate.releaseAll();
+
+			Assert::AreEqual(2, (int)_released.size());
+			Assert::AreEqual(QString("e7e5"), _released[0].move);
+			Assert::AreEqual(QString("g8f6"), _released[1].move);
+			Assert::IsFalse(_gate.holding());
+		}
+
 		TEST_METHOD(StageNotReadyHoldsTheMove)
 		{
 			setTiming(250, 150, 400);
