@@ -82,13 +82,32 @@ Manual checks, no code (do any time):
 
 Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows, chat), BL-10 (challenges as notifications).
 
-- [ ] LI-01 Implement the most popular chess variants on Lichess: the speeds Bullet, Blitz, Classical and UltraBullet [Medium], **needs a plan first; not started**. Today `LichessGameDialog.qml` offers only "Unlimited" or a few "Real time" presets (1+0, 3+2, 5+3, 10+0, 15+10), plus the Standard / Chess960 game type. Offer the modes by name, as Lichess groups them (estimated time = minutes × 60 + 40 × increment s): **UltraBullet** (≤ 29 s, e.g. ¼+0), **Bullet** (< 3 min, e.g. 1+0, 2+1), **Blitz** (< 8 min, e.g. 3+0, 3+2, 5+0, 5+3), **Classical** (≥ 25 min, e.g. 30+0, 30+20), and keep Rapid. The plan should cover:
+- [ ] LI-01 Implement the most popular chess variants on Lichess: Chess960 (Fischer Random) and Crazyhouse [Hard], **needs a plan first; not started; before LI-02**. Both need chess-logic work in `ChessCore`, not only the Lichess dialog. The plan should cover:
+  - **Chess960 today is offered but broken**: `LichessGameDialog.qml` already lets the player create a Chess960 challenge, but `startOnlineGame()` always starts our `Game` from the standard position (`_game->Restart()`), so the moves Lichess sends don't fit the board. Until LI-01 is done, hide the option or start such games from the `gameFull` `initialFen`.
+  - **Chess960**:
+    - start from a FEN (one of the 960 back-rank set-ups; `Game` has FEN output, not input);
+    - castling rules: king and rook end on the usual squares, the squares between must be free and not attacked, and the king may stay where it is;
+    - UCI castling notation: in Chess960, Lichess writes castling as king takes own rook (e.g. `e1h1`);
+    - FEN/SAN for these positions;
+    - a local mode vs the robot: Stockfish supports `UCI_Chess960`;
+    - the board's castling animation (the rook and king may cross or stay).
+  - **Crazyhouse**:
+    - captured pieces go to the capturer's pocket and can be dropped instead of a move (UCI `P@e4`; no pawn drops on the 1st/8th rank);
+    - a promoted piece goes back to the pocket as a pawn;
+    - drops can give check and parry it (mate detection);
+    - the UI: two pockets with counts by the player cards (in place of the captured strip), dragging or clicking a piece from the pocket to a square;
+    - `BoardPieces` adds a row for a dropped piece;
+    - the move list (`P@e4` / SAN `@e4`);
+    - Stockfish has no Crazyhouse in the default build, so no robot mode unless a variant engine is added (BL-06).
+  - Tests in `ChessTests` for each rule; screenshot scenes for a Chess960 start and a Crazyhouse position with pockets.
+  - Statistics and ratings per variant: Lichess has `chess960` and `crazyhouse` rating pools, but `parseRatings` reads only the speed pools (bullet … correspondence), so add them there and to the profile.
+- [ ] LI-02 Implement the most popular game speeds on Lichess: Bullet, Blitz, Classical and UltraBullet [Medium], **needs a plan first; not started; after LI-01**. Today `LichessGameDialog.qml` offers only "Unlimited" or a few "Real time" presets (1+0, 3+2, 5+3, 10+0, 15+10), plus the Standard / Chess960 game type. Offer the modes by name, as Lichess groups them (estimated time = minutes × 60 + 40 × increment s): **UltraBullet** (≤ 29 s, e.g. ¼+0), **Bullet** (< 3 min, e.g. 1+0, 2+1), **Blitz** (< 8 min, e.g. 3+0, 3+2, 5+0, 5+3), **Classical** (≥ 25 min, e.g. 30+0, 30+20), and keep Rapid. The plan should cover:
   - the dialog: a mode choice first, then that mode's presets;
   - UltraBullet's 15 s start: `createOpenChallenge()` takes whole minutes, so it needs the clock in seconds (`createOpenChallengeSec()` exists);
   - **check what the Board API allows**: Lichess may limit which speeds a Board API client can play (e.g. the fastest ones only in direct challenges); test before building the UI;
   - **a clock on the game page**: there is none today (out of scope in BL-14); Bullet and UltraBullet can't be played without it (`wtime`/`btime` from the `gameState` stream);
   - the move gate's pause (BL-14) at these speeds: in UltraBullet even ~0.4 s matters, so the Online pause may need to be shorter or zero;
-  - the profile's ratings already list the pools (`parseRatings`): show the chosen mode's rating in the dialog.
+  - the profile's ratings (`parseRatings`) list bullet, blitz, rapid, classical, correspondence: add `ultraBullet`, and show the chosen mode's rating in the dialog.
 
 ---
 
