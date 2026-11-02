@@ -4,6 +4,27 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-02 — LI-04 step 1: the unfinished Lichess games in `LichessClient` (branch: ongoingGames_021126)
+
+### What was done
+- `LichessClient.ongoingGames` (with `ongoingGamesLoading` / `ongoingGamesError`, one `ongoingGamesChanged`):
+  - `refreshOngoingGames()` fetches `GET /api/account/playing?nb=50`. A newer refresh replaces one in flight. On an error the list is kept and the error is set; a 401 goes through `checkAuthExpired` as for every call.
+  - A token change (another profile, or a disconnect) clears the list.
+- `parseOngoingGames()` builds one row per game, in Lichess's order (most urgent first): `gameId`, `color`, `opponentName` (the username, "Anonymous", or "Lichess AI level N"), `opponentRating`, `opponentIsAi`, `isMyTurn`, `secondsLeft` (-1: no clock), `timeLeftText` ("9 min", "2 days"), `speed`, `source`, `variant`, `canPlayHere`, `lastMove`, `fen`, `rated`.
+- `canPlayHere` follows the Board API's restrictions:
+  - **yes** for Rapid, Classical and Correspondence, and for Blitz from a direct challenge (`source` "friend") or vs Lichess AI;
+  - **no** for Bullet, UltraBullet and lobby Blitz, and for any variant but standard (LI-01).
+- `rejoinGame(id)` = `streamGame(id)` → `gameFull` → `gameStarted` (the step-5 resync).
+- `main.cpp` fetches the list together with the account when the token is set (not in screenshot mode), and again 3 s after a Lichess game ends. The log lists each game ("LichessClient: ongoing games: N" and one line per game), which is the live check below.
+- Tests: `LichessClientTest` +4 (player / anonymous / AI / Chess960 rows, the speeds the Board API plays, an empty list, `timeLeftText`). Debug and Release build; ChessTests 111, ChessQtTests 125 pass in both. The `home`, `online` and `profile` screenshots are unchanged (no UI yet).
+
+### Where to continue
+- **Live check (owner)**, with this branch's Release build:
+  1. Leave a Lichess game unfinished, ideally two: one created in the app (e.g. correspondence or 15+10), and one started on lichess.org itself (e.g. a Rapid game from the lobby).
+  2. Start the app and check the log: the games should be listed under "LichessClient: ongoing games", with speed, source and "my turn".
+  3. Join each game by its id ("Join a game"). Does the board load and can moves be played? Especially the game started on lichess.org: that answers the plan's §3 question (Continue vs "Open on lichess.org"), and `canPlayHere` is adjusted to match.
+- Then **step 2**: the Online page.
+
 ## 2026-11-02 — LI-04 plan: rejoin unfinished Lichess games (branch: rejoinGamesPlan_021126)
 
 ### What was done

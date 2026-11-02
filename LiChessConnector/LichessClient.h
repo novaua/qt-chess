@@ -24,6 +24,12 @@ struct RematchInfo
 class LICHESSCONNECTOR_EXPORT LichessClient: public QObject
 {
 	Q_OBJECT
+	// LI-04: the player's unfinished games on Lichess (refreshOngoingGames), one map per game, most
+	// urgent first: gameId, color, opponentName, opponentRating, opponentIsAi, isMyTurn, secondsLeft,
+	// timeLeftText, speed, variant, canPlayHere, lastMove, fen, rated.
+	Q_PROPERTY(QVariantList ongoingGames READ ongoingGames NOTIFY ongoingGamesChanged)
+	Q_PROPERTY(bool ongoingGamesLoading READ ongoingGamesLoading NOTIFY ongoingGamesChanged)
+	Q_PROPERTY(QString ongoingGamesError READ ongoingGamesError NOTIFY ongoingGamesChanged) // the last refresh failed
 
 public:
 	explicit LichessClient(QObject* parent = nullptr);
@@ -50,6 +56,19 @@ public:
 	Q_INVOKABLE void waitForGameStart(const QString& gameId, bool registerAsPlayer = true, const QString& myColor = {});
 	// After a restart: wait again for our own open challenge. We play the side the friend's link doesn't.
 	Q_INVOKABLE void resumeOpenChallenge(const QString& gameId, const QString& friendUrl);
+
+	// LI-04: GET /api/account/playing (real-time and correspondence games); no-op without a token.
+	Q_INVOKABLE void refreshOngoingGames();
+	// Back into one of them: its stream starts with gameFull (all moves), then gameStarted as for any game.
+	Q_INVOKABLE void rejoinGame(const QString& gameId);
+	QVariantList ongoingGames() const { return _ongoingGames; }
+	bool ongoingGamesLoading() const { return _ongoingGamesLoading; }
+	QString ongoingGamesError() const { return _ongoingGamesError; }
+	void setOngoingGames(const QVariantList& games); // tests and screenshot scenes (no network)
+	// The rows of ongoingGames from the answer of /api/account/playing ({ "nowPlaying": [...] }).
+	static QVariantList parseOngoingGames(const QJsonObject& playing);
+	// "45 s", "3 min", "5 h", "2 days"; "" for no clock (negative).
+	static QString timeLeftText(int seconds);
 
 	// Rematch the last game with colors swapped: a direct challenge to a registered opponent
 	// (emits directChallengeSent), or a new open challenge for an anonymous one (emits
@@ -110,6 +129,7 @@ signals:
 	void opponentGone(bool gone, int claimWinInSeconds);
 	void drawOfferReceived();
 	void takebackRequested();
+	void ongoingGamesChanged();
 
 private:
 	QNetworkRequest makeRequest(const QString& path) const;
@@ -152,4 +172,8 @@ private:
 	RematchInfo    _lastGame;
 	bool           _watchingForRematch = false; // keep the event stream open for the opponent's offer
 	QString        _rematchOfferId;             // the opponent's offer we got; empty = none
+	QVariantList   _ongoingGames;
+	bool           _ongoingGamesLoading = false;
+	QString        _ongoingGamesError;
+	QNetworkReply* _ongoingGamesReply = nullptr; // the refresh in flight: a newer one replaces it
 };
