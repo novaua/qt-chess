@@ -76,6 +76,10 @@ public:
 
 	QString currentGameId() const { return _currentGameId; }
 
+	// One line of the Board API game stream (handleStreamData; tests feed lines here).
+	// Returns false once the game has ended: the rest of the stream is not read.
+	bool handleGameStreamLine(const QByteArray& line);
+
 signals:
 	void tokenValidated(bool ok, QString username);
 	void accountFetched(QString username, QVariantMap ratings);

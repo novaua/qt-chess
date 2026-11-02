@@ -31,6 +31,8 @@ public:
 	// Show this position: the pieces that moved change their square, captured ones are marked
 	// taken, new ones are added; or, if much changed, the model is reset.
 	void sync(const Chess::Board& shown);
+	// Show this position anew, without slides (a Lichess resync of several moves).
+	void reset(const Chess::Board& shown);
 
 	// The id of the piece on that square (not taken), or -1.
 	int pieceIdAt(int square) const;
@@ -43,7 +45,6 @@ private:
 		bool taken;
 	};
 
-	void reset(const Chess::Board& shown);
 	int rowAt(int square) const; // the row of the piece on that square (not taken), or -1
 
 	QList<Row> _rows;

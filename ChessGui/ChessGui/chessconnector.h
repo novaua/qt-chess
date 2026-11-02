@@ -255,6 +255,10 @@ private:
 	void onHumanMoveDone();
 	void playRobotMove(const QString& uciMove); // the gate released it: play it on the GUI thread
 	void onGateRelease(const QString& uciMove, MoveGate::Source source);
+	void onLichessOpponentMoves(const QString& uciMoves); // one move, or the whole game on a resync
+	void playOnlineMoves(const QStringList& uciMoves); // the gate released them: play them
+	void showOnlineEnd(const QString& status, const QString& winner); // Lichess's game end, on the board
+	void showHeldOnlineEnd(); // a game end that waited for the opponent's last move: now
 	void emitBoardState(); // after _reviewIndex changed
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
 	void buildFullHistoryCache();
@@ -287,7 +291,11 @@ private:
 	QString         _onlineGameId;
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
-	MoveGate* _gate = nullptr; // holds the robot's answer until the board is idle (BL-14)
+	MoveGate* _gate = nullptr; // holds the robot's and the Lichess opponent's moves until the board is idle (BL-14)
+	bool _piecesAnew = false;  // the next Pieces sync shows the position anew, without slides (a resync)
+	// Lichess ended the game while the opponent's last move still waited in the gate: shown after it.
+	QString _heldEndStatus;
+	QString _heldEndWinner;
 	bool _engineThinking = false;
 	int  _engineRequest  = 0; // the engine answer we wait for; older answers are dropped
 	bool _engineAutoPlay = false;

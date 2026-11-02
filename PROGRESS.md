@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-02 — BL-14 step 5: the Lichess opponent through the gate (branch: lichessThroughGate_021126)
+
+### What was done
+- **The opponent's moves wait for the board.** `LichessClient::opponentMoveReceived` now goes to `ChessConnector::onLichessOpponentMoves()`, which pushes each move into the gate as `Source::Online` (no `robotMinMs`: only the slide and pause). `playOnlineMoves()` plays a released move (or a batch), updates the history and counters, and marks the board busy (`moveShown(true)`). Lichess's own turn rule (`canPlayerMove()`) keeps the player from moving while the move waits.
+- **Resync** (`gameFull` on (re)joining a game with moves): more than two moves at once come out as one `releaseBatch`. The pieces are shown anew without slides (`BoardPieces::reset`, now public, via `_piecesAnew`), and there is one move sound; only a check in the final position is announced.
+- **Game end after the last move.** If Lichess ends the game while the opponent's last move still waits in the gate (e.g. a resync before the page has settled), the end is kept (`_heldEndStatus/_heldEndWinner`) and shown once the gate has released the move; the statistics count it right away, in case the game is left first. `beginGame()` and `endGame()` drop it.
+- **The opponent's mating move was lost** (found while doing this): `LichessClient` returned on a `gameState` with a final status before emitting its new moves. Lichess sends the mate in that same state, so our board never showed it. The stream handler now emits the new moves first, then `gameEnded`. The per-line handling is `handleGameStreamLine()` (public, for tests).
+- **Reviewing when the opponent moves**: the gate shows nothing while reviewing, but the player's clock runs on Lichess, so the board goes back to the live position (`reviewLast()`) and then shows the move.
+- Plain `applyMoves()` (Alt+S dialog, screenshot scenes) stays direct.
+- **Tests:** `LichessClientTest` +3 (mate move before the end, resync in one signal, only new moves), `BoardPiecesTest` +1 (`reset` without slides). Debug and Release build; ChessTests 111, ChessQtTests 117 pass in both.
+- **Verified end to end** with a temporary hook (not committed) that fed stream lines into `LichessClient` in screenshot mode: (1) a resync of `f2f3 e7e5 g2g4` plus the opponent's `d8h4` mate and `status: mate` arriving before the page settled — the end waited, all four moves appeared at once after the settle, mate, result card; (2) the mate arriving after the resync was shown — the three moves at once, then Qh4# alone, then Lichess's end. Both screenshots: Qh4#, the flagged king, "Friend wins by checkmate".
+- Screenshots: all 49 match. The 6 profile shots differed only in the "since <date>" text (today's date); their local baselines were re-accepted.
+
+### Where to continue
+- **Manual checks by the owner with a real Lichess game** (plan §5 rows 8 and 9): the opponent answers instantly (our slide, then theirs); reconnect with several moves (the position at once, one sound); the opponent mates us (the move slides, then the card); review while the opponent moves.
+- Steps 3–5 manual checks are still open (see the step-3 entry).
+- Step 6 (render-thread slides) only if the step-1 numbers still show stalls.
+
 ## 2026-10-31 — BL-15 fixed: the engine thread stops without crossing threads (branch: engineKillFix_311026)
 
 ### What was done
