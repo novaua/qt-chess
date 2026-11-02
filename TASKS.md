@@ -78,7 +78,19 @@ Manual checks, no code (do any time):
 
 ---
 
+## Lichess Improvement Backlog
 
+Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows, chat), BL-10 (challenges as notifications).
+
+- [ ] LI-01 Implement the most popular chess variants on Lichess: the speeds Bullet, Blitz, Classical and UltraBullet [Medium], **needs a plan first; not started**. Today `LichessGameDialog.qml` offers only "Unlimited" or a few "Real time" presets (1+0, 3+2, 5+3, 10+0, 15+10), plus the Standard / Chess960 game type. Offer the modes by name, as Lichess groups them (estimated time = minutes × 60 + 40 × increment s): **UltraBullet** (≤ 29 s, e.g. ¼+0), **Bullet** (< 3 min, e.g. 1+0, 2+1), **Blitz** (< 8 min, e.g. 3+0, 3+2, 5+0, 5+3), **Classical** (≥ 25 min, e.g. 30+0, 30+20), and keep Rapid. The plan should cover:
+  - the dialog: a mode choice first, then that mode's presets;
+  - UltraBullet's 15 s start: `createOpenChallenge()` takes whole minutes, so it needs the clock in seconds (`createOpenChallengeSec()` exists);
+  - **check what the Board API allows**: Lichess may limit which speeds a Board API client can play (e.g. the fastest ones only in direct challenges); test before building the UI;
+  - **a clock on the game page**: there is none today (out of scope in BL-14); Bullet and UltraBullet can't be played without it (`wtime`/`btime` from the `gameState` stream);
+  - the move gate's pause (BL-14) at these speeds: in UltraBullet even ~0.4 s matters, so the Online pause may need to be shorter or zero;
+  - the profile's ratings already list the pools (`parseRatings`): show the chosen mode's rating in the dialog.
+
+---
 
 ## Network Multiplayer Game
 
