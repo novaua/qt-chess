@@ -51,7 +51,6 @@ Item {
         if (name.startsWith("profile") && name !== "profiles") window.openProfile()
         if (name.startsWith("online")) {
             // main.cpp: Tester with a Lichess account for online and online-empty, the games for online.
-            if (shot.ongoingGames) LichessClient.setOngoingGames(shot.ongoingGames)
             window.openOnline()
         }
         if (name === "computer") dialogs.computer.openNew()

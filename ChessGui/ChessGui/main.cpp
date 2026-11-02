@@ -274,6 +274,9 @@ int main(int argc, char* argv[])
 		});
 	QObject::connect(userManager, &UserManager::lichessChanged, updateLichessToken);
 	updateLichessToken(); // load() sets the active user silently — seed the token now
+	// The online scene's games (no network in screenshot mode): after the token, which resets the list.
+	if (screenshotMode && connector->screenshotScene().contains("ongoingGames"))
+		lichessClient->setOngoingGames(connector->screenshotScene().value("ongoingGames").toList());
 	QObject::connect(lichessClient, &LichessClient::accountFetched, userManager, &UserManager::setLichessAccount);
 	QObject::connect(lichessClient, &LichessClient::authExpired, userManager, &UserManager::setLichessExpired);
 	// A Lichess game left unfinished (Home, switch user) is now one of the ongoing games (LI-04).

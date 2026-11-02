@@ -433,7 +433,17 @@ void LichessClient::acceptChallenge(const QString& challengeId, const QString& c
         qDebug() << "LichessClient: accept" << challengeId
                  << "| HTTP" << status << "| error:" << reply->error()
                  << "| body:" << body.left(200);
-        streamGame(challengeId); // also for a 404: the game has started already (a rejoin)
+        // A 404 is fine: the game has started already (a rejoin by id), the stream follows.
+        // Anything else that failed: Lichess's own reason (e.g. a challenge for someone else).
+        if (reply->property("authExpiredReported").toBool() || status == 401) {
+            emit networkError(QStringLiteral("Lichess sign-in expired"));
+            return;
+        }
+        if (reply->error() != QNetworkReply::NoError && status != 404) {
+            emit networkError(apiErrorMessage(body, reply));
+            return;
+        }
+        streamGame(challengeId);
     });
 }
 
@@ -599,8 +609,8 @@ void LichessClient::streamGame(const QString& gameId)
     // Ended without a game: whoever waits for gameStarted (the Online page) must hear about it.
     // Not when stopStream() aborted it (canceled) or after gameFull (the game was on).
     connect(sr, &QNetworkReply::finished, this, [this, sr]() {
-        if (sr != _streamReply || _gameFullSeen)
-            return;
+        if (sr != _streamReply || _gameFullSeen || sr->property("errorReported").toBool())
+            return; // the errorOccurred handler below has said it already
         if (sr->property("authExpiredReported").toBool())
             emit networkError(QStringLiteral("Lichess sign-in expired"));
         else if (sr->error() == QNetworkReply::NoError)
@@ -614,8 +624,10 @@ void LichessClient::streamGame(const QString& gameId)
                          << "|" << sr->errorString();
                 // OperationCanceledError is expected when the server closes the stream
                 // normally (game over) or when we call stopStream() ourselves — not an error.
-                if (code != QNetworkReply::OperationCanceledError)
+                if (code != QNetworkReply::OperationCanceledError) {
+                    sr->setProperty("errorReported", true); // once per stream (the finished handler)
                     emit networkError(sr->errorString());
+                }
             });
 }
 

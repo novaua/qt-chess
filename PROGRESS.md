@@ -48,6 +48,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - The `online` scene's seeded games got positions and last moves; `online` / `online-dark` baselines re-accepted (53 compared, 0 failed). ChessTests 111, ChessQtTests 126 pass.
 - The Debug build's link of `LiChessConnector.dll` failed (LNK1168): the owner's Debug `ChessGui.exe` was running. This round has no C++ change in that library; the Release build is complete.
 
+### Second code review (the owner's `/code-review medium`, same branch)
+9 findings: 8 fixed, 1 left for the owner.
+- **Fixed:**
+  - **A failed accept went on to the stream** and hid Lichess's reason: the stream now opens only after a success or a 404 (a started game); otherwise Lichess's own error, or "Lichess sign-in expired";
+  - a failed stream reports its error once (`errorReported`);
+  - **Real time offered 1+0, 3+2 and 5+3**, which an open challenge can't be for a Board API player (Bullet, Blitz): now 10+0, 10+5, 15+10, 30+0, 30+20 (Rapid, Classical);
+  - **the seven "Days per move" buttons overflowed a narrow window**: labels 1 … 14, then "days per move";
+  - **a sign-in change re-enabled the buttons without cancelling** what was starting: `_dropStarting()` stops it, as Back does;
+  - **up to three refreshes for one action**: the page doesn't refresh while one runs, and the sign-in change leaves it to `main.cpp` (new token);
+  - `SectionCard.contentWidth` instead of hard-coding its margin;
+  - `setOngoingGames` isn't callable from QML any more: `main.cpp` seeds the screenshot scene's games after the token.
+- **Left for the owner:** start / stop of a rejoin through `ChessConnector` (CLAUDE.md rule 1), as in the first review.
+- ChessTests 111, ChessQtTests 126 (Debug and Release). Screenshots: all 6 `online*` scenes match. The 12 dialog scenes failed only because **the Windows screen was locked** (`LogonUI` running): popups don't draw in the hidden window then. The same dialog renders correctly offscreen, and no dialog uses `SectionCard`, so their baselines were not touched.
+
 ### Where to continue
 - **Owner's check** (Release build of this branch):
   - Play online: your unfinished games are listed as boards; Continue (or a click on a board) opens it in the current position;

@@ -66,7 +66,7 @@ public:
 	QVariantList ongoingGames() const { return _ongoingGames; }
 	bool ongoingGamesLoading() const { return _ongoingGamesLoading; }
 	QString ongoingGamesError() const { return _ongoingGamesError; }
-	Q_INVOKABLE void setOngoingGames(const QVariantList& games); // tests and screenshot scenes (no network)
+	void setOngoingGames(const QVariantList& games); // tests and screenshot scenes (no network), from C++
 	// Screenshot mode: the refreshes the app starts on its own (refreshAccount, refreshOngoingGames)
 	// do nothing; the scenes' token is a placeholder, and no scene creates, joins or plays a game.
 	void setOffline(bool offline) { _offline = offline; }

@@ -19,9 +19,17 @@ Page {
     readonly property var _games: LichessClient.ongoingGames
     readonly property int _myTurnCount: _games.filter(g => g.isMyTurn).length
 
+    // Not while one is running: a new token (main.cpp) has started one already.
     function _refresh() {
-        if (UserManager.lichessConnected)
+        if (UserManager.lichessConnected && !LichessClient.ongoingGamesLoading)
             LichessClient.refreshOngoingGames()
+    }
+    // A join, rejoin or challenge that is starting is dropped, so no game starts unexpectedly. Not
+    // when a game did start: route() replaces this page by the game page then.
+    function _dropStarting() {
+        if (_busy && !ChessConnector.InGame)
+            LichessClient.stopStream()
+        _busy = false
     }
     // Pushed, or shown again (back from the Profile page). Nothing started from here is under way
     // any more: a game replaces the page, a failure says so (networkError).
@@ -30,19 +38,13 @@ Page {
         _refresh()
     }
     // Linked, reconnected or signed out (expired) while the page is open, e.g. the browser sign-in
-    // ended after Back from the Profile page: the list is another account's, and what was starting
-    // is gone. (UserManager.lichessChanged also fires for a ratings update: not that.)
+    // ended after Back from the Profile page: what was starting belonged to the other account. The
+    // list is refreshed by main.cpp, which sees the new token. (UserManager.lichessChanged also
+    // fires for a ratings update: not that.)
     readonly property bool _connected: UserManager.lichessConnected
-    on_ConnectedChanged: {
-        _busy = false
-        _refresh()
-    }
-    // Back while a join, rejoin or challenge is starting: drop it, so no game starts after the page
-    // is gone. Not when a game did start: route() replaces this page by the game page then.
-    StackView.onRemoved: {
-        if (_busy && !ChessConnector.InGame)
-            LichessClient.stopStream()
-    }
+    on_ConnectedChanged: _dropStarting()
+    // Back while something is starting: drop it.
+    StackView.onRemoved: _dropStarting()
 
     function _speedName(speed) {
         return ({ ultraBullet: "UltraBullet", bullet: "Bullet", blitz: "Blitz", rapid: "Rapid",
@@ -128,6 +130,7 @@ Page {
 
             // ── Your games: the unfinished ones, most urgent first ──
             SectionCard {
+                id: gamesCard
                 visible: UserManager.lichessConnected
                 title: "Your games"
                 subtitle: LichessClient.ongoingGamesError !== "" ? "Couldn't load your games: " + LichessClient.ongoingGamesError
@@ -141,9 +144,9 @@ Page {
                 // then who, whose turn and Continue. A click on the board continues too.
                 GridLayout {
                     id: gamesGrid
-                    // From the page's width (the card's inside: content minus SectionCard's margins),
-                    // not from the layout's own width, which isn't known yet when the cards ask.
-                    readonly property real innerWidth: content.width - 2 * Theme.s4
+                    // From the card's inside, not from the layout's own width, which isn't known yet
+                    // when the cards ask.
+                    readonly property real innerWidth: gamesCard.contentWidth
                     readonly property real cardWidth: (innerWidth - (columns - 1) * columnSpacing) / columns
                     visible: page._games.length > 0
                     columns: innerWidth >= 440 ? 2 : 1
@@ -252,23 +255,32 @@ Page {
                     id: tcType
                     options: [{ label: "Unlimited" }, { label: "Real time" }, { label: "Days per move" }]
                 }
-                // Real time: minutes + increment.
+                // Real time: minutes + increment. Rapid and Classical only: an open challenge (a
+                // link) can't be Bullet or Blitz for a Board API player such as this app (LI-02).
                 ChoiceRow {
                     id: tcPreset
                     visible: tcType.checkedIndex === 1
                     checkedIndex: 2
-                    options: [{ label: "1+0",   min: 1,  inc: 0 },
-                              { label: "3+2",   min: 3,  inc: 2 },
-                              { label: "5+3",   min: 5,  inc: 3 },
-                              { label: "10+0",  min: 10, inc: 0 },
-                              { label: "15+10", min: 15, inc: 10 }]
+                    options: [{ label: "10+0",  min: 10, inc: 0 },
+                              { label: "10+5",  min: 10, inc: 5 },
+                              { label: "15+10", min: 15, inc: 10 },
+                              { label: "30+0",  min: 30, inc: 0 },
+                              { label: "30+20", min: 30, inc: 20 }]
                 }
-                // Correspondence: the days each player has for a move (Lichess's choices).
-                ChoiceRow {
-                    id: tcDays
+                // Correspondence: the days each player has for a move (Lichess's choices). Short
+                // labels, so the seven fit a narrow window.
+                RowLayout {
                     visible: tcType.checkedIndex === 2
-                    checkedIndex: 2
-                    options: [1, 2, 3, 5, 7, 10, 14].map(d => ({ label: d === 1 ? "1 day" : d + " days", days: d }))
+                    spacing: Theme.s2
+                    ChoiceRow {
+                        id: tcDays
+                        checkedIndex: 2
+                        options: [1, 2, 3, 5, 7, 10, 14].map(d => ({ label: String(d), days: d }))
+                    }
+                    Label {
+                        text: tcDays.checkedIndex === 0 ? "day per move" : "days per move"
+                        color: Theme.textSecondary
+                    }
                 }
 
                 Label { text: "Side"; color: Theme.textSecondary; font: Theme.caption }
