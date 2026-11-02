@@ -4,6 +4,22 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-02 — LI-04 plan: rejoin unfinished Lichess games (branch: rejoinGamesPlan_021126)
+
+### What was done
+- The owner checked #109 live: a challenge created as Black is played as Black, and rejoining by link or id works.
+- **Plan written**: [`docs/LI-04-RejoinPlan.md`](docs/LI-04-RejoinPlan.md), following the owner's decision.
+  - An **Online page** replaces the "Play online" dialog, with these sections: Your games (Continue rejoins, no id), New game (with days per move), and Join by link.
+  - Home's **Continue** resumes the robot game first, otherwise opens the Online page.
+  - A **warning** when leaving a running online game (Leave / Resign / Stay, also when the window is closed).
+- Lichess facts it relies on, from the API spec:
+  - `GET /api/account/playing` lists real-time and correspondence games (most urgent first) with `isMyTurn`, `secondsLeft` and the opponent (player / anonymous / AI);
+  - the event stream sends all current games when it opens, but only one event stream may be open per token;
+  - rejoining is `streamGame(id)` → `gameFull`, which BL-14 step 5 already shows as one resync.
+
+### Where to continue
+- **Step 1** (new branch from `develop`): `LichessClient` ongoing games + tests, then a **live check with the owner's account**: does the Board API stream a game started on lichess.org itself? The answer decides between Continue and "Open on lichess.org" for such games.
+
 ## 2026-11-02 — Lichess: the chosen side and the join link (branch: lichessColorJoinFix_021126)
 
 From the owner's manual check of BL-14 step 5 (scenario 1 passed apart from these; scenario 3, Fool's mate, passed).
