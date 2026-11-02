@@ -18,12 +18,14 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - `main.cpp` fetches the list together with the account when the token is set (not in screenshot mode), and again 3 s after a Lichess game ends. The log lists each game ("LichessClient: ongoing games: N" and one line per game), which is the live check below.
 - Tests: `LichessClientTest` +4 (player / anonymous / AI / Chess960 rows, the speeds the Board API plays, an empty list, `timeLeftText`). Debug and Release build; ChessTests 111, ChessQtTests 125 pass in both. The `home`, `online` and `profile` screenshots are unchanged (no UI yet).
 
+- **Live check (owner, 2026-11-02)**:
+  - **Listing works.** The log listed 3, then 4 unfinished games: all correspondence "Unlimited", `source` "friend", against the owner's second account. "my turn" / "their turn" was right, and the time left was empty (no clock).
+  - **Joining works.** All four were joined by id and moves were posted, as White in two and as Black in two (`accept` answers 404 for a started game, then the stream opens; `rejoinGame` goes straight to the stream).
+  - **Not tested:** a game started on lichess.org itself (lobby). `canPlayHere` stays as the Board API's rules say: lobby Rapid and Classical yes, lobby Blitz no.
+
 ### Where to continue
-- **Live check (owner)**, with this branch's Release build:
-  1. Leave a Lichess game unfinished, ideally two: one created in the app (e.g. correspondence or 15+10), and one started on lichess.org itself (e.g. a Rapid game from the lobby).
-  2. Start the app and check the log: the games should be listed under "LichessClient: ongoing games", with speed, source and "my turn".
-  3. Join each game by its id ("Join a game"). Does the board load and can moves be played? Especially the game started on lichess.org: that answers the plan's §3 question (Continue vs "Open on lichess.org"), and `canPlayHere` is adjusted to match.
-- Then **step 2**: the Online page.
+- **Step 2** (after this is merged): the Online page.
+- When convenient: rejoin a Rapid game from the lichess.org lobby, to confirm the lobby case.
 
 ## 2026-11-02 — LI-04 plan: rejoin unfinished Lichess games (branch: rejoinGamesPlan_021126)
 
