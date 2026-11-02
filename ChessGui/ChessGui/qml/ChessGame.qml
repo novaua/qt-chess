@@ -56,30 +56,23 @@ ApplicationWindow {
             createUserDialog.close()  // e.g. logged in by a script (--screenshot)
     }
 
-    function openProfile() {
-        if (_page !== "profile")
-            stack.push(profilePage)
+    // The pages pushed over Home or the game, by objectName: Back or Esc pops them.
+    readonly property var _pushedPages: ({ profile: profilePage, settings: settingsPage, online: onlinePage })
+    readonly property bool _onPushedPage: _pushedPages[_page] !== undefined
+    function _openPage(name) {
+        if (_page !== name)
+            stack.push(_pushedPages[name])
     }
-    function closeProfile() {
-        if (_page === "profile")
+    function _closePage(name) {
+        if (_page === name)
             stack.pop()
     }
-    function openSettings() {
-        if (_page !== "settings")
-            stack.push(settingsPage)
-    }
-    function closeSettings() {
-        if (_page === "settings")
-            stack.pop()
-    }
-    function openOnline() {
-        if (_page !== "online")
-            stack.push(onlinePage)
-    }
-    function closeOnline() {
-        if (_page === "online")
-            stack.pop()
-    }
+    function openProfile()   { _openPage("profile") }
+    function closeProfile()  { _closePage("profile") }
+    function openSettings()  { _openPage("settings") }
+    function closeSettings() { _closePage("settings") }
+    function openOnline()    { _openPage("online") }
+    function closeOnline()   { _closePage("online") }
     function resign() {
         if (AppSettings.confirmResign) resignConfirm.open()
         else                           ChessConnector.resignGame()
@@ -696,12 +689,10 @@ ApplicationWindow {
     Shortcut {
         sequence: "Escape"
         // Not while a piece is dragged: then Esc puts it back (ChessBoard).
-        enabled: (_onGamePage || _page === "profile" || _page === "settings" || _page === "online") && !_dialogOpen
+        enabled: (_onGamePage || _onPushedPage) && !_dialogOpen
                  && !(_onGamePage && stack.currentItem.pieceDragging)
         onActivated: {
-            if (_page === "profile")              closeProfile()
-            else if (_page === "settings")        closeSettings()
-            else if (_page === "online")          closeOnline()
+            if (_onPushedPage)                    _closePage(_page)
             else if (stack.currentItem.sheetOpen) stack.currentItem.sheetOpen = false   // an open move sheet first
             else                                  leaveGame()
         }

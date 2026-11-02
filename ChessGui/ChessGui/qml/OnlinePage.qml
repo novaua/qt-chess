@@ -23,8 +23,20 @@ Page {
         if (UserManager.lichessConnected)
             LichessClient.refreshOngoingGames()
     }
-    // Pushed, or shown again (back from the Profile page, or after a game).
-    StackView.onActivated: _refresh()
+    // Pushed, or shown again (back from the Profile page). Nothing started from here is under way
+    // any more: a game replaces the page, a failure says so (networkError).
+    StackView.onActivated: {
+        _busy = false
+        _refresh()
+    }
+    // Linked, reconnected or signed out (expired) while the page is open, e.g. the browser sign-in
+    // ended after Back from the Profile page: the list is another account's, and what was starting
+    // is gone. (UserManager.lichessChanged also fires for a ratings update: not that.)
+    readonly property bool _connected: UserManager.lichessConnected
+    on_ConnectedChanged: {
+        _busy = false
+        _refresh()
+    }
     // Back while a join, rejoin or challenge is starting: drop it, so no game starts after the page
     // is gone. Not when a game did start: route() replaces this page by the game page then.
     StackView.onRemoved: {
@@ -89,11 +101,6 @@ Page {
             x: (flick.width - width) / 2
             y: Theme.s5
             spacing: Theme.s3
-
-            InfoBar {
-                id: errorBar
-                Layout.fillWidth: true
-            }
 
             // ── Not connected: link the account first ──
             SectionCard {
@@ -286,15 +293,23 @@ Page {
                         onClicked: {
                             if (!enabled)
                                 return
-                            if (!LichessClient.gameIdFromUrl(joinUrlField.text.trim())) {
+                            errorBar.visible = false
+                            if (LichessClient.joinFromUrl(joinUrlField.text.trim()))
+                                page._busy = true
+                            else
                                 errorBar.show("That isn't a Lichess link or game ID", "critical")
-                                return
-                            }
-                            page._start(() => LichessClient.joinFromUrl(joinUrlField.text.trim()))
                         }
                     }
                 }
             }
         }
+    }
+
+    // Over the content, under the header: seen wherever the page is scrolled to.
+    InfoBar {
+        id: errorBar
+        anchors { top: parent.top; topMargin: Theme.s2; horizontalCenter: parent.horizontalCenter }
+        width: content.width
+        z: 1
     }
 }

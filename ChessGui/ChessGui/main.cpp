@@ -259,7 +259,7 @@ int main(int argc, char* argv[])
 		if (token == *lastToken) return;
 		*lastToken = token;
 		lichessClient->setToken(token);
-		if (!token.isEmpty() && !screenshotMode) {
+		if (!token.isEmpty()) { // neither in screenshot mode (setOffline)
 			lichessClient->refreshAccount();
 			lichessClient->refreshOngoingGames(); // LI-04: Continue and the Online page
 		}
@@ -274,7 +274,7 @@ int main(int argc, char* argv[])
 	QObject::connect(lichessClient, &LichessClient::authExpired, userManager, &UserManager::setLichessExpired);
 	// A Lichess game left unfinished (Home, switch user) is now one of the ongoing games (LI-04).
 	QObject::connect(connector, &ChessConnector::isOnlineGameChanged, lichessClient, [=]() {
-		if (!connector->isOnlineGame() && !screenshotMode)
+		if (!connector->isOnlineGame())
 			lichessClient->refreshOngoingGames();
 	});
 	QObject::connect(lichessClient, &LichessClient::gameEnded, lichessClient, [=]() {

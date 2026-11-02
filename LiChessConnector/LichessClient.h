@@ -67,7 +67,8 @@ public:
 	bool ongoingGamesLoading() const { return _ongoingGamesLoading; }
 	QString ongoingGamesError() const { return _ongoingGamesError; }
 	Q_INVOKABLE void setOngoingGames(const QVariantList& games); // tests and screenshot scenes (no network)
-	// Screenshot mode: refreshOngoingGames() does nothing (the scenes' token is a placeholder).
+	// Screenshot mode: the refreshes the app starts on its own (refreshAccount, refreshOngoingGames)
+	// do nothing; the scenes' token is a placeholder, and no scene creates, joins or plays a game.
 	void setOffline(bool offline) { _offline = offline; }
 	// The rows of ongoingGames from the answer of /api/account/playing ({ "nowPlaying": [...] }).
 	static QVariantList parseOngoingGames(const QJsonObject& playing);
@@ -169,6 +170,8 @@ private:
 	QNetworkReply* _eventStreamReply = nullptr;
 	QNetworkReply* _probeReply       = nullptr;
 	QNetworkReply* _openChallengeReply   = nullptr; // POST /api/challenge/open in flight
+	QNetworkReply* _acceptReply          = nullptr; // acceptChallenge's POST in flight (then the stream)
+	bool           _gameFullSeen         = false;   // the game stream has sent gameFull: the game is on
 	QNetworkReply* _directChallengeReply = nullptr; // keepAliveStream: open while the challenge waits
 	QString        _directChallengeId;
 	bool           _directChallengeAccepted = false;

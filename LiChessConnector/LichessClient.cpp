@@ -46,7 +46,7 @@ void LichessClient::checkAuthExpired(QNetworkReply* reply, bool unauthorized)
 
 void LichessClient::refreshAccount()
 {
-    if (_token.isEmpty()) return;
+    if (_token.isEmpty() || _offline) return;
     auto* reply = _nam.get(makeRequest(QStringLiteral("/api/account")));
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
@@ -414,16 +414,26 @@ void LichessClient::resumeOpenChallenge(const QString& gameId, const QString& fr
 
 void LichessClient::acceptChallenge(const QString& challengeId, const QString& color)
 {
+    if (_acceptReply) {
+        auto* previous = _acceptReply;
+        _acceptReply = nullptr;
+        previous->abort();
+    }
     auto* reply = _nam.post(makeRequest(acceptPath(challengeId, color)), QByteArray());
+    // Kept so stopStream() can drop it (Back on the Online page before Lichess answered).
+    _acceptReply = reply;
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, challengeId]() {
+        reply->deleteLater();
+        if (reply != _acceptReply)
+            return; // stopped or replaced: no game must start
+        _acceptReply = nullptr;
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const QByteArray body = reply->readAll();
         qDebug() << "LichessClient: accept" << challengeId
                  << "| HTTP" << status << "| error:" << reply->error()
                  << "| body:" << body.left(200);
-        reply->deleteLater();
-        streamGame(challengeId);
+        streamGame(challengeId); // also for a 404: the game has started already (a rejoin)
     });
 }
 
@@ -573,6 +583,7 @@ void LichessClient::streamGame(const QString& gameId)
     _lastMovesList.clear();
     _lastOppDraw     = false;
     _lastOppTakeback = false;
+    _gameFullSeen    = false;
 
     QNetworkRequest req = makeRequest(
         QStringLiteral("/api/board/game/stream/") + gameId);
@@ -585,6 +596,16 @@ void LichessClient::streamGame(const QString& gameId)
     });
 
     auto* sr = _streamReply;
+    // Ended without a game: whoever waits for gameStarted (the Online page) must hear about it.
+    // Not when stopStream() aborted it (canceled) or after gameFull (the game was on).
+    connect(sr, &QNetworkReply::finished, this, [this, sr]() {
+        if (sr != _streamReply || _gameFullSeen)
+            return;
+        if (sr->property("authExpiredReported").toBool())
+            emit networkError(QStringLiteral("Lichess sign-in expired"));
+        else if (sr->error() == QNetworkReply::NoError)
+            emit networkError(QStringLiteral("Lichess closed the game before it started"));
+    });
     connect(sr, &QNetworkReply::errorOccurred, this,
             [this, sr](QNetworkReply::NetworkError code) {
                 const int status = sr->attribute(
@@ -619,6 +640,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
     const QString     type = obj.value(QStringLiteral("type")).toString();
 
     if (type == QLatin1String("gameFull")) {
+        _gameFullSeen = true;
         const QJsonObject white = obj.value(QStringLiteral("white")).toObject();
         const QJsonObject black = obj.value(QStringLiteral("black")).toObject();
         const QJsonObject state = obj.value(QStringLiteral("state")).toObject();
@@ -1017,6 +1039,11 @@ void LichessClient::stopStream()
     if (_openChallengeReply) {
         auto* reply = _openChallengeReply;
         _openChallengeReply = nullptr; // its finished() handler must ignore it
+        reply->abort();
+    }
+    if (_acceptReply) {
+        auto* reply = _acceptReply;
+        _acceptReply = nullptr; // its finished() handler must not start the stream
         reply->abort();
     }
     _pollTimer.stop();

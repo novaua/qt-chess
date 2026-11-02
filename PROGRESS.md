@@ -24,6 +24,19 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - Docs: `CLAUDE.md` (OnlinePage, ChallengeDialog) and the run-chess-app skill's scene list.
 - Debug and Release build; ChessTests 111, ChessQtTests 126 pass. Screenshots: 53 compared, 0 failed after accepting the new `online*` baselines (the old `online` showed the dialog) and `about*` (build timestamp).
 
+### Code review (PR #112 comments, same branch)
+9 findings: 8 fixed, 1 declined.
+- **Fixed:**
+  - **Back didn't stop a Join**: the accept POST wasn't kept, so `stopStream()` couldn't drop it, and its answer started the game over Home. It is now `_acceptReply`, aborted by `stopStream()`. Checked against lichess.org with a temporary hook: join then stop after 5 ms → no game stream request; without the stop → the stream opens.
+  - **The buttons stayed disabled** when the game stream ended without a game: an expired token (the auth handler aborts it, "canceled", which was ignored), or Lichess closing the stream before `gameFull`. The stream now reports both as `networkError` ("Lichess sign-in expired" / "Lichess closed the game before it started"). The page also resets when it is shown again, or when the account's connected state changes.
+  - **The list stayed empty** when the sign-in completed while the page was open: it now refreshes when `lichessConnected` changes (not on every `lichessChanged`, which a ratings update fires too).
+  - **The error bar** was inside the scrolling content (out of sight after scrolling to Join): it now floats under the header.
+  - **Join parsed the link twice**: one `joinFromUrl` call, as the old dialog did.
+  - **`openOnline/closeOnline` were a third copy**: `_openPage(name)` / `_closePage(name)` with `_pushedPages`, and Escape closes any pushed page.
+  - **`setOffline` covered only the games refresh**: `refreshAccount` too, and `main.cpp`'s own screenshot-mode checks for both are gone.
+- **Declined:** "Continue should go through `ChessConnector` (CLAUDE.md rule 1)". A rejoin is Lichess challenge setup like "Join a game" (`LichessClient.joinFromUrl`, called from QML before this PR too). The game itself starts in `ChessConnector` through `gameStarted`, and rule 2 says not to forward `LichessClient`'s API through `ChessConnector`. This was decided in the plan (§4.1); the owner can overrule it.
+- ChessTests 111, ChessQtTests 126 (Debug and Release); 53 screenshots unchanged; no QML warnings in the scene logs.
+
 ### Where to continue
 - **Owner's check** (Release build of this branch):
   - Play online: your unfinished games are listed; Continue on one opens it in the current position;
