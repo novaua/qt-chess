@@ -82,29 +82,25 @@ void LichessClient::setToken(const QString& decryptedToken)
     _token = decryptedToken;
     qDebug() << "LichessClient: token" << (_token.isEmpty() ? "cleared" : QString("set(%1 chars)").arg(_token.size()));
     emit canRematchChanged();
-    if (changed && (!_ongoingGames.isEmpty() || _ongoingGamesReply || !_ongoingGamesError.isEmpty())) {
-        // Another account (or none): its games are not ours.
-        if (_ongoingGamesReply) {
-            auto* old = _ongoingGamesReply;
-            _ongoingGamesReply = nullptr; // before abort(): its finished handler runs inside abort()
-            old->abort();
-        }
-        _ongoingGames.clear();
-        _ongoingGamesLoading = false;
-        _ongoingGamesError.clear();
-        emit ongoingGamesChanged();
+    if (changed)
+        setOngoingGames({}); // another account (or none): its games are not ours
+}
+
+void LichessClient::cancelOngoingGamesRefresh()
+{
+    if (_ongoingGamesReply) {
+        auto* old = _ongoingGamesReply;
+        _ongoingGamesReply = nullptr; // before abort(): its finished handler runs inside abort()
+        old->abort();
     }
 }
 
 void LichessClient::refreshOngoingGames()
 {
     if (_token.isEmpty()) return;
-    if (_ongoingGamesReply) {
-        auto* old = _ongoingGamesReply;
-        _ongoingGamesReply = nullptr;
-        old->abort();
-    }
+    cancelOngoingGamesRefresh();
     _ongoingGamesLoading = true;
+    _ongoingGamesError.clear();
     emit ongoingGamesChanged();
 
     auto* reply = _nam.get(makeRequest(QStringLiteral("/api/account/playing?nb=50")));
@@ -119,9 +115,14 @@ void LichessClient::refreshOngoingGames()
         const QByteArray raw = reply->readAll();
         const auto doc = QJsonDocument::fromJson(raw);
         if (reply->error() != QNetworkReply::NoError || !doc.isObject()) {
-            // The list is kept; a 401 is reported by checkAuthExpired.
-            _ongoingGamesError = reply->error() != QNetworkReply::NoError ? apiErrorMessage(raw, reply)
-                                                                          : QStringLiteral("Invalid response");
+            // The list is kept. A 401 (the handler for Lichess's auth challenge aborts the reply,
+            // hence "canceled") is reported by checkAuthExpired: the profile's token is then
+            // dropped, which clears the list (setToken).
+            const bool unauthorized = reply->property("authExpiredReported").toBool()
+                || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 401;
+            _ongoingGamesError = unauthorized ? QStringLiteral("Lichess sign-in expired")
+                : reply->error() != QNetworkReply::NoError ? apiErrorMessage(raw, reply)
+                : QStringLiteral("Invalid response");
             qDebug() << "LichessClient: ongoing games failed:" << _ongoingGamesError;
         } else {
             _ongoingGames = parseOngoingGames(doc.object());
@@ -143,42 +144,50 @@ void LichessClient::refreshOngoingGames()
 
 void LichessClient::setOngoingGames(const QVariantList& games)
 {
+    cancelOngoingGamesRefresh(); // its answer would replace these
     _ongoingGames = games;
     _ongoingGamesLoading = false;
     _ongoingGamesError.clear();
     emit ongoingGamesChanged();
 }
 
+// Like "Join a game", it replaces whatever stream or challenge wait is running: it is offered only
+// outside a game (the Online page).
 void LichessClient::rejoinGame(const QString& gameId)
 {
+    if (gameId.isEmpty())
+        return;
     qDebug() << "LichessClient: rejoin" << gameId;
     streamGame(gameId);
 }
 
 // static
+// Rounded down, like a clock, but never by more than about half: hours up to two days, seconds up to
+// two minutes ("47 h", not "1 day"; "119 s", not "1 min").
 QString LichessClient::timeLeftText(int seconds)
 {
     if (seconds < 0)
         return {};
-    if (seconds < 60)
+    if (seconds < 120)
         return QStringLiteral("%1 s").arg(seconds);
-    if (seconds < 3600)
+    if (seconds < 2 * 3600)
         return QStringLiteral("%1 min").arg(seconds / 60);
-    if (seconds < 86400)
+    if (seconds < 2 * 86400)
         return QStringLiteral("%1 h").arg(seconds / 3600);
-    const int days = seconds / 86400;
-    return days == 1 ? QStringLiteral("1 day") : QStringLiteral("%1 days").arg(days);
+    return QStringLiteral("%1 days").arg(seconds / 86400);
 }
 
-// The Board API plays Rapid, Classical and Correspondence; Blitz only in a direct challenge or vs
-// Lichess AI (Lichess API spec, "Board → Restrictions"). Only the standard variant here (LI-01).
+// The Board API plays Rapid, Classical and Correspondence; Blitz only in a direct challenge (from
+// the website "friend", from the API "api"), bulk pairing ("api") or vs Lichess AI (Lichess API spec,
+// "Board → Restrictions"). Only the standard variant here (LI-01).
 static bool playableHere(const QString& speed, const QString& source, const QString& variant)
 {
     if (variant != QLatin1String("standard"))
         return false;
     if (speed == QLatin1String("rapid") || speed == QLatin1String("classical") || speed == QLatin1String("correspondence"))
         return true;
-    return speed == QLatin1String("blitz") && (source == QLatin1String("friend") || source == QLatin1String("ai"));
+    return speed == QLatin1String("blitz")
+        && (source == QLatin1String("friend") || source == QLatin1String("api") || source == QLatin1String("ai"));
 }
 
 // static

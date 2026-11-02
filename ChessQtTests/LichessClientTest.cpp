@@ -336,13 +336,16 @@ namespace LichessTests
 				{ "gameId": "blitzFrn", "speed": "blitz",  "source": "friend", "variant": { "key": "standard" } },
 				{ "gameId": "blitzLob", "speed": "blitz",  "source": "lobby",  "variant": { "key": "standard" } },
 				{ "gameId": "bulletLo", "speed": "bullet", "source": "lobby",  "variant": { "key": "standard" } },
-				{ "gameId": "classicL", "speed": "classical", "source": "lobby", "variant": { "key": "standard" } }
+				{ "gameId": "classicL", "speed": "classical", "source": "lobby", "variant": { "key": "standard" } },
+				{ "gameId": "blitzApi", "speed": "blitz",  "source": "api",    "variant": { "key": "standard" } }
 			] })"));
 
+			Assert::AreEqual(5, (int)games.size());
 			Assert::IsTrue(games[0].toMap().value("canPlayHere").toBool());
 			Assert::IsFalse(games[1].toMap().value("canPlayHere").toBool());
 			Assert::IsFalse(games[2].toMap().value("canPlayHere").toBool());
 			Assert::IsTrue(games[3].toMap().value("canPlayHere").toBool());
+			Assert::IsTrue(games[4].toMap().value("canPlayHere").toBool(), L"an API challenge or bulk pairing");
 		}
 
 		TEST_METHOD(ParseOngoingGames_NoGames_Empty)
@@ -351,12 +354,30 @@ namespace LichessTests
 			Assert::IsTrue(LichessClient::parseOngoingGames(Json(R"({})")).isEmpty());
 		}
 
+		// Another profile's account (or none): the games shown belong to the old one.
+		TEST_METHOD(OngoingGames_TokenChange_ClearsTheList_Test)
+		{
+			LichessClient client;
+			client.setOngoingGames(LichessClient::parseOngoingGames(Json(R"({ "nowPlaying": [
+				{ "gameId": "rapid001", "speed": "rapid", "variant": { "key": "standard" } } ] })")));
+			Assert::AreEqual(1, (int)client.ongoingGames().size());
+
+			client.setToken("another-account-token");
+
+			Assert::IsTrue(client.ongoingGames().isEmpty());
+			Assert::IsFalse(client.ongoingGamesLoading());
+			client.setToken({}); // no network call was made: nothing to clean up
+		}
+
 		TEST_METHOD(TimeLeftText_Units_Test)
 		{
 			Assert::AreEqual(QString("45 s"),   LichessClient::timeLeftText(45));
+			Assert::AreEqual(QString("119 s"),  LichessClient::timeLeftText(119), L"not \"1 min\"");
 			Assert::AreEqual(QString("3 min"),  LichessClient::timeLeftText(200));
+			Assert::AreEqual(QString("119 min"), LichessClient::timeLeftText(2 * 3600 - 1));
 			Assert::AreEqual(QString("5 h"),    LichessClient::timeLeftText(5 * 3600 + 100));
-			Assert::AreEqual(QString("1 day"),  LichessClient::timeLeftText(86400 + 5));
+			Assert::AreEqual(QString("47 h"),   LichessClient::timeLeftText(47 * 3600 + 59), L"not \"1 day\"");
+			Assert::AreEqual(QString("2 days"), LichessClient::timeLeftText(2 * 86400));
 			Assert::AreEqual(QString("14 days"), LichessClient::timeLeftText(14 * 86400));
 			Assert::IsTrue(LichessClient::timeLeftText(-1).isEmpty(), L"no clock");
 		}

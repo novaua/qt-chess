@@ -252,6 +252,11 @@ int main(int argc, char* argv[])
 	updateLichessToken(); // load() sets the active user silently — seed the token now
 	QObject::connect(lichessClient, &LichessClient::accountFetched, userManager, &UserManager::setLichessAccount);
 	QObject::connect(lichessClient, &LichessClient::authExpired, userManager, &UserManager::setLichessExpired);
+	// A Lichess game left unfinished (Home, switch user) is now one of the ongoing games (LI-04).
+	QObject::connect(connector, &ChessConnector::isOnlineGameChanged, lichessClient, [=]() {
+		if (!connector->isOnlineGame() && !screenshotMode)
+			lichessClient->refreshOngoingGames();
+	});
 	QObject::connect(lichessClient, &LichessClient::gameEnded, lichessClient, [=]() {
 		QTimer::singleShot(3000, lichessClient, [=]() {
 			lichessClient->refreshAccount();      // the new rating

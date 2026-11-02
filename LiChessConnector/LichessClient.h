@@ -67,7 +67,7 @@ public:
 	void setOngoingGames(const QVariantList& games); // tests and screenshot scenes (no network)
 	// The rows of ongoingGames from the answer of /api/account/playing ({ "nowPlaying": [...] }).
 	static QVariantList parseOngoingGames(const QJsonObject& playing);
-	// "45 s", "3 min", "5 h", "2 days"; "" for no clock (negative).
+	// "45 s", "3 min", "47 h", "2 days"; "" for no clock (negative).
 	static QString timeLeftText(int seconds);
 
 	// Rematch the last game with colors swapped: a direct challenge to a registered opponent
@@ -150,6 +150,7 @@ private:
 	void checkGameReady();
 	void stopProbe(); // abort the /api/board/game/stream probe of checkGameReady()
 	void onGameStartDetected(const QString& gameId);
+	void cancelOngoingGamesRefresh(); // drop the /api/account/playing request in flight
 
 	QNetworkAccessManager _nam;
 	QString               _token;
