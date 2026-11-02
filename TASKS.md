@@ -108,6 +108,13 @@ Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows
   - **a clock on the game page**: there is none today (out of scope in BL-14); Bullet and UltraBullet can't be played without it (`wtime`/`btime` from the `gameState` stream);
   - the move gate's pause (BL-14) at these speeds: in UltraBullet even ~0.4 s matters, so the Online pause may need to be shorter or zero;
   - the profile's ratings (`parseRatings`) list bullet, blitz, rapid, classical, correspondence: add `ultraBullet`, and show the chosen mode's rating in the dialog.
+- [ ] LI-03 Apply an accepted Lichess takeback to our board [Medium] (from the PR #106 code review). Lichess allows takebacks between players when the other side agrees (each player's Lichess preference: always, casual games only, or never). The app can already ask for one and answer the opponent's request (`requestTakeback` / `respondTakeback`, the "takeback" offer bar), but when it is accepted Lichess sends a **shorter** `moves` list in `gameState`. `LichessClient::handleGameStreamLine` only emits moves when the list grows and replaces `_lastMovesList`, so our `Game` stays ahead (BL-04 §7 noted this). The next opponent move is then played on the wrong position: `DoMove` throws, or the board silently desyncs. To do:
+  - a `takebackApplied(int plies)` signal (or the new full list) when the list shrinks;
+  - `ChessConnector` undoes that many plies with the gate cleared first: a move held in the gate (BL-14) may be one of those taken back;
+  - fix the move list, captured pieces, last-move squares and check state;
+  - a message ("Takeback accepted");
+  - resync safety: if the lists disagree in some other way, rebuild the game from Lichess's list;
+  - tests: `LichessClientTest` stream lines (a list that shrinks, then grows again), and a scripted check like the step-5 stream hook.
 
 ---
 
