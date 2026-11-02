@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-02 — Lichess: the chosen side and the join link (branch: lichessColorJoinFix_021126)
+
+From the owner's manual check of BL-14 step 5 (scenario 1 passed apart from these; scenario 3, Fool's mate, passed).
+
+### What was done
+- **Bug 1, "Black" selected but the game started as White**: Lichess's `POST /api/challenge/open` has **no `color` parameter**. The app log shows every challenge answered with `"color":"random"` and a random `finalColor`, and the app always played `finalColor`. The side is chosen when a player **accepts** an open challenge: `POST /api/challenge/{id}/accept?color=white|black` ("only valid if this is an open challenge", Lichess API spec). Now:
+  - `createOpenChallenge` no longer sends `color` and takes our seat with `accept?color=<chosen>` (`waitForGameStart(id, true, color)`); "Random" accepts without a colour (Lichess's `finalColor`);
+  - after a restart, a pending challenge is resumed with `resumeOpenChallenge(id, friendUrl)`: we play the side the friend's saved link (`…?color=white`) doesn't;
+  - joining by link takes the side in the link (`joinFromUrl`: `…?color=black`, `…/<id>/black`).
+- **Bug 4, the `https://lichess.org/game/<id>` link was rejected** ("Invalid URL or game ID"), although it's the form Lichess gives for open challenges (and the one we show to the friend). `gameIdFromUrl` accepts `/game/`; `colorFromUrl` reads the side. The dialog makes one call, `LichessClient.joinFromUrl(text)`.
+- Tests: `LichessClientTest` +2 (`GameIdFromUrl_ChallengeLink_ReturnsId`, `ColorFromUrl_PlayerLinks_Test`). Debug and Release build; ChessTests 111, ChessQtTests 121 pass in both; `online` and `home` screenshots unchanged.
+- Not verified against Lichess itself (needs the owner's account and a second player): see the checks below.
+- **Backlog** (`TASKS.md`): bug 2 (no way back to a game after leaving it, no warning; correspondence games) and the "list of unfinished games" part of bug 4 → **LI-04**; bug 3 (premove) → **LI-05**. **LI-02 corrected**: the Board API allows only Rapid, Classical and Correspondence (Blitz only in direct challenges), so Bullet and UltraBullet are impossible for this app; the dialog's 1+0, 3+2 and 5+3 presets for open challenges need checking.
+
+### Where to continue
+- **Owner's check**: create a challenge as Black, open the friend's link (it ends `?color=white`) in the browser; the app must play Black (board turned). Then as White, and Random a few times. Join by the `https://lichess.org/game/<id>` link and by a `…?color=black` link.
+- LI-04 needs the owner's decision on where the unfinished games are listed.
+
 ## 2026-11-02 — BL-14 step 5: the Lichess opponent through the gate (branch: lichessThroughGate_021126)
 
 ### What was done

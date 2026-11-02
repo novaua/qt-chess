@@ -152,7 +152,8 @@ void LichessClient::createOpenChallengeSec(int limitSec, int incrementSec, int d
 {
     QUrlQuery body;
     addTimeControl(body, limitSec, incrementSec, days);
-    body.addQueryItem(QStringLiteral("color"),   color);
+    // No "color" here: /api/challenge/open has none (Lichess answers "color":"random" and picks a
+    // finalColor). Our side is taken when we accept it below.
     body.addQueryItem(QStringLiteral("variant"), variant);
 
     if (_openChallengeReply) {
@@ -207,7 +208,7 @@ void LichessClient::createOpenChallengeSec(int limitSec, int incrementSec, int d
 
         _currentGameId = gameId;
         emit challengeCreated(gameId, joinUrl);
-        waitForGameStart(gameId);
+        waitForGameStart(gameId, true, color);
     });
 }
 
@@ -223,11 +224,36 @@ void LichessClient::cancelChallenge(const QString& challengeId)
     });
 }
 
-void LichessClient::acceptChallenge(const QString& challengeId)
+// The accept URL; for an open challenge "?color=" takes that side (only white or black are valid).
+static QString acceptPath(const QString& challengeId, const QString& color)
 {
-    auto* reply = _nam.post(
-        makeRequest(QStringLiteral("/api/challenge/") + challengeId + QStringLiteral("/accept")),
-        QByteArray());
+    QString path = QStringLiteral("/api/challenge/") + challengeId + QStringLiteral("/accept");
+    if (color == QLatin1String("white") || color == QLatin1String("black"))
+        path += QStringLiteral("?color=") + color;
+    return path;
+}
+
+bool LichessClient::joinFromUrl(const QString& urlOrId)
+{
+    const QString gameId = gameIdFromUrl(urlOrId);
+    if (gameId.isEmpty())
+        return false;
+    acceptChallenge(gameId, colorFromUrl(urlOrId));
+    return true;
+}
+
+void LichessClient::resumeOpenChallenge(const QString& gameId, const QString& friendUrl)
+{
+    const QString friendColor = colorFromUrl(friendUrl);
+    const QString myColor = friendColor == QLatin1String("white") ? QStringLiteral("black")
+                          : friendColor == QLatin1String("black") ? QStringLiteral("white")
+                          : QString();
+    waitForGameStart(gameId, true, myColor);
+}
+
+void LichessClient::acceptChallenge(const QString& challengeId, const QString& color)
+{
+    auto* reply = _nam.post(makeRequest(acceptPath(challengeId, color)), QByteArray());
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, challengeId]() {
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
@@ -240,7 +266,7 @@ void LichessClient::acceptChallenge(const QString& challengeId)
     });
 }
 
-void LichessClient::waitForGameStart(const QString& gameId, bool registerAsPlayer)
+void LichessClient::waitForGameStart(const QString& gameId, bool registerAsPlayer, const QString& myColor)
 {
     stopEventStream();
     _pollTimer.stop();
@@ -248,11 +274,9 @@ void LichessClient::waitForGameStart(const QString& gameId, bool registerAsPlaye
 
     // Must call accept to register the creator as a Board API player; without it
     // the board-game stream endpoint returns 404 even after the opponent joins.
+    // It also picks our side: without a colour Lichess gives us its random finalColor.
     if (registerAsPlayer) {
-        auto* reg = _nam.post(
-            makeRequest(QStringLiteral("/api/challenge/") + gameId
-                        + QStringLiteral("/accept")),
-            QByteArray());
+        auto* reg = _nam.post(makeRequest(acceptPath(gameId, myColor)), QByteArray());
         connect(reg, &QNetworkReply::finished, this, [reg]() { reg->deleteLater(); });
     }
 
@@ -848,10 +872,10 @@ void LichessClient::stopStream()
 
 QString LichessClient::gameIdFromUrl(const QString& urlOrId) const
 {
-    // Matches: https://lichess.org/XXXXXXXX  or  https://lichess.org/XXXXXXXX/white
-    // Also accepts a bare 8-char ID.
+    // Matches: https://lichess.org/XXXXXXXX, …/XXXXXXXX/white, and the challenge links Lichess
+    // gives out: https://lichess.org/game/XXXXXXXX?color=black. Also accepts a bare 8-char ID.
     static const QRegularExpression re(
-        QStringLiteral("(?:lichess\\.org/)([A-Za-z0-9]{8})"));
+        QStringLiteral("(?:lichess\\.org/)(?:game/)?([A-Za-z0-9]{8})"));
     const auto match = re.match(urlOrId);
     if (match.hasMatch())
         return match.captured(1);
@@ -860,6 +884,15 @@ QString LichessClient::gameIdFromUrl(const QString& urlOrId) const
     if (bareId.match(urlOrId.trimmed()).hasMatch())
         return urlOrId.trimmed();
     return {};
+}
+
+// static
+QString LichessClient::colorFromUrl(const QString& url)
+{
+    static const QRegularExpression re(
+        QStringLiteral("(?:[?&]color=|lichess\\.org/(?:game/)?[A-Za-z0-9]{8}/)(white|black)\\b"));
+    const auto match = re.match(url);
+    return match.hasMatch() ? match.captured(1) : QString();
 }
 
 // static

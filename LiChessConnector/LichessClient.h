@@ -36,12 +36,20 @@ public:
 	void refreshAccount();
 	// "perfs" of /api/account: { "blitz": { rating, games, prov }, ... } for the pools that have a rating.
 	static QVariantMap parseRatings(const QJsonObject& account);
+	// color: our side, "white", "black" or "random". Lichess's open challenge has no colour of its
+	// own: we take our seat when we accept it (waitForGameStart), and the friend gets the other link.
 	Q_INVOKABLE void createOpenChallenge(int minutes, int increment, const QString& color, const QString& variant);
-	Q_INVOKABLE void acceptChallenge(const QString& challengeId);
+	// color: accept an open challenge as that side ("" = whatever Lichess gives).
+	Q_INVOKABLE void acceptChallenge(const QString& challengeId, const QString& color = {});
+	// "Join a game": a Lichess link or a game id. A player link (…?color=black, …/black) joins as
+	// that side. False if it is neither a link nor an id.
+	Q_INVOKABLE bool joinFromUrl(const QString& urlOrId);
 	Q_INVOKABLE void streamGame(const QString& gameId);
 	// registerAsPlayer: POST /accept on our own open challenge first (needed for the Board API
-	// stream of an open challenge; not possible for a challenge we sent to a user).
-	Q_INVOKABLE void waitForGameStart(const QString& gameId, bool registerAsPlayer = true);
+	// stream of an open challenge; not possible for a challenge we sent to a user), as myColor.
+	Q_INVOKABLE void waitForGameStart(const QString& gameId, bool registerAsPlayer = true, const QString& myColor = {});
+	// After a restart: wait again for our own open challenge. We play the side the friend's link doesn't.
+	Q_INVOKABLE void resumeOpenChallenge(const QString& gameId, const QString& friendUrl);
 
 	// Rematch the last game with colors swapped: a direct challenge to a registered opponent
 	// (emits directChallengeSent), or a new open challenge for an anonymous one (emits
@@ -69,6 +77,8 @@ public:
 	Q_INVOKABLE void cancelChallenge(const QString& challengeId);
 
 	Q_INVOKABLE QString gameIdFromUrl(const QString& urlOrId) const;
+	// The side a player link is for: "white" / "black" from …?color=… or …/<id>/white, else "".
+	static QString colorFromUrl(const QString& url);
 
 	static QString encryptToken(const QString& plaintext);
 	static QString decryptToken(const QString& base64Ciphertext);

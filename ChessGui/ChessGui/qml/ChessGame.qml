@@ -136,7 +136,7 @@ ApplicationWindow {
             _pendingChallengeId  = UserManager.pendingChallengeId
             _pendingChallengeUrl = UserManager.pendingChallengeUrl
             challengeDialog.open()
-            LichessClient.waitForGameStart(_pendingChallengeId)
+            LichessClient.resumeOpenChallenge(_pendingChallengeId, _pendingChallengeUrl)
         } else {
             onlineDialog.open()
         }
