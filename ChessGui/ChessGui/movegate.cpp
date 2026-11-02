@@ -60,6 +60,23 @@ void MoveGate::push(const QString& uciMove, Source source)
 	tick();
 }
 
+// A Lichess resync: queued before the gate looks, so an idle board doesn't let the first one
+// through alone.
+void MoveGate::push(const QStringList& uciMoves, Source source)
+{
+	for (const auto& move : uciMoves)
+		_queue.push_back({ move, source });
+	tick();
+}
+
+void MoveGate::releaseAll()
+{
+	_timer.stop();
+	while (!_queue.empty())
+		releaseFront(_clock());
+	tick();
+}
+
 void MoveGate::clear()
 {
 	_queue.clear();
@@ -80,6 +97,27 @@ qint64 MoveGate::allowedAt(Source source) const
 	return source == Source::Robot ? std::max(_busyUntil, _robotEarliest) : _busyUntil;
 }
 
+void MoveGate::releaseFront(qint64 now)
+{
+	// The board is busy from here on, even if the receiver doesn't call moveShown().
+	_busyUntil = std::max(_busyUntil, now + _timing.slideMs + _timing.pauseMs);
+	_wasIdle = false;
+	// More than two at once is a Lichess resync after a reconnect: show the position at once,
+	// as one batch, so the receiver applies it without a slide or a sound per move.
+	if (_queue.size() > 2) {
+		QStringList moves;
+		for (const auto& move : _queue)
+			moves.append(move.uciMove);
+		_queue.clear();
+		emit releaseBatch(moves);
+	}
+	else {
+		const HeldMove move = _queue.front();
+		_queue.pop_front();
+		emit release(move.uciMove, move.source);
+	}
+}
+
 void MoveGate::tick()
 {
 	_timer.stop();
@@ -94,22 +132,7 @@ void MoveGate::tick()
 			_timer.start((int)(due - now));
 			return;
 		}
-		// The board is busy from here on, even if the receiver doesn't call moveShown().
-		_busyUntil = std::max(_busyUntil, now + _timing.slideMs + _timing.pauseMs);
-		// More than two at once is a Lichess resync after a reconnect: show the position at once,
-		// as one batch, so the receiver applies it without a slide or a sound per move.
-		if (_queue.size() > 2) {
-			QStringList moves;
-			for (const auto& move : _queue)
-				moves.append(move.uciMove);
-			_queue.clear();
-			emit releaseBatch(moves);
-		}
-		else {
-			const HeldMove move = _queue.front();
-			_queue.pop_front();
-			emit release(move.uciMove, move.source);
-		}
+		releaseFront(now);
 		tick(); // schedule what is left (moveShown() from the receiver has updated the times)
 		return;
 	}

@@ -263,6 +263,61 @@ namespace LichessTests
 		{
 			Assert::IsTrue(LichessClient::parseRatings(Json(R"({ "username": "Me" })")).isEmpty());
 		}
+
+		// handleGameStreamLine ————————————————————————————————————————————————
+
+		TEST_METHOD(GameStream_GameStateWithMate_MoveBeforeEnd_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			QStringList events;
+			QObject::connect(&client, &LichessClient::opponentMoveReceived, [&](QString moves) { events << "move " + moves; });
+			QObject::connect(&client, &LichessClient::gameEnded, [&](QString status, QString winner) { events << "end " + status + " " + winner; });
+
+			Assert::IsTrue(client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"f2f3 e7e5 g2g4","status":"started"}})"));
+			events.clear(); // the resync of the moves before we joined
+			// The opponent's mate comes in the same state as the end of the game.
+			Assert::IsFalse(client.handleGameStreamLine(R"({"type":"gameState","moves":"f2f3 e7e5 g2g4 d8h4",
+				"status":"mate","winner":"black"})"), L"the stream is over after the end");
+
+			Assert::AreEqual(2, (int)events.size());
+			Assert::AreEqual(QString("move d8h4"), events[0], L"the mating move first");
+			Assert::AreEqual(QString("end mate black"), events[1]);
+		}
+
+		TEST_METHOD(GameStream_GameFull_ResyncsAllMovesInOneSignal_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			QStringList events;
+			QObject::connect(&client, &LichessClient::gameStarted, [&](QString, bool, QString, QString) { events << "start"; });
+			QObject::connect(&client, &LichessClient::opponentMoveReceived, [&](QString moves) { events << "move " + moves; });
+
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4 e7e5 g1f3","status":"started"}})");
+
+			Assert::AreEqual(2, (int)events.size());
+			Assert::AreEqual(QString("start"), events[0], L"the board is set up before the moves");
+			Assert::AreEqual(QString("move e2e4 e7e5 g1f3"), events[1]);
+		}
+
+		TEST_METHOD(GameStream_GameState_OnlyNewMoves_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			QStringList events;
+			QObject::connect(&client, &LichessClient::opponentMoveReceived, [&](QString moves) { events << moves; });
+
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4","status":"started"}})");
+			events.clear();
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5","status":"started"})");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5","status":"started","wdraw":true})");
+
+			Assert::AreEqual(1, (int)events.size(), L"a state without a new move emits none");
+			Assert::AreEqual(QString("e7e5"), events[0]);
+		}
 	};
 
 	// -----------------------------------------------------------------------

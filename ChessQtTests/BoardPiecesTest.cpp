@@ -80,6 +80,25 @@ namespace BoardPiecesTests
 			Assert::IsTrue(g_modelWarnings.isEmpty(), g_modelWarnings.join('\n').toStdWString().c_str());
 		}
 
+		TEST_METHOD(ResetShowsAFewMovesAnewWithoutSlides)
+		{
+			BoardPieces model;
+			QAbstractItemModelTester tester(&model, QAbstractItemModelTester::FailureReportingMode::Warning);
+			model.sync(position({}));
+			const int knight = model.pieceIdAt(Chess::g1);
+			Signals s;
+			count(model, s);
+
+			// A Lichess resync of three moves: few enough changes that sync() would slide them.
+			model.reset(position({ "e2e4", "e7e5", "g1f3" }));
+
+			Assert::AreEqual(1, s.resets);
+			Assert::AreEqual(0, s.dataChanged, L"no piece moves (slides)");
+			Assert::AreEqual(32, model.rowCount());
+			Assert::AreNotEqual(knight, model.pieceIdAt(Chess::f3), L"a new piece, not the g1 knight sliding");
+			assertModelOk();
+		}
+
 		TEST_METHOD(FirstSyncShowsEveryPiece)
 		{
 			BoardPieces model;

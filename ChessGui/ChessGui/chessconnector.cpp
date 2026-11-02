@@ -50,6 +50,7 @@ ChessConnector::ChessConnector(QObject* parent)
 	connect(_gate, &MoveGate::release, this, [this](const QString& uciMove, MoveGate::Source source) {
 		onGateRelease(uciMove, source);
 	});
+	connect(_gate, &MoveGate::releaseBatch, this, &ChessConnector::playOnlineMoves);
 	connect(_gate, &MoveGate::idle, this, &ChessConnector::boardIdle);
 	_pieces->sync(_game->GetCurrentBoard());
 
@@ -285,7 +286,12 @@ void ChessConnector::schedulePiecesSync()
 	QMetaObject::invokeMethod(this, [this] {
 		_piecesSyncPosted = false;
 		FrameTraceScope trace("pieces sync");
-		_pieces->sync(shownGame()->GetCurrentBoard());
+		if (_piecesAnew) {
+			_piecesAnew = false;
+			_pieces->reset(shownGame()->GetCurrentBoard());
+		}
+		else
+			_pieces->sync(shownGame()->GetCurrentBoard());
 	}, Qt::QueuedConnection);
 }
 
@@ -627,7 +633,7 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 
 	if (_lichessClient) {
 		connect(_lichessClient, &LichessClient::opponentMoveReceived,
-			this, &ChessConnector::applyMoves,
+			this, &ChessConnector::onLichessOpponentMoves,
 			Qt::UniqueConnection);
 	}
 }
@@ -649,6 +655,8 @@ void ChessConnector::onLichessGameEnded(const QString& status, const QString& wi
 		_lichessClient->watchForRematch();
 	}
 
+	// The game is over at once (no moves, offers or resignation any more), even if the opponent's
+	// last move still waits in the gate: the result card waits for the board (GamePage).
 	// Checkmate is already announced by the local game when the mating move arrives.
 	if (status == QLatin1String("mate") && !_gameResult.isEmpty())
 		return;
@@ -793,11 +801,12 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 		connect(_lichessClient, &LichessClient::gameStarted, this, &ChessConnector::onLichessGameStarted);
 		connect(_lichessClient, &LichessClient::gameEnded,   this, &ChessConnector::onLichessGameEnded);
 		connect(_lichessClient, &LichessClient::opponentGone, this, &ChessConnector::onLichessOpponentGone);
+		// An offer that comes with the opponent's move is shown after the move.
 		connect(_lichessClient, &LichessClient::drawOfferReceived, this, [this]() {
-			if (isOnlineGame() && !_gameOver) setPendingOffer(QStringLiteral("draw"));
+			afterHeldMoves([this] { if (isOnlineGame() && !_gameOver) setPendingOffer(QStringLiteral("draw")); });
 		});
 		connect(_lichessClient, &LichessClient::takebackRequested, this, [this]() {
-			if (isOnlineGame() && !_gameOver) setPendingOffer(QStringLiteral("takeback"));
+			afterHeldMoves([this] { if (isOnlineGame() && !_gameOver) setPendingOffer(QStringLiteral("takeback")); });
 		});
 		connect(_lichessClient, &LichessClient::rematchOffered, this, [this]() {
 			if (isOnlineGame() && _gameOver) setPendingOffer(QStringLiteral("rematch"));
@@ -813,6 +822,7 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 void ChessConnector::beginGame(bool online)
 {
 	_gate->clear(); // a held move belongs to the game being left
+	_afterHeldMoves.clear();
 	_gameDate = QDate::currentDate();
 	setFlaggedKing(-1);
 	_resultRecorded = false;
@@ -942,21 +952,30 @@ QVariantList ChessConnector::levels() const
 
 void ChessConnector::applyMoves(const QString& movesStr)
 {
-	const auto moveList = movesStr.trimmed().split(' ', Qt::SkipEmptyParts);
-	for (const auto& moveStr : moveList)
-	{
-		try
-		{
-			_game->DoMove(Chess::Move::Parse(moveStr.toStdString()));
+	playMoves(movesStr.split(' ', Qt::SkipEmptyParts));
+}
+
+// Plays the moves on the game, up to the first one that can't be played, then updates the move
+// list and the counters once. Only a check in the final position is announced. Returns how many
+// were played.
+int ChessConnector::playMoves(const QStringList& uciMoves)
+{
+	int played = 0;
+	for (const auto& move : uciMoves) {
+		_resuming = played < uciMoves.size() - 1;
+		try {
+			_game->DoMove(Chess::Move::Parse(move.toStdString()));
 		}
-		catch (const std::exception& ex)
-		{
-			qDebug() << "applyMoves: invalid move" << moveStr << ":" << ex.what();
+		catch (const std::exception& ex) {
+			qWarning() << "Move" << move << "can't be played:" << ex.what();
 			break;
 		}
+		++played;
 	}
+	_resuming = false;
 	appendMoveToHistory(); // rebuilds the whole list when several moves came at once
 	EmitMoveCountUpdates();
+	return played;
 }
 
 void ChessConnector::setUseFen(bool v)
@@ -1089,7 +1108,54 @@ void ChessConnector::onGateRelease(const QString& uciMove, MoveGate::Source sour
 {
 	if (source == MoveGate::Source::Robot)
 		playRobotMove(uciMove);
-	// The Lichess opponent's moves go through the gate in BL-14 step 5.
+	else
+		playOnlineMoves({ uciMove });
+}
+
+// From the Lichess stream: the opponent's move, or all moves of the game when it is (re)joined.
+// Our own moves are not echoed (LichessClient skips them). They wait in the gate like the robot's
+// answer; Lichess's own turn rule keeps the player from moving meanwhile (canPlayerMove()).
+void ChessConnector::onLichessOpponentMoves(const QString& uciMoves)
+{
+	if (!isOnlineGame())
+		return;
+	// The player is looking at an earlier move: the gate doesn't show moves while reviewing, but
+	// the player's clock is running on Lichess. Back to the live position, then the move.
+	if (reviewMode())
+		reviewLast();
+	_gate->push(uciMoves.split(' ', Qt::SkipEmptyParts), MoveGate::Source::Online);
+}
+
+// The gate released the opponent's move, or a resync (more than two at once: shown anew, one sound).
+void ChessConnector::playOnlineMoves(const QStringList& uciMoves)
+{
+	if (playMoves(uciMoves) > 1)
+		_piecesAnew = true; // before the posted Pieces sync runs
+	_gate->moveShown(true); // not the player's move
+	if (_gate->holding())
+		return;
+	// What came with the moves (a draw offer, a takeback request) is shown now.
+	const auto after = std::move(_afterHeldMoves);
+	_afterHeldMoves.clear();
+	for (const auto& action : after)
+		action();
+}
+
+void ChessConnector::afterHeldMoves(std::function<void()> action)
+{
+	if (_gate->holding())
+		_afterHeldMoves.push_back(std::move(action));
+	else
+		action();
+}
+
+// Entering the review of an online game: the opponent's moves still held are played now (the board
+// shows an earlier position anyway), so the move list is complete and nothing waits for the review
+// to end while the player's clock runs on Lichess.
+void ChessConnector::showHeldOnlineMoves()
+{
+	if (isOnlineGame() && !reviewMode())
+		_gate->releaseAll();
 }
 
 void ChessConnector::setBoardSettled(bool settled)
@@ -1303,6 +1369,7 @@ void ChessConnector::reviewFirst() {
 		EmitMoveCountUpdates(false);
 		return;
 	}
+	showHeldOnlineMoves();
 	_reviewIndex = 0;
 	emitBoardState();
 	emit reviewStateChanged();
@@ -1315,6 +1382,7 @@ void ChessConnector::reviewPrev() {
 		EmitMoveCountUpdates(false);
 		return;
 	}
+	showHeldOnlineMoves();
 	int cur = reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
 	if (cur <= 0) return;
 	_reviewIndex = cur - 1;
@@ -1363,6 +1431,7 @@ void ChessConnector::reviewTo(int ply) {
 		reviewLast();
 		return;
 	}
+	showHeldOnlineMoves();
 	_reviewIndex = std::max(0, ply);
 	emitBoardState();
 	emit reviewStateChanged();
@@ -1385,6 +1454,7 @@ void ChessConnector::endGame()
 	if (!_onlineGameId.isEmpty()) {
 		if (_lichessClient) _lichessClient->stopStream();
 		_onlineGameId.clear();
+		_afterHeldMoves.clear();
 		emit isOnlineGameChanged();
 	}
 

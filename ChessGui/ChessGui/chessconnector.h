@@ -255,6 +255,11 @@ private:
 	void onHumanMoveDone();
 	void playRobotMove(const QString& uciMove); // the gate released it: play it on the GUI thread
 	void onGateRelease(const QString& uciMove, MoveGate::Source source);
+	void onLichessOpponentMoves(const QString& uciMoves); // one move, or the whole game on a resync
+	void playOnlineMoves(const QStringList& uciMoves); // the gate released them: play them
+	int  playMoves(const QStringList& uciMoves);       // on the game, then history and counters; how many were played
+	void afterHeldMoves(std::function<void()> action); // now, or once the opponent's held moves are shown
+	void showHeldOnlineMoves(); // entering the review of an online game: play the held moves now
 	void emitBoardState(); // after _reviewIndex changed
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
 	void buildFullHistoryCache();
@@ -287,7 +292,9 @@ private:
 	QString         _onlineGameId;
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
-	MoveGate* _gate = nullptr; // holds the robot's answer until the board is idle (BL-14)
+	MoveGate* _gate = nullptr; // holds the robot's and the Lichess opponent's moves until the board is idle (BL-14)
+	bool _piecesAnew = false;  // the next Pieces sync shows the position anew, without slides (a resync)
+	std::vector<std::function<void()>> _afterHeldMoves; // e.g. a draw offer that came with the opponent's held move
 	bool _engineThinking = false;
 	int  _engineRequest  = 0; // the engine answer we wait for; older answers are dropped
 	bool _engineAutoPlay = false;

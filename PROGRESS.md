@@ -4,6 +4,36 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-02 — BL-14 step 5: the Lichess opponent through the gate (branch: lichessThroughGate_021126)
+
+### What was done
+- **The opponent's moves wait for the board.** `LichessClient::opponentMoveReceived` now goes to `ChessConnector::onLichessOpponentMoves()`, which pushes each move into the gate as `Source::Online` (no `robotMinMs`: only the slide and pause). `playOnlineMoves()` plays a released move (or a batch), updates the history and counters, and marks the board busy (`moveShown(true)`). Lichess's own turn rule (`canPlayerMove()`) keeps the player from moving while the move waits.
+- **Resync** (`gameFull` on (re)joining a game with moves): more than two moves at once come out as one `releaseBatch`. The pieces are shown anew without slides (`BoardPieces::reset`, now public, via `_piecesAnew`), and there is one move sound; only a check in the final position is announced.
+- **Game end while the opponent's last move waits** (e.g. a resync before the page has settled): the end is applied at once (game over, statistics, the flag), and the result card waits for the board as for any result (step 4). See the code review below; the first version held the end back.
+- **The opponent's mating move was lost** (found while doing this): `LichessClient` returned on a `gameState` with a final status before emitting its new moves. Lichess sends the mate in that same state, so our board never showed it. The stream handler now emits the new moves first, then `gameEnded`. The per-line handling is `handleGameStreamLine()` (public, for tests).
+- **Reviewing when the opponent moves**: the gate shows nothing while reviewing, but the player's clock runs on Lichess, so the board goes back to the live position (`reviewLast()`) and then shows the move.
+- Plain `applyMoves()` (Alt+S dialog, screenshot scenes) stays direct.
+- **Tests:** `LichessClientTest` +3 (mate move before the end, resync in one signal, only new moves), `BoardPiecesTest` +1 (`reset` without slides). Debug and Release build; ChessTests 111, ChessQtTests 117 pass in both.
+- **Verified end to end** with a temporary hook (not committed) that fed stream lines into `LichessClient` in screenshot mode: (1) a resync of `f2f3 e7e5 g2g4` plus the opponent's `d8h4` mate and `status: mate` arriving before the page settled — the end waited, all four moves appeared at once after the settle, mate, result card; (2) the mate arriving after the resync was shown — the three moves at once, then Qh4# alone, then Lichess's end. Both screenshots: Qh4#, the flagged king, "Friend wins by checkmate".
+- Screenshots: all 49 match. The 6 profile shots differed only in the "since <date>" text (today's date); their local baselines were re-accepted.
+
+### Code review (PR #106 comments, same branch)
+8 findings; fixed:
+- **A resync on a settled page let the first move through alone** (each move was pushed separately, and an idle gate released the first at once). `MoveGate::push(QStringList, Source)` queues them all before the gate looks; test `ResyncPushedTogetherIntoAnIdleGateIsOneBatch`.
+- **A held game end kept the game "running"** (rematch offers dropped; Resign / Offer draw still posted to an ended game), and **a held end stayed hidden while reviewing**. The held end is gone: Lichess's end is applied at once, the card already waits for the board. This also removes the two loose strings and the second winner-to-score mapping (cleanup finding).
+- **Re-entering the review while the opponent's move waits** hid it until the review ended. Entering a review of an online game (`reviewFirst/Prev/To`) now plays the held moves first (`MoveGate::releaseAll()`, test `ReleaseAllLetsTheHeldMovesThroughAtOnce`); the board shows an earlier position anyway.
+- **`_piecesAnew` stayed set if a resync's first move failed**: now set only when more than one move was played.
+- **A draw offer / takeback request showed before the move it came with**: `afterHeldMoves()` runs it once the held moves are shown.
+- **`playOnlineMoves` copied `applyMoves`' loop**: both use `playMoves()` now. Side effect: `applyMoves()` (screenshot scenes, Alt+S) also announces only a check in the final position. The `review` and `moves` baselines showed a stale "Check" bar from …Qa5+ earlier in the scripted game (the final position is not check); they were re-accepted without it.
+- **Found while verifying (a step-3 bug): `GamePage` reported a stale "settled"** to the gate. `onReviewStateChanged` / `onTurningChanged` called `_reportSettled()` before the `_boardSettled` binding had been updated, so entering a review reported "settled" and leaving it reported "not settled" — a move held then waited forever (the robot's answer after Back to live too). Now `on_BoardSettledChanged` reports it, on the next pass (`Qt.callLater`) because the gate may play a held move at once, which re-enters the binding (QML warned of a binding loop).
+- Not fixed here: **an accepted Lichess takeback** (shorter move list) is not undone on our board — the existing gap from BL-04 §7; now **LI-03** in the Lichess backlog (`TASKS.md`, PR #107).
+- Verified with the temporary stream hook (not committed), five scenarios: mate held during the settle (result at once, card after the move), mate after the resync, a resync on a settled page (0 → 4 moves in one step), a draw offer with a held move (offer after the moves), review while a move is held, then the opponent's move + resignation during the review (back to live, move, card). No QML warnings. ChessTests 111, ChessQtTests 119 pass in Debug and Release; 49 screenshots match, `robot` included.
+
+### Where to continue
+- **Manual checks by the owner with a real Lichess game** (plan §5 rows 8 and 9): the opponent answers instantly (our slide, then theirs); reconnect with several moves (the position at once, one sound); the opponent mates us (the move slides, then the card); review while the opponent moves.
+- Steps 3–5 manual checks are still open (see the step-3 entry).
+- Step 6 (render-thread slides) only if the step-1 numbers still show stalls.
+
 ## 2026-10-31 — BL-15 fixed: the engine thread stops without crossing threads (branch: engineKillFix_311026)
 
 ### What was done

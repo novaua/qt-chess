@@ -418,83 +418,92 @@ void LichessClient::handleStreamData(QNetworkReply* reply)
     while (reply->canReadLine()) {
         const QByteArray line = reply->readLine().trimmed();
         qDebug() << "LichessClient: stream line:" << line.left(300);
-        if (line.isEmpty()) continue;
-
-        const auto doc = QJsonDocument::fromJson(line);
-        if (doc.isNull() || !doc.isObject()) continue;
-
-        const QJsonObject obj  = doc.object();
-        const QString     type = obj.value(QStringLiteral("type")).toString();
-
-        if (type == QLatin1String("gameFull")) {
-            const QJsonObject white = obj.value(QStringLiteral("white")).toObject();
-            const QJsonObject black = obj.value(QStringLiteral("black")).toObject();
-            const QJsonObject state = obj.value(QStringLiteral("state")).toObject();
-
-            const QString myColor  = obj.value(QStringLiteral("myColor")).toString();
-            const QString whiteId  = white.value(QStringLiteral("id")).toString();
-            const bool    isWhite  = resolveIsWhite(myColor, whiteId, _username);
-            _playingAsWhite = isWhite;
-            qDebug() << "LichessClient: playing as" << (isWhite ? "white" : "black")
-                     << "| myColor=" << myColor << "| whiteId=" << whiteId << "| username=" << _username;
-
-            _lastGame = parseRematchInfo(obj, _username);
-            emit canRematchChanged();
-
-            const QJsonObject opponent = isWhite ? black : white;
-            const QString opponentName      = opponent.value(QStringLiteral("name")).toString();
-            const QString opponentAvatarUrl = {}; // Lichess doesn't provide avatar in stream
-
-                    // Emit gameStarted first so the board is initialized before any moves are applied.
-            _lastMovesList = state.value(QStringLiteral("moves")).toString()
-                                 .split(QLatin1Char(' '), Qt::SkipEmptyParts);
-            emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl);
-
-            // Resync our board state with moves that arrived before we joined.
-            if (!_lastMovesList.isEmpty())
-                emit opponentMoveReceived(_lastMovesList.join(QLatin1Char(' ')));
-
-            // Streaming a game that has already ended: Lichess sends only gameFull, then closes.
-            const QString status = state.value(QStringLiteral("status")).toString();
-            if (!status.isEmpty() && status != QLatin1String("started")
-                    && status != QLatin1String("created")) {
-                emit gameEnded(status, state.value(QStringLiteral("winner")).toString());
-                return;
-            }
-
-        } else if (type == QLatin1String("opponentGone")) {
-            const bool gone = obj.value(QStringLiteral("gone")).toBool();
-            const int  claimIn = obj.contains(QStringLiteral("claimWinInSeconds"))
-                ? obj.value(QStringLiteral("claimWinInSeconds")).toInt() : -1;
-            emit opponentGone(gone, claimIn);
-
-        } else if (type == QLatin1String("gameState")) {
-            const QString moves  = obj.value(QStringLiteral("moves")).toString();
-            const QString status = obj.value(QStringLiteral("status")).toString();
-
-            if (status != QLatin1String("started") && !status.isEmpty()) {
-                const QString winner = obj.value(QStringLiteral("winner")).toString();
-                emit gameEnded(status, winner);
-                return;
-            }
-
-            const QStringList allMoves = moves.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-            for (int i = _lastMovesList.size(); i < allMoves.size(); ++i)
-                emit opponentMoveReceived(allMoves[i]);
-            _lastMovesList = allMoves;
-
-            const bool oppDraw = _playingAsWhite
-                ? obj.value(QStringLiteral("bdraw")).toBool()
-                : obj.value(QStringLiteral("wdraw")).toBool();
-            const bool oppTakeback = _playingAsWhite
-                ? obj.value(QStringLiteral("btakeback")).toBool()
-                : obj.value(QStringLiteral("wtakeback")).toBool();
-            if (oppDraw     && !_lastOppDraw)     emit drawOfferReceived();
-            if (oppTakeback && !_lastOppTakeback) emit takebackRequested();
-            _lastOppDraw     = oppDraw;
-            _lastOppTakeback = oppTakeback;
-        }
+        if (!handleGameStreamLine(line))
+            return;
     }
+}
+
+bool LichessClient::handleGameStreamLine(const QByteArray& line)
+{
+    if (line.isEmpty()) return true;
+
+    const auto doc = QJsonDocument::fromJson(line);
+    if (doc.isNull() || !doc.isObject()) return true;
+
+    const QJsonObject obj  = doc.object();
+    const QString     type = obj.value(QStringLiteral("type")).toString();
+
+    if (type == QLatin1String("gameFull")) {
+        const QJsonObject white = obj.value(QStringLiteral("white")).toObject();
+        const QJsonObject black = obj.value(QStringLiteral("black")).toObject();
+        const QJsonObject state = obj.value(QStringLiteral("state")).toObject();
+
+        const QString myColor  = obj.value(QStringLiteral("myColor")).toString();
+        const QString whiteId  = white.value(QStringLiteral("id")).toString();
+        const bool    isWhite  = resolveIsWhite(myColor, whiteId, _username);
+        _playingAsWhite = isWhite;
+        qDebug() << "LichessClient: playing as" << (isWhite ? "white" : "black")
+                 << "| myColor=" << myColor << "| whiteId=" << whiteId << "| username=" << _username;
+
+        _lastGame = parseRematchInfo(obj, _username);
+        emit canRematchChanged();
+
+        const QJsonObject opponent = isWhite ? black : white;
+        const QString opponentName      = opponent.value(QStringLiteral("name")).toString();
+        const QString opponentAvatarUrl = {}; // Lichess doesn't provide avatar in stream
+
+        // Emit gameStarted first so the board is initialized before any moves are applied.
+        _lastMovesList = state.value(QStringLiteral("moves")).toString()
+                             .split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl);
+
+        // Resync our board state with moves that arrived before we joined.
+        if (!_lastMovesList.isEmpty())
+            emit opponentMoveReceived(_lastMovesList.join(QLatin1Char(' ')));
+
+        // Streaming a game that has already ended: Lichess sends only gameFull, then closes.
+        const QString status = state.value(QStringLiteral("status")).toString();
+        if (!status.isEmpty() && status != QLatin1String("started")
+                && status != QLatin1String("created")) {
+            emit gameEnded(status, state.value(QStringLiteral("winner")).toString());
+            return false;
+        }
+
+    } else if (type == QLatin1String("opponentGone")) {
+        const bool gone = obj.value(QStringLiteral("gone")).toBool();
+        const int  claimIn = obj.contains(QStringLiteral("claimWinInSeconds"))
+            ? obj.value(QStringLiteral("claimWinInSeconds")).toInt() : -1;
+        emit opponentGone(gone, claimIn);
+
+    } else if (type == QLatin1String("gameState")) {
+        const QString moves  = obj.value(QStringLiteral("moves")).toString();
+        const QString status = obj.value(QStringLiteral("status")).toString();
+
+        // The state that ends the game also carries its last move (e.g. the opponent's mate):
+        // the move first, then the end.
+        const QStringList allMoves = moves.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        for (int i = _lastMovesList.size(); i < allMoves.size(); ++i)
+            emit opponentMoveReceived(allMoves[i]);
+        _lastMovesList = allMoves;
+
+        if (status != QLatin1String("started") && !status.isEmpty()) {
+            const QString winner = obj.value(QStringLiteral("winner")).toString();
+            emit gameEnded(status, winner);
+            return false;
+        }
+
+        const bool oppDraw = _playingAsWhite
+            ? obj.value(QStringLiteral("bdraw")).toBool()
+            : obj.value(QStringLiteral("wdraw")).toBool();
+        const bool oppTakeback = _playingAsWhite
+            ? obj.value(QStringLiteral("btakeback")).toBool()
+            : obj.value(QStringLiteral("wtakeback")).toBool();
+        if (oppDraw     && !_lastOppDraw)     emit drawOfferReceived();
+        if (oppTakeback && !_lastOppTakeback) emit takebackRequested();
+        _lastOppDraw     = oppDraw;
+        _lastOppTakeback = oppTakeback;
+    }
+    return true;
 }
 
 void LichessClient::postMove(const QString& gameId, const QString& uciMove)
