@@ -17,6 +17,8 @@
 
 static const QString kBaseUrl = QStringLiteral("https://lichess.org");
 
+static QString apiErrorMessage(const QByteArray& body, const QNetworkReply* reply); // below
+
 LichessClient::LichessClient(QObject* parent)
     : QObject(parent)
 {
@@ -76,9 +78,167 @@ QVariantMap LichessClient::parseRatings(const QJsonObject& account)
 
 void LichessClient::setToken(const QString& decryptedToken)
 {
+    const bool changed = _token != decryptedToken;
     _token = decryptedToken;
     qDebug() << "LichessClient: token" << (_token.isEmpty() ? "cleared" : QString("set(%1 chars)").arg(_token.size()));
     emit canRematchChanged();
+    if (changed)
+        setOngoingGames({}); // another account (or none): its games are not ours
+}
+
+void LichessClient::cancelOngoingGamesRefresh()
+{
+    if (_ongoingGamesReply) {
+        auto* old = _ongoingGamesReply;
+        _ongoingGamesReply = nullptr; // before abort(): its finished handler runs inside abort()
+        old->abort();
+    }
+}
+
+void LichessClient::refreshOngoingGames()
+{
+    if (_token.isEmpty()) return;
+    cancelOngoingGamesRefresh();
+    _ongoingGamesLoading = true;
+    _ongoingGamesError.clear();
+    emit ongoingGamesChanged();
+
+    auto* reply = _nam.get(makeRequest(QStringLiteral("/api/account/playing?nb=50")));
+    _ongoingGamesReply = reply;
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        if (reply != _ongoingGamesReply)
+            return; // replaced by a newer refresh, or the account changed
+        _ongoingGamesReply = nullptr;
+        _ongoingGamesLoading = false;
+
+        const QByteArray raw = reply->readAll();
+        const auto doc = QJsonDocument::fromJson(raw);
+        if (reply->error() != QNetworkReply::NoError || !doc.isObject()) {
+            // The list is kept. A 401 (the handler for Lichess's auth challenge aborts the reply,
+            // hence "canceled") is reported by checkAuthExpired: the profile's token is then
+            // dropped, which clears the list (setToken).
+            const bool unauthorized = reply->property("authExpiredReported").toBool()
+                || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 401;
+            _ongoingGamesError = unauthorized ? QStringLiteral("Lichess sign-in expired")
+                : reply->error() != QNetworkReply::NoError ? apiErrorMessage(raw, reply)
+                : QStringLiteral("Invalid response");
+            qDebug() << "LichessClient: ongoing games failed:" << _ongoingGamesError;
+        } else {
+            _ongoingGames = parseOngoingGames(doc.object());
+            _ongoingGamesError.clear();
+            qDebug() << "LichessClient: ongoing games:" << _ongoingGames.size();
+            for (const auto& game : _ongoingGames) {
+                const auto row = game.toMap();
+                qDebug() << "  " << row.value("gameId").toString() << row.value("speed").toString()
+                         << row.value("source").toString() << row.value("variant").toString()
+                         << "vs" << row.value("opponentName").toString()
+                         << (row.value("isMyTurn").toBool() ? "my turn" : "their turn")
+                         << row.value("timeLeftText").toString()
+                         << (row.value("canPlayHere").toBool() ? "" : "(not playable here)");
+            }
+        }
+        emit ongoingGamesChanged();
+    });
+}
+
+void LichessClient::setOngoingGames(const QVariantList& games)
+{
+    cancelOngoingGamesRefresh(); // its answer would replace these
+    _ongoingGames = games;
+    _ongoingGamesLoading = false;
+    _ongoingGamesError.clear();
+    emit ongoingGamesChanged();
+}
+
+// Like "Join a game", it replaces whatever stream or challenge wait is running: it is offered only
+// outside a game (the Online page).
+void LichessClient::rejoinGame(const QString& gameId)
+{
+    if (gameId.isEmpty())
+        return;
+    qDebug() << "LichessClient: rejoin" << gameId;
+    streamGame(gameId);
+}
+
+// static
+// Rounded down, like a clock, but never by more than about half: hours up to two days, seconds up to
+// two minutes ("47 h", not "1 day"; "119 s", not "1 min").
+QString LichessClient::timeLeftText(int seconds)
+{
+    if (seconds < 0)
+        return {};
+    if (seconds < 120)
+        return QStringLiteral("%1 s").arg(seconds);
+    if (seconds < 2 * 3600)
+        return QStringLiteral("%1 min").arg(seconds / 60);
+    if (seconds < 2 * 86400)
+        return QStringLiteral("%1 h").arg(seconds / 3600);
+    return QStringLiteral("%1 days").arg(seconds / 86400);
+}
+
+// The Board API plays Rapid, Classical and Correspondence; Blitz only in a direct challenge (from
+// the website "friend", from the API "api"), bulk pairing ("api") or vs Lichess AI (Lichess API spec,
+// "Board → Restrictions"). Only the standard variant here (LI-01).
+static bool playableHere(const QString& speed, const QString& source, const QString& variant)
+{
+    if (variant != QLatin1String("standard"))
+        return false;
+    if (speed == QLatin1String("rapid") || speed == QLatin1String("classical") || speed == QLatin1String("correspondence"))
+        return true;
+    return speed == QLatin1String("blitz")
+        && (source == QLatin1String("friend") || source == QLatin1String("api") || source == QLatin1String("ai"));
+}
+
+// static
+QVariantList LichessClient::parseOngoingGames(const QJsonObject& playing)
+{
+    QVariantList games;
+    for (const auto& item : playing.value(QStringLiteral("nowPlaying")).toArray()) {
+        const QJsonObject game = item.toObject();
+        const QString gameId = game.value(QStringLiteral("gameId")).toString();
+        if (gameId.isEmpty())
+            continue;
+
+        const QJsonObject opponent = game.value(QStringLiteral("opponent")).toObject();
+        const bool isAi = opponent.contains(QStringLiteral("ai"));
+        QString opponentName = opponent.value(QStringLiteral("username")).toString();
+        if (isAi)
+            opponentName = QStringLiteral("Lichess AI level %1").arg(opponent.value(QStringLiteral("ai")).toInt());
+        else if (opponentName.isEmpty())
+            opponentName = QStringLiteral("Anonymous");
+
+        // "variant" is { "key": "standard", ... }; a plain string is accepted too.
+        const QJsonValue variantValue = game.value(QStringLiteral("variant"));
+        QString variant = variantValue.isObject() ? variantValue.toObject().value(QStringLiteral("key")).toString()
+                                                  : variantValue.toString();
+        if (variant.isEmpty())
+            variant = QStringLiteral("standard");
+
+        const QJsonValue secondsValue = game.value(QStringLiteral("secondsLeft"));
+        const int secondsLeft = secondsValue.isDouble() ? secondsValue.toInt() : -1; // none: no clock
+        const QString speed  = game.value(QStringLiteral("speed")).toString();
+        const QString source = game.value(QStringLiteral("source")).toString();
+
+        games.append(QVariantMap{
+            { QStringLiteral("gameId"),         gameId },
+            { QStringLiteral("color"),          game.value(QStringLiteral("color")).toString() },
+            { QStringLiteral("opponentName"),   opponentName },
+            { QStringLiteral("opponentRating"), opponent.value(QStringLiteral("rating")).toInt() }, // 0: none
+            { QStringLiteral("opponentIsAi"),   isAi },
+            { QStringLiteral("isMyTurn"),       game.value(QStringLiteral("isMyTurn")).toBool() },
+            { QStringLiteral("secondsLeft"),    secondsLeft },
+            { QStringLiteral("timeLeftText"),   timeLeftText(secondsLeft) },
+            { QStringLiteral("speed"),          speed },
+            { QStringLiteral("source"),         source },
+            { QStringLiteral("variant"),        variant },
+            { QStringLiteral("canPlayHere"),    playableHere(speed, source, variant) },
+            { QStringLiteral("lastMove"),       game.value(QStringLiteral("lastMove")).toString() },
+            { QStringLiteral("fen"),            game.value(QStringLiteral("fen")).toString() },
+            { QStringLiteral("rated"),          game.value(QStringLiteral("rated")).toBool() },
+        });
+    }
+    return games;
 }
 
 void LichessClient::setUsername(const QString& username)

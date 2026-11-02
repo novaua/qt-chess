@@ -239,8 +239,10 @@ int main(int argc, char* argv[])
 		if (token == *lastToken) return;
 		*lastToken = token;
 		lichessClient->setToken(token);
-		if (!token.isEmpty() && !screenshotMode)
+		if (!token.isEmpty() && !screenshotMode) {
 			lichessClient->refreshAccount();
+			lichessClient->refreshOngoingGames(); // LI-04: Continue and the Online page
+		}
 	};
 	QObject::connect(userManager, &UserManager::activeUserChanged, [=]() {
 		avatarProvider->setPlayerFromUser(userManager->activeUserAvatar());
@@ -250,8 +252,16 @@ int main(int argc, char* argv[])
 	updateLichessToken(); // load() sets the active user silently — seed the token now
 	QObject::connect(lichessClient, &LichessClient::accountFetched, userManager, &UserManager::setLichessAccount);
 	QObject::connect(lichessClient, &LichessClient::authExpired, userManager, &UserManager::setLichessExpired);
+	// A Lichess game left unfinished (Home, switch user) is now one of the ongoing games (LI-04).
+	QObject::connect(connector, &ChessConnector::isOnlineGameChanged, lichessClient, [=]() {
+		if (!connector->isOnlineGame() && !screenshotMode)
+			lichessClient->refreshOngoingGames();
+	});
 	QObject::connect(lichessClient, &LichessClient::gameEnded, lichessClient, [=]() {
-		QTimer::singleShot(3000, lichessClient, &LichessClient::refreshAccount); // the new rating
+		QTimer::singleShot(3000, lichessClient, [=]() {
+			lichessClient->refreshAccount();      // the new rating
+			lichessClient->refreshOngoingGames(); // that game is no longer ongoing
+		});
 	});
 
 	// QML: `import ChessPlusPlus`, then e.g. ChessConnector.startLocalGame(…), UserManager.login(…).

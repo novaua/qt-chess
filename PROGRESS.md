@@ -4,6 +4,45 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-02 — LI-04 step 1: the unfinished Lichess games in `LichessClient` (branch: ongoingGames_021126)
+
+### What was done
+- `LichessClient.ongoingGames` (with `ongoingGamesLoading` / `ongoingGamesError`, one `ongoingGamesChanged`):
+  - `refreshOngoingGames()` fetches `GET /api/account/playing?nb=50`. A newer refresh replaces one in flight. On an error the list is kept and the error is set; a 401 goes through `checkAuthExpired` as for every call.
+  - A token change (another profile, or a disconnect) clears the list.
+- `parseOngoingGames()` builds one row per game, in Lichess's order (most urgent first): `gameId`, `color`, `opponentName` (the username, "Anonymous", or "Lichess AI level N"), `opponentRating`, `opponentIsAi`, `isMyTurn`, `secondsLeft` (-1: no clock), `timeLeftText` ("9 min", "2 days"), `speed`, `source`, `variant`, `canPlayHere`, `lastMove`, `fen`, `rated`.
+- `canPlayHere` follows the Board API's restrictions:
+  - **yes** for Rapid, Classical and Correspondence, and for Blitz from a direct challenge (`source` "friend") or vs Lichess AI;
+  - **no** for Bullet, UltraBullet and lobby Blitz, and for any variant but standard (LI-01).
+- `rejoinGame(id)` = `streamGame(id)` → `gameFull` → `gameStarted` (the step-5 resync).
+- `main.cpp` fetches the list together with the account when the token is set (not in screenshot mode), and again 3 s after a Lichess game ends. The log lists each game ("LichessClient: ongoing games: N" and one line per game), which is the live check below.
+- Tests: `LichessClientTest` +4 (player / anonymous / AI / Chess960 rows, the speeds the Board API plays, an empty list, `timeLeftText`). Debug and Release build; ChessTests 111, ChessQtTests 125 pass in both. The `home`, `online` and `profile` screenshots are unchanged (no UI yet).
+
+- **Live check (owner, 2026-11-02)**:
+  - **Listing works.** The log listed 3, then 4 unfinished games: all correspondence "Unlimited", `source` "friend", against the owner's second account. "my turn" / "their turn" was right, and the time left was empty (no clock).
+  - **Joining works.** All four were joined by id and moves were posted, as White in two and as Black in two (`accept` answers 404 for a started game, then the stream opens; `rejoinGame` goes straight to the stream).
+  - **Not tested:** a game started on lichess.org itself (lobby). `canPlayHere` stays as the Board API's rules say: lobby Rapid and Classical yes, lobby Blitz no.
+
+### Code review (PR #111 comments, same branch)
+10 findings: 9 fixed, 1 declined.
+- **Fixed:**
+  - the list is refreshed when an online game is left;
+  - a 401 reads "Lichess sign-in expired";
+  - a new refresh clears the old error;
+  - `setOngoingGames` cancels a refresh in flight;
+  - one cancel helper, and a token change always resets the list;
+  - Blitz from an API challenge or bulk pairing (`source` "api") is playable;
+  - `rejoinGame` ignores an empty id;
+  - `timeLeftText` shows "47 h" rather than "1 day" and "119 s" rather than "1 min";
+  - a test checks the row count first.
+
+  New test: a token change clears the list. ChessQtTests 126 pass in Debug and Release.
+- **Declined:** a list model and separate change signals. At most 50 rows refreshed now and then, like `UserManager.users`; to revisit in step 2 if the page shows a cost.
+
+### Where to continue
+- **Step 2** (after this is merged): the Online page.
+- When convenient: rejoin a Rapid game from the lichess.org lobby, to confirm the lobby case.
+
 ## 2026-11-02 — LI-04 plan: rejoin unfinished Lichess games (branch: rejoinGamesPlan_021126)
 
 ### What was done

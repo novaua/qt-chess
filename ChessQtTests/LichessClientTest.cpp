@@ -281,6 +281,107 @@ namespace LichessTests
 			Assert::IsTrue(LichessClient::parseRatings(Json(R"({ "username": "Me" })")).isEmpty());
 		}
 
+		// parseOngoingGames (LI-04) ———————————————————————————————————————————
+
+		TEST_METHOD(ParseOngoingGames_PlayerAnonymousAiAndVariants_Test)
+		{
+			auto games = LichessClient::parseOngoingGames(Json(R"({
+				"nbMyTurn": 1,
+				"nowPlaying": [
+					{ "gameId": "rapid001", "fullId": "rapid001abcd", "color": "white", "fen": "x", "lastMove": "e7e5",
+					  "isMyTurn": true, "secondsLeft": 540, "hasMoved": true, "rated": true,
+					  "opponent": { "id": "friend", "username": "Friend", "rating": 1650 },
+					  "speed": "rapid", "source": "friend", "variant": { "key": "standard", "name": "Standard" } },
+					{ "gameId": "corr0001", "color": "black", "isMyTurn": false, "secondsLeft": 190000,
+					  "opponent": { "id": null, "username": "Anonymous" },
+					  "speed": "correspondence", "source": "friend", "variant": { "key": "standard" } },
+					{ "gameId": "aigame01", "color": "white", "isMyTurn": true,
+					  "opponent": { "id": null, "username": "AI", "ai": 3 },
+					  "speed": "correspondence", "source": "ai", "variant": { "key": "standard" } },
+					{ "gameId": "c960game", "color": "white", "isMyTurn": true, "secondsLeft": 600,
+					  "opponent": { "id": "x", "username": "X" },
+					  "speed": "rapid", "source": "friend", "variant": { "key": "chess960" } }
+				]
+			})"));
+
+			Assert::AreEqual(4, (int)games.size());
+			const auto rapid = games[0].toMap();
+			Assert::AreEqual(QString("rapid001"), rapid.value("gameId").toString(), L"Lichess's order kept");
+			Assert::AreEqual(QString("white"), rapid.value("color").toString());
+			Assert::AreEqual(QString("Friend"), rapid.value("opponentName").toString());
+			Assert::AreEqual(1650, rapid.value("opponentRating").toInt());
+			Assert::IsTrue(rapid.value("isMyTurn").toBool());
+			Assert::AreEqual(QString("9 min"), rapid.value("timeLeftText").toString());
+			Assert::IsTrue(rapid.value("canPlayHere").toBool());
+			Assert::AreEqual(QString("e7e5"), rapid.value("lastMove").toString());
+
+			const auto corr = games[1].toMap();
+			Assert::AreEqual(QString("Anonymous"), corr.value("opponentName").toString());
+			Assert::AreEqual(QString("2 days"), corr.value("timeLeftText").toString());
+			Assert::IsTrue(corr.value("canPlayHere").toBool());
+
+			const auto ai = games[2].toMap();
+			Assert::AreEqual(QString("Lichess AI level 3"), ai.value("opponentName").toString());
+			Assert::IsTrue(ai.value("opponentIsAi").toBool());
+			Assert::AreEqual(-1, ai.value("secondsLeft").toInt(), L"no clock");
+			Assert::IsTrue(ai.value("timeLeftText").toString().isEmpty());
+
+			Assert::IsFalse(games[3].toMap().value("canPlayHere").toBool(), L"Chess960 isn't playable here yet (LI-01)");
+		}
+
+		// The Board API: Rapid, Classical, Correspondence; Blitz only in direct challenges and vs AI.
+		TEST_METHOD(ParseOngoingGames_SpeedsTheBoardApiPlays_Test)
+		{
+			auto games = LichessClient::parseOngoingGames(Json(R"({ "nowPlaying": [
+				{ "gameId": "blitzFrn", "speed": "blitz",  "source": "friend", "variant": { "key": "standard" } },
+				{ "gameId": "blitzLob", "speed": "blitz",  "source": "lobby",  "variant": { "key": "standard" } },
+				{ "gameId": "bulletLo", "speed": "bullet", "source": "lobby",  "variant": { "key": "standard" } },
+				{ "gameId": "classicL", "speed": "classical", "source": "lobby", "variant": { "key": "standard" } },
+				{ "gameId": "blitzApi", "speed": "blitz",  "source": "api",    "variant": { "key": "standard" } }
+			] })"));
+
+			Assert::AreEqual(5, (int)games.size());
+			Assert::IsTrue(games[0].toMap().value("canPlayHere").toBool());
+			Assert::IsFalse(games[1].toMap().value("canPlayHere").toBool());
+			Assert::IsFalse(games[2].toMap().value("canPlayHere").toBool());
+			Assert::IsTrue(games[3].toMap().value("canPlayHere").toBool());
+			Assert::IsTrue(games[4].toMap().value("canPlayHere").toBool(), L"an API challenge or bulk pairing");
+		}
+
+		TEST_METHOD(ParseOngoingGames_NoGames_Empty)
+		{
+			Assert::IsTrue(LichessClient::parseOngoingGames(Json(R"({ "nbMyTurn": 0, "nowPlaying": [] })")).isEmpty());
+			Assert::IsTrue(LichessClient::parseOngoingGames(Json(R"({})")).isEmpty());
+		}
+
+		// Another profile's account (or none): the games shown belong to the old one.
+		TEST_METHOD(OngoingGames_TokenChange_ClearsTheList_Test)
+		{
+			LichessClient client;
+			client.setOngoingGames(LichessClient::parseOngoingGames(Json(R"({ "nowPlaying": [
+				{ "gameId": "rapid001", "speed": "rapid", "variant": { "key": "standard" } } ] })")));
+			Assert::AreEqual(1, (int)client.ongoingGames().size());
+
+			client.setToken("another-account-token");
+
+			Assert::IsTrue(client.ongoingGames().isEmpty());
+			Assert::IsFalse(client.ongoingGamesLoading());
+			client.setToken({}); // no network call was made: nothing to clean up
+		}
+
+		TEST_METHOD(TimeLeftText_Units_Test)
+		{
+			Assert::AreEqual(QString("45 s"),   LichessClient::timeLeftText(45));
+			Assert::AreEqual(QString("119 s"),  LichessClient::timeLeftText(119), L"not \"1 min\"");
+			Assert::AreEqual(QString("3 min"),  LichessClient::timeLeftText(200));
+			Assert::AreEqual(QString("119 min"), LichessClient::timeLeftText(2 * 3600 - 1));
+			Assert::AreEqual(QString("5 h"),    LichessClient::timeLeftText(5 * 3600 + 100));
+			Assert::AreEqual(QString("47 h"),   LichessClient::timeLeftText(47 * 3600 + 59), L"not \"1 day\"");
+			Assert::AreEqual(QString("2 days"), LichessClient::timeLeftText(2 * 86400));
+			Assert::AreEqual(QString("14 days"), LichessClient::timeLeftText(14 * 86400));
+			Assert::IsTrue(LichessClient::timeLeftText(-1).isEmpty(), L"no clock");
+		}
+
 		// handleGameStreamLine ————————————————————————————————————————————————
 
 		TEST_METHOD(GameStream_GameStateWithMate_MoveBeforeEnd_Test)
