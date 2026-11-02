@@ -218,6 +218,9 @@
     <None Include="qml\ImportConflictDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\BoardPreview.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\OnlinePage.qml">
       <Filter>Source Files\Qml</Filter>
     </None>

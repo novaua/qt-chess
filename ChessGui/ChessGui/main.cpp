@@ -61,15 +61,19 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	if (scene == "online") { // the Online page's "Your games": fixed rows, no network
 		sceneMap["ongoingGames"] = LichessClient::parseOngoingGames(QJsonDocument::fromJson(R"({ "nowPlaying": [
 			{ "gameId": "aEPqtBMc", "color": "white", "isMyTurn": true, "secondsLeft": 540,
+			  "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "lastMove": "b8c6",
 			  "opponent": { "id": "friend", "username": "Friend", "rating": 1650 },
 			  "speed": "rapid", "source": "friend", "variant": { "key": "standard" } },
 			{ "gameId": "OHp33WmD", "color": "black", "isMyTurn": false, "secondsLeft": 190000,
+			  "fen": "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR", "lastMove": "g8f6",
 			  "opponent": { "id": null, "username": "Anonymous" },
 			  "speed": "correspondence", "source": "friend", "variant": { "key": "standard" } },
 			{ "gameId": "rvaeSdJE", "color": "white", "isMyTurn": true,
+			  "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
 			  "opponent": { "id": null, "username": "AI", "ai": 3 },
 			  "speed": "correspondence", "source": "ai", "variant": { "key": "standard" } },
 			{ "gameId": "TiGeHdSm", "color": "black", "isMyTurn": false, "secondsLeft": 150,
+			  "fen": "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR", "lastMove": "c7c5",
 			  "opponent": { "id": "speedy", "username": "Speedy", "rating": 1890 },
 			  "speed": "blitz", "source": "lobby", "variant": { "key": "standard" } }
 		] })").object());

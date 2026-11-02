@@ -48,14 +48,21 @@ Page {
         return ({ ultraBullet: "UltraBullet", bullet: "Bullet", blitz: "Blitz", rapid: "Rapid",
                   classical: "Classical", correspondence: "Correspondence" })[speed] ?? speed
     }
+    // The card's board shows our side; this line the rest.
     function _gameDetails(game) {
         var parts = [_speedName(game.speed)]
         if (game.variant !== "standard")
             parts.push(game.variant)
-        parts.push("You play " + (game.color === "white" ? "White" : "Black"))
         if (game.timeLeftText !== "")
             parts.push(game.timeLeftText + " left")
         return parts.join(" · ")
+    }
+    // Continue (rejoin), or lichess.org for a game the Board API can't play here.
+    function _openGame(game) {
+        if (game.canPlayHere)
+            _start(() => LichessClient.rejoinGame(game.gameId))
+        else
+            Qt.openUrlExternally("https://lichess.org/" + game.gameId)
     }
     function _start(action) {
         errorBar.visible = false
@@ -130,67 +137,87 @@ Page {
                           + (page._myTurnCount > 0 ? " · your turn in " + page._myTurnCount : "")
                 Layout.fillWidth: true
 
-                Repeater {
-                    model: page._games
-                    delegate: Rectangle {
-                        id: row
-                        required property var modelData
-                        Layout.fillWidth: true
-                        implicitHeight: rowLayout.implicitHeight + 2 * Theme.s3
-                        radius: Theme.radiusCard
-                        color: Theme.layerBg
-                        border.color: Theme.cardStroke
-                        Accessible.role: Accessible.ListItem
-                        Accessible.name: modelData.opponentName + ", " + page._gameDetails(modelData)
-                                         + (modelData.isMyTurn ? ", your turn" : ", waiting")
+                // One card per game, like Lichess's "current games": the position from our side,
+                // then who, whose turn and Continue. A click on the board continues too.
+                GridLayout {
+                    id: gamesGrid
+                    // From the page's width (the card's inside: content minus SectionCard's margins),
+                    // not from the layout's own width, which isn't known yet when the cards ask.
+                    readonly property real innerWidth: content.width - 2 * Theme.s4
+                    readonly property real cardWidth: (innerWidth - (columns - 1) * columnSpacing) / columns
+                    visible: page._games.length > 0
+                    columns: innerWidth >= 440 ? 2 : 1
+                    columnSpacing: Theme.s3
+                    rowSpacing: Theme.s3
+                    Layout.fillWidth: true
 
-                        RowLayout {
-                            id: rowLayout
-                            anchors { fill: parent; margins: Theme.s3 }
-                            spacing: Theme.s3
+                    Repeater {
+                        model: page._games
+                        delegate: Rectangle {
+                            id: gameCard
+                            required property var modelData
+                            Layout.preferredWidth: gamesGrid.cardWidth
+                            implicitHeight: cardColumn.implicitHeight + 2 * Theme.s3
+                            radius: Theme.radiusCard
+                            color: Theme.layerBg
+                            border.color: Theme.cardStroke
+                            Accessible.role: Accessible.ListItem
+                            Accessible.name: modelData.opponentName + ", " + page._gameDetails(modelData)
+                                             + ", you play " + (modelData.color === "white" ? "White" : "Black")
+                                             + (modelData.isMyTurn ? ", your turn" : ", waiting")
 
-                            // The side we play.
-                            Rectangle {
-                                width: 16; height: 16; radius: 8
-                                color: row.modelData.color === "white" ? "#FFFFFF" : "#1A1A1A"
-                                border.color: Theme.textSecondary
-                            }
                             ColumnLayout {
-                                spacing: 2
-                                Layout.fillWidth: true
-                                Label {
-                                    text: row.modelData.opponentName
-                                          + (row.modelData.opponentRating > 0 ? " (" + row.modelData.opponentRating + ")" : "")
-                                    font: Theme.bodyStrong
-                                    elide: Text.ElideRight
+                                id: cardColumn
+                                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.s3 }
+                                spacing: Theme.s2
+
+                                BoardPreview {
+                                    fen: gameCard.modelData.fen
+                                    flipped: gameCard.modelData.color === "black"
+                                    lastMove: gameCard.modelData.lastMove
+                                    Layout.preferredWidth: gamesGrid.cardWidth - 2 * Theme.s3
+                                    Layout.preferredHeight: gamesGrid.cardWidth - 2 * Theme.s3
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        enabled: !page._busy
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: page._openGame(gameCard.modelData)
+                                    }
+                                }
+                                RowLayout {
+                                    spacing: Theme.s2
                                     Layout.fillWidth: true
+                                    Label {
+                                        text: gameCard.modelData.opponentName
+                                              + (gameCard.modelData.opponentRating > 0 ? " (" + gameCard.modelData.opponentRating + ")" : "")
+                                        font: Theme.bodyStrong
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+                                    Label {
+                                        text: gameCard.modelData.isMyTurn ? "Your turn" : "Waiting"
+                                        font: gameCard.modelData.isMyTurn ? Theme.bodyStrong : Theme.caption
+                                        color: gameCard.modelData.isMyTurn ? Theme.accent : Theme.textSecondary
+                                    }
                                 }
                                 Label {
-                                    text: page._gameDetails(row.modelData)
+                                    text: page._gameDetails(gameCard.modelData)
                                     font: Theme.caption
                                     color: Theme.textSecondary
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
-                            }
-                            Label {
-                                text: row.modelData.isMyTurn ? "Your turn" : "Waiting"
-                                font: row.modelData.isMyTurn ? Theme.bodyStrong : Theme.caption
-                                color: row.modelData.isMyTurn ? Theme.accent : Theme.textSecondary
-                            }
-                            Button {
-                                text: row.modelData.canPlayHere ? "Continue" : "Open on lichess.org"
-                                icon.source: Theme.icon(row.modelData.canPlayHere ? "play" : "link")
-                                highlighted: row.modelData.canPlayHere && row.modelData.isMyTurn
-                                enabled: !page._busy
-                                ToolTip.visible: hovered && !row.modelData.canPlayHere
-                                ToolTip.text: "This kind of game can't be played in Chess++ yet"
-                                ToolTip.delay: 400
-                                onClicked: {
-                                    if (row.modelData.canPlayHere)
-                                        page._start(() => LichessClient.rejoinGame(row.modelData.gameId))
-                                    else
-                                        Qt.openUrlExternally("https://lichess.org/" + row.modelData.gameId)
+                                Button {
+                                    text: gameCard.modelData.canPlayHere ? "Continue" : "Open on lichess.org"
+                                    icon.source: Theme.icon(gameCard.modelData.canPlayHere ? "play" : "link")
+                                    highlighted: gameCard.modelData.canPlayHere && gameCard.modelData.isMyTurn
+                                    enabled: !page._busy
+                                    Layout.fillWidth: true
+                                    ToolTip.visible: hovered && !gameCard.modelData.canPlayHere
+                                    ToolTip.text: "This kind of game can't be played in Chess++ yet"
+                                    ToolTip.delay: 400
+                                    onClicked: page._openGame(gameCard.modelData)
                                 }
                             }
                         }

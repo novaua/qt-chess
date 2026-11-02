@@ -37,9 +37,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Declined:** "Continue should go through `ChessConnector` (CLAUDE.md rule 1)". A rejoin is Lichess challenge setup like "Join a game" (`LichessClient.joinFromUrl`, called from QML before this PR too). The game itself starts in `ChessConnector` through `gameStarted`, and rule 2 says not to forward `LichessClient`'s API through `ChessConnector`. This was decided in the plan (§4.1); the owner can overrule it.
 - ChessTests 111, ChessQtTests 126 (Debug and Release); 53 screenshots unchanged; no QML warnings in the scene logs.
 
+### Board previews (owner's request, same branch)
+- The owner's check: **Continue rejoins the game** ✓. The owner pointed at Lichess's own "Current games" page, which shows each game as a small board ("Ваш ход" = your turn).
+- "Your games" is now a **grid of cards** like that (two columns from 440 px, else one). Each card has:
+  - a **`BoardPreview`** (new `BoardPreview.qml`: a still board from the row's `fen`, the game board's squares, pieces and last-move tint, turned for Black). A click on the board continues too;
+  - the opponent (rating) and "Your turn" / "Waiting";
+  - speed · time left (the board shows our side; the accessible name still says it);
+  - Continue or Open on lichess.org.
+- Card and board sizes come from the page's content width. Binding them to the GridLayout's own width laid everything out in one column with the text over the boards, because that width isn't known yet when the cards are sized.
+- The `online` scene's seeded games got positions and last moves; `online` / `online-dark` baselines re-accepted (53 compared, 0 failed). ChessTests 111, ChessQtTests 126 pass.
+- The Debug build's link of `LiChessConnector.dll` failed (LNK1168): the owner's Debug `ChessGui.exe` was running. This round has no C++ change in that library; the Release build is complete.
+
 ### Where to continue
 - **Owner's check** (Release build of this branch):
-  - Play online: your unfinished games are listed; Continue on one opens it in the current position;
+  - Play online: your unfinished games are listed as boards; Continue (or a click on a board) opens it in the current position;
   - Back and Escape return to Home;
   - "Days per move" creates a correspondence challenge (Lichess shows "2 days" etc.);
   - not signed in: the page says so and Open profile works.
