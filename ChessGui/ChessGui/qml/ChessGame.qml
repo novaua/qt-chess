@@ -6,7 +6,8 @@ import QtQuick.Dialogs
 import ChessPlusPlus
 
 // The window: one page at a time in a StackView (Welcome, the profile list, Home or the game, with
-// the Profile or Settings page pushed over Home or the game), the InfoBars under the command bar,
+// the Profile or Settings page pushed over Home or the game, and the Online page over Home), the
+// InfoBars under the command bar,
 // and every dialog. UserManager and ChessConnector.InGame decide the page (route()); pages ask for
 // dialogs through signals.
 ApplicationWindow {
@@ -21,13 +22,13 @@ ApplicationWindow {
     readonly property bool   _inGame:   ChessConnector.InGame
     readonly property string _mode:     ChessConnector.GameMode
     readonly property bool   _gameOver: ChessConnector.GameResult !== ""
-    // The page on top: "welcome", "login", "home", "game", "profile" or "settings".
+    // The page on top: "welcome", "login", "home", "game", "profile", "settings" or "online".
     readonly property string _page: stack.currentItem ? stack.currentItem.objectName : ""
     readonly property bool   _onGamePage: _page === "game"
 
     // A dialog is open: the window's shortcuts wait (Esc then closes the dialog).
     readonly property bool _dialogOpen: restoreBackupDialog.visible || levelsHelp.visible
-        || computerDialog.visible || twoPlayerDialog.visible || onlineDialog.visible
+        || computerDialog.visible || twoPlayerDialog.visible
         || challengeDialog.visible || createUserDialog.visible
         || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible
         || pgnExportDialog.visible || profileExportDialog.visible || profileImportDialog.visible
@@ -69,6 +70,14 @@ ApplicationWindow {
     }
     function closeSettings() {
         if (_page === "settings")
+            stack.pop()
+    }
+    function openOnline() {
+        if (_page !== "online")
+            stack.push(onlinePage)
+    }
+    function closeOnline() {
+        if (_page === "online")
             stack.pop()
     }
     function resign() {
@@ -129,16 +138,15 @@ ApplicationWindow {
         ChessConnector.switchUser()
     }
 
+    // The Online page (not signed in: it says so and leads to the profile); a challenge still waiting
+    // for the friend opens over it.
     function playOnline() {
-        if (!UserManager.lichessConnected) {
-            openProfile()   // link or reconnect the Lichess account there
-        } else if (UserManager.hasPendingChallenge) {
+        openOnline()
+        if (UserManager.lichessConnected && UserManager.hasPendingChallenge) {
             _pendingChallengeId  = UserManager.pendingChallengeId
             _pendingChallengeUrl = UserManager.pendingChallengeUrl
             challengeDialog.open()
             LichessClient.resumeOpenChallenge(_pendingChallengeId, _pendingChallengeUrl)
-        } else {
-            onlineDialog.open()
         }
     }
 
@@ -190,7 +198,7 @@ ApplicationWindow {
             window: root
             pages: stack
             dialogs: ({ createUser: createUserDialog, restoreBackup: restoreBackupDialog, levels: levelsHelp,
-                        online: onlineDialog, computer: computerDialog, twoPlayer: twoPlayerDialog })
+                        computer: computerDialog, twoPlayer: twoPlayerDialog })
         }
     }
 
@@ -297,6 +305,14 @@ ApplicationWindow {
             onExportRequested:      userId => root.exportProfile(userId)
             onImportRequested:      profileImportDialog.open()
             onRestoreRequested:     restoreBackupDialog.open()
+        }
+    }
+
+    Component {
+        id: onlinePage
+        OnlinePage {
+            onBackRequested:    root.closeOnline()
+            onProfileRequested: root.openProfile()
         }
     }
 
@@ -482,13 +498,12 @@ ApplicationWindow {
         target: LichessClient
 
         // A challenge created while the finished game is still on screen is a rematch
-        // (the Online dialog is only reachable from Home).
+        // (the Online page is only reachable from Home).
         function onChallengeCreated(gameId, joinUrl) {
             _pendingChallengeId  = gameId
             _pendingChallengeUrl = joinUrl
             _pendingRematch      = ChessConnector.InGame
             UserManager.savePendingChallenge(gameId, joinUrl)
-            onlineDialog.close()
             challengeDialog.open()
         }
 
@@ -507,16 +522,11 @@ ApplicationWindow {
             messageBar.show(opponentName + " declined the rematch", "caution")
         }
 
-        function onChallengeCanceled() {
-            var wasRematch = _pendingRematch
-            clearPendingChallenge()
-            if (!wasRematch)
-                onlineDialog.open()
-        }
+        // Back to the Online page, which is under the dialog (a rematch: the game page).
+        function onChallengeCanceled() { clearPendingChallenge() }
 
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
             clearPendingChallenge()
-            onlineDialog.close()
         }
 
         function onNetworkError(message) {
@@ -524,8 +534,7 @@ ApplicationWindow {
                 clearPendingChallenge()
                 messageBar.show("Rematch failed: " + message, "critical")
             } else if (challengeDialog.visible) {
-                clearPendingChallenge()
-                onlineDialog.open()
+                clearPendingChallenge()   // the Online page under it shows the error
             } else if (_mode === "online") {
                 messageBar.show(message, "critical")
             }
@@ -573,14 +582,6 @@ ApplicationWindow {
     }
 
     TwoPlayerDialog { id: twoPlayerDialog }
-
-    LichessGameDialog {
-        id: onlineDialog
-        onProfileRequested: {
-            close()
-            root.openProfile()
-        }
-    }
 
     // Waiting for the opponent to accept a Lichess challenge.
     ChallengeDialog {
@@ -695,11 +696,12 @@ ApplicationWindow {
     Shortcut {
         sequence: "Escape"
         // Not while a piece is dragged: then Esc puts it back (ChessBoard).
-        enabled: (_onGamePage || _page === "profile" || _page === "settings") && !_dialogOpen
+        enabled: (_onGamePage || _page === "profile" || _page === "settings" || _page === "online") && !_dialogOpen
                  && !(_onGamePage && stack.currentItem.pieceDragging)
         onActivated: {
             if (_page === "profile")              closeProfile()
             else if (_page === "settings")        closeSettings()
+            else if (_page === "online")          closeOnline()
             else if (stack.currentItem.sheetOpen) stack.currentItem.sheetOpen = false   // an open move sheet first
             else                                  leaveGame()
         }

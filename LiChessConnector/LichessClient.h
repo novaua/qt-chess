@@ -44,7 +44,9 @@ public:
 	static QVariantMap parseRatings(const QJsonObject& account);
 	// color: our side, "white", "black" or "random". Lichess's open challenge has no colour of its
 	// own: we take our seat when we accept it (waitForGameStart), and the friend gets the other link.
-	Q_INVOKABLE void createOpenChallenge(int minutes, int increment, const QString& color, const QString& variant);
+	// days > 0 (with minutes 0): a correspondence game with that many days per move.
+	Q_INVOKABLE void createOpenChallenge(int minutes, int increment, const QString& color, const QString& variant,
+	                                     int days = 0);
 	// color: accept an open challenge as that side ("" = whatever Lichess gives).
 	Q_INVOKABLE void acceptChallenge(const QString& challengeId, const QString& color = {});
 	// "Join a game": a Lichess link or a game id. A player link (…?color=black, …/black) joins as
@@ -64,7 +66,9 @@ public:
 	QVariantList ongoingGames() const { return _ongoingGames; }
 	bool ongoingGamesLoading() const { return _ongoingGamesLoading; }
 	QString ongoingGamesError() const { return _ongoingGamesError; }
-	void setOngoingGames(const QVariantList& games); // tests and screenshot scenes (no network)
+	Q_INVOKABLE void setOngoingGames(const QVariantList& games); // tests and screenshot scenes (no network)
+	// Screenshot mode: refreshOngoingGames() does nothing (the scenes' token is a placeholder).
+	void setOffline(bool offline) { _offline = offline; }
 	// The rows of ongoingGames from the answer of /api/account/playing ({ "nowPlaying": [...] }).
 	static QVariantList parseOngoingGames(const QJsonObject& playing);
 	// "45 s", "3 min", "47 h", "2 days"; "" for no clock (negative).
@@ -177,4 +181,5 @@ private:
 	bool           _ongoingGamesLoading = false;
 	QString        _ongoingGamesError;
 	QNetworkReply* _ongoingGamesReply = nullptr; // the refresh in flight: a newer one replaces it
+	bool           _offline = false;
 };

@@ -4,6 +4,34 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-02 — LI-04 step 2: the Online page (branch: onlinePage_021126)
+
+### What was done
+- **`OnlinePage.qml` replaces `LichessGameDialog.qml`** (removed). "Play online" on Home pushes it (`root.openOnline()`; Back and Escape pop it, like Profile). Its sections:
+  - **Not signed in** (or the sign-in expired): only a card that says so, with "Open profile". Before, "Play online" jumped straight to the profile.
+  - **Your games**: `LichessClient.ongoingGames`, refreshed whenever the page is shown (`StackView.onActivated`) and by a Refresh button.
+    - Each row: the side we play, the opponent (rating), speed · side · time left, "Your turn" (accent) or "Waiting".
+    - **Continue** (`LichessClient.rejoinGame`, highlighted on our turn), or **Open on lichess.org** for a game the Board API can't play (`canPlayHere` false: Bullet, lobby Blitz, Chess960).
+    - The subtitle says "Loading…", the error, "No unfinished games…", or "4 games · your turn in 2".
+  - **Challenge a friend**: today's settings plus **Days per move** (1–14, Lichess's values) as a third time control (`createOpenChallenge(…, days)`). **Chess960 is no longer offered**: it is broken until LI-01, as `TASKS.md` suggested.
+  - **Join a game**: the link / id field (Enter joins).
+- Errors of a challenge, join or rejoin show in an InfoBar at the top of the page. A challenge waiting for the friend is still `ChallengeDialog`, opened over the page (also when "Play online" resumes a saved one).
+- Going **Back while a join / rejoin / challenge is starting** stops it (`StackView.onRemoved` → `stopStream()`), as the dialog's Cancel did. This doesn't happen when a game did start: `route()` replaces the page then (`ChessConnector.InGame` is already true).
+- **Screenshot mode never calls Lichess**: `LichessClient::setOffline(true)` makes `refreshOngoingGames()` a no-op (the scenes' token is a placeholder). New scenes, all in `all`:
+  - `online`: four seeded games (`ScreenshotScene` calls `LichessClient.setOngoingGames(shot.ongoingGames)`);
+  - `online-empty`;
+  - `online-disconnected`.
+- Docs: `CLAUDE.md` (OnlinePage, ChallengeDialog) and the run-chess-app skill's scene list.
+- Debug and Release build; ChessTests 111, ChessQtTests 126 pass. Screenshots: 53 compared, 0 failed after accepting the new `online*` baselines (the old `online` showed the dialog) and `about*` (build timestamp).
+
+### Where to continue
+- **Owner's check** (Release build of this branch):
+  - Play online: your unfinished games are listed; Continue on one opens it in the current position;
+  - Back and Escape return to Home;
+  - "Days per move" creates a correspondence challenge (Lichess shows "2 days" etc.);
+  - not signed in: the page says so and Open profile works.
+- **Step 3**: Home's Continue (the robot first, otherwise the Online page). **Step 4**: the warning when leaving a running online game.
+
 ## 2026-11-02 — LI-04 step 1: the unfinished Lichess games in `LichessClient` (branch: ongoingGames_021126)
 
 ### What was done

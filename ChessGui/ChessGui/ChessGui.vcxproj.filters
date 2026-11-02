@@ -218,7 +218,7 @@
     <None Include="qml\ImportConflictDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
-    <None Include="qml\LichessGameDialog.qml">
+    <None Include="qml\OnlinePage.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
     <None Include="qml\AppDialog.qml">

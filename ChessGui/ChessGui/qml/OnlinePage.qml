@@ -1,0 +1,300 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import ChessPlusPlus
+
+// The ways to play on Lichess (LI-04, docs/LI-04-RejoinPlan.md): the player's unfinished games
+// (Continue rejoins one), a new challenge, joining by link. Pushed over Home by "Play online"; Back
+// pops it. A game that starts replaces it by the game page (ChessGame.qml route()); the challenge
+// waiting for the friend is ChessGame.qml's ChallengeDialog, over this page.
+Page {
+    id: page
+    objectName: "online"
+
+    signal backRequested()
+    signal profileRequested()   // link or reconnect the Lichess account there
+
+    property bool _busy: false   // a challenge, a join or a rejoin is under way
+
+    readonly property var _games: LichessClient.ongoingGames
+    readonly property int _myTurnCount: _games.filter(g => g.isMyTurn).length
+
+    function _refresh() {
+        if (UserManager.lichessConnected)
+            LichessClient.refreshOngoingGames()
+    }
+    // Pushed, or shown again (back from the Profile page, or after a game).
+    StackView.onActivated: _refresh()
+    // Back while a join, rejoin or challenge is starting: drop it, so no game starts after the page
+    // is gone. Not when a game did start: route() replaces this page by the game page then.
+    StackView.onRemoved: {
+        if (_busy && !ChessConnector.InGame)
+            LichessClient.stopStream()
+    }
+
+    function _speedName(speed) {
+        return ({ ultraBullet: "UltraBullet", bullet: "Bullet", blitz: "Blitz", rapid: "Rapid",
+                  classical: "Classical", correspondence: "Correspondence" })[speed] ?? speed
+    }
+    function _gameDetails(game) {
+        var parts = [_speedName(game.speed)]
+        if (game.variant !== "standard")
+            parts.push(game.variant)
+        parts.push("You play " + (game.color === "white" ? "White" : "Black"))
+        if (game.timeLeftText !== "")
+            parts.push(game.timeLeftText + " left")
+        return parts.join(" · ")
+    }
+    function _start(action) {
+        errorBar.visible = false
+        page._busy = true
+        action()
+    }
+
+    Connections {
+        target: LichessClient
+        function onChallengeCreated(gameId, joinUrl) { page._busy = false }
+        function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) { page._busy = false }
+        function onNetworkError(message) {
+            page._busy = false
+            errorBar.show(message, "critical")
+        }
+    }
+
+    background: Rectangle { color: Theme.windowBg }
+
+    header: CommandBar {
+        IconButton {
+            icon.source: Theme.icon("back")
+            tip: "Back (Esc)"
+            onClicked: page.backRequested()
+        }
+        Label {
+            text: "Play online"
+            font: Theme.bodyStrong
+            Layout.fillWidth: true
+        }
+    }
+
+    Flickable {
+        id: flick
+        anchors.fill: parent
+        contentHeight: content.implicitHeight + 2 * Theme.s5
+        boundsBehavior: Flickable.StopAtBounds
+        ScrollBar.vertical: ScrollBar {}
+
+        ColumnLayout {
+            id: content
+            width: Math.min(flick.width - 2 * Theme.s5, 640)
+            x: (flick.width - width) / 2
+            y: Theme.s5
+            spacing: Theme.s3
+
+            InfoBar {
+                id: errorBar
+                Layout.fillWidth: true
+            }
+
+            // ── Not connected: link the account first ──
+            SectionCard {
+                visible: !UserManager.lichessConnected
+                title: "Lichess account"
+                subtitle: UserManager.lichessNeedsReconnect
+                          ? "The Lichess sign-in of " + UserManager.lichessUsername + " expired. Reconnect it in your profile to play online."
+                          : "Link your Lichess account in your profile to play online."
+                Layout.fillWidth: true
+
+                Button {
+                    text: "Open profile"
+                    icon.source: Theme.icon("person")
+                    highlighted: true
+                    onClicked: page.profileRequested()
+                }
+            }
+
+            // ── Your games: the unfinished ones, most urgent first ──
+            SectionCard {
+                visible: UserManager.lichessConnected
+                title: "Your games"
+                subtitle: LichessClient.ongoingGamesError !== "" ? "Couldn't load your games: " + LichessClient.ongoingGamesError
+                        : page._games.length === 0 ? (LichessClient.ongoingGamesLoading ? "Loading…"
+                              : "No unfinished games. A game you leave before it ends waits here, and so does a correspondence game.")
+                        : page._games.length + (page._games.length === 1 ? " game" : " games")
+                          + (page._myTurnCount > 0 ? " · your turn in " + page._myTurnCount : "")
+                Layout.fillWidth: true
+
+                Repeater {
+                    model: page._games
+                    delegate: Rectangle {
+                        id: row
+                        required property var modelData
+                        Layout.fillWidth: true
+                        implicitHeight: rowLayout.implicitHeight + 2 * Theme.s3
+                        radius: Theme.radiusCard
+                        color: Theme.layerBg
+                        border.color: Theme.cardStroke
+                        Accessible.role: Accessible.ListItem
+                        Accessible.name: modelData.opponentName + ", " + page._gameDetails(modelData)
+                                         + (modelData.isMyTurn ? ", your turn" : ", waiting")
+
+                        RowLayout {
+                            id: rowLayout
+                            anchors { fill: parent; margins: Theme.s3 }
+                            spacing: Theme.s3
+
+                            // The side we play.
+                            Rectangle {
+                                width: 16; height: 16; radius: 8
+                                color: row.modelData.color === "white" ? "#FFFFFF" : "#1A1A1A"
+                                border.color: Theme.textSecondary
+                            }
+                            ColumnLayout {
+                                spacing: 2
+                                Layout.fillWidth: true
+                                Label {
+                                    text: row.modelData.opponentName
+                                          + (row.modelData.opponentRating > 0 ? " (" + row.modelData.opponentRating + ")" : "")
+                                    font: Theme.bodyStrong
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                                Label {
+                                    text: page._gameDetails(row.modelData)
+                                    font: Theme.caption
+                                    color: Theme.textSecondary
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                            }
+                            Label {
+                                text: row.modelData.isMyTurn ? "Your turn" : "Waiting"
+                                font: row.modelData.isMyTurn ? Theme.bodyStrong : Theme.caption
+                                color: row.modelData.isMyTurn ? Theme.accent : Theme.textSecondary
+                            }
+                            Button {
+                                text: row.modelData.canPlayHere ? "Continue" : "Open on lichess.org"
+                                icon.source: Theme.icon(row.modelData.canPlayHere ? "play" : "link")
+                                highlighted: row.modelData.canPlayHere && row.modelData.isMyTurn
+                                enabled: !page._busy
+                                ToolTip.visible: hovered && !row.modelData.canPlayHere
+                                ToolTip.text: "This kind of game can't be played in Chess++ yet"
+                                ToolTip.delay: 400
+                                onClicked: {
+                                    if (row.modelData.canPlayHere)
+                                        page._start(() => LichessClient.rejoinGame(row.modelData.gameId))
+                                    else
+                                        Qt.openUrlExternally("https://lichess.org/" + row.modelData.gameId)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                RowLayout {
+                    spacing: Theme.s2
+                    Button {
+                        text: "Refresh"
+                        flat: true
+                        enabled: !LichessClient.ongoingGamesLoading
+                        onClicked: page._refresh()
+                    }
+                    BusyIndicator {
+                        visible: LichessClient.ongoingGamesLoading
+                        running: visible
+                        Layout.preferredWidth: 20; Layout.preferredHeight: 20
+                    }
+                }
+            }
+
+            // ── New game: a challenge with a link for the friend ──
+            SectionCard {
+                visible: UserManager.lichessConnected
+                title: "Challenge a friend"
+                subtitle: "You get a link to send. The game starts when your friend opens it."
+                Layout.fillWidth: true
+
+                Label { text: "Time control"; color: Theme.textSecondary; font: Theme.caption }
+                ChoiceRow {
+                    id: tcType
+                    options: [{ label: "Unlimited" }, { label: "Real time" }, { label: "Days per move" }]
+                }
+                // Real time: minutes + increment.
+                ChoiceRow {
+                    id: tcPreset
+                    visible: tcType.checkedIndex === 1
+                    checkedIndex: 2
+                    options: [{ label: "1+0",   min: 1,  inc: 0 },
+                              { label: "3+2",   min: 3,  inc: 2 },
+                              { label: "5+3",   min: 5,  inc: 3 },
+                              { label: "10+0",  min: 10, inc: 0 },
+                              { label: "15+10", min: 15, inc: 10 }]
+                }
+                // Correspondence: the days each player has for a move (Lichess's choices).
+                ChoiceRow {
+                    id: tcDays
+                    visible: tcType.checkedIndex === 2
+                    checkedIndex: 2
+                    options: [1, 2, 3, 5, 7, 10, 14].map(d => ({ label: d === 1 ? "1 day" : d + " days", days: d }))
+                }
+
+                Label { text: "Side"; color: Theme.textSecondary; font: Theme.caption }
+                ChoiceRow {
+                    id: side
+                    options: [{ label: "Random", value: "random" },
+                              { label: "White",  value: "white"  },
+                              { label: "Black",  value: "black"  }]
+                }
+
+                Button {
+                    text: "Create challenge"
+                    icon.source: Theme.icon("link")
+                    highlighted: true
+                    enabled: !page._busy
+                    Layout.topMargin: Theme.s1
+                    onClicked: {
+                        var preset = tcType.checkedIndex === 1 ? tcPreset.options[tcPreset.checkedIndex] : { min: 0, inc: 0 }
+                        var days = tcType.checkedIndex === 2 ? tcDays.options[tcDays.checkedIndex].days : 0
+                        // Standard only: Chess960 isn't playable here yet (LI-01).
+                        page._start(() => LichessClient.createOpenChallenge(preset.min, preset.inc,
+                                                                            side.options[side.checkedIndex].value,
+                                                                            "standard", days))
+                    }
+                }
+            }
+
+            // ── Join by link or id: the fallback ──
+            SectionCard {
+                visible: UserManager.lichessConnected
+                title: "Join a game"
+                subtitle: "Paste the link a friend sent you, or a game's id."
+                Layout.fillWidth: true
+
+                RowLayout {
+                    spacing: Theme.s2
+                    Layout.fillWidth: true
+
+                    TextField {
+                        id: joinUrlField
+                        placeholderText: "Lichess link or game ID"
+                        Layout.fillWidth: true
+                        onAccepted: joinButton.clicked()
+                    }
+                    Button {
+                        id: joinButton
+                        text: "Join"
+                        enabled: joinUrlField.text.trim() !== "" && !page._busy
+                        onClicked: {
+                            if (!enabled)
+                                return
+                            if (!LichessClient.gameIdFromUrl(joinUrlField.text.trim())) {
+                                errorBar.show("That isn't a Lichess link or game ID", "critical")
+                                return
+                            }
+                            page._start(() => LichessClient.joinFromUrl(joinUrlField.text.trim()))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -19,6 +19,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFont>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTextStream>
 #include <QDateTime>
 #include <QSettings>
@@ -56,7 +58,24 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 		}
 		return;
 	}
-	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import" }.contains(scene))
+	if (scene == "online") { // the Online page's "Your games": fixed rows, no network
+		sceneMap["ongoingGames"] = LichessClient::parseOngoingGames(QJsonDocument::fromJson(R"({ "nowPlaying": [
+			{ "gameId": "aEPqtBMc", "color": "white", "isMyTurn": true, "secondsLeft": 540,
+			  "opponent": { "id": "friend", "username": "Friend", "rating": 1650 },
+			  "speed": "rapid", "source": "friend", "variant": { "key": "standard" } },
+			{ "gameId": "OHp33WmD", "color": "black", "isMyTurn": false, "secondsLeft": 190000,
+			  "opponent": { "id": null, "username": "Anonymous" },
+			  "speed": "correspondence", "source": "friend", "variant": { "key": "standard" } },
+			{ "gameId": "rvaeSdJE", "color": "white", "isMyTurn": true,
+			  "opponent": { "id": null, "username": "AI", "ai": 3 },
+			  "speed": "correspondence", "source": "ai", "variant": { "key": "standard" } },
+			{ "gameId": "TiGeHdSm", "color": "black", "isMyTurn": false, "secondsLeft": 150,
+			  "opponent": { "id": "speedy", "username": "Speedy", "rating": 1890 },
+			  "speed": "blitz", "source": "lobby", "variant": { "key": "standard" } }
+		] })").object());
+	}
+	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
+	                  "online", "online-empty" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -126,7 +145,7 @@ int main(int argc, char* argv[])
 	// "login", "menu" and "board" are the older names of "profiles", "home" and "game".
 	static const QStringList screenshotScenes = {
 		"welcome", "create-user", "profiles", "home", "continue", "game", "settings", "about", "restore", "levels",
-		"profile", "profile-local", "profile-expired", "import", "online",
+		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides"
 	};
 	QCommandLineParser parser;
@@ -195,6 +214,7 @@ int main(int argc, char* argv[])
 	connector->setAvatarProvider(avatarProvider);
 	connector->setUserManager(userManager);
 	connector->setLichessClient(lichessClient);
+	lichessClient->setOffline(screenshotMode); // the scenes' Lichess token is a placeholder
 
 	if (screenshotMode) {
 		QVariantMap sceneMap{

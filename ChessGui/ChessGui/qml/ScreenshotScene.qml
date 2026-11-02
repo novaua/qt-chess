@@ -49,7 +49,11 @@ Item {
         if (name === "about")    pages.currentItem.showAbout()
         if (name === "levels")   dialogs.levels.open()
         if (name.startsWith("profile") && name !== "profiles") window.openProfile()
-        if (name === "online")   dialogs.online.open()
+        if (name.startsWith("online")) {
+            // main.cpp: Tester with a Lichess account for online and online-empty, the games for online.
+            if (shot.ongoingGames) LichessClient.setOngoingGames(shot.ongoingGames)
+            window.openOnline()
+        }
         if (name === "computer") dialogs.computer.openNew()
         if (name === "players")  dialogs.twoPlayer.open()
         if (name === "robot") {

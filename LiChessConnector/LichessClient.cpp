@@ -97,7 +97,7 @@ void LichessClient::cancelOngoingGamesRefresh()
 
 void LichessClient::refreshOngoingGames()
 {
-    if (_token.isEmpty()) return;
+    if (_token.isEmpty() || _offline) return;
     cancelOngoingGamesRefresh();
     _ongoingGamesLoading = true;
     _ongoingGamesError.clear();
@@ -302,9 +302,10 @@ static void addTimeControl(QUrlQuery& body, int limitSec, int incrementSec, int 
     }
 }
 
-void LichessClient::createOpenChallenge(int minutes, int increment, const QString& color, const QString& variant)
+void LichessClient::createOpenChallenge(int minutes, int increment, const QString& color, const QString& variant,
+                                        int days)
 {
-    createOpenChallengeSec(minutes * 60, minutes > 0 ? increment : 0, 0, color, variant);
+    createOpenChallengeSec(minutes * 60, minutes > 0 ? increment : 0, minutes > 0 ? 0 : days, color, variant);
 }
 
 void LichessClient::createOpenChallengeSec(int limitSec, int incrementSec, int days,

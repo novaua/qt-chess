@@ -444,7 +444,7 @@
     <None Include="qml\TwoPlayerDialog.qml" />
     <None Include="qml\HomePage.qml" />
     <None Include="qml\GamePage.qml" />
-    <None Include="qml\LichessGameDialog.qml" />
+    <None Include="qml\OnlinePage.qml" />
     <None Include="qml\MarkerColumn.qml" />
     <None Include="qml\MarkerRow.qml" />
     <None Include="qml\NavigationLayer.qml" />
