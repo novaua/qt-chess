@@ -23,6 +23,22 @@ Use this file to record where work stopped and what to do next. Newest entry at 
   - **Joining works.** All four were joined by id and moves were posted, as White in two and as Black in two (`accept` answers 404 for a started game, then the stream opens; `rejoinGame` goes straight to the stream).
   - **Not tested:** a game started on lichess.org itself (lobby). `canPlayHere` stays as the Board API's rules say: lobby Rapid and Classical yes, lobby Blitz no.
 
+### Code review (PR #111 comments, same branch)
+10 findings: 9 fixed, 1 declined.
+- **Fixed:**
+  - the list is refreshed when an online game is left;
+  - a 401 reads "Lichess sign-in expired";
+  - a new refresh clears the old error;
+  - `setOngoingGames` cancels a refresh in flight;
+  - one cancel helper, and a token change always resets the list;
+  - Blitz from an API challenge or bulk pairing (`source` "api") is playable;
+  - `rejoinGame` ignores an empty id;
+  - `timeLeftText` shows "47 h" rather than "1 day" and "119 s" rather than "1 min";
+  - a test checks the row count first.
+
+  New test: a token change clears the list. ChessQtTests 126 pass in Debug and Release.
+- **Declined:** a list model and separate change signals. At most 50 rows refreshed now and then, like `UserManager.users`; to revisit in step 2 if the page shows a cost.
+
 ### Where to continue
 - **Step 2** (after this is merged): the Online page.
 - When convenient: rejoin a Rapid game from the lichess.org lobby, to confirm the lobby case.
