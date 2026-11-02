@@ -34,6 +34,23 @@ namespace LichessTests
 			Assert::AreEqual(QString("AbCdEfGh"), id);
 		}
 
+		// The links Lichess gives out for an open challenge (bug: "…/game/<id>" was rejected).
+		TEST_METHOD(GameIdFromUrl_ChallengeLink_ReturnsId)
+		{
+			Assert::AreEqual(QString("aEPqtBMc"), _client.gameIdFromUrl("https://lichess.org/game/aEPqtBMc"));
+			Assert::AreEqual(QString("OHp33WmD"), _client.gameIdFromUrl("https://lichess.org/game/OHp33WmD?color=white"));
+		}
+
+		TEST_METHOD(ColorFromUrl_PlayerLinks_Test)
+		{
+			Assert::AreEqual(QString("black"), LichessClient::colorFromUrl("https://lichess.org/game/OHp33WmD?color=black"));
+			Assert::AreEqual(QString("white"), LichessClient::colorFromUrl("https://lichess.org/game/OHp33WmD?color=white"));
+			Assert::AreEqual(QString("black"), LichessClient::colorFromUrl("https://lichess.org/AbCdEfGh/black"));
+			Assert::IsTrue(LichessClient::colorFromUrl("https://lichess.org/game/OHp33WmD").isEmpty(), L"random: no side");
+			Assert::IsTrue(LichessClient::colorFromUrl("AbCdEfGh").isEmpty());
+			Assert::IsTrue(LichessClient::colorFromUrl("https://lichess.org/whitexyz").isEmpty(), L"an id, not a side");
+		}
+
 		TEST_METHOD(GameIdFromUrl_BareId_ReturnsSame)
 		{
 			auto id = _client.gameIdFromUrl("AbCdEfGh");

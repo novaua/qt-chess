@@ -152,14 +152,12 @@ AppDialog {
                     highlighted: true
                     enabled: joinUrlField.text.trim() !== "" && !dialog._busy
                     onClicked: {
-                        var gameId = LichessClient.gameIdFromUrl(joinUrlField.text.trim())
-                        if (gameId === "") {
+                        if (!LichessClient.joinFromUrl(joinUrlField.text.trim())) {
                             dialog._statusText = "Invalid URL or game ID"
                             return
                         }
                         dialog._busy       = true
                         dialog._statusText = ""
-                        LichessClient.acceptChallenge(gameId)
                     }
                 }
             }

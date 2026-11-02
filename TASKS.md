@@ -104,7 +104,7 @@ Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows
 - [ ] LI-02 Implement the most popular game speeds on Lichess: Bullet, Blitz, Classical and UltraBullet [Medium], **needs a plan first; not started; after LI-01**. Today `LichessGameDialog.qml` offers only "Unlimited" or a few "Real time" presets (1+0, 3+2, 5+3, 10+0, 15+10), plus the Standard / Chess960 game type. Offer the modes by name, as Lichess groups them (estimated time = minutes × 60 + 40 × increment s): **UltraBullet** (≤ 29 s, e.g. ¼+0), **Bullet** (< 3 min, e.g. 1+0, 2+1), **Blitz** (< 8 min, e.g. 3+0, 3+2, 5+0, 5+3), **Classical** (≥ 25 min, e.g. 30+0, 30+20), and keep Rapid. The plan should cover:
   - the dialog: a mode choice first, then that mode's presets;
   - UltraBullet's 15 s start: `createOpenChallenge()` takes whole minutes, so it needs the clock in seconds (`createOpenChallengeSec()` exists);
-  - **check what the Board API allows**: Lichess may limit which speeds a Board API client can play (e.g. the fastest ones only in direct challenges); test before building the UI;
+  - **What the Board API allows (checked 2026-11-02 in Lichess's API spec, "Board → Restrictions"): "Rapid, Classical and Correspondence only. For direct challenges, games vs AI, and bulk pairing, Blitz is also possible."** So **Bullet and UltraBullet can't be played by this app at all** (only Bot accounts may, and those can't be used by a person), and Blitz only in a challenge to a named user. LI-02 shrinks to: Blitz for direct challenges, Rapid, Classical and Correspondence. Today's dialog already offers 1+0 (Bullet) and 3+2 / 5+3 (Blitz) for open challenges: check what Lichess answers and remove or move them first;
   - **a clock on the game page**: there is none today (out of scope in BL-14); Bullet and UltraBullet can't be played without it (`wtime`/`btime` from the `gameState` stream);
   - the move gate's pause (BL-14) at these speeds: in UltraBullet even ~0.4 s matters, so the Online pause may need to be shorter or zero;
   - the profile's ratings (`parseRatings`) list bullet, blitz, rapid, classical, correspondence: add `ultraBullet`, and show the chosen mode's rating in the dialog.
@@ -115,6 +115,26 @@ Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows
   - a message ("Takeback accepted");
   - resync safety: if the lists disagree in some other way, rebuild the game from Lichess's list;
   - tests: `LichessClientTest` stream lines (a list that shrinks, then grows again), and a scripted check like the step-5 stream hook.
+- [ ] LI-04 Rejoin unfinished Lichess games [Medium], **needs a plan and the owner's decision on the UI** (owner's manual check of BL-14 step 5, bugs 2 and 4). Leaving an online game (Home, closing the window, a crash) leaves the game running on Lichess. The opponent sees us disconnect at once, and our clock runs. Today the only way back is pasting the game id into "Join a game" (the `…/game/<id>` link was rejected; fixed on `lichessColorJoinFix_021126`), and nothing warns when leaving. Lichess keeps the game; the Board API can stream it again (`gameFull` with all moves: the step-5 resync). To do:
+  - **List the games**: `GET /api/account/playing` ("Get my ongoing games", real-time and correspondence, most urgent first) gives `gameId`, `color`, `opponent`, `isMyTurn`, `secondsLeft`, `speed`, `variant`, `lastMove`. The event stream (`/api/stream/event`) also sends a `gameStart` for every ongoing game when it opens.
+  - **Owner's decision (2026-11-02): an Online page**, which replaces the "Play online" dialog. "Play online" on Home opens a page (pushed like Profile / Settings) that gathers the ways to play online:
+    - **"Your games"**: the unfinished games from `/api/account/playing`, one row each (opponent, colour, your turn / waiting, time or days left, speed). **Continue** on a row rejoins the game (`streamGame(id)` → `gameFull` → the step-5 resync), and the player never types an id. The list refreshes when the page opens; it's empty with a short note when there are none.
+    - **New game**: what the dialog has today: the challenge settings (game type, time control, side), Create challenge, and the pending challenge (link to share, Cancel).
+    - **Join by link or id**: kept as a fallback (it works since `lichessColorJoinFix_021126`).
+    - Room for more ways to play online later: correspondence (below), challenge a Lichess user by name (Blitz is allowed there, LI-02), incoming challenges (BL-10).
+  - **Home's "Continue game"** covers both kinds:
+    - a saved game vs the robot → continue it, as today. **The robot has priority** when both exist, because Continue is the only way back to a robot game;
+    - otherwise, if Lichess has unfinished games → open the Online page at "Your games";
+    - otherwise the card is hidden, as today.
+    - The card's description says which one ("vs Robot, level 3" / "Lichess: 2 games, your turn in 1"). Its visibility needs the ongoing-games count: fetch `/api/account/playing` when Home opens (signed in only, not in screenshot mode) and keep the count in `LichessClient` (a property QML reads; `ChessConnector.continueGame()` keeps the robot part).
+  - **Warn when leaving** a running online game: "The game continues on Lichess and your clock is running. You can come back from Continue or Play online." with Resign / Leave / Stay.
+  - **Correspondence ("async") games**, days per move, can last days. The Board API supports them (`days` in `addTimeControl`) and they're the main reason for a list. Offer "Days per move" in the dialog (1, 2, 3, 5, 7, 10, 14), and notify about "your turn" (overlaps BL-10).
+  - Our side is always a logged-in account (the Board API needs the token). An anonymous opponent's game lives as long as their browser session, so rejoining works while they're still there.
+- [ ] LI-05 Premove [Medium] (owner's manual check, bug 3). While it's the opponent's turn our pieces are frozen (`canPlayerMove()` follows Lichess's turn). On lichess.org a premove is a move made during the opponent's turn: it's kept in the browser and sent the moment it becomes our turn. The Board API has nothing for it (`/move` is refused when it isn't our turn), so it's ours to build:
+  - allow one pending move (drag or click) in our colour during the opponent's turn, checked only for piece movement (it may become illegal), and shown highlighted (Lichess: red squares);
+  - cancel it with a click on an empty square or a right click;
+  - when the opponent's move is shown (MoveGate release), play the premove at once with no gate pause if it's legal, otherwise drop it silently;
+  - maybe later: a queue of several premoves, and premoves vs the robot (the same mechanism, `Source::Robot`).
 
 ---
 
