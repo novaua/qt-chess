@@ -654,8 +654,6 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
 
     if (type == QLatin1String("gameFull")) {
         _gameFullSeen = true;
-        if (_currentGameId.isEmpty()) // a stream not opened by streamGame() (the takeback scene)
-            _currentGameId = obj.value(QStringLiteral("id")).toString();
         const QJsonObject white = obj.value(QStringLiteral("white")).toObject();
         const QJsonObject black = obj.value(QStringLiteral("black")).toObject();
         const QJsonObject state = obj.value(QStringLiteral("state")).toObject();
@@ -750,13 +748,13 @@ void LichessClient::applyStreamMoves(const QStringList& moves)
         emit opponentMoveReceived(move);
 }
 
-void LichessClient::replaceMoveList(const QStringList& moves)
+void LichessClient::replaceMoveList(const QStringList& moves, bool moveRefused)
 {
     qDebug() << "LichessClient: move list replaced; ours:" << (_lastMovesList + _sentMoves).join(QLatin1Char(' '))
              << "| Lichess:" << moves.join(QLatin1Char(' '));
     _lastMovesList = moves;
     _sentMoves.clear();
-    emit moveListReplaced(moves.join(QLatin1Char(' ')));
+    emit moveListReplaced(moves.join(QLatin1Char(' ')), moveRefused);
 }
 
 void LichessClient::postMove(const QString& gameId, const QString& uciMove)
@@ -773,9 +771,11 @@ void LichessClient::postMove(const QString& gameId, const QString& uciMove)
         if (reply->error() == QNetworkReply::NoError)
             return;
         emit networkError(QStringLiteral("Move failed: ") + reply->errorString());
-        // Not played on Lichess: our board takes it back (if the stream hasn't shown it meanwhile).
-        if (gameId == _currentGameId && _sentMoves.contains(uciMove))
-            replaceMoveList(_lastMovesList);
+        // Lichess answered that it didn't play it: our board takes it back (if the stream hasn't
+        // shown it meanwhile). Without an answer (a timeout) it may be played: the stream tells.
+        const int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (httpStatus >= 400 && gameId == _currentGameId && _sentMoves.contains(uciMove))
+            replaceMoveList(_lastMovesList, true);
     });
 }
 

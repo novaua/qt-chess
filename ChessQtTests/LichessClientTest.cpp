@@ -441,7 +441,7 @@ namespace LichessTests
 		static void recordMoveEvents(LichessClient& client, QStringList& events)
 		{
 			QObject::connect(&client, &LichessClient::opponentMoveReceived, [&](QString moves) { events << "move " + moves; });
-			QObject::connect(&client, &LichessClient::moveListReplaced, [&](QString moves) { events << "replaced " + moves; });
+			QObject::connect(&client, &LichessClient::moveListReplaced, [&](QString moves, bool) { events << "replaced " + moves; });
 		}
 
 		TEST_METHOD(GameStream_AcceptedTakeback_ReplacesTheList_ThenGrowsAgain_Test)

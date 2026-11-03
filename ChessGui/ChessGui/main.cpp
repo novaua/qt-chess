@@ -122,6 +122,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 // once the board has shown that. No network.
 static void playTakebackScene(ChessConnector* connector, LichessClient* lichess)
 {
+	lichess->setCurrentGameId(QStringLiteral("takeback1"));
 	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"takeback1",
 		"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},
 		"state":{"moves":"e2e4 e7e5 g1f3 b8c6","status":"started"}})");
@@ -320,8 +321,9 @@ int main(int argc, char* argv[])
 	engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
 	if (screenshotMode && engine.rootObjects().isEmpty())
 		return 3;
-	if (screenshotMode && scene == "takeback") // once Home is up and the scene is set up (Qt.callLater)
-		QTimer::singleShot(500, connector, [=]() { playTakebackScene(connector, lichessClient); });
+	if (screenshotMode && scene == "takeback") // once the scene has logged in (Home is up)
+		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
+			[=]() { playTakebackScene(connector, lichessClient); }, Qt::QueuedConnection);
 	if (!engine.rootObjects().isEmpty())
 		FrameTrace::watch(qobject_cast<QQuickWindow*>(engine.rootObjects().first()));
 

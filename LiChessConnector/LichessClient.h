@@ -112,6 +112,8 @@ public:
 	static bool    resolveIsWhite(const QString& myColor, const QString& whiteId, const QString& username);
 
 	QString currentGameId() const { return _currentGameId; }
+	// Tests and the takeback scene: the game of the lines fed to handleGameStreamLine(), without a stream.
+	void setCurrentGameId(const QString& gameId) { _currentGameId = gameId; }
 
 	// One line of the Board API game stream (handleStreamData; tests feed lines here).
 	// Returns false once the game has ended: the rest of the stream is not read.
@@ -126,7 +128,7 @@ signals:
 	void opponentMoveReceived(QString uciMove);
 	// The game's moves changed other than by new moves: an accepted takeback (a shorter list), a
 	// move of ours that Lichess refused, or a list that disagrees with ours. All the moves, as Lichess has them.
-	void moveListReplaced(QString uciMoves);
+	void moveListReplaced(QString uciMoves, bool moveRefused); // moveRefused: Lichess refused our move
 	void gameEnded(QString status, QString winner);
 	void networkError(QString message);
 	void challengeCanceled();
@@ -154,7 +156,7 @@ private:
 	void stopWaitingForDirectChallenge(); // stop probing for the game; keeps the reply
 	void handleStreamData(QNetworkReply* reply);
 	void applyStreamMoves(const QStringList& moves); // a gameState's moves against ours
-	void replaceMoveList(const QStringList& moves);
+	void replaceMoveList(const QStringList& moves, bool moveRefused = false);
 
 	void handleEventStreamData(QNetworkReply* reply);
 	void handleRematchOffer(const QString& type, const QJsonObject& challenge);
