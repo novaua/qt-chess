@@ -9,6 +9,7 @@
 #include <QVariantMap>
 #include "MovesGen.h"
 #include <QThread>
+#include <QTimer>
 #include <functional>
 
 #include "Game.h"
@@ -191,6 +192,9 @@ public slots:
 	Q_INVOKABLE bool isBoardIdle() const;
 
 	void endGame();              // leave the game for Home (autosaves an unfinished local game)
+	// The leave warning's Resign: resign the Lichess game, then endGame() once Lichess has ended it
+	// (so the loss counts), or after a few seconds without an answer. A finished game: endGame().
+	Q_INVOKABLE void resignAndLeave();
 	Q_INVOKABLE void switchUser(); // endGame(), then log out
 
 	void figureSelected(int index); // a click: show the piece's moves, or play the move to that square
@@ -306,6 +310,7 @@ private:
 	int  _flaggedKing    = -1;
 	bool _resultRecorded = false; // stats recorded for this game (mate can recur after undo)
 	bool _resignAfterEngineMove = false; // resign pressed while the robot was thinking
+	QTimer _leaveAfterResign; // resignAndLeave(): runs until Lichess ends the game, then endGame()
 	QString _gameResult;
 	QString _resultText;
 	QString _gameMode;

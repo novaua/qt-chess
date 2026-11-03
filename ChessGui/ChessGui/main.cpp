@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
 	// light/dark colour scheme, so the Fluent controls would get the wrong palette.
 	// "login", "menu" and "board" are the older names of "profiles", "home" and "game".
 	static const QStringList screenshotScenes = {
-		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "game", "settings", "about", "restore", "levels",
+		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "game", "leave-online", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides"
 	};

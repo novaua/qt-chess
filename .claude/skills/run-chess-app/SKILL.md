@@ -39,7 +39,7 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
 
 - Scenes: `welcome` (first run), `create-user` (first run, Create profile dialog), `profiles` (Who's
   playing? with Bob, Alice and Tester, who has a Lichess account), `home`, `continue` (Home with an autosaved robot game and the `online` scene's four Lichess games: the robot's Continue, which mentions them), `continue-online` (no robot game: Continue opens the Online page), `game` (two-player
-  game, Tester vs Bob), `review` (a middlegame reviewed at move 5), `result` (Fool's mate: the result
+  game, Tester vs Bob), `leave-online` (the game with the leave warning of a running Lichess game: Leave / Resign / Stay), `review` (a middlegame reviewed at move 5), `result` (Fool's mate: the result
   card), `ended` (the same with the card closed: Rematch / New game in the moves panel, Result in the sheet), `moves` (the middlegame with the move sheet open; narrow window only), `select` (1. e4 e5, the g1 knight selected: tinted square and its move dots; with `-Black` on the turned board),
   `drag` (the same knight held over f3: faded on g1, dots, f3 outlined; `-Black` too), `settings` (Settings page, top),
   `about` (Settings scrolled to About: version, licences, shortcuts), `restore` (Settings with the restore

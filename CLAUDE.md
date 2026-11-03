@@ -96,7 +96,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
   - Shared: `Theme.qml` and `AppSettings.qml` (singletons; `AppSettings` is the QtCore `Settings` with the
     app's own options), `SettingRow`, `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`, `SectionCard`, `AvatarPicker`, `FocusRing` (keyboard focus outline for custom-drawn items)
   - Tooling: `ScreenshotScene` (the `--screenshot` scenes; loaded only in that mode, keep debug/test helpers there, not in the pages)
-  - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog`, `ChallengeDialog` (a Lichess challenge waiting for the friend); profiles: `CreateUserDialog`, `ImportConflictDialog`, `RestoreBackupDialog`
+  - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog`, `ChallengeDialog` (a Lichess challenge waiting for the friend), `LeaveOnlineDialog` (Leave / Resign / Stay when leaving or closing during a running Lichess game); profiles: `CreateUserDialog`, `ImportConflictDialog`, `RestoreBackupDialog`
 - `UserManager` keeps `users.json` (atomic `QSaveFile` writes, `backups/users-1..3.json`), statistics
   per opponent, profile export/import (`.chessprofile`, never the Lichess token) and the Lichess
   sign-in (`LichessAuth`), so the token never reaches QML. Its tests are in `ChessQtTests/UserManagerTest.cpp`.

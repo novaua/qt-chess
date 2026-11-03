@@ -10,6 +10,7 @@
         <file>qml/HomeCard.qml</file>
         <file>qml/FocusRing.qml</file>
         <file>qml/ConfirmDialog.qml</file>
+        <file>qml/LeaveOnlineDialog.qml</file>
         <file>qml/ChoiceRow.qml</file>
         <file>qml/ComputerGameDialog.qml</file>
         <file>qml/TwoPlayerDialog.qml</file>
