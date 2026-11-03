@@ -93,7 +93,8 @@ DISTFILES += \
     qml/IconButton.qml \
     qml/InfoBar.qml \
     qml/LevelsHelpDialog.qml \
-    qml/LichessGameDialog.qml \
+    qml/BoardPreview.qml \
+    qml/OnlinePage.qml \
     qml/MarkerColumn.qml \
     qml/MarkerRow.qml \
     qml/MoveList.qml \

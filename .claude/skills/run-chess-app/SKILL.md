@@ -46,7 +46,7 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   dialog: two backups, the newest the same as now), `levels`,
   `profile` (Profile page: Lichess linked with ratings, statistics), `profile-local` (no Lichess),
   `profile-expired` (Lichess sign-in expired: Reconnect), `import` (importing Bob again: the conflict
-  dialog), `online` (Lichess dialog, not connected), `computer` (vs-computer setup dialog), `players`
+  dialog), `online` (the Online page with four seeded games: your turn / waiting, a Blitz lobby game to open on lichess.org), `online-empty` (signed in, no games), `online-disconnected` (no Lichess account), `computer` (vs-computer setup dialog), `players`
   (two-player setup dialog), `all`. `robot` (not in `all`: needs Stockfish): a saved game vs the robot at
   level 5, continued, where the robot mates with Qh5# (the engine's answer is played on the GUI thread).
   `slides` (not in `all`): the BL-14 frame-trace scene — animations on (every other scene forces them

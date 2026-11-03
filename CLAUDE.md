@@ -85,9 +85,9 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
 - QML files in `ChessGui/ChessGui/qml/`:
   - `ChessGame.qml` — the window: a `StackView` with one page (`WelcomePage` on first run,
     `ProfilePickerPage`, `HomePage`, `GamePage`; `route()` picks it from `UserManager` and
-    `ChessConnector.InGame`), with `ProfilePage` or `SettingsPage` pushed over Home or the game; the
+    `ChessConnector.InGame`), with `ProfilePage` or `SettingsPage` pushed over Home or the game, `OnlinePage` over Home; the
     InfoBars and every dialog. Pages ask for dialogs through signals.
-  - `HomePage.qml` (account menu, Continue, action cards), `GamePage.qml` (command bar, board between
+  - `HomePage.qml` (account menu, Continue, action cards), `OnlinePage.qml` (pushed by "Play online": the unfinished Lichess games as `BoardPreview` cards with Continue, a new challenge, join by link; LI-04), `GamePage.qml` (command bar, board between
     two `PlayerCard`s with a `CapturedStrip` and "+N", the moves (`MovesPanel` + `MoveList`) beside
     the board or in a bottom sheet, `ResultCard` over the board)
   - `ChessBoard.qml` — the board: one geometry for all layers (`squareX/Y`, `squareAt`, a1 bottom left; turned for Black by `rotation`), the click `TapHandler`, the drag state (`dragFrom`, `dragPoint`, `dropSquare`) and the dragged piece under the pointer, coordinates, promotion dialog
@@ -96,7 +96,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
   - Shared: `Theme.qml` and `AppSettings.qml` (singletons; `AppSettings` is the QtCore `Settings` with the
     app's own options), `SettingRow`, `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`, `SectionCard`, `AvatarPicker`, `FocusRing` (keyboard focus outline for custom-drawn items)
   - Tooling: `ScreenshotScene` (the `--screenshot` scenes; loaded only in that mode, keep debug/test helpers there, not in the pages)
-  - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog`, `LichessGameDialog`; profiles: `CreateUserDialog`, `ImportConflictDialog`, `RestoreBackupDialog`
+  - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog`, `ChallengeDialog` (a Lichess challenge waiting for the friend); profiles: `CreateUserDialog`, `ImportConflictDialog`, `RestoreBackupDialog`
 - `UserManager` keeps `users.json` (atomic `QSaveFile` writes, `backups/users-1..3.json`), statistics
   per opponent, profile export/import (`.chessprofile`, never the Lichess token) and the Lichess
   sign-in (`LichessAuth`), so the token never reaches QML. Its tests are in `ChessQtTests/UserManagerTest.cpp`.

@@ -19,6 +19,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFont>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTextStream>
 #include <QDateTime>
 #include <QSettings>
@@ -56,7 +58,28 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 		}
 		return;
 	}
-	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import" }.contains(scene))
+	if (scene == "online") { // the Online page's "Your games": fixed rows, no network
+		sceneMap["ongoingGames"] = LichessClient::parseOngoingGames(QJsonDocument::fromJson(R"({ "nowPlaying": [
+			{ "gameId": "aEPqtBMc", "color": "white", "isMyTurn": true, "secondsLeft": 540,
+			  "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "lastMove": "b8c6",
+			  "opponent": { "id": "friend", "username": "Friend", "rating": 1650 },
+			  "speed": "rapid", "source": "friend", "variant": { "key": "standard" } },
+			{ "gameId": "OHp33WmD", "color": "black", "isMyTurn": false, "secondsLeft": 190000,
+			  "fen": "rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR", "lastMove": "g8f6",
+			  "opponent": { "id": null, "username": "Anonymous" },
+			  "speed": "correspondence", "source": "friend", "variant": { "key": "standard" } },
+			{ "gameId": "rvaeSdJE", "color": "white", "isMyTurn": true,
+			  "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
+			  "opponent": { "id": null, "username": "AI", "ai": 3 },
+			  "speed": "correspondence", "source": "ai", "variant": { "key": "standard" } },
+			{ "gameId": "TiGeHdSm", "color": "black", "isMyTurn": false, "secondsLeft": 150,
+			  "fen": "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR", "lastMove": "c7c5",
+			  "opponent": { "id": "speedy", "username": "Speedy", "rating": 1890 },
+			  "speed": "blitz", "source": "lobby", "variant": { "key": "standard" } }
+		] })").object());
+	}
+	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
+	                  "online", "online-empty" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -126,7 +149,7 @@ int main(int argc, char* argv[])
 	// "login", "menu" and "board" are the older names of "profiles", "home" and "game".
 	static const QStringList screenshotScenes = {
 		"welcome", "create-user", "profiles", "home", "continue", "game", "settings", "about", "restore", "levels",
-		"profile", "profile-local", "profile-expired", "import", "online",
+		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides"
 	};
 	QCommandLineParser parser;
@@ -195,6 +218,7 @@ int main(int argc, char* argv[])
 	connector->setAvatarProvider(avatarProvider);
 	connector->setUserManager(userManager);
 	connector->setLichessClient(lichessClient);
+	lichessClient->setOffline(screenshotMode); // the scenes' Lichess token is a placeholder
 
 	if (screenshotMode) {
 		QVariantMap sceneMap{
@@ -239,7 +263,7 @@ int main(int argc, char* argv[])
 		if (token == *lastToken) return;
 		*lastToken = token;
 		lichessClient->setToken(token);
-		if (!token.isEmpty() && !screenshotMode) {
+		if (!token.isEmpty()) { // neither in screenshot mode (setOffline)
 			lichessClient->refreshAccount();
 			lichessClient->refreshOngoingGames(); // LI-04: Continue and the Online page
 		}
@@ -250,11 +274,14 @@ int main(int argc, char* argv[])
 		});
 	QObject::connect(userManager, &UserManager::lichessChanged, updateLichessToken);
 	updateLichessToken(); // load() sets the active user silently — seed the token now
+	// The online scene's games (no network in screenshot mode): after the token, which resets the list.
+	if (screenshotMode && connector->screenshotScene().contains("ongoingGames"))
+		lichessClient->setOngoingGames(connector->screenshotScene().value("ongoingGames").toList());
 	QObject::connect(lichessClient, &LichessClient::accountFetched, userManager, &UserManager::setLichessAccount);
 	QObject::connect(lichessClient, &LichessClient::authExpired, userManager, &UserManager::setLichessExpired);
 	// A Lichess game left unfinished (Home, switch user) is now one of the ongoing games (LI-04).
 	QObject::connect(connector, &ChessConnector::isOnlineGameChanged, lichessClient, [=]() {
-		if (!connector->isOnlineGame() && !screenshotMode)
+		if (!connector->isOnlineGame())
 			lichessClient->refreshOngoingGames();
 	});
 	QObject::connect(lichessClient, &LichessClient::gameEnded, lichessClient, [=]() {

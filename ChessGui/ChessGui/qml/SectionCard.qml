@@ -9,6 +9,8 @@ Rectangle {
     property string title
     property string subtitle
     default property alias content: column.data
+    // The width the children get (the card minus its margins), e.g. to size a grid of them.
+    readonly property real contentWidth: column.width
 
     implicitHeight: column.implicitHeight + 2 * Theme.s4
     radius: Theme.radiusCard

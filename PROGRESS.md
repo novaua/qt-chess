@@ -4,6 +4,72 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-02 — LI-04 step 2: the Online page (branch: onlinePage_021126)
+
+### What was done
+- **`OnlinePage.qml` replaces `LichessGameDialog.qml`** (removed). "Play online" on Home pushes it (`root.openOnline()`; Back and Escape pop it, like Profile). Its sections:
+  - **Not signed in** (or the sign-in expired): only a card that says so, with "Open profile". Before, "Play online" jumped straight to the profile.
+  - **Your games**: `LichessClient.ongoingGames`, refreshed whenever the page is shown (`StackView.onActivated`) and by a Refresh button.
+    - Each row: the side we play, the opponent (rating), speed · side · time left, "Your turn" (accent) or "Waiting".
+    - **Continue** (`LichessClient.rejoinGame`, highlighted on our turn), or **Open on lichess.org** for a game the Board API can't play (`canPlayHere` false: Bullet, lobby Blitz, Chess960).
+    - The subtitle says "Loading…", the error, "No unfinished games…", or "4 games · your turn in 2".
+  - **Challenge a friend**: today's settings plus **Days per move** (1–14, Lichess's values) as a third time control (`createOpenChallenge(…, days)`). **Chess960 is no longer offered**: it is broken until LI-01, as `TASKS.md` suggested.
+  - **Join a game**: the link / id field (Enter joins).
+- Errors of a challenge, join or rejoin show in an InfoBar at the top of the page. A challenge waiting for the friend is still `ChallengeDialog`, opened over the page (also when "Play online" resumes a saved one).
+- Going **Back while a join / rejoin / challenge is starting** stops it (`StackView.onRemoved` → `stopStream()`), as the dialog's Cancel did. This doesn't happen when a game did start: `route()` replaces the page then (`ChessConnector.InGame` is already true).
+- **Screenshot mode never calls Lichess**: `LichessClient::setOffline(true)` makes `refreshOngoingGames()` a no-op (the scenes' token is a placeholder). New scenes, all in `all`:
+  - `online`: four seeded games (`ScreenshotScene` calls `LichessClient.setOngoingGames(shot.ongoingGames)`);
+  - `online-empty`;
+  - `online-disconnected`.
+- Docs: `CLAUDE.md` (OnlinePage, ChallengeDialog) and the run-chess-app skill's scene list.
+- Debug and Release build; ChessTests 111, ChessQtTests 126 pass. Screenshots: 53 compared, 0 failed after accepting the new `online*` baselines (the old `online` showed the dialog) and `about*` (build timestamp).
+
+### Code review (PR #112 comments, same branch)
+9 findings: 8 fixed, 1 declined.
+- **Fixed:**
+  - **Back didn't stop a Join**: the accept POST wasn't kept, so `stopStream()` couldn't drop it, and its answer started the game over Home. It is now `_acceptReply`, aborted by `stopStream()`. Checked against lichess.org with a temporary hook: join then stop after 5 ms → no game stream request; without the stop → the stream opens.
+  - **The buttons stayed disabled** when the game stream ended without a game: an expired token (the auth handler aborts it, "canceled", which was ignored), or Lichess closing the stream before `gameFull`. The stream now reports both as `networkError` ("Lichess sign-in expired" / "Lichess closed the game before it started"). The page also resets when it is shown again, or when the account's connected state changes.
+  - **The list stayed empty** when the sign-in completed while the page was open: it now refreshes when `lichessConnected` changes (not on every `lichessChanged`, which a ratings update fires too).
+  - **The error bar** was inside the scrolling content (out of sight after scrolling to Join): it now floats under the header.
+  - **Join parsed the link twice**: one `joinFromUrl` call, as the old dialog did.
+  - **`openOnline/closeOnline` were a third copy**: `_openPage(name)` / `_closePage(name)` with `_pushedPages`, and Escape closes any pushed page.
+  - **`setOffline` covered only the games refresh**: `refreshAccount` too, and `main.cpp`'s own screenshot-mode checks for both are gone.
+- **Declined:** "Continue should go through `ChessConnector` (CLAUDE.md rule 1)". A rejoin is Lichess challenge setup like "Join a game" (`LichessClient.joinFromUrl`, called from QML before this PR too). The game itself starts in `ChessConnector` through `gameStarted`, and rule 2 says not to forward `LichessClient`'s API through `ChessConnector`. This was decided in the plan (§4.1); the owner can overrule it.
+- ChessTests 111, ChessQtTests 126 (Debug and Release); 53 screenshots unchanged; no QML warnings in the scene logs.
+
+### Board previews (owner's request, same branch)
+- The owner's check: **Continue rejoins the game** ✓. The owner pointed at Lichess's own "Current games" page, which shows each game as a small board ("Ваш ход" = your turn).
+- "Your games" is now a **grid of cards** like that (two columns from 440 px, else one). Each card has:
+  - a **`BoardPreview`** (new `BoardPreview.qml`: a still board from the row's `fen`, the game board's squares, pieces and last-move tint, turned for Black). A click on the board continues too;
+  - the opponent (rating) and "Your turn" / "Waiting";
+  - speed · time left (the board shows our side; the accessible name still says it);
+  - Continue or Open on lichess.org.
+- Card and board sizes come from the page's content width. Binding them to the GridLayout's own width laid everything out in one column with the text over the boards, because that width isn't known yet when the cards are sized.
+- The `online` scene's seeded games got positions and last moves; `online` / `online-dark` baselines re-accepted (53 compared, 0 failed). ChessTests 111, ChessQtTests 126 pass.
+- The Debug build's link of `LiChessConnector.dll` failed (LNK1168): the owner's Debug `ChessGui.exe` was running. This round has no C++ change in that library; the Release build is complete.
+
+### Second code review (the owner's `/code-review medium`, same branch)
+9 findings: 8 fixed, 1 left for the owner.
+- **Fixed:**
+  - **A failed accept went on to the stream** and hid Lichess's reason: the stream now opens only after a success or a 404 (a started game); otherwise Lichess's own error, or "Lichess sign-in expired";
+  - a failed stream reports its error once (`errorReported`);
+  - **Real time offered 1+0, 3+2 and 5+3**, which an open challenge can't be for a Board API player (Bullet, Blitz): now 10+0, 10+5, 15+10, 30+0, 30+20 (Rapid, Classical);
+  - **the seven "Days per move" buttons overflowed a narrow window**: labels 1 … 14, then "days per move";
+  - **a sign-in change re-enabled the buttons without cancelling** what was starting: `_dropStarting()` stops it, as Back does;
+  - **up to three refreshes for one action**: the page doesn't refresh while one runs, and the sign-in change leaves it to `main.cpp` (new token);
+  - `SectionCard.contentWidth` instead of hard-coding its margin;
+  - `setOngoingGames` isn't callable from QML any more: `main.cpp` seeds the screenshot scene's games after the token.
+- **Left for the owner:** start / stop of a rejoin through `ChessConnector` (CLAUDE.md rule 1), as in the first review.
+- ChessTests 111, ChessQtTests 126 (Debug and Release). Screenshots: all 6 `online*` scenes match. The 12 dialog scenes failed only because **the Windows screen was locked** (`LogonUI` running): popups don't draw in the hidden window then. The same dialog renders correctly offscreen, and no dialog uses `SectionCard`, so their baselines were not touched.
+
+### Where to continue
+- **Owner's check** (Release build of this branch):
+  - Play online: your unfinished games are listed as boards; Continue (or a click on a board) opens it in the current position;
+  - Back and Escape return to Home;
+  - "Days per move" creates a correspondence challenge (Lichess shows "2 days" etc.);
+  - not signed in: the page says so and Open profile works.
+- **Step 3**: Home's Continue (the robot first, otherwise the Online page). **Step 4**: the warning when leaving a running online game.
+
 ## 2026-11-02 — LI-04 step 1: the unfinished Lichess games in `LichessClient` (branch: ongoingGames_021126)
 
 ### What was done
