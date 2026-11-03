@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-02 |
-| **Status** | Plan |
+| **Status** | Coded (steps 1–4: #111–#114); manual tests left: [`LI-04-ManualTests.md`](LI-04-ManualTests.md) |
 | **Branch** | `rejoinGamesPlan_021126` (plan); each step on its own branch from `develop` |
 | **Task** | LI-04 in `TASKS.md` (owner's manual check of BL-14 step 5, bugs 2 and 4; owner's UI decision of 2026-11-02) |
 

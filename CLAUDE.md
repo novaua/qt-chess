@@ -81,7 +81,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
 - **`movelistmodel.h/cpp`** — `MoveListModel`, the move list behind `ChessConnector.MoveHistory`: one row per move number, and a move changes only its row instead of rebuilding the list
 - **`movegate.h/cpp`** — `MoveGate`, which holds the moves from outside (the robot's answer, the Lichess opponent's) and releases them one at a time when the board is idle (a Lichess resync of more than two: all at once); `ChessConnector` owns one, `GamePage` reports the board settled and the slide time
 - **`frametrace.h/cpp`** — `FrameTrace`, frame timing in the app log, off unless `QT_LOGGING_RULES="chess.frames.debug=true"` (BL-14)
-- **`UserManager`**, **`LichessClient`** (LiChessConnector project), **`AvatarProvider`**, **`AppInfo`** (version, data/log folders, the engine's name) — app services without chess logic, also visible to QML (see Key Conventions)
+- **`UserManager`**, **`LichessClient`** (LiChessConnector project; `ongoingGames`: the unfinished Lichess games, LI-04), **`AvatarProvider`**, **`AppInfo`** (version, data/log folders, the engine's name) — app services without chess logic, also visible to QML (see Key Conventions)
 - QML files in `ChessGui/ChessGui/qml/`:
   - `ChessGame.qml` — the window: a `StackView` with one page (`WelcomePage` on first run,
     `ProfilePickerPage`, `HomePage`, `GamePage`; `route()` picks it from `UserManager` and
