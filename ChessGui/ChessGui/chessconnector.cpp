@@ -52,6 +52,8 @@ ChessConnector::ChessConnector(QObject* parent)
 	});
 	connect(_gate, &MoveGate::releaseBatch, this, &ChessConnector::playOnlineMoves);
 	connect(_gate, &MoveGate::idle, this, &ChessConnector::boardIdle);
+	_leaveAfterResign.setSingleShot(true);
+	connect(&_leaveAfterResign, &QTimer::timeout, this, &ChessConnector::endGame);
 	_pieces->sync(_game->GetCurrentBoard());
 
 	_game->RegisterBoardChanged(
@@ -654,6 +656,9 @@ void ChessConnector::onLichessGameEnded(const QString& status, const QString& wi
 		_lichessClient->stopStream();
 		_lichessClient->watchForRematch();
 	}
+	// resignAndLeave(): leave once the result is in, after this signal (not inside it).
+	if (_leaveAfterResign.isActive())
+		_leaveAfterResign.start(0);
 
 	// The game is over at once (no moves, offers or resignation any more), even if the opponent's
 	// last move still waits in the gate: the result card waits for the board (GamePage).
@@ -1442,8 +1447,19 @@ int ChessConnector::IsOnPlayerMode()
 	return _player ? 1 : 0;
 }
 
+void ChessConnector::resignAndLeave()
+{
+	if (!isOnlineGame() || !_gameResult.isEmpty()) {
+		endGame();
+		return;
+	}
+	resignGame();
+	_leaveAfterResign.start(5000); // without an answer the loss isn't recorded here; Lichess has it
+}
+
 void ChessConnector::endGame()
 {
+	_leaveAfterResign.stop(); // also when the game is left another way (Home again, switch user)
 	resetMoveHistoryCache();
 	setFlaggedKing(-1);
 	_resignAfterEngineMove = false;

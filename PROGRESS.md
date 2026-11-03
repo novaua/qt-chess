@@ -10,12 +10,28 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **`LeaveOnlineDialog.qml`** (new, like `ImportConflictDialog`: three buttons): "Leave the game? The game goes on at lichess.org and your clock is running. You can come back to it from Continue or Play online." **Leave** (default, Enter), **Resign**, **Stay** (Esc). A small dialog of its own rather than a middle button on `ConfirmDialog` (plan §4.4: decided with the screenshot).
 - **Home and Esc** during a running Lichess game (`_onlineRunning`: in game, online, no result) open it (`ChessGame.qml` `leaveGame()`; the old body is `_doLeaveGame()`). A finished game, a robot or two-player game: no question, as before.
 - **Closing the window** during a running Lichess game asks the same (`onClosing`, title "Quit during the game?", **Quit** instead of Leave). Not in screenshot mode.
-- **Resign** resigns (`ChessConnector.resignGame()`, one call) and then leaves, or quits, **once Lichess has ended the game** (`GameResult` set), so the loss counts in the statistics (`onLichessGameEnded` records it; stopping the stream at once would lose it). After 5 s without an answer it leaves anyway. Home or closing again while it waits doesn't ask twice (Home leaves at once; closing quits when it's through). A game that ended while the warning was open just leaves.
-- No C++ change: Leave is `ChessConnector.endGame()` as before, Resign is `resignGame()` (Lichess's resign POST isn't dropped by `stopStream()`).
-- **Switch user** during an online game adds "You can come back from Continue."
+- **Resign** is `ChessConnector.resignAndLeave()` (new, after the code review): it resigns and calls `endGame()` **once Lichess has ended the game**, so the loss counts in the statistics (`onLichessGameEnded` records it; stopping the stream at once would lose it). After 5 s without an answer it leaves anyway (then only Lichess has the loss). Quit closes the window when the game has been left. Home or closing again while it waits doesn't ask twice (Home leaves at once; closing quits when it's through).
+- Leave is `ChessConnector.endGame()` as before.
+- **Switch user** during an online game adds "You can come back from Continue or Play online."
 - **Screenshot scene `leave-online`** (in `all`): the `game` scene (1. e4 e5) with the dialog open (an online game needs Lichess, so it's over a local game).
 - Release builds; ChessTests + ChessQtTests 237 pass. Screenshots: 55 compared, 0 failed; `leave-online*` new (accepted). No QML warnings in the scene logs.
 - Not checked live: the close and Resign paths need a running Lichess game (owner's manual tests 1 and 4, plan §6).
+
+### Code review (the owner's `/code-review medium`, same branch)
+10 findings: 8 fixed, 2 declined.
+- **Fixed:**
+  - **Resign strung game steps together in QML** (rule 1): a timer, waiting for `GameResult`, then `endGame()`. Now one call, `ChessConnector::resignAndLeave()`, with its own timer (`_leaveAfterResign`). This also fixes:
+    - **a stale wait ended the next game**: Switch user (or anything else that calls `endGame()`) during the wait left the QML timer running; `endGame()` now stops it;
+    - **leaving inside the `gameResultChanged` signal**: the leave is queued (`start(0)`) until after `onLichessGameEnded`;
+    - **the quit/home logic in two places**: `_leaveOnline(quit, resign)`.
+  - **Home during a resign-then-quit quit the app**: Home now leaves for Home and drops the quit.
+  - **The warning stayed open after the game ended** ("your clock is running"): it closes when `_onlineRunning` turns false.
+  - **Closing the window stacked the warning on the resign / switch-user confirm**: those close first.
+  - **"Come back from Continue" was wrong with a robot autosave** (Continue opens that game): "Continue or Play online", as in the warning.
+- **Declined:**
+  - "After the 5 s fallback the loss isn't recorded": without Lichess's answer there is no result to record. Waiting longer keeps the player on the board; Lichess still has the loss.
+  - "Switch user should offer Resign too": the plan (§4.4) only changes its text; the owner can ask for it.
+- Release builds; ChessTests + ChessQtTests 237 pass; 57 screenshots unchanged; no QML warnings.
 
 ### Next
 - LI-04 step 5: docs (`TASKS.md` LI-04 done, plan status).
