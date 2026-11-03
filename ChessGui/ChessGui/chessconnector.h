@@ -11,6 +11,8 @@
 #include <QThread>
 #include <QTimer>
 #include <functional>
+#include <optional>
+#include <utility>
 
 #include "Game.h"
 #include "boardpieces.h"
@@ -172,8 +174,10 @@ signals:
 	void noMoreMovesNotify();
 	void pgnCopied();
 	void pgnExported(bool ok, const QString& path);
+	void movesTakenBack(int plies); // a Lichess takeback was accepted (by either side)
 
 	void screenshotSceneReady(); // QML has set up the --screenshot scene: grab the window
+	void screenshotSceneSetUp(); // the takeback scene: QML is done, C++ plays the rest (main.cpp)
 	void boardIdle();            // the page has settled and no move waits to be shown (BL-14)
 
 public slots:
@@ -260,6 +264,7 @@ private:
 	void playRobotMove(const QString& uciMove); // the gate released it: play it on the GUI thread
 	void onGateRelease(const QString& uciMove, MoveGate::Source source);
 	void onLichessOpponentMoves(const QString& uciMoves); // one move, or the whole game on a resync
+	void onLichessMoveListReplaced(const QString& uciMoves, bool moveRefused); // a takeback, a refused move, a disagreement
 	void playOnlineMoves(const QStringList& uciMoves); // the gate released them: play them
 	int  playMoves(const QStringList& uciMoves);       // on the game, then history and counters; how many were played
 	void afterHeldMoves(std::function<void()> action); // now, or once the opponent's held moves are shown
@@ -303,6 +308,7 @@ private:
 	int  _engineRequest  = 0; // the engine answer we wait for; older answers are dropped
 	bool _engineAutoPlay = false;
 	bool _promotionPending = false; // a pawn is on the last rank, waiting for pawnPromote()
+	std::optional<std::pair<QString, bool>> _listAfterPromotion; // Lichess's moves that came meanwhile (and moveRefused)
 	bool _gameOver = false;
 	bool _wasVsComputer = false;
 	bool _resuming = false; // Continue replays the saved moves: their checks were heard already

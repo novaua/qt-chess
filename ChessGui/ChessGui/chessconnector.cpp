@@ -220,6 +220,13 @@ void ChessConnector::pawnPromote(int index, const QString& piece)
 
 	// The move is only complete now; the history shows the chosen piece (c8=Q).
 	appendMoveToHistory();
+	// Lichess's list changed while the piece was chosen (e.g. a takeback accepted): the move isn't
+	// sent, the list replaces it.
+	if (_listAfterPromotion) {
+		const auto [moves, refused] = *std::exchange(_listAfterPromotion, std::nullopt);
+		onLichessMoveListReplaced(moves, refused);
+		return;
+	}
 	onHumanMoveDone();
 }
 
@@ -637,6 +644,9 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 		connect(_lichessClient, &LichessClient::opponentMoveReceived,
 			this, &ChessConnector::onLichessOpponentMoves,
 			Qt::UniqueConnection);
+		connect(_lichessClient, &LichessClient::moveListReplaced,
+			this, &ChessConnector::onLichessMoveListReplaced,
+			Qt::UniqueConnection);
 	}
 }
 
@@ -828,6 +838,7 @@ void ChessConnector::beginGame(bool online)
 {
 	_gate->clear(); // a held move belongs to the game being left
 	_afterHeldMoves.clear();
+	_listAfterPromotion.reset();
 	_gameDate = QDate::currentDate();
 	setFlaggedKing(-1);
 	_resultRecorded = false;
@@ -1129,6 +1140,59 @@ void ChessConnector::onLichessOpponentMoves(const QString& uciMoves)
 	if (reviewMode())
 		reviewLast();
 	_gate->push(uciMoves.split(' ', Qt::SkipEmptyParts), MoveGate::Source::Online);
+}
+
+// From the Lichess stream: the game's moves as Lichess has them, when they aren't ours plus new
+// moves: an accepted takeback (shorter), our move that Lichess refused, or a disagreement. The game
+// goes back to the last move both have, then plays the rest of Lichess's list.
+void ChessConnector::onLichessMoveListReplaced(const QString& uciMoves, bool moveRefused)
+{
+	if (!isOnlineGame())
+		return;
+	if (_gameOver) { // e.g. our mating move refused because the clock had run out: the result stands
+		qWarning() << "Lichess move list replaced after the game ended; not applied:" << uciMoves;
+		return;
+	}
+	if (_promotionPending) { // the piece is being chosen: applied once it is (pawnPromote)
+		_listAfterPromotion = { uciMoves, moveRefused };
+		return;
+	}
+	const QStringList target = uciMoves.split(' ', Qt::SkipEmptyParts);
+	// A held opponent move may be one of those taken back; the rest of the list is played below.
+	// What came with it (a draw offer) still stands on Lichess: it is shown after the list.
+	_gate->clear();
+	const auto after = std::move(_afterHeldMoves);
+	_afterHeldMoves.clear();
+	if (reviewMode())
+		reviewLast();
+	if (_pendingOffer == QLatin1String("takeback"))
+		setPendingOffer({});
+
+	QStringList ours;
+	for (const auto& move : _game->GetGameRecord())
+		ours << QString::fromStdString(move.ToUciString());
+	int common = 0;
+	while (common < ours.size() && common < target.size() && ours[common] == target[common])
+		++common;
+	for (int i = int(ours.size()); i > common; --i)
+		_game->UndoMove();
+	buildFullHistoryCache(); // before playMoves(), which only appends to it
+	clearPossibleMoves();
+
+	const QStringList rest = target.mid(common);
+	if (ours.size() - common + rest.size() > 2)
+		_piecesAnew = true; // more than a takeback of two: show the position anew, without slides
+	if (!rest.isEmpty())
+		playMoves(rest);
+	else
+		EmitMoveCountUpdates();
+	_gate->moveShown(); // the pieces slide back: the next move waits for it
+
+	// A refused move has its own message (LichessClient's networkError).
+	if (!moveRefused && rest.isEmpty() && ours.size() > target.size())
+		emit movesTakenBack(int(ours.size() - target.size()));
+	for (const auto& action : after)
+		action();
 }
 
 // The gate released the opponent's move, or a resync (more than two at once: shown anew, one sound).
@@ -1471,6 +1535,7 @@ void ChessConnector::endGame()
 		if (_lichessClient) _lichessClient->stopStream();
 		_onlineGameId.clear();
 		_afterHeldMoves.clear();
+		_listAfterPromotion.reset();
 		emit isOnlineGameChanged();
 	}
 

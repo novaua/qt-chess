@@ -92,6 +92,9 @@ public:
 	// Settings of the game described by a Board API "gameFull" stream line, from our side.
 	static RematchInfo parseRematchInfo(const QJsonObject& gameFull, const QString& username);
 	Q_INVOKABLE void postMove(const QString& gameId, const QString& uciMove);
+	// Our move is on our board and on its way (postMove() calls it; tests call it directly): the
+	// stream's echo of it isn't the opponent's move.
+	void trackSentMove(const QString& uciMove) { _sentMoves.append(uciMove); }
 	Q_INVOKABLE void resign(const QString& gameId);
 	Q_INVOKABLE void offerDraw(const QString& gameId, bool accept);
 	Q_INVOKABLE void requestTakeback(const QString& gameId, bool accept);
@@ -109,6 +112,8 @@ public:
 	static bool    resolveIsWhite(const QString& myColor, const QString& whiteId, const QString& username);
 
 	QString currentGameId() const { return _currentGameId; }
+	// Tests and the takeback scene: the game of the lines fed to handleGameStreamLine(), without a stream.
+	void setCurrentGameId(const QString& gameId) { _currentGameId = gameId; }
 
 	// One line of the Board API game stream (handleStreamData; tests feed lines here).
 	// Returns false once the game has ended: the rest of the stream is not read.
@@ -121,6 +126,9 @@ signals:
 	void challengeCreated(QString gameId, QString joinUrl);
 	void gameStarted(QString gameId, bool playingAsWhite, QString opponentName, QString opponentAvatarUrl);
 	void opponentMoveReceived(QString uciMove);
+	// The game's moves changed other than by new moves: an accepted takeback (a shorter list), a
+	// move of ours that Lichess refused, or a list that disagrees with ours. All the moves, as Lichess has them.
+	void moveListReplaced(QString uciMoves, bool moveRefused); // moveRefused: Lichess refused our move
 	void gameEnded(QString status, QString winner);
 	void networkError(QString message);
 	void challengeCanceled();
@@ -147,6 +155,8 @@ private:
 	void stopDirectChallenge();
 	void stopWaitingForDirectChallenge(); // stop probing for the game; keeps the reply
 	void handleStreamData(QNetworkReply* reply);
+	void applyStreamMoves(const QStringList& moves); // a gameState's moves against ours
+	void replaceMoveList(const QStringList& moves, bool moveRefused = false);
 
 	void handleEventStreamData(QNetworkReply* reply);
 	void handleRematchOffer(const QString& type, const QJsonObject& challenge);
@@ -165,7 +175,8 @@ private:
 	bool                  _lastOppDraw     = false;
 	bool                  _lastOppTakeback = false;
 	QString               _waitForGameId;
-	QStringList           _lastMovesList;   // tracks moves seen so far in stream
+	QStringList           _lastMovesList;   // the moves the stream has shown
+	QStringList           _sentMoves;       // ours, sent but not in the stream yet (our board has them)
 	QNetworkReply* _streamReply      = nullptr;
 	QNetworkReply* _eventStreamReply = nullptr;
 	QNetworkReply* _probeReply       = nullptr;

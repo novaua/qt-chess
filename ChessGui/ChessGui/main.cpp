@@ -80,7 +80,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 		] })").object());
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
-	                  "online", "online-empty", "continue", "continue-online" }.contains(scene))
+	                  "online", "online-empty", "continue", "continue-online", "takeback" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -117,6 +117,24 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	}
 }
 
+// Scene "takeback" (LI-03 check, not in `all`): a Lichess game fed to the stream parser as the Board
+// API sends it: four moves, then the list after an accepted takeback of two. The window is grabbed
+// once the board has shown that. No network.
+static void playTakebackScene(ChessConnector* connector, LichessClient* lichess)
+{
+	lichess->setCurrentGameId(QStringLiteral("takeback1"));
+	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"takeback1",
+		"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},
+		"state":{"moves":"e2e4 e7e5 g1f3 b8c6","status":"started"}})");
+	auto step = std::make_shared<int>(0);
+	QObject::connect(connector, &ChessConnector::boardIdle, lichess, [=]() {
+		if (++*step == 1)
+			lichess->handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5","status":"started"})");
+		else if (*step == 2)
+			emit connector->screenshotSceneReady();
+	});
+}
+
 int main(int argc, char* argv[])
 {
 	// Windows 11 look; follows the system light/dark theme and accent colour (Theme.qml can force one).
@@ -151,7 +169,8 @@ int main(int argc, char* argv[])
 	static const QStringList screenshotScenes = {
 		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "game", "leave-online", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
-		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides"
+		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
+		"takeback"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -302,6 +321,9 @@ int main(int argc, char* argv[])
 	engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
 	if (screenshotMode && engine.rootObjects().isEmpty())
 		return 3;
+	if (screenshotMode && scene == "takeback") // once the scene has logged in (Home is up)
+		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
+			[=]() { playTakebackScene(connector, lichessClient); }, Qt::QueuedConnection);
 	if (!engine.rootObjects().isEmpty())
 		FrameTrace::watch(qobject_cast<QQuickWindow*>(engine.rootObjects().first()));
 

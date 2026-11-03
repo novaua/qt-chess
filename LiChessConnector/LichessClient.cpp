@@ -591,6 +591,7 @@ void LichessClient::streamGame(const QString& gameId)
     stopStream();
     _currentGameId   = gameId;
     _lastMovesList.clear();
+    _sentMoves.clear();
     _lastOppDraw     = false;
     _lastOppTakeback = false;
     _gameFullSeen    = false;
@@ -674,6 +675,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
         // Emit gameStarted first so the board is initialized before any moves are applied.
         _lastMovesList = state.value(QStringLiteral("moves")).toString()
                              .split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        _sentMoves.clear();
         emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl);
 
         // Resync our board state with moves that arrived before we joined.
@@ -700,10 +702,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
 
         // The state that ends the game also carries its last move (e.g. the opponent's mate):
         // the move first, then the end.
-        const QStringList allMoves = moves.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        for (int i = _lastMovesList.size(); i < allMoves.size(); ++i)
-            emit opponentMoveReceived(allMoves[i]);
-        _lastMovesList = allMoves;
+        applyStreamMoves(moves.split(QLatin1Char(' '), Qt::SkipEmptyParts));
 
         if (status != QLatin1String("started") && !status.isEmpty()) {
             const QString winner = obj.value(QStringLiteral("winner")).toString();
@@ -725,20 +724,58 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
     return true;
 }
 
+// The moves of a gameState: new ones are the opponent's, or the echo of ours (_sentMoves). A list
+// that is shorter than ours (an accepted takeback) or differs from it replaces ours.
+void LichessClient::applyStreamMoves(const QStringList& moves)
+{
+    const int seen = int(_lastMovesList.size());
+    if (moves.size() < seen || moves.mid(0, seen) != _lastMovesList) {
+        replaceMoveList(moves);
+        return;
+    }
+    QStringList added = moves.mid(seen);
+    while (!added.isEmpty() && !_sentMoves.isEmpty() && added.first() == _sentMoves.first()) {
+        added.removeFirst();
+        _sentMoves.removeFirst();
+    }
+    if (!added.isEmpty() && !_sentMoves.isEmpty()) { // Lichess has another move than the one we sent
+        replaceMoveList(moves);
+        return;
+    }
+    // A state without our sent move yet (e.g. an offer came first) just waits for its echo.
+    _lastMovesList = moves;
+    for (const auto& move : added)
+        emit opponentMoveReceived(move);
+}
+
+void LichessClient::replaceMoveList(const QStringList& moves, bool moveRefused)
+{
+    qDebug() << "LichessClient: move list replaced; ours:" << (_lastMovesList + _sentMoves).join(QLatin1Char(' '))
+             << "| Lichess:" << moves.join(QLatin1Char(' '));
+    _lastMovesList = moves;
+    _sentMoves.clear();
+    emit moveListReplaced(moves.join(QLatin1Char(' ')), moveRefused);
+}
+
 void LichessClient::postMove(const QString& gameId, const QString& uciMove)
 {
-    // Pre-track our own move so the stream echo doesn't re-apply it.
-    _lastMovesList.append(uciMove);
+    trackSentMove(uciMove);
 
     auto* reply = _nam.post(
         makeRequest(QStringLiteral("/api/board/game/") + gameId
                     + QStringLiteral("/move/") + uciMove),
         QByteArray());
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply, uciMove]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, gameId, uciMove]() {
         reply->deleteLater();
-        if (reply->error() != QNetworkReply::NoError)
-            emit networkError(QStringLiteral("Move failed: ") + reply->errorString());
+        if (reply->error() == QNetworkReply::NoError)
+            return;
+        emit networkError(QStringLiteral("Move failed: ") + reply->errorString());
+        // Lichess answered that it didn't play it: our board takes it back (if the stream hasn't
+        // shown it meanwhile). Without an answer (a timeout) it may be played: the stream tells.
+        const int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (httpStatus >= 400 && gameId == _currentGameId && _sentMoves.contains(uciMove))
+            replaceMoveList(_lastMovesList, true);
     });
 }
 
@@ -1068,6 +1105,7 @@ void LichessClient::stopStream()
     }
     _currentGameId.clear();
     _lastMovesList.clear();
+    _sentMoves.clear();
 }
 
 QString LichessClient::gameIdFromUrl(const QString& urlOrId) const

@@ -112,6 +112,10 @@ Item {
             }
         }
 
+        if (name === "takeback") {
+            ChessConnector.screenshotSceneSetUp()   // main.cpp feeds the Lichess game and says when the board is ready
+            return
+        }
         if (ChessConnector.EngineThinking) _waitsForEngine = true   // the robot's move comes later
         else                               startReadyTimer()
     }

@@ -54,6 +54,9 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   `$env:QT_LOGGING_RULES='chess.frames.debug=true'` and `-Delay 5200` gets `[Frame trace]` lines in the
   `.png.log` (frame gaps over 25 ms, the work of the dots/pieces/list). Its picture is an arbitrary
   frame, never a baseline.
+  `takeback` (not in `all`, LI-03 check): a Lichess game fed to the stream parser by `main.cpp` (no
+  network): four moves, then the list after an accepted takeback of two; the shot shows 1. e4 e5 and
+  "2 moves taken back".
   `login`, `menu` and `board` still work as the old names of `profiles`, `home` and `game`.
   The profile scenes get their profiles, Lichess link (a placeholder token, no network) and statistics
   from `seedScreenshotProfiles()` in `main.cpp`.
