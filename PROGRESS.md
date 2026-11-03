@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-03 — LI-04 step 4: the leave warning (branch: leaveWarning_031126)
+
+### What was done
+- **`LeaveOnlineDialog.qml`** (new, like `ImportConflictDialog`: three buttons): "Leave the game? The game goes on at lichess.org and your clock is running. You can come back to it from Continue or Play online." **Leave** (default, Enter), **Resign**, **Stay** (Esc). A small dialog of its own rather than a middle button on `ConfirmDialog` (plan §4.4: decided with the screenshot).
+- **Home and Esc** during a running Lichess game (`_onlineRunning`: in game, online, no result) open it (`ChessGame.qml` `leaveGame()`; the old body is `_doLeaveGame()`). A finished game, a robot or two-player game: no question, as before.
+- **Closing the window** during a running Lichess game asks the same (`onClosing`, title "Quit during the game?", **Quit** instead of Leave). Not in screenshot mode.
+- **Resign** resigns (`ChessConnector.resignGame()`, one call) and then leaves, or quits, **once Lichess has ended the game** (`GameResult` set), so the loss counts in the statistics (`onLichessGameEnded` records it; stopping the stream at once would lose it). After 5 s without an answer it leaves anyway. Home or closing again while it waits doesn't ask twice (Home leaves at once; closing quits when it's through). A game that ended while the warning was open just leaves.
+- No C++ change: Leave is `ChessConnector.endGame()` as before, Resign is `resignGame()` (Lichess's resign POST isn't dropped by `stopStream()`).
+- **Switch user** during an online game adds "You can come back from Continue."
+- **Screenshot scene `leave-online`** (in `all`): the `game` scene (1. e4 e5) with the dialog open (an online game needs Lichess, so it's over a local game).
+- Release builds; ChessTests + ChessQtTests 237 pass. Screenshots: 55 compared, 0 failed; `leave-online*` new (accepted). No QML warnings in the scene logs.
+- Not checked live: the close and Resign paths need a running Lichess game (owner's manual tests 1 and 4, plan §6).
+
+### Next
+- LI-04 step 5: docs (`TASKS.md` LI-04 done, plan status).
+
+---
+
 ## 2026-11-03 — LI-04 step 3: Home's Continue for online games (branch: homeContinueOnline_031126)
 
 ### What was done

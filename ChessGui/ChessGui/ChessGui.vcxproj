@@ -439,6 +439,7 @@
     <None Include="qml\HomeCard.qml" />
     <None Include="qml\FocusRing.qml" />
     <None Include="qml\ConfirmDialog.qml" />
+    <None Include="qml\LeaveOnlineDialog.qml" />
     <None Include="qml\ChoiceRow.qml" />
     <None Include="qml\ComputerGameDialog.qml" />
     <None Include="qml\TwoPlayerDialog.qml" />

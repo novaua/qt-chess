@@ -85,6 +85,7 @@ DISTFILES += \
     qml/CommandBar.qml \
     qml/ComputerGameDialog.qml \
     qml/ConfirmDialog.qml \
+    qml/LeaveOnlineDialog.qml \
     qml/CreateUserDialog.qml \
     qml/GamePage.qml \
     qml/HomeCard.qml \

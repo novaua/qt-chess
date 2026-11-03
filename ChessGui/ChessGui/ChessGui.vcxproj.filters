@@ -245,6 +245,9 @@
     <None Include="qml\ConfirmDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\LeaveOnlineDialog.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\ChoiceRow.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
