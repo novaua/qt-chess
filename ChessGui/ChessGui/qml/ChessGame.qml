@@ -539,6 +539,7 @@ ApplicationWindow {
         function onNoSavedGame()       { messageBar.show("There is no saved game yet. Use Save during a game to keep one.") }
         function onNoMoreMovesNotify() { messageBar.show("No more moves") }
         function onPgnCopied()         { messageBar.show("PGN copied to the clipboard", "success") }
+        function onMovesTakenBack(plies) { messageBar.show(plies === 1 ? "Move taken back" : plies + " moves taken back") }
         function onPgnExported(ok, path) {
             if (ok) messageBar.show("Saved " + path, "success")
             else    messageBar.show("Couldn't save " + path, "critical")

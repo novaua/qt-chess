@@ -112,6 +112,8 @@ Item {
             }
         }
 
+        if (name === "takeback")
+            return   // main.cpp feeds the Lichess game and says when the board is ready
         if (ChessConnector.EngineThinking) _waitsForEngine = true   // the robot's move comes later
         else                               startReadyTimer()
     }

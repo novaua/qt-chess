@@ -637,6 +637,9 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 		connect(_lichessClient, &LichessClient::opponentMoveReceived,
 			this, &ChessConnector::onLichessOpponentMoves,
 			Qt::UniqueConnection);
+		connect(_lichessClient, &LichessClient::moveListReplaced,
+			this, &ChessConnector::onLichessMoveListReplaced,
+			Qt::UniqueConnection);
 	}
 }
 
@@ -1129,6 +1132,50 @@ void ChessConnector::onLichessOpponentMoves(const QString& uciMoves)
 	if (reviewMode())
 		reviewLast();
 	_gate->push(uciMoves.split(' ', Qt::SkipEmptyParts), MoveGate::Source::Online);
+}
+
+// From the Lichess stream: the game's moves as Lichess has them, when they aren't ours plus new
+// moves: an accepted takeback (shorter), our move that Lichess refused, or a disagreement. The game
+// goes back to the last move both have, then plays the rest of Lichess's list.
+void ChessConnector::onLichessMoveListReplaced(const QString& uciMoves)
+{
+	if (!isOnlineGame())
+		return;
+	if (_promotionPending) { // the piece is being chosen: the game can't go back now (rare)
+		qWarning() << "Lichess move list replaced during a promotion; not applied:" << uciMoves;
+		return;
+	}
+	const QStringList target = uciMoves.split(' ', Qt::SkipEmptyParts);
+	// A held opponent move may be one of those taken back; the rest of the list is played below.
+	_gate->clear();
+	_afterHeldMoves.clear();
+	if (reviewMode())
+		reviewLast();
+	if (_pendingOffer == QLatin1String("takeback"))
+		setPendingOffer({});
+
+	QStringList ours;
+	for (const auto& move : _game->GetGameRecord())
+		ours << QString::fromStdString(move.ToUciString());
+	int common = 0;
+	while (common < ours.size() && common < target.size() && ours[common] == target[common])
+		++common;
+	for (int i = int(ours.size()); i > common; --i)
+		_game->UndoMove();
+	buildFullHistoryCache(); // before playMoves(), which only appends to it
+	clearPossibleMoves();
+
+	const QStringList rest = target.mid(common);
+	if (rest.size() > 1)
+		_piecesAnew = true; // more than a move to replay: show the position anew, without slides
+	if (!rest.isEmpty())
+		playMoves(rest);
+	else
+		EmitMoveCountUpdates();
+	_gate->moveShown(); // the pieces slide back: the next move waits for it
+
+	if (rest.isEmpty() && ours.size() > target.size())
+		emit movesTakenBack(int(ours.size() - target.size()));
 }
 
 // The gate released the opponent's move, or a resync (more than two at once: shown anew, one sound).

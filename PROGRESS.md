@@ -4,6 +4,27 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-03 — LI-03: an accepted Lichess takeback on our board (branch: lichessTakeback_031126)
+
+### What was done
+- **`LichessClient`** keeps two lists: the moves the stream has shown (`_lastMovesList`) and ours that were sent but not echoed yet (`_sentMoves`, `trackSentMove()`; before, our move was added to the stream's list at once). A gameState's moves (`applyStreamMoves`):
+  - **more moves**: the echoes of ours are dropped, the rest are the opponent's (`opponentMoveReceived`), as before;
+  - **the same moves while ours is on its way** (e.g. a draw offer's state came first): nothing; this used to be harmless and must not look like a takeback now;
+  - **shorter** (an accepted takeback, by either side) **or different** (Lichess has another move than ours, or an earlier move differs): **`moveListReplaced(allMoves)`**.
+  - **A move Lichess refused** (the POST failed) also replaces the list, so our board takes it back instead of staying a move ahead ("Move failed: …" as before).
+  - `gameFull` without `streamGame()` takes the game id from the line (the check scene).
+- **`ChessConnector::onLichessMoveListReplaced`**: clears the gate (a held opponent move may be one of those taken back) and what waited for it, leaves the review, drops a "takeback" offer bar, undoes back to the moves both lists share, rebuilds the move list, then plays the rest of Lichess's list (anew without slides when more than one). A pure takeback emits **`movesTakenBack(plies)`** → "Move taken back" / "2 moves taken back". During a promotion choice it isn't applied (logged; rare).
+- **Tests** (`LichessClientTest`, 5 new): a takeback, then the game grows again (our echo, the opponent's answer); the opponent's move taken back; our sent move not in the state yet; the lists disagree (another move, an earlier move); `gameFull` drops sent moves.
+- **Check scene `takeback`** (not in `all`): `main.cpp` feeds a `gameFull` with four moves, waits for the board to show them (`boardIdle`), feeds the list after a takeback of two, and grabs the window once the board is idle again: 1. e4 e5, last move e7–e5, "1… e5", "Tester to move", "2 moves taken back". New baseline.
+- Release builds; ChessTests + ChessQtTests **242 pass**.
+- **Screenshots**: the 43 scenes without a dialog are unchanged. The 14 dialog scenes failed because **the screen was locked** (LogonUI running: dialogs don't render); this change touches no dialog. Their baselines were not updated; re-run `Take-Screenshot.ps1 -Scene all` (and `-Dark`) + `Compare-Screenshots.ps1` on an unlocked screen.
+
+### Next
+- The owner's manual round: LI-04 (`docs/LI-04-ManualTests.md`) plus a real takeback (ask, accept; the opponent asks, accept; with and without a capture).
+- Then LI-05 (premove).
+
+---
+
 ## 2026-11-03 — LI-04 step 5: docs and the manual tests (branch: li04Docs_031126)
 
 ### What was done

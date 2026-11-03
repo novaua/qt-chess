@@ -436,6 +436,116 @@ namespace LichessTests
 			Assert::AreEqual(1, (int)events.size(), L"a state without a new move emits none");
 			Assert::AreEqual(QString("e7e5"), events[0]);
 		}
+
+		// LI-03: the stream's move list against ours (Lichess's, plus our moves sent but not echoed yet).
+		static void recordMoveEvents(LichessClient& client, QStringList& events)
+		{
+			QObject::connect(&client, &LichessClient::opponentMoveReceived, [&](QString moves) { events << "move " + moves; });
+			QObject::connect(&client, &LichessClient::moveListReplaced, [&](QString moves) { events << "replaced " + moves; });
+		}
+
+		TEST_METHOD(GameStream_AcceptedTakeback_ReplacesTheList_ThenGrowsAgain_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			QStringList events;
+			recordMoveEvents(client, events);
+
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4 e7e5 g1f3 b8c6","status":"started"}})");
+			events.clear();
+			// Our takeback request, accepted: Lichess's list loses Nc6 and Nf3.
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 g1f3 b8c6","status":"started","wtakeback":true})");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5","status":"started"})");
+			Assert::AreEqual(1, (int)events.size(), L"only the shorter list changes anything");
+			Assert::AreEqual(QString("replaced e2e4 e7e5"), events[0]);
+
+			// The game goes on from there: our new move's echo, then the opponent's answer.
+			events.clear();
+			client.trackSentMove("d2d4");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 d2d4","status":"started"})");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 d2d4 e5d4","status":"started"})");
+			Assert::AreEqual(1, (int)events.size());
+			Assert::AreEqual(QString("move e5d4"), events[0]);
+		}
+
+		TEST_METHOD(GameStream_OpponentsMoveTakenBack_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			QStringList events;
+			recordMoveEvents(client, events);
+
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4","status":"started"}})");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 f7f6","status":"started"})");
+			events.clear();
+			// The opponent asked to take back f6 and we accepted.
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4","status":"started"})");
+			Assert::AreEqual(1, (int)events.size());
+			Assert::AreEqual(QString("replaced e2e4"), events[0]);
+		}
+
+		TEST_METHOD(GameStream_SentMoveNotInTheStateYet_Waits_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			QStringList events;
+			recordMoveEvents(client, events);
+
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4 e7e5","status":"started"}})");
+			events.clear();
+			client.trackSentMove("g1f3");
+			// A draw offer's state before Lichess has played our move: it isn't a takeback.
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5","status":"started","bdraw":true})");
+			Assert::AreEqual(0, (int)events.size(), L"our sent move is still on its way");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 g1f3","status":"started"})");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 g1f3 b8c6","status":"started"})");
+			Assert::AreEqual(1, (int)events.size(), L"the echo of our move isn't the opponent's");
+			Assert::AreEqual(QString("move b8c6"), events[0]);
+		}
+
+		TEST_METHOD(GameStream_ListsDisagree_ReplacesTheList_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			QStringList events;
+			recordMoveEvents(client, events);
+
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4 e7e5","status":"started"}})");
+			events.clear();
+			client.trackSentMove("g1f3");
+			// Lichess has another move than the one we sent.
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 f1c4","status":"started"})");
+			Assert::AreEqual(1, (int)events.size());
+			Assert::AreEqual(QString("replaced e2e4 e7e5 f1c4"), events[0]);
+
+			// An earlier move differs: the whole list is Lichess's.
+			events.clear();
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"d2d4 d7d5 c2c4","status":"started"})");
+			Assert::AreEqual(1, (int)events.size());
+			Assert::AreEqual(QString("replaced d2d4 d7d5 c2c4"), events[0]);
+		}
+
+		TEST_METHOD(GameStream_GameFull_DropsSentMoves_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			QStringList events;
+			recordMoveEvents(client, events);
+
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"friend"},"black":{"id":"me"},
+				"state":{"moves":"e2e4","status":"started"}})");
+			client.trackSentMove("e7e5");   // e.g. sent just before the stream reconnected
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"friend"},"black":{"id":"me"},
+				"state":{"moves":"e2e4","status":"started"}})");
+			events.clear();
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5","status":"started"})");
+			Assert::AreEqual(1, (int)events.size(), L"after gameFull only Lichess's moves count");
+			Assert::AreEqual(QString("move e7e5"), events[0]);
+		}
 	};
 
 	// -----------------------------------------------------------------------
