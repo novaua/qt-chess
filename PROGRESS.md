@@ -4,6 +4,16 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-03 — LI-02 plan: game clocks and Lichess speeds (branch: li02Plan_031126)
+
+### What was done
+- Plan [`docs/LI-02-ClockPlan.md`](docs/LI-02-ClockPlan.md), with the owner's choices: a Lichess-like clock in every mode (Lichess, two players, vs Robot); red when low, tenths under 10 s, a low-time sound, the correspondence deadline if the Board API gives it; Blitz online through a challenge by Lichess username. `TASKS.md`'s LI-02 rewritten (Bullet/UltraBullet: local only; no dependency on LI-01).
+
+### Next
+- Step 1: `GameClock` (fake-clock tests) and ChessCore's `CanMate`.
+
+---
+
 ## 2026-11-03 — LI-03: an accepted Lichess takeback on our board (branch: lichessTakeback_031126)
 
 ### What was done
