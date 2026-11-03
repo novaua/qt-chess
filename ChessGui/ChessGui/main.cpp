@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
 		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "game", "leave-online", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
-		"takeback"
+		"takeback", "clock", "clock-low", "clock-flag", "clock-continue", "stalemate"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();

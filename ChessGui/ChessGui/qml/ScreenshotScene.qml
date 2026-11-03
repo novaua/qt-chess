@@ -37,7 +37,8 @@ Item {
             else                      UserManager.createUser("Tester", "wizard")
         }
         // A second profile to play against: same names and avatars every time.
-        var gameScene = ["game", "leave-online", "continue", "review", "result", "ended", "moves", "select", "drag", "slides"].includes(name)
+        var gameScene = ["game", "leave-online", "continue", "review", "result", "ended", "moves", "select", "drag", "slides",
+                         "clock", "clock-low", "clock-flag", "clock-continue", "stalemate"].includes(name)
         if ((gameScene || name === "players") && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -69,16 +70,32 @@ Item {
                            + "c3d5 a5d8 d5f6 d8f6 d1e2 f5c2"
             var defaultMoves = ({ continue: "e2e4 e7e5", review: middlegame, moves: middlegame, select: "e2e4 e7e5", drag: "e2e4 e7e5",
                                   slides: "e2e4 e7e5", "leave-online": "e2e4 e7e5",
-                                  result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4" })[name] ?? ""
+                                  result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4",
+                                  clock: "e2e4 e7e5 g1f3", "clock-low": "e2e4 e7e5 g1f3", "clock-flag": "e2e4 e7e5",
+                                  "clock-continue": "e2e4 e7e5",
+                                  stalemate: "e2e3 a7a5 d1h5 a8a6 h5a5 h7h5 h2h4 a6h6 a5c7 f7f6 c7d7 e8f7 d7b7 d8d3 "
+                                           + "b7b8 d3h7 b8c8 f7g6" })[name] ?? ""
+            // White's and Black's time: time stands still in this mode, so a scene sets what it shows.
+            var clockTimes = ({ clock: [171000, 163000], "clock-low": [41000, 8450], "clock-flag": [0, 120000],
+                                "clock-continue": [95000, 62000] })[name]
+            var limitSec = clockTimes ? 180 : 0
+            var incSec = clockTimes ? 2 : 0
             var bob = UserManager.users.find(u => u.name === "Bob")
-            if (name === "continue")   // only a game vs the robot is autosaved; White: no engine needed
-                ChessConnector.startComputerGame(3, 0)
+            var robot = name === "continue" || name === "clock-continue"
+            if (robot)   // only a game vs the robot is autosaved; White: no engine needed
+                ChessConnector.startComputerGame(3, 0, limitSec, incSec)
             else
-                ChessConnector.startLocalGame(!shot.black, bob ? bob.id : "")
+                ChessConnector.startLocalGame(!shot.black, bob ? bob.id : "", limitSec, incSec)
             if (shot.moves || defaultMoves)
                 ChessConnector.applyMoves(shot.moves || defaultMoves)
-            if (name === "continue")
+            if (clockTimes)
+                ChessConnector.setScreenshotClock(clockTimes[0], clockTimes[1])
+            if (robot)
                 ChessConnector.endGame()   // autosaved: Home offers to continue it
+            if (name === "clock-continue")
+                ChessConnector.continueGame()
+            if (name === "stalemate")
+                ChessConnector.movePiece(58, 44)   // Qe6: played like the player's move, so the game sees it
             if (name === "review")
                 ChessConnector.reviewTo(9)
             if (name === "moves")

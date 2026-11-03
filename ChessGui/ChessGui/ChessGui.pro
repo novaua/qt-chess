@@ -84,6 +84,7 @@ DISTFILES += \
     qml/ChessFigures.qml \
     qml/ChessGame.qml \
     qml/ChoiceRow.qml \
+    qml/TimeControlPicker.qml \
     qml/CommandBar.qml \
     qml/ComputerGameDialog.qml \
     qml/ConfirmDialog.qml \

@@ -4,8 +4,8 @@ import QtQuick.Controls.impl
 import QtQuick.Layouts
 import ChessPlusPlus
 
-// New game for two players on this computer: the player's side and the opponent, another
-// profile or a Guest.
+// New game for two players on this computer: the player's side, the opponent (another profile or a
+// Guest) and the clock.
 AppDialog {
     id: dialog
 
@@ -21,8 +21,12 @@ AppDialog {
     onOpened: {
         _opponentId = ""
         side.checkedIndex = ChessConnector.PlayerPlaysWhite ? 0 : 1
+        clock.restore()
     }
-    onAccepted: ChessConnector.startLocalGame(side.checkedIndex === 0, _opponentId)
+    onAccepted: {
+        clock.remember()
+        ChessConnector.startLocalGame(side.checkedIndex === 0, _opponentId, clock.limitSec, clock.incSec)
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -118,6 +122,16 @@ AppDialog {
                     }
                 }
             }
+        }
+
+        Label {
+            text: "Clock"
+            color: Theme.textSecondary; font: Theme.caption
+            Layout.topMargin: Theme.s2
+        }
+        TimeControlPicker {
+            id: clock
+            Layout.fillWidth: true
         }
     }
 

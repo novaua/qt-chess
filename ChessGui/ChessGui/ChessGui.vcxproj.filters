@@ -257,6 +257,9 @@
     <None Include="qml\ChoiceRow.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\TimeControlPicker.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\ComputerGameDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
@@ -413,6 +416,9 @@
       <Filter>Resource Files\sound</Filter>
     </Media>
     <Media Include="sounds\move_opponent.wav">
+      <Filter>Resource Files\sound</Filter>
+    </Media>
+    <Media Include="sounds\lowtime.wav">
       <Filter>Resource Files\sound</Filter>
     </Media>
   </ItemGroup>

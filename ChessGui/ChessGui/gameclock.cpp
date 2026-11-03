@@ -118,7 +118,13 @@ qint64 GameClock::remainingMs(bool white, qint64 now) const
 
 qint64 GameClock::lowTimeMs() const
 {
-	return std::clamp<qint64>(_limitMs / 8, 10 * SecondMs, 60 * SecondMs);
+	return std::min(60 * SecondMs, _limitMs < 60 * SecondMs ? std::max(2 * SecondMs, _limitMs / 5)
+	                                                        : std::max(10 * SecondMs, _limitMs / 8));
+}
+
+qint64 GameClock::moveBudgetMs(bool white) const
+{
+	return _enabled ? std::max<qint64>(100, remainingMs(white) / 30 + _incrementMs / 2) : 0;
 }
 
 void GameClock::commit(qint64 now)
@@ -149,7 +155,7 @@ QString GameClock::format(qint64 ms)
 	const qint64 seconds = ms / SecondMs % 60;
 	const QChar zero(u'0');
 	if (hours > 0)
-		return QStringLiteral("%1:%2:%3").arg(hours).arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero);
+		return QStringLiteral("%1:%2:%3").arg(hours, 2, 10, zero).arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero);
 	if (ms < TenthsBelowMs)
 		return QStringLiteral("%1:%2.%3").arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero).arg(ms / 100 % 10);
 	return QStringLiteral("%1:%2").arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero);

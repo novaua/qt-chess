@@ -260,6 +260,7 @@ ApplicationWindow {
     SoundEffect { id: sndCheck;     source: "qrc:/sounds/check.wav";     volume: _sfxVolume }
     SoundEffect { id: sndCheckmate; source: "qrc:/sounds/checkmate.wav"; volume: _sfxVolume }
     SoundEffect { id: sndWin;       source: "qrc:/sounds/win.wav";       volume: _sfxVolume }
+    SoundEffect { id: sndLowTime;   source: "qrc:/sounds/lowtime.wav";   volume: _sfxVolume }
 
     title: _inGame ? "Chess++ — " + ChessConnector.GameTitle : "Chess++"
     color: Theme.windowBg
@@ -502,6 +503,14 @@ ApplicationWindow {
                 enabled: opponentGoneBar.secondsLeft <= 0
                 onClicked: ChessConnector.claimVictory()
             }
+        }
+    }
+
+    Connections {
+        target: ChessConnector.Clock
+        function onLowTime() {
+            if (AppSettings.musicEnabled)
+                sndLowTime.play()
         }
     }
 

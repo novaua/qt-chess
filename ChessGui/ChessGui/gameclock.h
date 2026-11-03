@@ -20,6 +20,7 @@ class GameClock : public QObject
 	Q_PROPERTY(bool blackLow READ blackLow NOTIFY changed)
 	Q_PROPERTY(bool whiteRunning READ whiteRunning NOTIFY changed)
 	Q_PROPERTY(bool blackRunning READ blackRunning NOTIFY changed)
+	Q_PROPERTY(bool timeUp READ timeUp NOTIFY changed)
 
 public:
 	explicit GameClock(QObject* parent = nullptr);
@@ -39,7 +40,11 @@ public:
 	qint64 limitMs() const { return _limitMs; }
 	qint64 incrementMs() const { return _incrementMs; }
 	qint64 remainingMs(bool white) const { return remainingMs(white, _clock()); }
-	qint64 lowTimeMs() const; // Lichess's: an eighth of the start time, 10 s to 60 s
+	qint64 lowTimeMs() const; // Lichess's: an eighth of the start time, 10 s to 60 s (a fifth, from 2 s, below a minute)
+	// The robot's thinking time on this clock: a thirtieth of what's left plus half the increment,
+	// at least 0.1 s, so it can't flag in Bullet. 0: no clock.
+	qint64 moveBudgetMs(bool white) const;
+	bool   timeUp() const { return _flagged; } // a local game: a side has flagged
 	bool   isLow(bool white) const { return low(remainingMs(white)); }
 
 	QString whiteText() const { return text(remainingMs(true)); }
@@ -49,7 +54,7 @@ public:
 	bool whiteRunning() const { return runs(true); }
 	bool blackRunning() const { return runs(false); }
 
-	// As lichess.org: 03:00, 00:45, 1:30:00, tenths under 10 s (00:09.4), N days for correspondence.
+	// As lichess.org: 03:00, 00:45, 01:30:00, tenths under 10 s (00:09.4), N days for correspondence.
 	static QString format(qint64 ms);
 
 	// Tests: the time now comes from this clock (ms); call tick() after moving it forward.

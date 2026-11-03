@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-03 |
-| **Status** | In progress: step 1 done |
+| **Status** | In progress: steps 1 and 2 done |
 | **Branch** | `li02Plan_031126` (plan); each step on its own branch from `develop` |
 
 ## Context
@@ -24,12 +24,12 @@ The first PR commits this plan as `docs/LI-02-ClockPlan.md` and updates TASKS.md
 
 | What | Rule |
 |---|---|
-| Display | `MM:SS` with two-digit minutes (`03:00`, `00:45`), `H:MM:SS` from one hour, tenths under 10 s (`00:09.4`). Tabular figures (`font.features: { "tnum": 1 }`). Check against lichess.org before step 2. |
+| Display | `MM:SS` with two-digit minutes (`03:00`, `00:45`), `HH:MM:SS` from one hour, tenths under 10 s (`00:09.4`). Tabular figures (`font.features: { "tnum": 1 }`). Checked against Lichess's source (`clockView.ts`). |
 | Start | The clock runs only after both sides have made their first move (ply ≥ 2). |
 | Increment | Fischer increment: added to the mover's time after each move. |
-| Low time | Red (`Theme.critical`) below `min(60 s, max(10 s, start / 8))`. The low-time sound plays once, when **our** clock crosses that line. |
+| Low time | Red (`Theme.critical`) below `min(60 s, max(10 s, start / 8))`; for a start under a minute `max(2 s, start / 5)` (`clockCtrl.ts`). The low-time sound plays once, when **our** clock crosses that line. |
 | Flag | The side out of time loses, unless the other side can't mate: then it's a draw (as on Lichess). |
-| Correspondence | `N days` while more than a day is left, then `H:MM:SS`. Online only. |
+| Correspondence | `N days` while more than a day is left, then `HH:MM:SS`. Online only. |
 
 ## Design
 
@@ -64,7 +64,8 @@ The first PR commits this plan as `docs/LI-02-ClockPlan.md` and updates TASKS.md
   - The clock switches when a move is shown on the board: `onHumanMoveDone` for the player, `playRobotMove` for the robot. A move held in the gate still counts for the robot.
   - `flagged` → `flagKing` + `recordResult` + `setResult`, with the text "<side> ran out of time". That is the same text and flag as `onLichessGameEnded`'s `loserText`. If the other side can't mate, the result is a draw.
   - Review (←/→) keeps the clock running, as on Lichess.
-  - A takeback vs the robot (`movePrev`) keeps the times and runs the clock of the side to move. After a flag it does nothing: a flag ends the game for good, as on Lichess (the flagged side has no time left to resume with), so `movePrev` must refuse it. `GameClock::setTurn` ignores a flagged clock.
+  - A stalemate ends a local game as a draw (found in step 2): `Game` only reports a mate, so the stalemated side would have lost on time.
+  - A takeback vs the robot (`movePrev`) keeps the times and runs the clock of the side to move. After a flag it does nothing: a flag ends the game for good, as on Lichess (the flagged side has no time left to resume with), so `requestTakeback` refuses it and the Undo button is disabled. `GameClock::setTurn` ignores a flagged clock.
   - Leaving a robot game autosaves the remaining times. `UserManager::GameSaveInfo` gains `clockLimitSec`, `clockIncSec`, `whiteMs`, `blackMs`. Continue restores the clock paused, and it resumes once the page has settled (`setBoardSettled`). This differs from Lichess, but a local game can be left.
 - **Robot thinking time:** the level's `go movetime` is capped by the robot's clock (`UciConnector.cpp:399`): `min(levelMs, max(100, remaining / 30 + inc / 2))`. The robot can't flag in Bullet, and the level otherwise stays as it is.
 - **Online:**

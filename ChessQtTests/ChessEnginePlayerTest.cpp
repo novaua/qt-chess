@@ -58,6 +58,20 @@ namespace EnginePlayerTests
 			Assert::AreEqual(string("d1h5"), FindMove(PositionMode::FenWindow, LongMateInOne));
 		}
 
+		// The robot's clock (LI-02): level 5 thinks 2.5 s, its clock may allow much less.
+		TEST_METHOD(FindMove_StaysWithinTheClock_Test)
+		{
+			ChessEnginePlayer player(EngineLevel{ 5 }, PositionMode::StartPos);
+			player.FindMove(Play(MateInOne), chrono::milliseconds(100)); // the engine's start isn't the search
+			QElapsedTimer timer;
+			timer.start();
+			const auto move = player.FindMove(Play(MateInOne), chrono::milliseconds(100));
+			const auto elapsed = timer.elapsed();
+			player.KillEngine();
+			Assert::AreEqual(string("d1h5"), move);
+			Assert::IsTrue(elapsed < 1500, L"thought for the level's time");
+		}
+
 		TEST_METHOD(DebugDump_ShowsThePositionOfTheMoves_Test)
 		{
 			ChessEnginePlayer player(EngineLevel{ 5 }, PositionMode::FenWindow);

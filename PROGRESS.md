@@ -4,6 +4,30 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-04 — LI-02 step 2: clocks in local and robot games (branch: localClocks_031126)
+
+### What was done
+- **The picker**: `TimeControlPicker.qml` (new) in both setup dialogs: Lichess's quick-pairing tiles, 1+0 to 30+20, and No clock (the default). The last choice is kept in `AppSettings`.
+- **The clock on the cards**: `PlayerCard` shows it at the right, lit while it runs, red when low, the same width at any time. `ChessConnector.Clock` is the `GameClock`; `startComputerGame` and `startLocalGame` take `limitSec` and `incSec`, and a rematch keeps them.
+- **The moves**: `localMoveOnBoard()` switches the clock after the player's and the robot's move. A takeback vs the robot keeps the times and runs the side to move's clock. Review doesn't stop it.
+- **A flag**: `onClockFlagged()`: "<side> ran out of time" with the flagged king, or "Draw: <side> ran out of time" when the other side can't mate. It ends the game for good: no takeback (the Undo button is disabled), as on Lichess. The robot's answer on its way is dropped.
+- **Stalemate (new for local games)**: `Game` only reports a mate, so a stalemated side would have lost on time. `localMoveOnBoard()` now ends the game as "Draw by stalemate", with or without a clock. Before, a stalemate just left the game sitting there.
+- **Continue**: the autosave keeps the time control and both times (`GameSaveInfo`). The clock is paused until the page has settled (`setBoardSettled`).
+- **The robot**: `GameClock::moveBudgetMs()` caps levels 3 to 5 at a thirtieth of its time plus half the increment, at least 0.1 s (`findMove`, `FindMove`). Levels 1 and 2 search by depth and are quick anyway.
+- **Low-time sound**: `sounds/lowtime.wav`, drawn by `scripts/make_sounds.py`.
+- **Checked against Lichess's source** (`clockView.ts`, `clockCtrl.ts`), as the plan asked: hours are padded (`01:30:00`, was `1:30:00`), and below a minute's start the low line is a fifth of it, at least 2 s. Both fixed. The rest matched. Not copied: hundredths on a stopped clock under a second.
+- **Scenes**: `clock`, `clock-low`, `clock-flag`, `clock-continue`, `stalemate`; `computer` and `players` show the picker. Time stands still in screenshot mode; `setScreenshotClock()` sets what a scene shows.
+- **Tests**: `GameClockTest` (`MoveBudget`, the line, `timeUp`), `FindMove_StaysWithinTheClock_Test`, the autosave's clock fields. Release builds; ChessTests + ChessQtTests **267 pass**. All scenes light and dark: only `computer` and `players` changed, baselines accepted.
+- **Real time, once**: a throwaway build without the freeze showed the clock ticking, tenths, a flag by the real timer and Continue resuming. Not committed.
+
+### Not checked yet
+- Nobody has heard `lowtime.wav`. A whole robot game with a clock hasn't been played (step 5's hand tests).
+
+### Next
+- Step 3: the Lichess clock.
+
+---
+
 ## 2026-11-03 — LI-02 step 1: GameClock and CanMate (branch: gameClock_031126)
 
 ### What was done

@@ -500,6 +500,12 @@ static QJsonObject saveInfoToJson(const UserManager::GameSaveInfo& info)
         o[QStringLiteral("computerLevel")]  = info.computerLevel;
     if (info.resultRecorded)
         o[QStringLiteral("resultRecorded")] = true;
+    if (info.clockLimitSec > 0 || info.clockIncSec > 0) {
+        o[QStringLiteral("clockLimitSec")]  = info.clockLimitSec;
+        o[QStringLiteral("clockIncSec")]    = info.clockIncSec;
+        o[QStringLiteral("whiteMs")]        = info.whiteMs;
+        o[QStringLiteral("blackMs")]        = info.blackMs;
+    }
     return o;
 }
 
@@ -515,6 +521,10 @@ static UserManager::GameSaveInfo saveInfoFromJson(const QJsonObject& o)
     info.startDate          = QDate::fromString(o.value(QStringLiteral("startDate")).toString(), Qt::ISODate);
     info.computerLevel      = o.value(QStringLiteral("computerLevel")).toInt(0);
     info.resultRecorded     = o.value(QStringLiteral("resultRecorded")).toBool(false);
+    info.clockLimitSec      = o.value(QStringLiteral("clockLimitSec")).toInt(0);
+    info.clockIncSec        = o.value(QStringLiteral("clockIncSec")).toInt(0);
+    info.whiteMs            = o.value(QStringLiteral("whiteMs")).toInteger(0);
+    info.blackMs            = o.value(QStringLiteral("blackMs")).toInteger(0);
     return info;
 }
 

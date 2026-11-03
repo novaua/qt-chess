@@ -22,6 +22,8 @@ Settings {
     property bool confirmResign:      true
     property bool showLegalMoves:     true
     property bool highlightLastMove:  true
+    property int  clockLimitSec:      0     // the last new game's time control; 0 and 0: no clock
+    property int  clockIncSec:        0
 
     // Perceptual loudness: linear 1-5 feels far too loud at level 1, since hearing is roughly logarithmic.
     // A function, not a property: Settings would store every property.

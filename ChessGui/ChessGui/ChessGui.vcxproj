@@ -443,6 +443,7 @@
     <None Include="qml\ConfirmDialog.qml" />
     <None Include="qml\LeaveOnlineDialog.qml" />
     <None Include="qml\ChoiceRow.qml" />
+    <None Include="qml\TimeControlPicker.qml" />
     <None Include="qml\ComputerGameDialog.qml" />
     <None Include="qml\TwoPlayerDialog.qml" />
     <None Include="qml\HomePage.qml" />
@@ -481,6 +482,7 @@
     <Media Include="sounds\checkmate.wav" />
     <Media Include="sounds\move.wav" />
     <Media Include="sounds\move_opponent.wav" />
+    <Media Include="sounds\lowtime.wav" />
     <Media Include="sounds\win.wav" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
