@@ -52,7 +52,7 @@ The first PR commits this plan as `docs/LI-02-ClockPlan.md` and updates TASKS.md
 
 ### ChessCore: mating material (new)
 
-- A `Board` (or `Game`) helper `CanMate(PieceColor)`: false for a lone king, K+N or K+B.
+- `Board::CanMate(PieceColor)`, the rule of Lichess's `InsufficientMatingMaterial`: false for a lone king, K+N against a king and nothing but queens, and bishops on one square colour unless the other side has a pawn, a knight or a bishop on the other colour.
 - New ChessTests cases. It decides whether a flag is a loss or a draw.
 
 ### `ChessConnector`
@@ -64,7 +64,7 @@ The first PR commits this plan as `docs/LI-02-ClockPlan.md` and updates TASKS.md
   - The clock switches when a move is shown on the board: `onHumanMoveDone` for the player, `playRobotMove` for the robot. A move held in the gate still counts for the robot.
   - `flagged` → `flagKing` + `recordResult` + `setResult`, with the text "<side> ran out of time". That is the same text and flag as `onLichessGameEnded`'s `loserText`. If the other side can't mate, the result is a draw.
   - Review (←/→) keeps the clock running, as on Lichess.
-  - A takeback vs the robot (`movePrev`) keeps the times and runs the clock of the side to move.
+  - A takeback vs the robot (`movePrev`) keeps the times and runs the clock of the side to move. After a flag it does nothing: a flag ends the game for good, as on Lichess (the flagged side has no time left to resume with), so `movePrev` must refuse it. `GameClock::setTurn` ignores a flagged clock.
   - Leaving a robot game autosaves the remaining times. `UserManager::GameSaveInfo` gains `clockLimitSec`, `clockIncSec`, `whiteMs`, `blackMs`. Continue restores the clock paused, and it resumes once the page has settled (`setBoardSettled`). This differs from Lichess, but a local game can be left.
 - **Robot thinking time:** the level's `go movetime` is capped by the robot's clock (`UciConnector.cpp:399`): `min(levelMs, max(100, remaining / 30 + inc / 2))`. The robot can't flag in Bullet, and the level otherwise stays as it is.
 - **Online:**

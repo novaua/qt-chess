@@ -114,14 +114,41 @@ namespace GameClockTests
 			Assert::AreEqual(qint64(0), _clock.remainingMs(true));
 		}
 
-		// A Lichess game: Lichess ends it, the clock just stays at zero.
+		// The timer can be late: a move after the time ran out doesn't count, and gets no increment.
+		TEST_METHOD(LateMove_TheFlagStands)
+		{
+			_clock.start(10000, 2000);
+			_clock.moveMade(true, 1);
+			_clock.moveMade(false, 2);
+			_now += 10050; // no tick
+			_clock.moveMade(true, 3);
+			Assert::AreEqual(size_t(1), _flags.size());
+			Assert::IsTrue(_flags[0]);
+			Assert::AreEqual(qint64(0), _clock.remainingMs(true));
+			Assert::IsFalse(_clock.blackRunning());
+		}
+
+		TEST_METHOD(LateTakeback_TheFlagStands)
+		{
+			_clock.start(10000, 0);
+			_clock.moveMade(true, 1);
+			_clock.moveMade(false, 2);
+			_now += 10050;
+			_clock.setTurn(false, 2);
+			Assert::AreEqual(size_t(1), _flags.size());
+			Assert::IsFalse(_clock.blackRunning());
+		}
+
+		// A Lichess game: Lichess ends it, the clock just stays at zero, and its timer sleeps.
 		TEST_METHOD(OnlineClock_NeverFlags)
 		{
 			_clock.start(10000, 0, false);
 			_clock.setSnapshot(500, 8000, true, true);
+			Assert::IsTrue(_clock.nextTickMs() > 0);
 			passMs(2000);
 			Assert::AreEqual(qint64(0), _clock.remainingMs(true));
 			Assert::AreEqual(size_t(0), _flags.size());
+			Assert::AreEqual(qint64(0), _clock.nextTickMs());
 		}
 
 		// Lichess's times are as of the state; the side to move's clock counts from then.
@@ -202,6 +229,20 @@ namespace GameClockTests
 			passMs(19000);              // White below 10 s again, 35 s after the first sound
 			Assert::AreEqual(size_t(2), _lowTimes.size());
 			Assert::IsTrue(_lowTimes[1]);
+		}
+
+		// Continue: the times of a saved game arrive while paused; the sound waits for the side's clock.
+		TEST_METHOD(LowTime_OnlyWhileThatSidesClockRuns)
+		{
+			_clock.setLowTimeSides(true, false);
+			_clock.start(60000, 0);
+			_clock.pause();
+			_clock.setSnapshot(8000, 30000, false, true);
+			_clock.resume();
+			Assert::AreEqual(size_t(0), _lowTimes.size()); // Black to move
+			Assert::IsTrue(_clock.whiteLow());             // red all the same
+			_clock.setTurn(true, 10);
+			Assert::AreEqual(size_t(1), _lowTimes.size());
 		}
 
 		TEST_METHOD(Changed_WhenTheShownTimeChanges)

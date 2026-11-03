@@ -54,6 +54,17 @@ public:
         // A black pawn can block its own king's flight square.
         Assert::IsTrue(With({ { e1, KING, White }, { h8, KING, Black }, { b1, KNIGHT, White }, { h7, PAWN, Black } })
             .CanMate(White));
+        Assert::IsTrue(With({ { e1, KING, White }, { h8, KING, Black }, { b1, KNIGHT, White }, { g8, ROOK, Black } })
+            .CanMate(White));
+    }
+
+    // Lichess's rule: a queen doesn't help, it takes the knight.
+    TEST_METHOD(KingAndKnight_CantMateAgainstQueensOnly)
+    {
+        Assert::IsFalse(With({ { e1, KING, White }, { e8, KING, Black }, { b1, KNIGHT, White }, { d8, QUEEN, Black } })
+            .CanMate(White));
+        Assert::IsTrue(With({ { e1, KING, White }, { e8, KING, Black }, { b1, KNIGHT, White }, { d8, QUEEN, Black },
+            { a8, ROOK, Black } }).CanMate(White));
     }
 
     TEST_METHOD(TwoKnightsOrKnightAndBishop_CanMate)

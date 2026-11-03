@@ -53,10 +53,9 @@ void GameClock::stop()
 
 void GameClock::moveMade(bool whiteMoved, int ply)
 {
-	if (!_enabled || _flagged)
+	if (!_enabled || timeIsUp())
 		return;
-	const qint64 now = _clock();
-	commit(now);
+	commit(_clock());
 	const Side mover = whiteMoved ? Side::White : Side::Black;
 	if (_running == mover) // the increment only once the mover's clock has run
 		stored(whiteMoved) += _incrementMs;
@@ -66,7 +65,7 @@ void GameClock::moveMade(bool whiteMoved, int ply)
 
 void GameClock::setTurn(bool whiteToMove, int ply)
 {
-	if (!_enabled)
+	if (!_enabled || timeIsUp())
 		return;
 	commit(_clock());
 	_running = ply >= 2 ? (whiteToMove ? Side::White : Side::Black) : Side::None;
@@ -109,11 +108,11 @@ void GameClock::resume()
 	tick();
 }
 
-qint64 GameClock::remainingMs(bool white) const
+qint64 GameClock::remainingMs(bool white, qint64 now) const
 {
 	qint64 ms = white ? _whiteMs : _blackMs;
-	if (counting() && _running == (white ? Side::White : Side::Black))
-		ms -= _clock() - _since;
+	if (runs(white))
+		ms -= now - _since;
 	return std::max<qint64>(0, ms);
 }
 
@@ -129,6 +128,13 @@ void GameClock::commit(qint64 now)
 		ms = std::max<qint64>(0, ms - (now - _since));
 	}
 	_since = now;
+}
+
+// The timer may be late (a busy GUI thread): a move made after the time ran out doesn't count.
+bool GameClock::timeIsUp()
+{
+	tick();
+	return _flagged;
 }
 
 QString GameClock::format(qint64 ms)
@@ -154,9 +160,9 @@ QString GameClock::format(qint64 ms)
 void GameClock::checkLowTime(bool white, qint64 now)
 {
 	LowTimeAlarm& alarm = white ? _whiteAlarm : _blackAlarm;
-	if (!alarm.watched || !_enabled)
+	if (!alarm.watched || !runs(white)) // a paused clock (Continue) says nothing yet
 		return;
-	const qint64 ms = remainingMs(white);
+	const qint64 ms = remainingMs(white, now);
 	if (alarm.armed && ms < lowTimeMs() && now >= alarm.quietUntil) {
 		alarm.armed = false;
 		alarm.quietUntil = now + LowTimeQuietMs;
@@ -169,49 +175,48 @@ void GameClock::checkLowTime(bool white, qint64 now)
 void GameClock::tick()
 {
 	const qint64 now = _clock();
-	bool flaggedWhite = false;
-	bool flags = false;
-	if (counting()) {
-		const bool white = _running == Side::White;
-		if (_localFlag && remainingMs(white) == 0) {
-			commit(now);
-			_flagged = true;
-			flags = true;
-			flaggedWhite = white;
-		}
+	const bool whiteRan = _running == Side::White;
+	const bool flags = _localFlag && counting() && remainingMs(whiteRan, now) == 0;
+	if (flags) {
+		commit(now);
+		_flagged = true;
 	}
 	checkLowTime(true, now);
 	checkLowTime(false, now);
 
+	const qint64 whiteMs = remainingMs(true, now);
+	const qint64 blackMs = remainingMs(false, now);
+	const QString white = text(whiteMs);
+	const QString black = text(blackMs);
 	const Side running = counting() ? _running : Side::None;
-	if (whiteText() != _shownWhite || blackText() != _shownBlack || whiteLow() != _shownWhiteLow
-			|| blackLow() != _shownBlackLow || running != _shownRunning) {
-		_shownWhite = whiteText();
-		_shownBlack = blackText();
-		_shownWhiteLow = whiteLow();
-		_shownBlackLow = blackLow();
+	if (white != _shownWhite || black != _shownBlack || low(whiteMs) != _shownWhiteLow
+			|| low(blackMs) != _shownBlackLow || running != _shownRunning) {
+		_shownWhite = white;
+		_shownBlack = black;
+		_shownWhiteLow = low(whiteMs);
+		_shownBlackLow = low(blackMs);
 		_shownRunning = running;
 		emit changed();
 	}
-	if (flags) {
+	const qint64 wait = nextTickMs(now);
+	if (wait > 0)
+		_timer.start(int(wait));
+	else
 		_timer.stop();
-		emit flagged(flaggedWhite); // last: the handler may end the game
-		return;
-	}
-	scheduleTick();
+	if (flags)
+		emit flagged(whiteRan); // last: the handler may end the game
 }
 
-// The next moment the shown time changes (a second, a tenth, a day), goes low or runs out.
-void GameClock::scheduleTick()
+// The next moment the shown time changes (a second, a tenth, a day), goes low or runs out. 0: never
+// by itself, e.g. a Lichess clock at zero stays there until Lichess ends the game.
+qint64 GameClock::nextTickMs(qint64 now) const
 {
-	if (!counting()) {
-		_timer.stop();
-		return;
-	}
-	const qint64 ms = remainingMs(_running == Side::White);
+	const qint64 ms = counting() ? remainingMs(_running == Side::White, now) : 0;
+	if (ms == 0)
+		return 0;
 	const qint64 unit = ms >= DayMs ? DayMs : ms < TenthsBelowMs ? 100 : SecondMs;
 	qint64 wait = ms % unit + 1;
 	if (ms >= lowTimeMs())
 		wait = std::min(wait, ms - lowTimeMs() + 1);
-	_timer.start(int(std::clamp<qint64>(wait, 1, DayMs)));
+	return std::min(wait, DayMs);
 }

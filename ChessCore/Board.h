@@ -72,8 +72,9 @@ namespace Chess {
 
 		// Can this side still mate by some sequence of legal moves? Lichess's rule when a clock runs
 		// out: the side out of time loses, unless the other side can't mate (then it's a draw). Not
-		// with a lone king, a king and one knight against a lone king, or a king and bishops all on
-		// squares of one colour when the other side has no pawn, knight or bishop of the other colour.
+		// with a lone king, a king and one knight against a king and nothing but queens, or a king and
+		// bishops all on squares of one colour when the other side has no pawn, knight or bishop of the
+		// other colour.
 		bool CanMate(PieceColors side) const;
 
 	private:

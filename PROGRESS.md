@@ -8,8 +8,9 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ### What was done
 - **`GameClock`** (`gameclock.h/.cpp`, new, not used by the app yet): the two clocks of a game, built like `MoveGate` with a time source tests can replace. `moveMade()` for local games, `setSnapshot()` for Lichess's times or a saved game, `setTurn()` after a takeback, `pause()`/`resume()`. It runs only after both sides have moved; the increment goes to a mover whose clock ran. `format()`: `03:00`, `1:30:00`, `00:09.4`, `3 days`. `flagged()` only for local games. `lowTime()` once below Lichess's line (an eighth of the start, 10 s to 60 s), again only above 1.5 times the line and after 20 s. The timer wakes only when the shown time changes.
-- **`Board::CanMate(side)`** (ChessCore): false for a lone king, K+N against a lone king, and bishops on one square colour unless the other side has a pawn, a knight or a bishop on the other colour. It decides whether a flag loses or draws.
-- **Tests**: `GameClockTest` (12), `MatingMaterialTests` (7). Release builds; ChessTests + ChessQtTests **261 pass**. No UI change, so no screenshots.
+- **`Board::CanMate(side)`** (ChessCore): the rule of Lichess's `InsufficientMatingMaterial` (checked against scalachess): false for a lone king, K+N against a king and nothing but queens, and bishops on one square colour unless the other side has a pawn, a knight or a bishop on the other colour. It decides whether a flag loses or draws.
+- **Review of #119**: a Lichess clock at zero no longer wakes its timer every millisecond; a move or takeback after the time ran out no longer cancels the flag (the timer can be late); the low-time sound only while that side's clock runs, so never during a paused Continue; K+N against queens only is a draw.
+- **Tests**: `GameClockTest` (15), `MatingMaterialTests` (8). Release builds; ChessTests + ChessQtTests **265 pass**. No UI change, so no screenshots.
 
 ### Next
 - Step 2: clocks in local and robot games.

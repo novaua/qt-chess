@@ -22,8 +22,6 @@ class GameClock : public QObject
 	Q_PROPERTY(bool blackRunning READ blackRunning NOTIFY changed)
 
 public:
-	enum class Side { None, White, Black };
-
 	explicit GameClock(QObject* parent = nullptr);
 
 	// A new game with a clock: both sides get limitMs, nothing runs yet. localFlag: flagged() is
@@ -31,27 +29,25 @@ public:
 	void start(qint64 limitMs, qint64 incrementMs, bool localFlag = true);
 	void stop();                                 // no clock (a game without one, or leaving the game)
 	void moveMade(bool whiteMoved, int ply);     // ply: the moves played, this one included
-	void setTurn(bool whiteToMove, int ply);     // e.g. after a takeback: the side to move runs from ply 2
+	void setTurn(bool whiteToMove, int ply);     // e.g. after a takeback: the side to move runs from ply 2; not after a flag
 	void setSnapshot(qint64 whiteMs, qint64 blackMs, bool whiteToMove, bool running); // Lichess's times, or a saved game's
 	void setLowTimeSides(bool white, bool black); // whose low time is announced (lowTime()): the player's own
-	void pause();                                // e.g. the game is over, or Continue before the page settles
+	void pause();                                // e.g. the game is over, or Continue before the page settles; local games only: Lichess's time goes on
 	void resume();
 
 	bool   enabled() const { return _enabled; }
-	bool   paused() const { return _paused; }
-	Side   runningSide() const { return _running; }
 	qint64 limitMs() const { return _limitMs; }
 	qint64 incrementMs() const { return _incrementMs; }
-	qint64 remainingMs(bool white) const;
+	qint64 remainingMs(bool white) const { return remainingMs(white, _clock()); }
 	qint64 lowTimeMs() const; // Lichess's: an eighth of the start time, 10 s to 60 s
-	bool   isLow(bool white) const { return _enabled && remainingMs(white) < lowTimeMs(); }
+	bool   isLow(bool white) const { return low(remainingMs(white)); }
 
-	QString whiteText() const { return _enabled ? format(remainingMs(true)) : QString(); }
-	QString blackText() const { return _enabled ? format(remainingMs(false)) : QString(); }
+	QString whiteText() const { return text(remainingMs(true)); }
+	QString blackText() const { return text(remainingMs(false)); }
 	bool whiteLow() const { return isLow(true); }
 	bool blackLow() const { return isLow(false); }
-	bool whiteRunning() const { return counting() && _running == Side::White; }
-	bool blackRunning() const { return counting() && _running == Side::Black; }
+	bool whiteRunning() const { return runs(true); }
+	bool blackRunning() const { return runs(false); }
 
 	// As lichess.org: 03:00, 00:45, 1:30:00, tenths under 10 s (00:09.4), N days for correspondence.
 	static QString format(qint64 ms);
@@ -59,6 +55,7 @@ public:
 	// Tests: the time now comes from this clock (ms); call tick() after moving it forward.
 	void setClock(std::function<qint64()> clock);
 	void tick();
+	qint64 nextTickMs() const { return nextTickMs(_clock()); } // when the timer wakes; 0: it sleeps
 
 signals:
 	void changed();
@@ -66,6 +63,8 @@ signals:
 	void lowTime(bool white); // a watched side's clock went low
 
 private:
+	enum class Side { None, White, Black };
+
 	struct LowTimeAlarm {
 		bool   watched = false;
 		bool   armed = true;
@@ -73,10 +72,15 @@ private:
 	};
 
 	bool counting() const { return _enabled && !_paused && !_flagged && _running != Side::None; }
+	bool runs(bool white) const { return counting() && _running == (white ? Side::White : Side::Black); }
 	qint64& stored(bool white) { return white ? _whiteMs : _blackMs; }
+	qint64 remainingMs(bool white, qint64 now) const;
+	qint64 nextTickMs(qint64 now) const;
+	QString text(qint64 ms) const { return _enabled ? format(ms) : QString(); }
+	bool low(qint64 ms) const { return _enabled && ms < lowTimeMs(); }
 	void commit(qint64 now); // the running side's time so far into its stored time
+	bool timeIsUp();
 	void checkLowTime(bool white, qint64 now);
-	void scheduleTick();
 
 	bool   _enabled = false;
 	bool   _localFlag = true;

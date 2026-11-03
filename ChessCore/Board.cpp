@@ -216,7 +216,7 @@ namespace Chess {
 	bool Board::CanMate(PieceColors side) const
 	{
 		const PieceColors other = OppositeSideOf(side);
-		int knights = 0, otherPieces = 0, otherPawnsOrKnights = 0;
+		int knights = 0, otherNonQueens = 0, otherPawnsOrKnights = 0;
 		bool bishopOnLight = false, bishopOnDark = false;           // ours, by square colour
 		bool otherBishopOnLight = false, otherBishopOnDark = false;
 		for (int i = 0; i < BpMax; ++i) {
@@ -227,14 +227,14 @@ namespace Chess {
 				if (type == KNIGHT) ++knights;
 				if (type == BISHOP) (lightSquare ? bishopOnLight : bishopOnDark) = true;
 			} else if (_color[i] == other && type != KING) {
-				++otherPieces;
+				if (type != QUEEN) ++otherNonQueens;
 				if (type == PAWN || type == KNIGHT) ++otherPawnsOrKnights;
 				if (type == BISHOP) (lightSquare ? otherBishopOnLight : otherBishopOnDark) = true;
 			}
 		}
 		const bool bishops = bishopOnLight || bishopOnDark;
 		if (knights == 0 && !bishops) return false;            // a lone king
-		if (knights == 1 && !bishops) return otherPieces > 0; // K+N mates only with the other side's help
+		if (knights == 1 && !bishops) return otherNonQueens > 0; // K+N needs the other side's help; a queen just takes the knight
 		if (knights == 0 && !(bishopOnLight && bishopOnDark)) { // bishops all on one square colour
 			const bool otherColourBishop = bishopOnLight ? otherBishopOnDark : otherBishopOnLight;
 			return otherPawnsOrKnights > 0 || otherColourBishop;
