@@ -87,7 +87,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
     `ProfilePickerPage`, `HomePage`, `GamePage`; `route()` picks it from `UserManager` and
     `ChessConnector.InGame`), with `ProfilePage` or `SettingsPage` pushed over Home or the game, `OnlinePage` over Home; the
     InfoBars and every dialog. Pages ask for dialogs through signals.
-  - `HomePage.qml` (account menu, Continue, action cards), `OnlinePage.qml` (pushed by "Play online": the unfinished Lichess games as `BoardPreview` cards with Continue, a new challenge, join by link; LI-04), `GamePage.qml` (command bar, board between
+  - `HomePage.qml` (account menu, Continue: the robot's autosaved game first, else the unfinished Lichess games on the Online page; action cards), `OnlinePage.qml` (pushed by "Play online": the unfinished Lichess games as `BoardPreview` cards with Continue, a new challenge, join by link; LI-04), `GamePage.qml` (command bar, board between
     two `PlayerCard`s with a `CapturedStrip` and "+N", the moves (`MovesPanel` + `MoveList`) beside
     the board or in a bottom sheet, `ResultCard` over the board)
   - `ChessBoard.qml` — the board: one geometry for all layers (`squareX/Y`, `squareAt`, a1 bottom left; turned for Black by `rotation`), the click `TapHandler`, the drag state (`dragFrom`, `dragPoint`, `dropSquare`) and the dragged piece under the pointer, coordinates, promotion dialog
