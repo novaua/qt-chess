@@ -20,7 +20,7 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Screenshots**: after the review fixes, on an unlocked screen, all 58 baselines match (`all` light and dark, `takeback`, `robot`, `select`/`drag` `-Black`).
 
 ### Next
-- The owner's manual round: LI-04 (`docs/LI-04-ManualTests.md`) plus a real takeback (ask, accept; the opponent asks, accept; with and without a capture).
+- The owner's manual round: LI-04 (`docs/LI-04-ManualTests.md`). The real takeback and the draw offer are done: the owner checked all four cases of each on 2026-11-03 (we offer / they offer, accepted / refused).
 - Then LI-05 (premove).
 
 ---
