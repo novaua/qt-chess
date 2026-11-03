@@ -138,4 +138,3 @@ Result:
 - There is **no clock** on the board (LI-02): check the time left on the Online page before Continue.
 - The list doesn't update by itself: Refresh, or go back to Home (no polling, no notifications;
   BL-10).
-- An **accepted takeback** in a rejoined game isn't applied to our board yet (LI-03).
