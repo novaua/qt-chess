@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-03 |
-| **Status** | Planned; step 0 (this plan) |
+| **Status** | In progress: step 1 done |
 | **Branch** | `li02Plan_031126` (plan); each step on its own branch from `develop` |
 
 ## Context

@@ -77,6 +77,9 @@
     <ClCompile Include="movegate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gameclock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="applog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -119,6 +122,9 @@
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="movegate.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="gameclock.h">
       <Filter>Header Files</Filter>
     </QtMoc>
     <ClInclude Include="applog.h">
