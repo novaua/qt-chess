@@ -110,6 +110,7 @@
     <ClCompile Include="BoardPiecesTest.cpp" />
     <ClCompile Include="MoveListModelTest.cpp" />
     <ClCompile Include="MoveGateTest.cpp" />
+    <ClCompile Include="GameClockTest.cpp" />
     <ClCompile Include="AppLogTest.cpp" />
     <ClCompile Include="ChessEnginePlayerTest.cpp" />
     <ClCompile Include="LichessClientTest.cpp" />
@@ -127,6 +128,8 @@
     <ClCompile Include="..\ChessGui\ChessGui\movelistmodel.cpp" />
     <!-- The move pacing gate -->
     <ClCompile Include="..\ChessGui\ChessGui\movegate.cpp" />
+    <!-- The game clock (LI-02) -->
+    <ClCompile Include="..\ChessGui\ChessGui\gameclock.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\applog.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -134,6 +137,7 @@
     <QtMoc Include="..\ChessGui\ChessGui\boardpieces.h" />
     <QtMoc Include="..\ChessGui\ChessGui\movelistmodel.h" />
     <QtMoc Include="..\ChessGui\ChessGui\movegate.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\gameclock.h" />
     <QtMoc Include="..\ChessGui\ChessGui\engineworker.h" />
     <QtMoc Include="..\ChessGui\ChessGui\UserManager.h" />
   </ItemGroup>

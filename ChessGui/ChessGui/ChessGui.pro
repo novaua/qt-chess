@@ -22,6 +22,7 @@ SOURCES += main.cpp \
     frametrace.cpp \
     movelistmodel.cpp \
     movegate.cpp \
+    gameclock.cpp \
     applog.cpp \
     ChessEnginePlayer.cpp \
     AppInfo.cpp \
@@ -66,6 +67,7 @@ HEADERS += \
     frametrace.h \
     movelistmodel.h \
     movegate.h \
+    gameclock.h \
     applog.h \
     ChessEnginePlayer.h \
     AppInfo.h \

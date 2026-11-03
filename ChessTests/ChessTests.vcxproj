@@ -173,6 +173,7 @@
     <ClCompile Include="SanTest.cpp" />
     <ClCompile Include="BoardDiffTests.cpp" />
     <ClCompile Include="UndoTests.cpp" />
+    <ClCompile Include="MatingMaterialTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ChessCore\ChessCore.vcxproj">
