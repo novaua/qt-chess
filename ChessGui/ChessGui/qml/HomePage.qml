@@ -12,11 +12,34 @@ Page {
     signal computerGameRequested()
     signal twoPlayerGameRequested()
     signal onlineGameRequested()
+    signal onlineGamesRequested()   // Continue without a robot game: the Online page, at "Your games"
     signal settingsRequested()
     signal profileRequested()
     signal switchUserRequested()
 
     readonly property var _levels: ChessConnector.Levels
+
+    // LI-04: the unfinished Lichess games. Continue resumes the robot game first (Continue is its only
+    // way back); otherwise it opens these on the Online page.
+    readonly property var _onlineGames: UserManager.lichessConnected ? LichessClient.ongoingGames : []
+    readonly property int _myTurnCount: _onlineGames.filter(g => g.isMyTurn).length
+    readonly property string _continueText: {
+        const n = _onlineGames.length
+        const games = n + (n === 1 ? " Lichess game" : " Lichess games")
+        if (ChessConnector.CanContinue)
+            return ChessConnector.ContinueDescription + (n > 0 ? " · " + games + " in Play online" : "")
+        if (n === 0)
+            return ""
+        return games + " · " + (_myTurnCount === 0 ? "waiting for " + (n === 1 ? "your opponent" : "your opponents")
+                               : n === 1 ? "your turn" : "your turn in " + _myTurnCount)
+    }
+
+    // A fresh list each time Home shows (back from a game, Settings, the profile): an opponent may
+    // have moved or ended a game meanwhile.
+    StackView.onActivated: {
+        if (UserManager.lichessConnected && !LichessClient.ongoingGamesLoading)
+            LichessClient.refreshOngoingGames()
+    }
 
     background: Rectangle {
         color: Theme.windowBg
@@ -115,13 +138,17 @@ Page {
             }
 
             HomeCard {
-                visible: ChessConnector.CanContinue
-                text: "Continue game"
-                description: ChessConnector.ContinueDescription
+                visible: ChessConnector.CanContinue || page._onlineGames.length > 0
+                text: ChessConnector.CanContinue ? "Continue game"
+                    : page._onlineGames.length === 1 ? "Continue online game" : "Continue online games"
+                description: page._continueText
                 icon.source: Theme.icon("play")
                 Layout.fillWidth: true
                 Layout.bottomMargin: Theme.s2
-                onClicked: ChessConnector.continueGame()
+                onClicked: {
+                    if (ChessConnector.CanContinue) ChessConnector.continueGame()
+                    else                            page.onlineGamesRequested()
+                }
             }
 
             GridLayout {

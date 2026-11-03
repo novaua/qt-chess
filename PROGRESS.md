@@ -4,6 +4,25 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-03 — LI-04 step 3: Home's Continue for online games (branch: homeContinueOnline_031126)
+
+### What was done
+- **Home's Continue card** (`HomePage.qml`) now also covers the unfinished Lichess games (`LichessClient.ongoingGames`, only while Lichess is connected):
+  - **A saved robot game has priority**: "Continue game" resumes it as before (`ChessConnector.continueGame()`). If there are Lichess games too, its description adds them: "vs Robot · Level 3 · 4 Lichess games in Play online".
+  - **No robot game, Lichess games**: "Continue online game(s)", "4 Lichess games · your turn in 2" (or "· your turn", "· waiting for your opponent(s)"). A click opens the Online page (new signal `onlineGamesRequested` → `root.openOnline()`; unlike "Play online" it doesn't reopen a pending challenge).
+  - **Neither**: the card stays hidden.
+- Home **refreshes the list when it is shown** (back from a game, Settings, the profile, the Online page), unless a refresh is already running. It isn't shown during a game, so the list is fetched at most once per return to Home.
+- `ChessConnector` is unchanged: navigating to a page isn't a game step (CLAUDE.md rule 1 is about game flows).
+- **Screenshot scenes** (`main.cpp` seeds the `online` scene's four games and a linked Tester for them):
+  - `continue`: the robot game and the Lichess games (new baseline: the description and the Lichess rating in the header);
+  - `continue-online` (new, in `all`): only the Lichess games.
+- Release builds; ChessTests 111, ChessQtTests 126 pass. Screenshots: 53 compared, only `continue*` changed (accepted), `continue-online*` new. Debug didn't link: the owner's running Debug app held `LiChessConnector.dll` (no C++ change there).
+
+### Next
+- LI-04 step 4: the leave warning (Leave / Resign / Stay, also on window close); step 5: docs.
+
+---
+
 ## 2026-11-02 — LI-04 step 2: the Online page (branch: onlinePage_021126)
 
 ### What was done

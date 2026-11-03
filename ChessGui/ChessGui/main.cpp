@@ -58,7 +58,8 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 		}
 		return;
 	}
-	if (scene == "online") { // the Online page's "Your games": fixed rows, no network
+	// The Online page's "Your games" and Home's Continue (LI-04): fixed rows, no network.
+	if (scene == "online" || scene == "continue" || scene == "continue-online") {
 		sceneMap["ongoingGames"] = LichessClient::parseOngoingGames(QJsonDocument::fromJson(R"({ "nowPlaying": [
 			{ "gameId": "aEPqtBMc", "color": "white", "isMyTurn": true, "secondsLeft": 540,
 			  "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "lastMove": "b8c6",
@@ -79,7 +80,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 		] })").object());
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
-	                  "online", "online-empty" }.contains(scene))
+	                  "online", "online-empty", "continue", "continue-online" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -148,7 +149,7 @@ int main(int argc, char* argv[])
 	// light/dark colour scheme, so the Fluent controls would get the wrong palette.
 	// "login", "menu" and "board" are the older names of "profiles", "home" and "game".
 	static const QStringList screenshotScenes = {
-		"welcome", "create-user", "profiles", "home", "continue", "game", "settings", "about", "restore", "levels",
+		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "game", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides"
 	};

@@ -26,7 +26,7 @@
 #>
 [CmdletBinding()]
 param(
-    # welcome, create-user, profiles, home, continue, game, review, result, ended, moves, select, drag, settings, about, restore, levels,
+    # welcome, create-user, profiles, home, continue, continue-online, game, review, result, ended, moves, select, drag, settings, about, restore, levels,
     # profile, profile-local, profile-expired, import, online, online-empty, online-disconnected, computer, players, or all
     # (login, menu and board: the older names of profiles, home and game)
     [string[]]$Scene = @('home'),
@@ -56,7 +56,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
-$allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'game', 'review', 'result', 'ended', 'moves', 'select', 'drag',
+$allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue-online', 'game', 'review', 'result', 'ended', 'moves', 'select', 'drag',
              'settings', 'about', 'restore', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'online-empty', 'online-disconnected', 'computer', 'players'
 if ($Scene -contains 'all') { $Scene = $allScenes }
 foreach ($s in $Scene) {

@@ -315,6 +315,7 @@ ApplicationWindow {
             onComputerGameRequested:  computerDialog.openNew()
             onTwoPlayerGameRequested: twoPlayerDialog.open()
             onOnlineGameRequested:    root.playOnline()
+            onOnlineGamesRequested:   root.openOnline()
             onSettingsRequested:      root.openSettings()
             onProfileRequested:       root.openProfile()
             onSwitchUserRequested:    root.switchUser()
