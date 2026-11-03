@@ -4,6 +4,17 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-03 — LI-04 step 5: docs and the manual tests (branch: li04Docs_031126)
+
+### What was done
+- **`docs/LI-04-ManualTests.md`** (new): the plan's eight manual scenarios (§6) as step-by-step checks with the app's own texts and a Result line each, plus **4b** (Resign from the warning, from Home and on window close, and the 5 s fallback offline). Corrected against the code: a correspondence game shows hours up to two days ("47 h", "23 h"), not "1 day".
+- `TASKS.md` LI-04: coded (#111–#114), manual tests left. Plan status the same. `CLAUDE.md`: `LichessClient.ongoingGames`.
+
+### Next
+- The owner's manual tests (`docs/LI-04-ManualTests.md`); then LI-03 (apply an accepted Lichess takeback).
+
+---
+
 ## 2026-11-03 — LI-04 step 4: the leave warning (branch: leaveWarning_031126)
 
 ### What was done
