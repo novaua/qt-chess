@@ -383,6 +383,22 @@ namespace LichessTests
 			Assert::IsFalse(LichessClient::isUsername("../account"));
 			Assert::IsFalse(LichessClient::isUsername("name?x=1"));
 			Assert::IsFalse(LichessClient::isUsername("name\n"));
+			Assert::IsFalse(LichessClient::isUsername("open"), L"/api/challenge/open is another call");
+			Assert::IsFalse(LichessClient::isUsername("ai"), L"/api/challenge/ai is another call");
+		}
+
+		TEST_METHOD(NeedsKeepAlive_OnlyWithAClock_Test)
+		{
+			RematchInfo game;
+			Assert::IsFalse(LichessClient::needsKeepAlive(game), L"unlimited");
+			game.days = 3;
+			Assert::IsFalse(LichessClient::needsKeepAlive(game), L"correspondence");
+			game = {};
+			game.clockLimitSec = 300;
+			Assert::IsTrue(LichessClient::needsKeepAlive(game));
+			game = {};
+			game.clockIncrementSec = 1; // 0+1
+			Assert::IsTrue(LichessClient::needsKeepAlive(game));
 		}
 
 		// A bad name never reaches Lichess: the error comes at once.

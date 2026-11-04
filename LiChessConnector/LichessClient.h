@@ -52,6 +52,9 @@ public:
 	// unlimited. color: "white", "black" or "random".
 	Q_INVOKABLE void challengePlayer(const QString& username, int limitSec, int incrementSec, int days, const QString& color);
 	Q_INVOKABLE static bool isUsername(const QString& text); // could be one: 2 to 30 letters, digits, - or _
+	// Lichess drops a challenge with a clock after 20 s unless a request keeps it alive. The others
+	// stay there for two weeks: no need to wait for them.
+	static bool needsKeepAlive(const RematchInfo& game) { return game.clockLimitSec > 0 || game.clockIncrementSec > 0; }
 	// color: accept an open challenge as that side ("" = whatever Lichess gives).
 	Q_INVOKABLE void acceptChallenge(const QString& challengeId, const QString& color = {});
 	// "Join a game": a Lichess link or a game id. A player link (…?color=black, …/black) joins as
@@ -140,7 +143,8 @@ signals:
 	void gameEnded(QString status, QString winner);
 	void networkError(QString message);
 	void challengeCanceled();
-	void directChallengeSent(QString challengeId, QString opponentName);
+	void directChallengeSent(QString challengeId, QString opponentName); // we wait for the answer
+	void directChallengeLeft(QString opponentName); // it stays on Lichess: the game is in ongoingGames once accepted
 	void challengeDeclined(QString opponentName);
 	void canRematchChanged();
 	void rematchOffered();
@@ -197,6 +201,7 @@ private:
 	bool           _correspondence       = false;
 	QNetworkReply* _directChallengeReply = nullptr; // keepAliveStream: open while the challenge waits
 	QString        _directOpponentName;             // who it was sent to
+	bool           _directKeepAlive      = true;    // needsKeepAlive(): we wait while the request is open
 	QString        _directChallengeId;
 	bool           _directChallengeAccepted = false;
 	bool           _directChallengeDone     = false; // a {"done":...} line arrived

@@ -381,7 +381,8 @@ void LichessClient::cancelChallenge(const QString& challengeId)
         QByteArray());
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
-        emit challengeCanceled();
+        if (_currentGameId.isEmpty()) // else the player has started something new meanwhile
+            emit challengeCanceled();
     });
 }
 
@@ -884,7 +885,8 @@ void LichessClient::challengePlayer(const QString& username, int limitSec, int i
 bool LichessClient::isUsername(const QString& text)
 {
     static const QRegularExpression username(QRegularExpression::anchoredPattern(QStringLiteral("[a-zA-Z0-9_-]{2,30}")));
-    return username.match(text).hasMatch();
+    // /api/challenge/open and /api/challenge/ai are other calls.
+    return username.match(text).hasMatch() && text != QLatin1String("open") && text != QLatin1String("ai");
 }
 
 void LichessClient::challengeUser(const RematchInfo& game, const QString& color)
@@ -897,9 +899,11 @@ void LichessClient::challengeUser(const RematchInfo& game, const QString& color)
     body.addQueryItem(QStringLiteral("rated"),   QStringLiteral("false"));
     body.addQueryItem(QStringLiteral("color"),   color);
     body.addQueryItem(QStringLiteral("variant"), game.variant);
-    // Without keepAliveStream a direct challenge expires after 20 s. With it, the challenge
-    // lives while this request is open, and the server ends it with {"done":"accepted"|...}.
-    body.addQueryItem(QStringLiteral("keepAliveStream"), QStringLiteral("true"));
+    // With keepAliveStream the challenge lives while this request is open, and the server ends it
+    // with {"done":"accepted"|...}.
+    _directKeepAlive = needsKeepAlive(game);
+    if (_directKeepAlive)
+        body.addQueryItem(QStringLiteral("keepAliveStream"), QStringLiteral("true"));
 
     QNetworkRequest req = makeRequest(QStringLiteral("/api/challenge/") + game.opponentId);
     req.setRawHeader("Accept", "application/x-ndjson");
@@ -994,6 +998,11 @@ void LichessClient::handleDirectChallengeLine(const QByteArray& line)
 
     // The game id is the challenge id. We are the challenger, so there is nothing to accept.
     _directChallengeId = id;
+    if (!_directKeepAlive) {
+        _directChallengeDone = true;
+        emit directChallengeLeft(_directOpponentName);
+        return;
+    }
     _currentGameId     = id;
     emit directChallengeSent(id, _directOpponentName);
     waitForGameStart(id, false);

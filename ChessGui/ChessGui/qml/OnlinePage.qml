@@ -16,12 +16,9 @@ Page {
 
     property bool _busy: false   // a challenge, a join or a rejoin is under way
 
-    // The challenge card, for the screenshot scenes.
-    property alias challengeOpponent: opponentField.text
-    property alias challengeClock: tcClock
-
     readonly property string _opponent: opponentField.text.trim()   // empty: a challenge with a link
     readonly property bool _opponentValid: _opponent === "" || LichessClient.isUsername(_opponent)
+    readonly property bool _named: _opponent !== "" && _opponentValid
     readonly property bool _realTime: tcType.checkedIndex === 1
     // What the chosen time control is on Lichess, and the player's rating there.
     readonly property string _mode: _realTime ? tcClock.speed : tcType.checkedIndex === 2 ? "Correspondence" : ""
@@ -98,6 +95,9 @@ Page {
         target: LichessClient
         function onChallengeCreated(gameId, joinUrl) { page._busy = false }
         function onDirectChallengeSent(challengeId, opponentName) { page._busy = false }
+        function onDirectChallengeLeft(opponentName) { page._busy = false }
+        function onChallengeDeclined(opponentName) { page._busy = false }
+        function onChallengeCanceled() { page._busy = false }
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) { page._busy = false }
         function onNetworkError(message) {
             page._busy = false
@@ -283,6 +283,7 @@ Page {
                 // this app, a challenge to a named player can. Bullet is never possible (LI-02).
                 TimeControlPicker {
                     id: tcClock
+                    objectName: "challengeClock"
                     visible: page._realTime
                     online: true
                     blitzAllowed: page._opponent !== ""
@@ -315,22 +316,26 @@ Page {
                 }
                 Label {
                     visible: page._perf !== undefined
-                    text: visible ? "Your " + page._mode + " rating: " + page._perf.rating + (page._perf.prov ? "?" : "") : ""
+                    text: page._perf ? "Your " + page._mode + " rating: " + page._perf.rating + (page._perf.prov ? "?" : "") : ""
                     font: Theme.bodyStrong
                 }
 
                 Label { text: "Lichess username (optional)"; color: Theme.textSecondary; font: Theme.caption }
                 TextField {
                     id: opponentField
+                    objectName: "challengeOpponent"
                     placeholderText: "Leave empty to get a link"
+                    maximumLength: 30
                     Layout.fillWidth: true
                     onAccepted: if (challengeButton.enabled) challengeButton.clicked()
                 }
                 Label {
                     visible: !page._opponentValid
-                    text: "A Lichess username has 2 to 30 letters, digits, - or _."
+                    text: "That isn't a Lichess username: 2 to 30 letters, digits, - or _."
                     color: Theme.critical
                     font: Theme.caption
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
                 }
 
                 Label { text: "Side"; color: Theme.textSecondary; font: Theme.caption }
@@ -343,8 +348,8 @@ Page {
 
                 Button {
                     id: challengeButton
-                    text: page._opponent !== "" ? "Challenge " + page._opponent : "Create challenge"
-                    icon.source: page._opponent !== "" ? "" : Theme.icon("link")
+                    text: page._named ? "Challenge " + page._opponent : "Create challenge"
+                    icon.source: page._named ? "" : Theme.icon("link")
                     highlighted: true
                     enabled: !page._busy && page._opponentValid && (!page._realTime || tcClock.ready)
                     Layout.topMargin: Theme.s1

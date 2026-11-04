@@ -39,8 +39,10 @@ GridLayout {
         incSec = presets[index].incSec
     }
     function step(delta) {
-        const next = _index + delta
-        if (next >= 0 && next < presets.length && usable(next))
+        let next = _index + delta
+        while (next >= 0 && next < presets.length && !usable(next))
+            next += delta
+        if (next >= 0 && next < presets.length)
             select(next)
     }
 

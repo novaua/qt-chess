@@ -13,10 +13,15 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **The rematch's code assumed every direct challenge was a rematch**: the opponent's name came from the last game, so a new challenge would have named the wrong player, and the dialog, the declined message and the errors all said "rematch". `_directOpponentName` holds who it was sent to, and `_pendingRematch` is now true only in a game, as for a link.
 - **Usernames**: `isUsername()` (Lichess's `[a-zA-Z0-9_-]{2,30}`) before the name goes into the URL. The test caught `$` letting a trailing newline through: `anchoredPattern`.
 - **Scenes**: `online-blitz`, `online-challenge`; `online` and `online-empty` show the new card.
-- **Tests**: 2 in `LichessClientTest`. Release builds; ChessTests + ChessQtTests **289 pass**.
+- **Tests**: 3 in `LichessClientTest`. Release builds; ChessTests + ChessQtTests **290 pass**.
+- **Review of #122**:
+  - A challenge by name with days per move or unlimited no longer needs the app open: Lichess keeps those two weeks (only a clock's `timeControl.l` is swept after 20 s), so we don't hold a request. `directChallengeLeft`: a message, and the game comes up under Your games. A correspondence rematch goes the same way.
+  - `open` and `ai` aren't usernames: they're other calls next to `/api/challenge/:user`, and `open` would have created an open challenge.
+  - A late answer to a cancel no longer closes a newer challenge. A challenge by name no longer deletes a saved link. The card can't stay busy after a decline.
+  - The arrow keys skip dim tiles. The screenshot hooks left the page: the scene finds its items by `objectName`.
 
 ### Not checked yet
-- Nothing has run against the real Lichess (step 5): a challenge by name, Blitz, declined, no such player. `challengePlayer()` past the name check has no test: it needs the network.
+- Nothing has run against the real Lichess (step 5): a challenge by name, Blitz, declined, no such player, days per move by name. `challengePlayer()` past the name check has no test: it needs the network.
 - The challenges are casual, as links and rematches always were here: `rated=false`. The card shows a rating, but these games don't change it.
 
 ### Next
