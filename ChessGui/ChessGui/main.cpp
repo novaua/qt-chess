@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
 		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "game", "leave-online", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
-		"takeback", "clock", "clock-low", "clock-flag", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge"
+		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();

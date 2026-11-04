@@ -4,6 +4,22 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-04 — LI-02 step 5: docs and hand tests (branch: li02Docs_041126)
+
+### What was done
+- **`docs/LI-02-ManualTests.md`**: 15 scenarios, 7 on this computer and 8 on the real Lichess.
+- **Scene `clock-flag-draw`**: the draw on a flag against a lone king, by a real 32-ply game, so nobody has to play one by hand. The last path of step 2 that had never run.
+- **Docs**: `CLAUDE.md` (`GameClock`, `TimeControlPicker`, the tests, the challenge), the `run-chess-app` skill (the new scenes, the settings flake, the clock in screenshot mode).
+
+### LI-02 is coded (#118–#122); open
+- The owner's hand tests. Two questions only they can answer: does Lichess end a flagged game by itself (the Board API has no flag call), and how far the shown time drifts.
+- A move lost on the way (a POST that times out and never reached Lichess) leaves the board and the clock waiting for an echo: a board resync, its own task if the owner wants it.
+
+### Next
+- The owner's choice: the hand tests, then LI-01, BL or the next item in `TASKS.md`.
+
+---
+
 ## 2026-11-04 — LI-02 step 4: the challenge card (branch: challengeCard_041126)
 
 ### What was done

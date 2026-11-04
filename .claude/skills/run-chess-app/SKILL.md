@@ -47,7 +47,13 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   `profile` (Profile page: Lichess linked with ratings, statistics), `profile-local` (no Lichess),
   `profile-expired` (Lichess sign-in expired: Reconnect), `import` (importing Bob again: the conflict
   dialog), `online` (the Online page with four seeded games: your turn / waiting, a Blitz lobby game to open on lichess.org), `online-empty` (signed in, no games), `online-disconnected` (no Lichess account), `computer` (vs-computer setup dialog), `players`
-  (two-player setup dialog), `all`. `robot` (not in `all`: needs Stockfish): a saved game vs the robot at
+  (two-player setup dialog), `players-many` (seven opponents: with `-Size 640x560` the dialog scrolls),
+  `clock` (a two-player game with its clock running), `clock-low` (red, tenths), `clock-flag` (out of time),
+  `clock-flag-draw` (out of time against a lone king: a draw), `clock-promotion` (out of time while the piece
+  is chosen: the pawn goes back), `clock-continue` (a robot game continued, its clock running), `stalemate`,
+  `clock-online` and `clock-correspondence` (a Lichess game fed to the stream parser, no network),
+  `online-blitz` (the challenge card with a name: Blitz lit), `online-challenge` (waiting for that player),
+  `all`. `robot` (not in `all`: needs Stockfish): a saved game vs the robot at
   level 5, continued, where the robot mates with Qh5# (the engine's answer is played on the GUI thread).
   `slides` (not in `all`): the BL-14 frame-trace scene — animations on (every other scene forces them
   off), selects the g1 knight and plays Nf3, Nf6, Bc4, Nc6 0.4–1 s apart, so a run with
@@ -86,8 +92,8 @@ fine, but only in dark mode. Offscreen the Fluent style always uses its dark pal
 switched, so `Theme.dark` follows it there. Light shots need an unlocked screen. Dialog backgrounds
 don't render offscreen (the page shows through).
 
-Not covered yet: a game vs the robot without Stockfish (a stub engine is planned), a
-connected Lichess account and the challenge dialog. Sending keys to an interactive window
+Not covered yet: a game vs the robot without Stockfish (a stub engine is planned), and a real
+connection to Lichess (the scenes feed the stream parser or set the dialog by hand). Sending keys to an interactive window
 (SendKeys) doesn't reach the Qt controls reliably and takes over the user's desktop: add a scene instead. Plan for the full UI test suite: `docs/UiTestSuitePlan.md`.
 
 ## Did the look change? (screenshot baselines)
@@ -107,10 +113,13 @@ number of failures; `NEW` = no baseline yet.
 ```
 
 A pixel changed when a channel differs by more than `-Tolerance` (24); a shot fails above
-`-MaxChangedPercent` (0.05 %). Two runs of all 46 scenes (23 light, 23 dark) match exactly. A baseline without a new
+`-MaxChangedPercent` (0.05 %). Two runs of all scenes match, except that `settings`, `about` and `restore` now and then differ by a
+line: the Settings page's engine lookup races the shot, so take those again before reading anything into
+it. A baseline without a new
 screenshot fails as `MISSING` (Take-Screenshot.ps1 deletes the old PNG first, so a failed scene leaves
 none): take the same scenes as the baselines, or use `-Name`. Needs PowerShell 7. A scene that shows
-the clock must use fixed times (`restore`: backups at 9:00 and 9:30).
+the time of day must use fixed times (`restore`: backups at 9:00 and 9:30). The game clock stands still in
+this mode: a scene sets what it shows with `ChessConnector.setScreenshotClock()`.
 
 ## The underlying switches (ChessGui.exe)
 
