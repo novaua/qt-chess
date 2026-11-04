@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-03 |
-| **Status** | In progress: steps 1 to 3 done |
+| **Status** | In progress: steps 1 to 4 done |
 | **Branch** | `li02Plan_031126` (plan); each step on its own branch from `develop` |
 
 ## Context
@@ -103,7 +103,7 @@ The first PR commits this plan as `docs/LI-02-ClockPlan.md` and updates TASKS.md
 3. **Lichess clock:** stream parsing (`LichessClientTest`: gameFull/gameState with clocks → `clockUpdated`), connector snapshots, our move switching at once, and the correspondence deadline.
    - Scenes `clock-online`, `clock-correspondence`: like `takeback`, a fed gameFull with its clock and `wtime`/`btime`.
 4. **Challenge card:** the picker with mode names and rating, the username → direct challenge with Blitz, and ChallengeDialog's waiting/declined variant.
-   - Scenes: `online` (updated), `online-blitz` (username entered).
+   - Scenes: `online`, `online-empty` (updated), `online-blitz` (username entered), `online-challenge` (the dialog, waiting).
 5. **Docs and hand tests:** `docs/LI-02-ManualTests.md`.
    - Lichess: Rapid open challenge with the clock, Blitz by username, a flag online, correspondence.
    - Local: a flag, a draw by flag against a lone king, robot Bullet, Continue with the clock.

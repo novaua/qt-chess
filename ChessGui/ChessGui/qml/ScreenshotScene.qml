@@ -56,6 +56,15 @@ Item {
         if (name.startsWith("online")) {
             // main.cpp: Tester with a Lichess account for online and online-empty, the games for online.
             window.openOnline()
+            if (name === "online-blitz" || name === "online-challenge") {
+                findItem(pages.currentItem, "challengeOpponent").text = "Friend"
+                findItem(pages.currentItem, "challengeClock").select(3)   // 5+3
+            }
+            if (name === "online-challenge") {   // sent to Friend: no link, Lichess isn't asked
+                window._pendingChallengeId = "scene"
+                window._pendingOpponentName = "Friend"
+                dialogs.challenge.open()
+            }
         }
         if (name === "computer") dialogs.computer.openNew()
         if (name.startsWith("players")) dialogs.twoPlayer.open()
@@ -142,6 +151,17 @@ Item {
         }
         if (ChessConnector.EngineThinking) _waitsForEngine = true   // the robot's move comes later
         else                               startReadyTimer()
+    }
+
+    function findItem(item, objectName) {
+        if (item.objectName === objectName)
+            return item
+        for (const child of item.children) {
+            const found = findItem(child, objectName)
+            if (found)
+                return found
+        }
+        return null
     }
 
     function startReadyTimer() {

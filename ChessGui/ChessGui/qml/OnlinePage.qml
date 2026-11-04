@@ -16,6 +16,14 @@ Page {
 
     property bool _busy: false   // a challenge, a join or a rejoin is under way
 
+    readonly property string _opponent: opponentField.text.trim()   // empty: a challenge with a link
+    readonly property bool _opponentValid: _opponent === "" || LichessClient.isUsername(_opponent)
+    readonly property bool _named: _opponent !== "" && _opponentValid
+    readonly property bool _realTime: tcType.checkedIndex === 1
+    // What the chosen time control is on Lichess, and the player's rating there.
+    readonly property string _mode: _realTime ? tcClock.speed : tcType.checkedIndex === 2 ? "Correspondence" : ""
+    readonly property var _perf: UserManager.lichessRatings[_mode.toLowerCase()]
+
     readonly property var _games: LichessClient.ongoingGames
     readonly property int _myTurnCount: _games.filter(g => g.isMyTurn).length
 
@@ -71,10 +79,25 @@ Page {
         page._busy = true
         action()
     }
+    function _challenge() {
+        const limitSec = _realTime ? tcClock.limitSec : 0
+        const incSec = _realTime ? tcClock.incSec : 0
+        const days = tcType.checkedIndex === 2 ? tcDays.options[tcDays.checkedIndex].days : 0
+        const color = side.options[side.checkedIndex].value
+        // Standard only: Chess960 isn't playable here yet (LI-01).
+        if (_opponent !== "")
+            _start(() => LichessClient.challengePlayer(_opponent, limitSec, incSec, days, color))
+        else
+            _start(() => LichessClient.createOpenChallenge(limitSec / 60, incSec, color, "standard", days))
+    }
 
     Connections {
         target: LichessClient
         function onChallengeCreated(gameId, joinUrl) { page._busy = false }
+        function onDirectChallengeSent(challengeId, opponentName) { page._busy = false }
+        function onDirectChallengeLeft(opponentName) { page._busy = false }
+        function onChallengeDeclined(opponentName) { page._busy = false }
+        function onChallengeCanceled() { page._busy = false }
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) { page._busy = false }
         function onNetworkError(message) {
             page._busy = false
@@ -243,29 +266,38 @@ Page {
                 }
             }
 
-            // ── New game: a challenge with a link for the friend ──
+            // ── New game: a challenge with a link for the friend, or to a named player ──
             SectionCard {
                 visible: UserManager.lichessConnected
                 title: "Challenge a friend"
-                subtitle: "You get a link to send. The game starts when your friend opens it."
+                subtitle: "You get a link to send, or name a Lichess player to challenge them directly."
                 Layout.fillWidth: true
 
                 Label { text: "Time control"; color: Theme.textSecondary; font: Theme.caption }
                 ChoiceRow {
                     id: tcType
+                    checkedIndex: 1
                     options: [{ label: "Unlimited" }, { label: "Real time" }, { label: "Days per move" }]
                 }
-                // Real time: minutes + increment. Rapid and Classical only: an open challenge (a
-                // link) can't be Bullet or Blitz for a Board API player such as this app (LI-02).
-                ChoiceRow {
-                    id: tcPreset
-                    visible: tcType.checkedIndex === 1
-                    checkedIndex: 2
-                    options: [{ label: "10+0",  min: 10, inc: 0 },
-                              { label: "10+5",  min: 10, inc: 5 },
-                              { label: "15+10", min: 15, inc: 10 },
-                              { label: "30+0",  min: 30, inc: 0 },
-                              { label: "30+20", min: 30, inc: 20 }]
+                // Real time: an open challenge (a link) can't be Blitz for a Board API player such as
+                // this app, a challenge to a named player can. Bullet is never possible (LI-02).
+                TimeControlPicker {
+                    id: tcClock
+                    objectName: "challengeClock"
+                    visible: page._realTime
+                    online: true
+                    blitzAllowed: page._opponent !== ""
+                    limitSec: 900
+                    incSec: 10
+                    Layout.fillWidth: true
+                }
+                Label {
+                    visible: page._realTime && !tcClock.blitzAllowed
+                    text: "Blitz needs a Lichess username: Lichess allows it only in a direct challenge."
+                    color: Theme.textSecondary
+                    font: Theme.caption
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
                 }
                 // Correspondence: the days each player has for a move (Lichess's choices). Short
                 // labels, so the seven fit a narrow window.
@@ -282,6 +314,29 @@ Page {
                         color: Theme.textSecondary
                     }
                 }
+                Label {
+                    visible: page._perf !== undefined
+                    text: page._perf ? "Your " + page._mode + " rating: " + page._perf.rating + (page._perf.prov ? "?" : "") : ""
+                    font: Theme.bodyStrong
+                }
+
+                Label { text: "Lichess username (optional)"; color: Theme.textSecondary; font: Theme.caption }
+                TextField {
+                    id: opponentField
+                    objectName: "challengeOpponent"
+                    placeholderText: "Leave empty to get a link"
+                    maximumLength: 30
+                    Layout.fillWidth: true
+                    onAccepted: if (challengeButton.enabled) challengeButton.clicked()
+                }
+                Label {
+                    visible: !page._opponentValid
+                    text: "That isn't a Lichess username: 2 to 30 letters, digits, - or _."
+                    color: Theme.critical
+                    font: Theme.caption
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
 
                 Label { text: "Side"; color: Theme.textSecondary; font: Theme.caption }
                 ChoiceRow {
@@ -292,19 +347,13 @@ Page {
                 }
 
                 Button {
-                    text: "Create challenge"
-                    icon.source: Theme.icon("link")
+                    id: challengeButton
+                    text: page._named ? "Challenge " + page._opponent : "Create challenge"
+                    icon.source: page._named ? "" : Theme.icon("link")
                     highlighted: true
-                    enabled: !page._busy
+                    enabled: !page._busy && page._opponentValid && (!page._realTime || tcClock.ready)
                     Layout.topMargin: Theme.s1
-                    onClicked: {
-                        var preset = tcType.checkedIndex === 1 ? tcPreset.options[tcPreset.checkedIndex] : { min: 0, inc: 0 }
-                        var days = tcType.checkedIndex === 2 ? tcDays.options[tcDays.checkedIndex].days : 0
-                        // Standard only: Chess960 isn't playable here yet (LI-01).
-                        page._start(() => LichessClient.createOpenChallenge(preset.min, preset.inc,
-                                                                            side.options[side.checkedIndex].value,
-                                                                            "standard", days))
-                    }
+                    onClicked: page._challenge()
                 }
             }
 

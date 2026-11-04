@@ -369,6 +369,48 @@ namespace LichessTests
 			client.setToken({}); // no network call was made: nothing to clean up
 		}
 
+		// It goes into the URL of the challenge.
+		TEST_METHOD(IsUsername_Test)
+		{
+			Assert::IsTrue(LichessClient::isUsername("DrNykterstein"));
+			Assert::IsTrue(LichessClient::isUsername("a_b-3"));
+			Assert::IsTrue(LichessClient::isUsername("ab"));
+			Assert::IsTrue(LichessClient::isUsername(QString(30, 'x')));
+			Assert::IsFalse(LichessClient::isUsername(""));
+			Assert::IsFalse(LichessClient::isUsername("a"));
+			Assert::IsFalse(LichessClient::isUsername(QString(31, 'x')));
+			Assert::IsFalse(LichessClient::isUsername("two words"));
+			Assert::IsFalse(LichessClient::isUsername("../account"));
+			Assert::IsFalse(LichessClient::isUsername("name?x=1"));
+			Assert::IsFalse(LichessClient::isUsername("name\n"));
+			Assert::IsFalse(LichessClient::isUsername("open"), L"/api/challenge/open is another call");
+			Assert::IsFalse(LichessClient::isUsername("ai"), L"/api/challenge/ai is another call");
+		}
+
+		TEST_METHOD(NeedsKeepAlive_OnlyWithAClock_Test)
+		{
+			RematchInfo game;
+			Assert::IsFalse(LichessClient::needsKeepAlive(game), L"unlimited");
+			game.days = 3;
+			Assert::IsFalse(LichessClient::needsKeepAlive(game), L"correspondence");
+			game = {};
+			game.clockLimitSec = 300;
+			Assert::IsTrue(LichessClient::needsKeepAlive(game));
+			game = {};
+			game.clockIncrementSec = 1; // 0+1
+			Assert::IsTrue(LichessClient::needsKeepAlive(game));
+		}
+
+		// A bad name never reaches Lichess: the error comes at once.
+		TEST_METHOD(ChallengePlayer_BadName_ErrorWithoutARequest_Test)
+		{
+			LichessClient client;
+			QStringList errors;
+			QObject::connect(&client, &LichessClient::networkError, [&](QString message) { errors << message; });
+			client.challengePlayer("../account", 300, 3, 0, "random");
+			Assert::AreEqual(1, (int)errors.size());
+		}
+
 		TEST_METHOD(TimeLeftText_Units_Test)
 		{
 			Assert::AreEqual(QString("45 s"),   LichessClient::timeLeftText(45));

@@ -381,7 +381,8 @@ void LichessClient::cancelChallenge(const QString& challengeId)
         QByteArray());
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
-        emit challengeCanceled();
+        if (_currentGameId.isEmpty()) // else the player has started something new meanwhile
+            emit challengeCanceled();
     });
 }
 
@@ -865,18 +866,44 @@ void LichessClient::createRematch()
         challengeUser(_lastGame, color);
 }
 
+void LichessClient::challengePlayer(const QString& username, int limitSec, int incrementSec, int days, const QString& color)
+{
+    if (!isUsername(username)) { // it goes into the URL
+        emit networkError(QStringLiteral("That isn't a Lichess username"));
+        return;
+    }
+    RematchInfo game;
+    game.opponentId        = username;
+    game.opponentName      = username;
+    game.clockLimitSec     = limitSec;
+    game.clockIncrementSec = incrementSec;
+    game.days              = days;
+    challengeUser(game, color);
+}
+
+// static
+bool LichessClient::isUsername(const QString& text)
+{
+    static const QRegularExpression username(QRegularExpression::anchoredPattern(QStringLiteral("[a-zA-Z0-9_-]{2,30}")));
+    // /api/challenge/open and /api/challenge/ai are other calls.
+    return username.match(text).hasMatch() && text != QLatin1String("open") && text != QLatin1String("ai");
+}
+
 void LichessClient::challengeUser(const RematchInfo& game, const QString& color)
 {
     stopDirectChallenge();
+    _directOpponentName = game.opponentName;
 
     QUrlQuery body;
     addTimeControl(body, game.clockLimitSec, game.clockIncrementSec, game.days);
     body.addQueryItem(QStringLiteral("rated"),   QStringLiteral("false"));
     body.addQueryItem(QStringLiteral("color"),   color);
     body.addQueryItem(QStringLiteral("variant"), game.variant);
-    // Without keepAliveStream a direct challenge expires after 20 s. With it, the challenge
-    // lives while this request is open, and the server ends it with {"done":"accepted"|...}.
-    body.addQueryItem(QStringLiteral("keepAliveStream"), QStringLiteral("true"));
+    // With keepAliveStream the challenge lives while this request is open, and the server ends it
+    // with {"done":"accepted"|...}.
+    _directKeepAlive = needsKeepAlive(game);
+    if (_directKeepAlive)
+        body.addQueryItem(QStringLiteral("keepAliveStream"), QStringLiteral("true"));
 
     QNetworkRequest req = makeRequest(QStringLiteral("/api/challenge/") + game.opponentId);
     req.setRawHeader("Accept", "application/x-ndjson");
@@ -909,7 +936,7 @@ void LichessClient::challengeUser(const RematchInfo& game, const QString& color)
 
         if (httpFailed()) {
             stopWaitingForDirectChallenge();
-            emit networkError(QStringLiteral("Rematch challenge failed: ") + apiErrorMessage(rest, reply));
+            emit networkError(QStringLiteral("Challenge failed: ") + apiErrorMessage(rest, reply));
             return;
         }
         if (reply->error() == QNetworkReply::NoError)
@@ -926,7 +953,7 @@ void LichessClient::challengeUser(const RematchInfo& game, const QString& color)
         if (wasSent && reply->error() == QNetworkReply::NoError)
             emit challengeCanceled();
         else
-            emit networkError(QStringLiteral("Rematch challenge failed: ")
+            emit networkError(QStringLiteral("Challenge failed: ")
                               + (reply->error() == QNetworkReply::NoError
                                  ? QStringLiteral("no response from Lichess")
                                  : apiErrorMessage(rest, reply)));
@@ -956,7 +983,7 @@ void LichessClient::handleDirectChallengeLine(const QByteArray& line)
         // through cancelChallenge(), which stops this stream before the server answers.
         stopWaitingForDirectChallenge();
         if (done == QLatin1String("declined"))
-            emit challengeDeclined(_lastGame.opponentName);
+            emit challengeDeclined(_directOpponentName);
         else
             emit challengeCanceled();
         return;
@@ -971,8 +998,13 @@ void LichessClient::handleDirectChallengeLine(const QByteArray& line)
 
     // The game id is the challenge id. We are the challenger, so there is nothing to accept.
     _directChallengeId = id;
+    if (!_directKeepAlive) {
+        _directChallengeDone = true;
+        emit directChallengeLeft(_directOpponentName);
+        return;
+    }
     _currentGameId     = id;
-    emit directChallengeSent(id, _lastGame.opponentName);
+    emit directChallengeSent(id, _directOpponentName);
     waitForGameStart(id, false);
 }
 

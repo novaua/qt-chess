@@ -16,7 +16,7 @@ ApplicationWindow {
     // A Lichess challenge waiting for the opponent (challenge setup stays in QML, see CLAUDE.md).
     property string _pendingChallengeId:  ""
     property string _pendingChallengeUrl: ""
-    property string _pendingOpponentName: ""    // set for a direct (rematch) challenge
+    property string _pendingOpponentName: ""    // set for a challenge to a named player, which isn't saved
     property bool   _pendingRematch:      false // pending challenge is a rematch of the game on screen
 
     readonly property bool   _inGame:   ChessConnector.InGame
@@ -221,7 +221,8 @@ ApplicationWindow {
     }
 
     function clearPendingChallenge() {
-        UserManager.clearPendingChallenge()
+        if (_pendingOpponentName === "")   // else a saved link isn't this challenge's
+            UserManager.clearPendingChallenge()
         _pendingChallengeId  = ""
         _pendingChallengeUrl = ""
         _pendingOpponentName = ""
@@ -239,7 +240,7 @@ ApplicationWindow {
         sourceComponent: ScreenshotScene {
             window: root
             pages: stack
-            dialogs: ({ createUser: createUserDialog, restoreBackup: restoreBackupDialog, levels: levelsHelp,
+            dialogs: ({ challenge: challengeDialog, createUser: createUserDialog, restoreBackup: restoreBackupDialog, levels: levelsHelp,
                         computer: computerDialog, twoPlayer: twoPlayerDialog, leaveOnline: leaveOnlineDialog })
         }
     }
@@ -569,13 +570,19 @@ ApplicationWindow {
             _pendingChallengeId   = challengeId
             _pendingChallengeUrl  = ""
             _pendingOpponentName  = opponentName
-            _pendingRematch       = true
+            _pendingRematch       = ChessConnector.InGame
             challengeDialog.open()
         }
 
+        function onDirectChallengeLeft(opponentName) {
+            messageBar.show((ChessConnector.InGame ? "Rematch" : "Challenge") + " sent to " + opponentName
+                            + ". Once accepted, the game is under Your games on the Online page.", "success")
+        }
+
         function onChallengeDeclined(opponentName) {
+            const what = _pendingRematch ? "rematch" : "challenge"
             clearPendingChallenge()
-            messageBar.show(opponentName + " declined the rematch", "caution")
+            messageBar.show(opponentName + " declined the " + what, "caution")
         }
 
         // Back to the Online page, which is under the dialog (a rematch: the game page).

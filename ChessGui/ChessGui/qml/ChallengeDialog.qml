@@ -27,7 +27,7 @@ AppDialog {
         Label {
             visible: dialog._direct
             textFormat: Text.StyledText
-            text: "Rematch challenge sent to <b>" + dialog.opponentName + "</b> on Lichess. "
+            text: (dialog.isRematch ? "Rematch challenge" : "Challenge") + " sent to <b>" + dialog.opponentName + "</b> on Lichess. "
                 + "They can accept it from their Lichess notifications."
             wrapMode: Text.WordWrap
             Layout.fillWidth: true

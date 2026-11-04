@@ -80,7 +80,8 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 		] })").object());
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
-	                  "online", "online-empty", "continue", "continue-online", "takeback", "clock-online", "clock-correspondence" }.contains(scene))
+	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online", "takeback",
+	                  "clock-online", "clock-correspondence" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -186,7 +187,7 @@ int main(int argc, char* argv[])
 		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "game", "leave-online", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
-		"takeback", "clock", "clock-low", "clock-flag", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence"
+		"takeback", "clock", "clock-low", "clock-flag", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
