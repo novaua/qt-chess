@@ -38,7 +38,7 @@ Item {
         }
         // A second profile to play against: same names and avatars every time.
         var gameScene = ["game", "leave-online", "continue", "review", "result", "ended", "moves", "select", "drag", "slides",
-                         "clock", "clock-low", "clock-flag", "clock-promotion", "clock-continue", "stalemate"].includes(name)
+                         "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate"].includes(name)
         if ((gameScene || name.startsWith("players")) && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -85,10 +85,13 @@ Item {
                                   result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4",
                                   clock: "e2e4 e7e5 g1f3", "clock-low": "e2e4 e7e5 g1f3", "clock-flag": "e2e4 e7e5",
                                   "clock-continue": "e2e4 e7e5", "clock-promotion": "a2a4 b7b5 a4b5 a7a6 b5a6 c8b7 a6b7 d8c8",
+                                  // White takes everything: Black has a lone king, so White's flag is a draw.
+                                  "clock-flag-draw": "e2e4 b7b5 f1b5 h7h5 d1h5 c8a6 b5a6 d8c8 h5h8 f7f6 h8g7 c7c6 a6c8 e8d8 c8d7 a7a6 "
+                                                   + "g7f8 d8c7 f8f6 c7b7 f6e7 a6a5 d7c6 b7c8 c6a8 b8c6 a8c6 g8f6 e7f6 a5a4 c6a4 c8b7",
                                   stalemate: "e2e3 a7a5 d1h5 a8a6 h5a5 h7h5 h2h4 a6h6 a5c7 f7f6 c7d7 e8f7 d7b7 d8d3 "
                                            + "b7b8 d3h7 b8c8 f7g6" })[name] ?? ""
             // White's and Black's time: time stands still in this mode, so a scene sets what it shows.
-            var clockTimes = ({ clock: [171000, 163000], "clock-low": [41000, 8450], "clock-flag": [0, 120000],
+            var clockTimes = ({ clock: [171000, 163000], "clock-low": [41000, 8450], "clock-flag": [0, 120000], "clock-flag-draw": [0, 120000],
                                 "clock-promotion": [30000, 120000], "clock-continue": [95000, 62000] })[name]
             var limitSec = clockTimes ? 180 : 0
             var incSec = clockTimes ? 2 : 0

@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-03 |
-| **Status** | In progress: steps 1 to 4 done |
+| **Status** | Coded: all steps done. Hand tests open: [`LI-02-ManualTests.md`](LI-02-ManualTests.md) |
 | **Branch** | `li02Plan_031126` (plan); each step on its own branch from `develop` |
 
 ## Context

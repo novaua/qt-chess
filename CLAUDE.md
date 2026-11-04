@@ -29,9 +29,9 @@ vstest.console.exe x64\Debug\ChessTests.dll
 vstest.console.exe x64\Debug\ChessQtTests.dll
 ```
 
-- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`). Plain C++, no Qt.
+- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`, `MatingMaterialTests.cpp`). Plain C++, no Qt.
 - `ChessQtTests/` — the Qt parts: `UciConnectorTest.cpp` (UCI protocol), `ChessEnginePlayerTest.cpp`, `LichessClientTest.cpp`, `BoardPiecesTest.cpp`,
-  `MoveListModelTest.cpp`, `UserManagerTest.cpp`. Needs Qt's `bin` on `PATH`; the engine tests need Stockfish.
+  `MoveListModelTest.cpp`, `UserManagerTest.cpp`, `GameClockTest.cpp`. Needs Qt's `bin` on `PATH`; the engine tests need Stockfish.
 
 ## Seeing the UI
 
@@ -80,6 +80,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
 - **`boardpieces.h/cpp`** — `BoardPieces`, the pieces model behind `ChessConnector.Pieces`: one row per piece that keeps its id while it moves (`BoardDiff`), so the board can slide it
 - **`movelistmodel.h/cpp`** — `MoveListModel`, the move list behind `ChessConnector.MoveHistory`: one row per move number, and a move changes only its row instead of rebuilding the list
 - **`movegate.h/cpp`** — `MoveGate`, which holds the moves from outside (the robot's answer, the Lichess opponent's) and releases them one at a time when the board is idle (a Lichess resync of more than two: all at once); `ChessConnector` owns one, `GamePage` reports the board settled and the slide time
+- **`gameclock.h/cpp`** — `GameClock` (`ChessConnector.Clock`), the two clocks of a game, as on lichess.org: `ChessConnector` drives it with `moveMade()` in a local game, Lichess's times come with `setSnapshot()` and never flag here, and a correspondence game shows the time left for the move (LI-02). `Board::CanMate` decides whether a flag loses or draws
 - **`frametrace.h/cpp`** — `FrameTrace`, frame timing in the app log, off unless `QT_LOGGING_RULES="chess.frames.debug=true"` (BL-14)
 - **`UserManager`**, **`LichessClient`** (LiChessConnector project; `ongoingGames`: the unfinished Lichess games, LI-04), **`AvatarProvider`**, **`AppInfo`** (version, data/log folders, the engine's name) — app services without chess logic, also visible to QML (see Key Conventions)
 - QML files in `ChessGui/ChessGui/qml/`:
@@ -87,16 +88,16 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
     `ProfilePickerPage`, `HomePage`, `GamePage`; `route()` picks it from `UserManager` and
     `ChessConnector.InGame`), with `ProfilePage` or `SettingsPage` pushed over Home or the game, `OnlinePage` over Home; the
     InfoBars and every dialog. Pages ask for dialogs through signals.
-  - `HomePage.qml` (account menu, Continue: the robot's autosaved game first, else the unfinished Lichess games on the Online page; action cards), `OnlinePage.qml` (pushed by "Play online": the unfinished Lichess games as `BoardPreview` cards with Continue, a new challenge, join by link; LI-04), `GamePage.qml` (command bar, board between
+  - `HomePage.qml` (account menu, Continue: the robot's autosaved game first, else the unfinished Lichess games on the Online page; action cards), `OnlinePage.qml` (pushed by "Play online": the unfinished Lichess games as `BoardPreview` cards with Continue, a new challenge (a link, or to a named Lichess player, the only way to play Blitz), join by link; LI-04), `GamePage.qml` (command bar, board between
     two `PlayerCard`s with a `CapturedStrip` and "+N", the moves (`MovesPanel` + `MoveList`) beside
     the board or in a bottom sheet, `ResultCard` over the board)
   - `ChessBoard.qml` — the board: one geometry for all layers (`squareX/Y`, `squareAt`, a1 bottom left; turned for Black by `rotation`), the click `TapHandler`, the drag state (`dragFrom`, `dragPoint`, `dropSquare`) and the dragged piece under the pointer, coordinates, promotion dialog
   - `ChessFigures.qml` — the pieces, one item per row of `ChessConnector.Pieces` on its square; it slides when the square changes, a captured one fades out; a `DragHandler` per piece of the side to move (drop → `ChessConnector.movePiece`)
   - `ChessBoxes.qml` — the squares and their highlights (last move, check, flagged king, selected piece); `NavigationLayer.qml` — the legal-move dots
   - Shared: `Theme.qml` and `AppSettings.qml` (singletons; `AppSettings` is the QtCore `Settings` with the
-    app's own options), `SettingRow`, `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`, `SectionCard`, `AvatarPicker`, `FocusRing` (keyboard focus outline for custom-drawn items)
+    app's own options), `SettingRow`, `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`, `SectionCard`, `AvatarPicker`, `TimeControlPicker` (the clock tiles of the setup dialogs and the challenge card), `FocusRing` (keyboard focus outline for custom-drawn items)
   - Tooling: `ScreenshotScene` (the `--screenshot` scenes; loaded only in that mode, keep debug/test helpers there, not in the pages)
-  - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog`, `ChallengeDialog` (a Lichess challenge waiting for the friend), `LeaveOnlineDialog` (Leave / Resign / Stay when leaving or closing during a running Lichess game); profiles: `CreateUserDialog`, `ImportConflictDialog`, `RestoreBackupDialog`
+  - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog`, `ChallengeDialog` (a Lichess challenge waiting for the friend or a named player), `LeaveOnlineDialog` (Leave / Resign / Stay when leaving or closing during a running Lichess game); profiles: `CreateUserDialog`, `ImportConflictDialog`, `RestoreBackupDialog`
 - `UserManager` keeps `users.json` (atomic `QSaveFile` writes, `backups/users-1..3.json`), statistics
   per opponent, profile export/import (`.chessprofile`, never the Lichess token) and the Lichess
   sign-in (`LichessAuth`), so the token never reaches QML. Its tests are in `ChessQtTests/UserManagerTest.cpp`.
