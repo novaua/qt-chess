@@ -78,7 +78,10 @@ Page {
     Timer {
         id: openTimer
         interval: 1000
-        onTriggered: page._openSecondPassed = true
+        onTriggered: {
+            ChessConnector.pageOpened()   // before a held move plays
+            page._openSecondPassed = true
+        }
     }
     Connections {
         target: Theme

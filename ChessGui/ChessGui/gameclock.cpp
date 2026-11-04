@@ -46,6 +46,7 @@ void GameClock::start(qint64 limitMs, qint64 incrementMs, bool localFlag)
 void GameClock::stop()
 {
 	_enabled = false;
+	_flagged = false; // the next game may have no clock: its Undo must work
 	_running = Side::None;
 	_timer.stop();
 	tick();
@@ -70,6 +71,18 @@ void GameClock::setTurn(bool whiteToMove, int ply)
 	commit(_clock());
 	_running = ply >= 2 ? (whiteToMove ? Side::White : Side::Black) : Side::None;
 	tick();
+}
+
+// Undo vs the robot needs nobody's consent, so the time spent isn't given back as on Lichess: that
+// would be free thinking time. The increment goes, or a move and Undo over and over would add time
+// for ever. Not below the last second: an Undo shouldn't lose the game by itself.
+void GameClock::moveTakenBack(bool whiteMoved, int ply)
+{
+	if (!_enabled || ply < 3) // the first two moves got no increment
+		return;
+	commit(_clock());
+	qint64& ms = stored(whiteMoved);
+	ms = std::max(ms - _incrementMs, std::min(ms, SecondMs));
 }
 
 void GameClock::setSnapshot(qint64 whiteMs, qint64 blackMs, bool whiteToMove, bool running)
@@ -124,7 +137,10 @@ qint64 GameClock::lowTimeMs() const
 
 qint64 GameClock::moveBudgetMs(bool white) const
 {
-	return _enabled ? std::max<qint64>(100, remainingMs(white) / 30 + _incrementMs / 2) : 0;
+	if (!_enabled)
+		return 0;
+	const qint64 left = remainingMs(white);
+	return std::max<qint64>(1, std::min(left / 2, std::max<qint64>(100, left / 30 + _incrementMs / 2)));
 }
 
 void GameClock::commit(qint64 now)

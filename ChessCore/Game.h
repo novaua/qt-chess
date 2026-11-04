@@ -73,6 +73,7 @@ namespace Chess
 		bool IsWhiteMove();
 		bool IsCheckMate() const { return _checkMate; } // the last move mated
 		bool IsInCheck();                               // the side to move is in check
+		bool IsStalemate();                             // the side to move isn't in check and has no legal move
 		int GetMoveCount();
 		int GetHalfMovesCount();
 

@@ -174,6 +174,10 @@ Rectangle {
     Connections {
         target: ChessConnector
         function onPawnPromotionNotify(index, side) { showPawnPromotionOptions(index, side) }
+        function onPawnPromotionCancelled() {
+            loader.opacity = 0
+            loader.source = ""
+        }
     }
 
     NavigationLayer{

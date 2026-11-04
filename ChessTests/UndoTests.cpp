@@ -38,6 +38,11 @@ static void CheckUndoOfLastMove(const std::vector<std::string>& moves)
 
 TEST_CLASS(UndoTests) {
 public:
+    // The time ran out while the piece was being chosen (LI-02): the pawn goes back, the rook returns.
+    TEST_METHOD(Promotion_BeforeThePieceIsChosen)
+    {
+        CheckUndoOfLastMove({ "a2a4", "b7b5", "a4b5", "a7a6", "b5a6", "c8b7", "a6b7", "d8c8", "b7a8" });
+    }
 
     TEST_METHOD(QuietMove) {
         CheckUndoOfLastMove({ "e2e4" });

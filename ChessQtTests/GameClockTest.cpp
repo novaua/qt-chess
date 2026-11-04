@@ -197,6 +197,57 @@ namespace GameClockTests
 			Assert::IsFalse(_clock.whiteRunning() || _clock.blackRunning());
 		}
 
+		// A move and Undo over and over must not add time: the increment goes, the time spent stays spent.
+		TEST_METHOD(MoveTakenBack_TheIncrementGoes)
+		{
+			_clock.start(60000, 5000);
+			_clock.moveMade(true, 1);
+			_clock.moveMade(false, 2);
+			passMs(1000);
+			_clock.moveMade(true, 3);  // 59 s + 5 s
+			passMs(2000);
+			_clock.moveMade(false, 4); // 58 s + 5 s
+			_clock.moveTakenBack(false, 4);
+			_clock.moveTakenBack(true, 3);
+			_clock.setTurn(true, 2);
+			Assert::AreEqual(qint64(59000), _clock.remainingMs(true));
+			Assert::AreEqual(qint64(58000), _clock.remainingMs(false));
+		}
+
+		TEST_METHOD(MoveTakenBack_TheFirstTwoMovesGotNone)
+		{
+			_clock.start(60000, 5000);
+			_clock.moveMade(true, 1);
+			_clock.moveMade(false, 2);
+			_clock.moveTakenBack(false, 2);
+			_clock.moveTakenBack(true, 1);
+			Assert::AreEqual(qint64(60000), _clock.remainingMs(true));
+			Assert::AreEqual(qint64(60000), _clock.remainingMs(false));
+		}
+
+		// The increment had saved the player, the time is nearly gone again: Undo doesn't flag.
+		TEST_METHOD(MoveTakenBack_LeavesTheLastSecond)
+		{
+			_clock.start(60000, 5000);
+			_clock.setSnapshot(3000, 60000, true, false);
+			_clock.moveTakenBack(true, 3);
+			Assert::AreEqual(qint64(1000), _clock.remainingMs(true));
+			_clock.setSnapshot(400, 60000, true, false);
+			_clock.moveTakenBack(true, 3);
+			Assert::AreEqual(qint64(400), _clock.remainingMs(true));
+			Assert::IsTrue(_flags.empty());
+		}
+
+		// The flag belongs to the game that ended: a next game without a clock must have its Undo.
+		TEST_METHOD(Stop_ForgetsTheFlag)
+		{
+			_clock.start(60000, 0);
+			_clock.setSnapshot(0, 60000, true, true);
+			Assert::IsTrue(_clock.timeUp());
+			_clock.stop();
+			Assert::IsFalse(_clock.timeUp());
+		}
+
 		// Lichess: an eighth of the start time, at least 10 s, at most 60 s; below a minute a fifth,
 		// at least 2 s.
 		TEST_METHOD(LowTime_Line)
@@ -260,6 +311,11 @@ namespace GameClockTests
 			_clock.start(60000, 0);
 			_clock.setSnapshot(1500, 60000, true, true);
 			Assert::AreEqual(qint64(100), _clock.moveBudgetMs(true));
+			_clock.setSnapshot(120, 60000, true, true);
+			Assert::AreEqual(qint64(60), _clock.moveBudgetMs(true)); // the 0.1 s must not flag it
+			_clock.start(120000, 1000);
+			_clock.setSnapshot(300, 60000, true, true);
+			Assert::AreEqual(qint64(150), _clock.moveBudgetMs(true)); // nor the increment it hasn't got yet
 		}
 
 		TEST_METHOD(Changed_WhenTheShownTimeChanges)

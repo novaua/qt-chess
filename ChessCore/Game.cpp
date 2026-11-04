@@ -334,6 +334,16 @@ namespace Chess
 		return check.IsInCheck(IsWhiteMove() ? PieceColors::Light : PieceColors::Dark);
 	}
 
+	bool Game::IsStalemate()
+	{
+		if (IsInCheck())
+			return false;
+		for (int i = 0; i < 64; ++i)
+			if (!GetAllowedMoves(i).empty())
+				return false;
+		return true;
+	}
+
 	bool Game::IsWhiteMove()
 	{
 		auto isEven = GetMoveCount() % 2 == 0;

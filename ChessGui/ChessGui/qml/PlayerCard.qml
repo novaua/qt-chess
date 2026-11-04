@@ -126,12 +126,12 @@ Rectangle {
             }
         }
 
-        // The clock, as on Lichess: lit while it runs, red when low. As wide as the widest time, so it
+        // The clock, as on Lichess: lit while it runs, red when low. At least as wide as 00:00.0, so it
         // doesn't jump at 10 s; the name gives way on a narrow card.
         Rectangle {
             visible: card.clockText !== ""
             Layout.preferredHeight: 40
-            Layout.minimumWidth: clockMetrics.width + 2 * Theme.s2
+            Layout.minimumWidth: Math.max(clockMetrics.width, clockLabel.implicitWidth) + 2 * Theme.s2
             Layout.preferredWidth: Layout.minimumWidth
             radius: Theme.radiusAvatar
             color: card.clockLow ? Theme.criticalBg : card.clockRunning ? Theme.selectedBg : "transparent"

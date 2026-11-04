@@ -171,6 +171,7 @@ signals:
 
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
+	void pawnPromotionCancelled(); // the time ran out while the piece was being chosen
 
 	void noSavedGame();
 	void savedOk();
@@ -195,6 +196,7 @@ public slots:
 	Q_INVOKABLE void setScreenshotClock(int whiteMs, int blackMs); // --screenshot: the times to show; the side to move runs
 	// The game page has settled (open for a second, the board not turning): a held move may show.
 	Q_INVOKABLE void setBoardSettled(bool settled);
+	Q_INVOKABLE void pageOpened(); // the game page has been open for a second: a continued game's clock starts
 	// Theme.slow, or 0 with Reduce animations: how long a piece slides.
 	Q_INVOKABLE void setMoveTiming(int slideMs);
 	// The gate: the page has settled, it shows the live position, and no move waits to be shown.
@@ -257,6 +259,8 @@ private:
 	void setPendingOffer(const QString& offer);
 	void setOpponentGone(bool gone, int claimWinInSeconds = -1);
 	void flagKing(bool white); // mark that side's king as the loser (resign / time)
+	void endGameWithLoser(bool white, const QString& result, const QString& text); // mate, resignation, time
+	void dropRobotAnswer();    // on its way or waiting in the gate: nothing waits for it any more
 	QString sideName(bool white) const; // who plays that colour
 	QStringList capturedPieces(Chess::PieceColors capturedColor) const;
 	const Chess::MovesHistory& shownHistory() const; // the saved game in replay, else the game record
@@ -268,7 +272,6 @@ private:
 	void schedulePiecesSync();  // update Pieces once, after the current change is complete
 	void onHumanMoveDone();
 	void localMoveOnBoard(); // a move of a local game is on the board: a stalemate, or the other clock runs
-	bool isStalemate() const; // the side to move has no legal move (Game only reports a mate)
 	void startClock();        // a new or continued local game: _clockLimitSec and _clockIncSec
 	void playRobotMove(const QString& uciMove); // the gate released it: play it on the GUI thread
 	void onGateRelease(const QString& uciMove, MoveGate::Source source);
@@ -277,7 +280,7 @@ private:
 	void playOnlineMoves(const QStringList& uciMoves); // the gate released them: play them
 	int  playMoves(const QStringList& uciMoves);       // on the game, then history and counters; how many were played
 	void afterHeldMoves(std::function<void()> action); // now, or once the opponent's held moves are shown
-	void showHeldOnlineMoves(); // entering the review of an online game: play the held moves now
+	void showHeldMoves(); // entering the review of a game on a clock: play the held moves now
 	void emitBoardState(); // after _reviewIndex changed
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
 	void buildFullHistoryCache();

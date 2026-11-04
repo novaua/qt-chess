@@ -31,6 +31,7 @@ public:
 	void stop();                                 // no clock (a game without one, or leaving the game)
 	void moveMade(bool whiteMoved, int ply);     // ply: the moves played, this one included
 	void setTurn(bool whiteToMove, int ply);     // e.g. after a takeback: the side to move runs from ply 2; not after a flag
+	void moveTakenBack(bool whiteMoved, int ply); // before setTurn(), per move: its increment goes, the time spent stays spent
 	void setSnapshot(qint64 whiteMs, qint64 blackMs, bool whiteToMove, bool running); // Lichess's times, or a saved game's
 	void setLowTimeSides(bool white, bool black); // whose low time is announced (lowTime()): the player's own
 	void pause();                                // e.g. the game is over, or Continue before the page settles; local games only: Lichess's time goes on
@@ -41,8 +42,8 @@ public:
 	qint64 incrementMs() const { return _incrementMs; }
 	qint64 remainingMs(bool white) const { return remainingMs(white, _clock()); }
 	qint64 lowTimeMs() const; // Lichess's: an eighth of the start time, 10 s to 60 s (a fifth, from 2 s, below a minute)
-	// The robot's thinking time on this clock: a thirtieth of what's left plus half the increment,
-	// at least 0.1 s, so it can't flag in Bullet. 0: no clock.
+	// The robot's thinking time on this clock: a thirtieth of what's left plus half the increment, at
+	// least 0.1 s, but never more than half of what's left. 0: no clock.
 	qint64 moveBudgetMs(bool white) const;
 	bool   timeUp() const { return _flagged; } // a local game: a side has flagged
 	bool   isLow(bool white) const { return low(remainingMs(white)); }
