@@ -48,8 +48,69 @@ namespace GameClockTests
 			areEqual("00:00.0", GameClock::format(-30));
 			areEqual("01:30:00", GameClock::format(90 * 60000));
 			areEqual("23:59:59", GameClock::format(86399999));
-			areEqual("1 day", GameClock::format(86400000));
-			areEqual("3 days", GameClock::format(3 * 86400000LL + 5000));
+		}
+
+		// corresClockView.ts: days and hours, then hours and minutes, then minutes and seconds.
+		TEST_METHOD(FormatCorrespondence_AsLichess)
+		{
+			const qint64 hour = 3600000;
+			areEqual("3 days", GameClock::formatCorrespondence(72 * hour));
+			areEqual("2 days 23 hours", GameClock::formatCorrespondence(72 * hour - 1));
+			areEqual("2 days 1 hour", GameClock::formatCorrespondence(49 * hour));
+			areEqual("One day", GameClock::formatCorrespondence(24 * hour));
+			areEqual("One day 5 hours", GameClock::formatCorrespondence(29 * hour));
+			areEqual("23:59", GameClock::formatCorrespondence(24 * hour - 1));
+			areEqual("05:30", GameClock::formatCorrespondence(5 * hour + 1800000));
+			areEqual("01:00", GameClock::formatCorrespondence(hour));
+			areEqual("59:59", GameClock::formatCorrespondence(hour - 1));
+			areEqual("00:09", GameClock::formatCorrespondence(9400)); // no tenths
+			areEqual("00:00", GameClock::formatCorrespondence(0));
+		}
+
+		// Runs from the start, never low, no sound, and Lichess ends the game.
+		TEST_METHOD(Correspondence_RunsFromTheStart_NeverLow)
+		{
+			_clock.setLowTimeSides(true, true);
+			_clock.startCorrespondence(3 * 86400000LL);
+			areEqual("3 days", _clock.whiteText());
+			_clock.setSnapshot(30000, 3 * 86400000LL, true, true);
+			Assert::IsTrue(_clock.whiteRunning());
+			Assert::IsFalse(_clock.whiteLow());
+			passMs(30000);
+			areEqual("00:00", _clock.whiteText());
+			Assert::IsTrue(_lowTimes.empty());
+			Assert::IsTrue(_flags.empty());
+		}
+
+		TEST_METHOD(Correspondence_MoveSwitchesTheClock_EvenTheFirst)
+		{
+			_clock.startCorrespondence(86400000);
+			_clock.moveMade(true, 1);
+			Assert::IsTrue(_clock.blackRunning());
+			_clock.setTurn(true, 0);
+			Assert::IsTrue(_clock.whiteRunning());
+		}
+
+		// The timer wakes when the text changes: an hour, a minute, a second.
+		TEST_METHOD(Correspondence_WakesWhenTheTextChanges)
+		{
+			_clock.startCorrespondence(3 * 86400000LL);
+			_clock.setSnapshot(2 * 86400000LL + 1800000, 0, true, true);
+			Assert::AreEqual(qint64(1800001), _clock.nextTickMs());
+			_clock.setSnapshot(3600000 + 20000, 0, true, true);
+			Assert::AreEqual(qint64(20001), _clock.nextTickMs());
+			_clock.setSnapshot(1500, 0, true, true);
+			Assert::AreEqual(qint64(501), _clock.nextTickMs());
+		}
+
+		// A new real-time game after a correspondence one is an ordinary clock again.
+		TEST_METHOD(Start_AfterCorrespondence)
+		{
+			_clock.startCorrespondence(86400000);
+			_clock.start(60000, 0, false);
+			areEqual("01:00", _clock.whiteText());
+			_clock.moveMade(true, 1);
+			Assert::IsFalse(_clock.blackRunning());
 		}
 
 		TEST_METHOD(NoClock_ShowsNothing)

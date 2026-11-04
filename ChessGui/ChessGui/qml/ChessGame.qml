@@ -509,7 +509,8 @@ ApplicationWindow {
     Connections {
         target: ChessConnector.Clock
         function onLowTime() {
-            if (AppSettings.musicEnabled)
+            // Not while the game page opens: a Lichess game rejoined with little time left.
+            if (AppSettings.musicEnabled && stack.currentItem._openSecondPassed !== false)
                 sndLowTime.play()
         }
     }

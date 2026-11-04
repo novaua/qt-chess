@@ -4,6 +4,28 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-04 — LI-02 step 3: the Lichess clock (branch: lichessClock_041126)
+
+### What was done
+- **The stream**: `LichessClient` now reads the clock: `clockStarted(limitMs, incrementMs, correspondence)` after `gameStarted`, `clockUpdated(whiteMs, blackMs, whiteToMove, running)` after the moves of every gameFull and gameState. A real-time clock runs from the second move, and the state that ends the game stops it with the final times.
+- **Our move** switches the clock at once (`moveOnBoard()`, was `localMoveOnBoard()`), and Lichess's next state brings the exact times. A state without our sent move yet is older than our board, so it's skipped.
+- **A takeback or a refused move**: the list is replaced as before, and the clock goes back to the side to move without its increment. No state follows a refused move.
+- **Low time**: our own side only. Rejoining with little time left says nothing while the page opens (the rule that sounds wait for the page); checked in a throwaway run.
+- **Correspondence**: the plan's question is answered from Lichess's source (`BotJsonView.scala`): `wtime` and `btime` are the time left for the move, so `secondsLeft` isn't needed. A game with no clock at all sends the largest int, which is ignored. `GameClock::startCorrespondence()` runs from the start, is never low and makes no sound, as `corresClockView.ts`.
+- **Correspondence format differs from the plan**: Lichess shows `2 days 5 hours`, `One day`, `05:30` (hours and minutes), `45:10`, without tenths. `formatCorrespondence()` follows it; `format()` no longer knows days.
+- **Scenes**: `clock-online` (the opponent low, our clock lit), `clock-correspondence`.
+- **Tests**: 5 in `GameClockTest`, 8 in `LichessClientTest`. Release builds; ChessTests + ChessQtTests **286 pass**. All other scenes unchanged.
+
+### Not checked yet
+- Nothing has run against the real Lichess: step 5's hand tests. Open there: does Lichess end a flagged game by itself (the Board API has no flag call; until then the clock stays at `00:00.0`), and how far the shown time drifts from Lichess's.
+- Our move switching the clock has no test: `ChessConnector` has none, and a scene can't make a move without the network.
+- `players` failed once in a full run (a shift of about a pixel), then passed 6 of 6.
+
+### Next
+- Step 4: the challenge card.
+
+---
+
 ## 2026-11-04 — LI-02 step 2: clocks in local and robot games (branch: localClocks_031126)
 
 ### What was done

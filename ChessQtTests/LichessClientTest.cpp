@@ -404,6 +404,131 @@ namespace LichessTests
 			Assert::AreEqual(QString("end mate black"), events[1]);
 		}
 
+		// The clock (LI-02): what the stream sends, in the order the connector needs it.
+		struct ClockEvents {
+			QStringList events;
+			explicit ClockEvents(LichessClient& client) {
+				QObject::connect(&client, &LichessClient::gameStarted, [this] { events << "started"; });
+				QObject::connect(&client, &LichessClient::clockStarted, [this](qint64 limit, qint64 inc, bool days) {
+					events << QString("clock %1 %2 %3").arg(limit).arg(inc).arg(days ? "days" : "real");
+				});
+				QObject::connect(&client, &LichessClient::opponentMoveReceived, [this](QString moves) { events << "move " + moves; });
+				QObject::connect(&client, &LichessClient::clockUpdated, [this](qint64 white, qint64 black, bool whiteToMove, bool running) {
+					events << QString("times %1 %2 %3 %4").arg(white).arg(black).arg(whiteToMove ? "w" : "b").arg(running ? "running" : "stopped");
+				});
+				QObject::connect(&client, &LichessClient::gameEnded, [this](QString status, QString) { events << "end " + status; });
+			}
+		};
+
+		static void areEqual(const QStringList& expected, const QStringList& actual)
+		{
+			Assert::AreEqual(expected.join(" | ").toStdWString(), actual.join(" | ").toStdWString());
+		}
+
+		TEST_METHOD(GameStream_Clock_StartedBeforeTheMoves_TimesAfter_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			ClockEvents clock(client);
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"clock":{"initial":600000,"increment":5000},
+				"state":{"moves":"e2e4 e7e5 g1f3","wtime":590000,"btime":575000,"status":"started"}})");
+			areEqual({ "started", "clock 600000 5000 real", "move e2e4 e7e5 g1f3", "times 590000 575000 b running" }, clock.events);
+		}
+
+		// Lichess starts the clocks once both sides have moved.
+		TEST_METHOD(GameStream_Clock_RunsFromThe2ndPly_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			ClockEvents clock(client);
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"clock":{"initial":600000,"increment":0},
+				"state":{"moves":"","wtime":600000,"btime":600000,"status":"started"}})");
+			client.trackSentMove("e2e4");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4","wtime":600000,"btime":600000,"status":"started"})");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5","wtime":600000,"btime":600000,"status":"started"})");
+			areEqual({ "started", "clock 600000 0 real", "times 600000 600000 w stopped", "times 600000 600000 b stopped",
+			           "move e7e5", "times 600000 600000 w running" }, clock.events);
+		}
+
+		// Our move is on our board and switched our clock: a state from before it must not switch back.
+		TEST_METHOD(GameStream_Clock_StateWithoutOurSentMove_Ignored_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"clock":{"initial":600000,"increment":0},
+				"state":{"moves":"e2e4 e7e5","wtime":600000,"btime":600000,"status":"started"}})");
+			ClockEvents clock(client);
+			client.trackSentMove("g1f3");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5","wtime":599000,"btime":600000,"status":"started","bdraw":true})");
+			Assert::IsTrue(clock.events.isEmpty());
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 g1f3","wtime":598000,"btime":600000,"status":"started"})");
+			areEqual({ "times 598000 600000 b running" }, clock.events);
+		}
+
+		// An accepted takeback: the list first, then the times of the position it leaves.
+		TEST_METHOD(GameStream_Clock_AfterATakeback_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"clock":{"initial":600000,"increment":0},
+				"state":{"moves":"e2e4 e7e5 g1f3","wtime":600000,"btime":600000,"status":"started"}})");
+			ClockEvents clock(client);
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5","wtime":590000,"btime":580000,"status":"started"})");
+			areEqual({ "times 590000 580000 w running" }, clock.events);
+		}
+
+		// The state that ends the game: its last move, its final times, stopped, then the end.
+		TEST_METHOD(GameStream_Clock_StopsAtTheEnd_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"clock":{"initial":600000,"increment":0},
+				"state":{"moves":"e2e4 e7e5","wtime":120,"btime":600000,"status":"started"}})");
+			ClockEvents clock(client);
+			client.trackSentMove("g1f3"); // on its way when the time ran out
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5","wtime":0,"btime":600000,"status":"outoftime","winner":"black"})");
+			areEqual({ "times 0 600000 w stopped", "end outoftime" }, clock.events);
+		}
+
+		TEST_METHOD(GameStream_Clock_FinishedGame_Stopped_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			ClockEvents clock(client);
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"clock":{"initial":600000,"increment":0},
+				"state":{"moves":"e2e4 e7e5","wtime":400000,"btime":300000,"status":"resign","winner":"black"}})");
+			areEqual({ "started", "clock 600000 0 real", "move e2e4 e7e5", "times 400000 300000 w stopped", "end resign" }, clock.events);
+		}
+
+		// BotJsonView.scala: wtime and btime are the time left for the move, and it runs from the start.
+		TEST_METHOD(GameStream_Clock_Correspondence_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			ClockEvents clock(client);
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},"daysPerTurn":14,
+				"state":{"moves":"","wtime":1209000000,"btime":1209600000,"status":"started"}})");
+			areEqual({ "started", "clock 1209600000 0 days", "times 1209000000 1209600000 w running" }, clock.events);
+		}
+
+		// No clock at all: Lichess sends the largest int, which isn't a time.
+		TEST_METHOD(GameStream_NoClock_NoTimes_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			ClockEvents clock(client);
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4 e7e5","wtime":2147483647,"btime":2147483647,"status":"started"}})");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 g1f3","wtime":2147483647,"btime":2147483647,"status":"started"})");
+			areEqual({ "started", "move e2e4 e7e5", "move g1f3" }, clock.events);
+		}
+
 		TEST_METHOD(GameStream_GameFull_ResyncsAllMovesInOneSignal_Test)
 		{
 			LichessClient client;

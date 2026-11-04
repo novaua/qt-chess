@@ -136,7 +136,7 @@ Item {
             }
         }
 
-        if (name === "takeback") {
+        if (["takeback", "clock-online", "clock-correspondence"].includes(name)) {
             ChessConnector.screenshotSceneSetUp()   // main.cpp feeds the Lichess game and says when the board is ready
             return
         }

@@ -8,7 +8,8 @@
 // LI-02 (docs/LI-02-ClockPlan.md): the two clocks of a game, as on lichess.org. A local game (two
 // players, vs Robot) drives it with moveMade(); a Lichess game sets Lichess's times with setSnapshot()
 // and never flags here (Lichess ends the game). The clock runs only after both sides have moved,
-// and a move adds the increment to the mover's time if their clock was running.
+// and a move adds the increment to the mover's time if their clock was running. A correspondence
+// game's clock is the time left for the move: it runs from the start, is never low, and shows days.
 // ChessConnector owns one; QML shows the texts on the player cards.
 class GameClock : public QObject
 {
@@ -28,6 +29,7 @@ public:
 	// A new game with a clock: both sides get limitMs, nothing runs yet. localFlag: flagged() is
 	// emitted when a side's time is up (a local game); a Lichess game waits for Lichess instead.
 	void start(qint64 limitMs, qint64 incrementMs, bool localFlag = true);
+	void startCorrespondence(qint64 perMoveMs);  // a Lichess game with days per move
 	void stop();                                 // no clock (a game without one, or leaving the game)
 	void moveMade(bool whiteMoved, int ply);     // ply: the moves played, this one included
 	void setTurn(bool whiteToMove, int ply);     // e.g. after a takeback: the side to move runs from ply 2; not after a flag
@@ -55,8 +57,10 @@ public:
 	bool whiteRunning() const { return runs(true); }
 	bool blackRunning() const { return runs(false); }
 
-	// As lichess.org: 03:00, 00:45, 01:30:00, tenths under 10 s (00:09.4), N days for correspondence.
+	// As lichess.org: 03:00, 00:45, 01:30:00, tenths under 10 s (00:09.4).
 	static QString format(qint64 ms);
+	// As lichess.org's correspondence clock: 2 days 4 hours, One day, 05:30 (hours and minutes), 45:10.
+	static QString formatCorrespondence(qint64 ms);
 
 	// Tests: the time now comes from this clock (ms); call tick() after moving it forward.
 	void setClock(std::function<qint64()> clock);
@@ -82,14 +86,16 @@ private:
 	qint64& stored(bool white) { return white ? _whiteMs : _blackMs; }
 	qint64 remainingMs(bool white, qint64 now) const;
 	qint64 nextTickMs(qint64 now) const;
-	QString text(qint64 ms) const { return _enabled ? format(ms) : QString(); }
-	bool low(qint64 ms) const { return _enabled && ms < lowTimeMs(); }
+	bool runsAfter(int ply) const { return ply >= 2 || _correspondence; }
+	QString text(qint64 ms) const { return !_enabled ? QString() : _correspondence ? formatCorrespondence(ms) : format(ms); }
+	bool low(qint64 ms) const { return _enabled && !_correspondence && ms < lowTimeMs(); }
 	void commit(qint64 now); // the running side's time so far into its stored time
 	bool timeIsUp();
 	void checkLowTime(bool white, qint64 now);
 
 	bool   _enabled = false;
 	bool   _localFlag = true;
+	bool   _correspondence = false;
 	bool   _paused = false;
 	bool   _flagged = false;
 	qint64 _limitMs = 0;

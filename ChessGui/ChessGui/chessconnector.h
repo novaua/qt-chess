@@ -245,6 +245,7 @@ private slots:
 		const QString& opponentAvatar);
 	void onLichessGameEnded(const QString& status, const QString& winner);
 	void onLichessOpponentGone(bool gone, int claimWinInSeconds);
+	void onLichessClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence);
 	void onClockFlagged(bool white); // a local game: that side's time is up
 
 private:
@@ -271,7 +272,7 @@ private:
 	std::shared_ptr<Chess::Game> shownGame() const; // the position on the board: a replay while reviewing
 	void schedulePiecesSync();  // update Pieces once, after the current change is complete
 	void onHumanMoveDone();
-	void localMoveOnBoard(); // a move of a local game is on the board: a stalemate, or the other clock runs
+	void moveOnBoard(); // the player's or the robot's move is on the board: a stalemate, or the other clock runs
 	void startClock();        // a new or continued local game: _clockLimitSec and _clockIncSec
 	void playRobotMove(const QString& uciMove); // the gate released it: play it on the GUI thread
 	void onGateRelease(const QString& uciMove, MoveGate::Source source);

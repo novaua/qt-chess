@@ -234,7 +234,7 @@ void ChessConnector::onHumanMoveDone()
 {
 	EmitMoveCountUpdates();
 	_gate->moveShown(); // the player's move is on the board: the robot's answer waits for it
-	localMoveOnBoard();
+	moveOnBoard();
 
 	if (!_onlineGameId.isEmpty() && _lichessClient) {
 		const auto& rec = _game->GetGameRecord();
@@ -247,12 +247,13 @@ void ChessConnector::onHumanMoveDone()
 		askEngineMove();
 }
 
-// Before the robot is asked: its clock runs while it thinks.
-void ChessConnector::localMoveOnBoard()
+// Before the robot is asked: its clock runs while it thinks. A Lichess game: our move switches the
+// clock at once, and Lichess's next state brings the exact times.
+void ChessConnector::moveOnBoard()
 {
-	if (_gameOver || isOnlineGame())
+	if (_gameOver)
 		return;
-	if (_game->IsStalemate()) { // Game only reports a mate
+	if (!isOnlineGame() && _game->IsStalemate()) { // Game only reports a mate
 		recordResult(0);
 		setResult(QStringLiteral("1/2-1/2 Draw by stalemate"), QStringLiteral("Draw by stalemate"));
 		return;
@@ -734,6 +735,15 @@ void ChessConnector::onLichessOpponentGone(bool gone, int claimWinInSeconds)
 	setOpponentGone(gone, claimWinInSeconds);
 }
 
+void ChessConnector::onLichessClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence)
+{
+	_clock->setLowTimeSides(_config.playerPlaysWhite, !_config.playerPlaysWhite);
+	if (correspondence)
+		_clock->startCorrespondence(limitMs);
+	else
+		_clock->start(limitMs, incrementMs, false);
+}
+
 void ChessConnector::resignGame()
 {
 	if (!_onlineGameId.isEmpty() && _lichessClient) {
@@ -868,6 +878,8 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 		connect(_lichessClient, &LichessClient::gameStarted, this, &ChessConnector::onLichessGameStarted);
 		connect(_lichessClient, &LichessClient::gameEnded,   this, &ChessConnector::onLichessGameEnded);
 		connect(_lichessClient, &LichessClient::opponentGone, this, &ChessConnector::onLichessOpponentGone);
+		connect(_lichessClient, &LichessClient::clockStarted, this, &ChessConnector::onLichessClockStarted);
+		connect(_lichessClient, &LichessClient::clockUpdated, _clock, &GameClock::setSnapshot);
 		// An offer that comes with the opponent's move is shown after the move.
 		connect(_lichessClient, &LichessClient::drawOfferReceived, this, [this]() {
 			afterHeldMoves([this] { if (isOnlineGame() && !_gameOver) setPendingOffer(QStringLiteral("draw")); });
@@ -1199,7 +1211,7 @@ void ChessConnector::playRobotMove(const QString& move)
 	}
 	appendMoveToHistory();
 	EmitMoveCountUpdates();
-	localMoveOnBoard();
+	moveOnBoard();
 	_gate->moveShown(true);
 	if (_resignAfterEngineMove) {
 		_resignAfterEngineMove = false;
@@ -1261,8 +1273,10 @@ void ChessConnector::onLichessMoveListReplaced(const QString& uciMoves, bool mov
 	int common = 0;
 	while (common < ours.size() && common < target.size() && ours[common] == target[common])
 		++common;
-	for (int i = int(ours.size()); i > common; --i)
+	for (int i = int(ours.size()); i > common; --i) {
+		_clock->moveTakenBack(!_game->IsWhiteMove(), _game->GetMoveCount());
 		_game->UndoMove();
+	}
 	buildFullHistoryCache(); // before playMoves(), which only appends to it
 	clearPossibleMoves();
 
@@ -1273,6 +1287,7 @@ void ChessConnector::onLichessMoveListReplaced(const QString& uciMoves, bool mov
 		playMoves(rest);
 	else
 		EmitMoveCountUpdates();
+	_clock->setTurn(_game->IsWhiteMove(), _game->GetMoveCount()); // no state follows a refused move
 	_gate->moveShown(); // the pieces slide back: the next move waits for it
 
 	// A refused move has its own message (LichessClient's networkError).

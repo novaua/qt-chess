@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-03 |
-| **Status** | In progress: steps 1 and 2 done |
+| **Status** | In progress: steps 1 to 3 done |
 | **Branch** | `li02Plan_031126` (plan); each step on its own branch from `develop` |
 
 ## Context
@@ -29,7 +29,7 @@ The first PR commits this plan as `docs/LI-02-ClockPlan.md` and updates TASKS.md
 | Increment | Fischer increment: added to the mover's time after each move. |
 | Low time | Red (`Theme.critical`) below `min(60 s, max(10 s, start / 8))`; for a start under a minute `max(2 s, start / 5)` (`clockCtrl.ts`). The low-time sound plays once, when **our** clock crosses that line. |
 | Flag | The side out of time loses, unless the other side can't mate: then it's a draw (as on Lichess). |
-| Correspondence | `N days` while more than a day is left, then `HH:MM:SS`. Online only. |
+| Correspondence | `2 days 5 hours`, `One day`, then `05:30` (hours and minutes), then `45:10`. No tenths, never red, no sound (`corresClockView.ts`). Runs from the start. Online only. |
 
 ## Design
 
@@ -74,7 +74,7 @@ The first PR commits this plan as `docs/LI-02-ClockPlan.md` and updates TASKS.md
   - `LichessClient` reads `clock.initial` / `clock.increment` (gameFull, already parsed for `RematchInfo` at `LichessClient.cpp:1065`), and `wtime` / `btime` from gameFull's state and from every gameState. It emits `clockUpdated(whiteMs, blackMs, whiteToMove, running)`.
   - The connector calls `setSnapshot`. Our own move switches the clock locally at once, with the increment; the echo then corrects it.
   - No local flag: Lichess ends the game (`gameEnded` "outoftime"), and until then the display stays at `00:00.0`. Check live whether Lichess ends it on its own (the Board API has no "flag" call).
-- **Correspondence:** check in step 3 whether the Board API sends a usable `wtime`/`btime` for days-per-move games. If it doesn't, use `secondsLeft` from `/api/account/playing` (`parseOngoingGames`, `LichessClient.cpp:194`). Otherwise skip it and say so.
+- **Correspondence:** the Board API sends a usable `wtime`/`btime` for days-per-move games (`BotJsonView.scala`: the time left for the move), so `secondsLeft` isn't needed. A game with no clock at all sends the largest int, which is ignored.
 
 ### QML
 
@@ -101,7 +101,7 @@ The first PR commits this plan as `docs/LI-02-ClockPlan.md` and updates TASKS.md
 2. **Clocks in local and robot games:** the picker in both setup dialogs, the clock on the cards, the flag result, autosave/Continue, the robot's capped thinking time, and the low-time sound.
    - Scenes: `clock` (a two-player game with a clock running), `clock-low` (red, tenths), `computer` with the picker.
 3. **Lichess clock:** stream parsing (`LichessClientTest`: gameFull/gameState with clocks → `clockUpdated`), connector snapshots, our move switching at once, and the correspondence deadline.
-   - Scene `online-clock`: like `takeback`, a fed gameFull with `clock` + `wtime`/`btime`.
+   - Scenes `clock-online`, `clock-correspondence`: like `takeback`, a fed gameFull with its clock and `wtime`/`btime`.
 4. **Challenge card:** the picker with mode names and rating, the username → direct challenge with Blitz, and ChallengeDialog's waiting/declined variant.
    - Scenes: `online` (updated), `online-blitz` (username entered).
 5. **Docs and hand tests:** `docs/LI-02-ManualTests.md`.
