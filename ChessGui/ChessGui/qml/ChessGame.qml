@@ -385,6 +385,7 @@ ApplicationWindow {
             onProfileRequested:     root.openProfile()
             onSwitchUserRequested:  root.switchUser()
             onCheckShown:           root.announceCheck()
+            onLowTimeShown:         if (AppSettings.musicEnabled) sndLowTime.play()
         }
     }
 
@@ -503,15 +504,6 @@ ApplicationWindow {
                 enabled: opponentGoneBar.secondsLeft <= 0
                 onClicked: ChessConnector.claimVictory()
             }
-        }
-    }
-
-    Connections {
-        target: ChessConnector.Clock
-        function onLowTime() {
-            // Not while the game page opens: a Lichess game rejoined with little time left.
-            if (AppSettings.musicEnabled && stack.currentItem._openSecondPassed !== false)
-                sndLowTime.play()
         }
     }
 

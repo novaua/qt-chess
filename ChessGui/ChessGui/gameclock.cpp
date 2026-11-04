@@ -29,9 +29,19 @@ void GameClock::setClock(std::function<qint64()> clock)
 
 void GameClock::start(qint64 limitMs, qint64 incrementMs, bool localFlag)
 {
+	begin(limitMs, incrementMs, localFlag, false);
+}
+
+void GameClock::startCorrespondence(qint64 perMoveMs)
+{
+	begin(perMoveMs, 0, false, true);
+}
+
+void GameClock::begin(qint64 limitMs, qint64 incrementMs, bool localFlag, bool correspondence)
+{
 	_enabled = true;
 	_localFlag = localFlag;
-	_correspondence = false;
+	_correspondence = correspondence;
 	_paused = false;
 	_flagged = false;
 	_limitMs = std::max<qint64>(0, limitMs);
@@ -43,13 +53,6 @@ void GameClock::start(qint64 limitMs, qint64 incrementMs, bool localFlag)
 		alarm->armed = true;
 		alarm->quietUntil = 0;
 	}
-	tick();
-}
-
-void GameClock::startCorrespondence(qint64 perMoveMs)
-{
-	start(perMoveMs, 0, false);
-	_correspondence = true;
 	tick();
 }
 

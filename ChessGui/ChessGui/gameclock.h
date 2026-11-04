@@ -86,6 +86,7 @@ private:
 	qint64& stored(bool white) { return white ? _whiteMs : _blackMs; }
 	qint64 remainingMs(bool white, qint64 now) const;
 	qint64 nextTickMs(qint64 now) const;
+	void begin(qint64 limitMs, qint64 incrementMs, bool localFlag, bool correspondence);
 	bool runsAfter(int ply) const { return ply >= 2 || _correspondence; }
 	QString text(qint64 ms) const { return !_enabled ? QString() : _correspondence ? formatCorrespondence(ms) : format(ms); }
 	bool low(qint64 ms) const { return _enabled && !_correspondence && ms < lowTimeMs(); }

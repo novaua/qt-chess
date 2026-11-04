@@ -82,6 +82,16 @@ namespace GameClockTests
 			Assert::IsTrue(_flags.empty());
 		}
 
+		// Never as a real-time clock, not even for a moment.
+		TEST_METHOD(Correspondence_StartsShowingDays)
+		{
+			std::vector<QString> shown;
+			QObject::connect(&_clock, &GameClock::changed, [&] { shown.push_back(_clock.whiteText()); });
+			_clock.startCorrespondence(3 * 86400000LL);
+			Assert::AreEqual(size_t(1), shown.size());
+			areEqual("3 days", shown[0]);
+		}
+
 		TEST_METHOD(Correspondence_MoveSwitchesTheClock_EvenTheFirst)
 		{
 			_clock.startCorrespondence(86400000);

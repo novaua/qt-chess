@@ -1274,7 +1274,8 @@ void ChessConnector::onLichessMoveListReplaced(const QString& uciMoves, bool mov
 	while (common < ours.size() && common < target.size() && ours[common] == target[common])
 		++common;
 	for (int i = int(ours.size()); i > common; --i) {
-		_clock->moveTakenBack(!_game->IsWhiteMove(), _game->GetMoveCount());
+		if (moveRefused) // the increment moveMade() gave it; other lists come with Lichess's exact times
+			_clock->moveTakenBack(!_game->IsWhiteMove(), _game->GetMoveCount());
 		_game->UndoMove();
 	}
 	buildFullHistoryCache(); // before playMoves(), which only appends to it
@@ -1287,7 +1288,8 @@ void ChessConnector::onLichessMoveListReplaced(const QString& uciMoves, bool mov
 		playMoves(rest);
 	else
 		EmitMoveCountUpdates();
-	_clock->setTurn(_game->IsWhiteMove(), _game->GetMoveCount()); // no state follows a refused move
+	if (moveRefused) // no state follows
+		_clock->setTurn(_game->IsWhiteMove(), _game->GetMoveCount());
 	_gate->moveShown(); // the pieces slide back: the next move waits for it
 
 	// A refused move has its own message (LichessClient's networkError).
