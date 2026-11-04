@@ -22,6 +22,7 @@ Page {
     signal profileRequested()
     signal switchUserRequested()
     signal checkShown()            // the page opened on a position with the king in check (Continue)
+    signal lowTimeShown()          // our clock went low; not before the page has opened (a Lichess game rejoined)
 
     readonly property string mode: ChessConnector.GameMode
     readonly property bool gameOver: ChessConnector.GameResult !== ""
@@ -81,6 +82,16 @@ Page {
         onTriggered: {
             ChessConnector.pageOpened()   // before a held move plays
             page._openSecondPassed = true
+            if (page._lowTimeHeld)
+                page.lowTimeShown()
+        }
+    }
+    property bool _lowTimeHeld: false   // the clock went low while the page was opening
+    Connections {
+        target: ChessConnector.Clock
+        function onLowTime() {
+            if (page._openSecondPassed) page.lowTimeShown()
+            else                        page._lowTimeHeld = true
         }
     }
     Connections {

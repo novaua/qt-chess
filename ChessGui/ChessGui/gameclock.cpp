@@ -4,7 +4,9 @@
 
 namespace {
 	constexpr qint64 SecondMs = 1000;
-	constexpr qint64 DayMs = 24 * 3600 * SecondMs;
+	constexpr qint64 MinuteMs = 60 * SecondMs;
+	constexpr qint64 HourMs = 60 * MinuteMs;
+	constexpr qint64 DayMs = 24 * HourMs;
 	constexpr qint64 TenthsBelowMs = 10 * SecondMs; // tenths are shown below 10 s
 	constexpr qint64 LowTimeQuietMs = 20 * SecondMs; // the low-time sound at most every 20 s
 }
@@ -27,8 +29,19 @@ void GameClock::setClock(std::function<qint64()> clock)
 
 void GameClock::start(qint64 limitMs, qint64 incrementMs, bool localFlag)
 {
+	begin(limitMs, incrementMs, localFlag, false);
+}
+
+void GameClock::startCorrespondence(qint64 perMoveMs)
+{
+	begin(perMoveMs, 0, false, true);
+}
+
+void GameClock::begin(qint64 limitMs, qint64 incrementMs, bool localFlag, bool correspondence)
+{
 	_enabled = true;
 	_localFlag = localFlag;
+	_correspondence = correspondence;
 	_paused = false;
 	_flagged = false;
 	_limitMs = std::max<qint64>(0, limitMs);
@@ -60,7 +73,7 @@ void GameClock::moveMade(bool whiteMoved, int ply)
 	const Side mover = whiteMoved ? Side::White : Side::Black;
 	if (_running == mover) // the increment only once the mover's clock has run
 		stored(whiteMoved) += _incrementMs;
-	_running = ply >= 2 ? (whiteMoved ? Side::Black : Side::White) : Side::None;
+	_running = runsAfter(ply) ? (whiteMoved ? Side::Black : Side::White) : Side::None;
 	tick();
 }
 
@@ -69,7 +82,7 @@ void GameClock::setTurn(bool whiteToMove, int ply)
 	if (!_enabled || timeIsUp())
 		return;
 	commit(_clock());
-	_running = ply >= 2 ? (whiteToMove ? Side::White : Side::Black) : Side::None;
+	_running = runsAfter(ply) ? (whiteToMove ? Side::White : Side::Black) : Side::None;
 	tick();
 }
 
@@ -162,18 +175,33 @@ bool GameClock::timeIsUp()
 QString GameClock::format(qint64 ms)
 {
 	ms = std::max<qint64>(0, ms);
-	if (ms >= DayMs) {
-		const qint64 days = ms / DayMs;
-		return days == 1 ? QStringLiteral("1 day") : QStringLiteral("%1 days").arg(days);
-	}
-	const qint64 hours   = ms / (3600 * SecondMs);
-	const qint64 minutes = ms / (60 * SecondMs) % 60;
+	const qint64 hours   = ms / HourMs;
+	const qint64 minutes = ms / MinuteMs % 60;
 	const qint64 seconds = ms / SecondMs % 60;
 	const QChar zero(u'0');
 	if (hours > 0)
 		return QStringLiteral("%1:%2:%3").arg(hours, 2, 10, zero).arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero);
 	if (ms < TenthsBelowMs)
 		return QStringLiteral("%1:%2.%3").arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero).arg(ms / 100 % 10);
+	return QStringLiteral("%1:%2").arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero);
+}
+
+QString GameClock::formatCorrespondence(qint64 ms)
+{
+	ms = std::max<qint64>(0, ms);
+	const qint64 days    = ms / DayMs;
+	const qint64 hours   = ms / HourMs % 24;
+	const qint64 minutes = ms / MinuteMs % 60;
+	const qint64 seconds = ms / SecondMs % 60;
+	const QChar zero(u'0');
+	if (days > 0) {
+		const QString text = days == 1 ? QStringLiteral("One day") : QStringLiteral("%1 days").arg(days);
+		return hours == 0 ? text
+		     : hours == 1 ? text + QStringLiteral(" 1 hour")
+		                  : text + QStringLiteral(" %1 hours").arg(hours);
+	}
+	if (hours > 0)
+		return QStringLiteral("%1:%2").arg(hours, 2, 10, zero).arg(minutes, 2, 10, zero);
 	return QStringLiteral("%1:%2").arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero);
 }
 
@@ -185,7 +213,7 @@ void GameClock::checkLowTime(bool white, qint64 now)
 	if (!alarm.watched || !runs(white)) // a paused clock (Continue) says nothing yet
 		return;
 	const qint64 ms = remainingMs(white, now);
-	if (alarm.armed && ms < lowTimeMs() && now >= alarm.quietUntil) {
+	if (alarm.armed && low(ms) && now >= alarm.quietUntil) {
 		alarm.armed = false;
 		alarm.quietUntil = now + LowTimeQuietMs;
 		emit lowTime(white);
@@ -229,16 +257,16 @@ void GameClock::tick()
 		emit flagged(whiteRan); // last: the handler may end the game
 }
 
-// The next moment the shown time changes (a second, a tenth, a day), goes low or runs out. 0: never
+// The next moment the shown time changes (a tenth, a second; correspondence: an hour, a minute), goes
+// low or runs out. 0: never
 // by itself, e.g. a Lichess clock at zero stays there until Lichess ends the game.
 qint64 GameClock::nextTickMs(qint64 now) const
 {
 	const qint64 ms = counting() ? remainingMs(_running == Side::White, now) : 0;
 	if (ms == 0)
 		return 0;
-	const qint64 unit = ms >= DayMs ? DayMs : ms < TenthsBelowMs ? 100 : SecondMs;
-	qint64 wait = ms % unit + 1;
-	if (ms >= lowTimeMs())
-		wait = std::min(wait, ms - lowTimeMs() + 1);
-	return std::min(wait, DayMs);
+	if (_correspondence)
+		return ms % (ms >= DayMs ? HourMs : ms >= HourMs ? MinuteMs : SecondMs) + 1;
+	const qint64 wait = ms % (ms < TenthsBelowMs ? 100 : SecondMs) + 1;
+	return ms >= lowTimeMs() ? std::min(wait, ms - lowTimeMs() + 1) : wait;
 }

@@ -59,7 +59,7 @@ $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue-online', 'game', 'leave-online', 'review', 'result', 'ended', 'moves', 'select', 'drag',
              'settings', 'about', 'restore', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'online-empty', 'online-disconnected', 'computer', 'players',
-             'clock', 'clock-low', 'clock-flag', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many'
+             'clock', 'clock-low', 'clock-flag', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence'
 if ($Scene -contains 'all') { $Scene = $allScenes }
 foreach ($s in $Scene) {
     if ($s -notin ($allScenes + 'robot', 'login', 'menu', 'board', 'slides', 'takeback')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }

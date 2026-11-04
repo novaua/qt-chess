@@ -80,7 +80,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 		] })").object());
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
-	                  "online", "online-empty", "continue", "continue-online", "takeback" }.contains(scene))
+	                  "online", "online-empty", "continue", "continue-online", "takeback", "clock-online", "clock-correspondence" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -135,6 +135,22 @@ static void playTakebackScene(ChessConnector* connector, LichessClient* lichess)
 	});
 }
 
+// Scenes "clock-online" and "clock-correspondence" (LI-02): a Lichess game with its clock, fed to the
+// stream parser as the Board API sends it. Time stands still, so the times are the ones sent here.
+static void playClockScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
+{
+	lichess->setCurrentGameId(QStringLiteral("clock1"));
+	lichess->handleGameStreamLine(scene == "clock-online"
+		? R"({"type":"gameFull","id":"clock1","clock":{"initial":600000,"increment":5000},
+			"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},
+			"state":{"moves":"e2e4 e7e5 g1f3 b8c6","wtime":431000,"btime":8400,"winc":5000,"binc":5000,"status":"started"}})"
+		: R"({"type":"gameFull","id":"clock1","daysPerTurn":3,
+			"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},
+			"state":{"moves":"e2e4 e7e5 g1f3 b8c6","wtime":190800000,"btime":259200000,"winc":0,"binc":0,"status":"started"}})");
+	QObject::connect(connector, &ChessConnector::boardIdle, lichess,
+		[=]() { emit connector->screenshotSceneReady(); }, Qt::SingleShotConnection);
+}
+
 int main(int argc, char* argv[])
 {
 	// Windows 11 look; follows the system light/dark theme and accent colour (Theme.qml can force one).
@@ -170,7 +186,7 @@ int main(int argc, char* argv[])
 		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "game", "leave-online", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
-		"takeback", "clock", "clock-low", "clock-flag", "clock-promotion", "clock-continue", "stalemate", "players-many"
+		"takeback", "clock", "clock-low", "clock-flag", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -324,6 +340,9 @@ int main(int argc, char* argv[])
 	if (screenshotMode && scene == "takeback") // once the scene has logged in (Home is up)
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
 			[=]() { playTakebackScene(connector, lichessClient); }, Qt::QueuedConnection);
+	if (screenshotMode && (scene == "clock-online" || scene == "clock-correspondence"))
+		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
+			[=]() { playClockScene(connector, lichessClient, scene); }, Qt::QueuedConnection);
 	if (!engine.rootObjects().isEmpty())
 		FrameTrace::watch(qobject_cast<QQuickWindow*>(engine.rootObjects().first()));
 

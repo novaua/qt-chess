@@ -129,6 +129,9 @@ signals:
 	// The game's moves changed other than by new moves: an accepted takeback (a shorter list), a
 	// move of ours that Lichess refused, or a list that disagrees with ours. All the moves, as Lichess has them.
 	void moveListReplaced(QString uciMoves, bool moveRefused); // moveRefused: Lichess refused our move
+	// LI-02: the game's clock, after gameStarted; correspondence: limitMs is the time for a move.
+	void clockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence);
+	void clockUpdated(qint64 whiteMs, qint64 blackMs, bool whiteToMove, bool running); // Lichess's times
 	void gameEnded(QString status, QString winner);
 	void networkError(QString message);
 	void challengeCanceled();
@@ -156,6 +159,8 @@ private:
 	void stopWaitingForDirectChallenge(); // stop probing for the game; keeps the reply
 	void handleStreamData(QNetworkReply* reply);
 	void applyStreamMoves(const QStringList& moves); // a gameState's moves against ours
+	void startClock(const QJsonObject& gameFull);
+	void updateClock(const QJsonObject& state, bool gameOver); // a gameFull's state, or a gameState
 	void replaceMoveList(const QStringList& moves, bool moveRefused = false);
 
 	void handleEventStreamData(QNetworkReply* reply);
@@ -183,6 +188,8 @@ private:
 	QNetworkReply* _openChallengeReply   = nullptr; // POST /api/challenge/open in flight
 	QNetworkReply* _acceptReply          = nullptr; // acceptChallenge's POST in flight (then the stream)
 	bool           _gameFullSeen         = false;   // the game stream has sent gameFull: the game is on
+	bool           _hasClock             = false;   // this game has one: real time or correspondence
+	bool           _correspondence       = false;
 	QNetworkReply* _directChallengeReply = nullptr; // keepAliveStream: open while the challenge waits
 	QString        _directChallengeId;
 	bool           _directChallengeAccepted = false;

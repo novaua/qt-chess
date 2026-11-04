@@ -677,6 +677,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
                              .split(QLatin1Char(' '), Qt::SkipEmptyParts);
         _sentMoves.clear();
         emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl);
+        startClock(obj);
 
         // Resync our board state with moves that arrived before we joined.
         if (!_lastMovesList.isEmpty())
@@ -684,8 +685,10 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
 
         // Streaming a game that has already ended: Lichess sends only gameFull, then closes.
         const QString status = state.value(QStringLiteral("status")).toString();
-        if (!status.isEmpty() && status != QLatin1String("started")
-                && status != QLatin1String("created")) {
+        const bool ended = !status.isEmpty() && status != QLatin1String("started")
+                && status != QLatin1String("created");
+        updateClock(state, ended);
+        if (ended) {
             emit gameEnded(status, state.value(QStringLiteral("winner")).toString());
             return false;
         }
@@ -704,7 +707,9 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
         // the move first, then the end.
         applyStreamMoves(moves.split(QLatin1Char(' '), Qt::SkipEmptyParts));
 
-        if (status != QLatin1String("started") && !status.isEmpty()) {
+        const bool ended = status != QLatin1String("started") && !status.isEmpty();
+        updateClock(obj, ended);
+        if (ended) {
             const QString winner = obj.value(QStringLiteral("winner")).toString();
             emit gameEnded(status, winner);
             return false;
@@ -722,6 +727,31 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
         _lastOppTakeback = oppTakeback;
     }
     return true;
+}
+
+void LichessClient::startClock(const QJsonObject& gameFull)
+{
+    const QJsonObject clock = gameFull.value(QStringLiteral("clock")).toObject();
+    const int days = gameFull.value(QStringLiteral("daysPerTurn")).toInt();
+    _correspondence = clock.isEmpty() && days > 0;
+    _hasClock = _correspondence || !clock.isEmpty();
+    if (_correspondence)
+        emit clockStarted(days * 24 * 3600 * 1000LL, 0, true);
+    else if (_hasClock)
+        emit clockStarted(clock.value(QStringLiteral("initial")).toInteger(),
+                          clock.value(QStringLiteral("increment")).toInteger(), false);
+}
+
+// Without a clock Lichess still sends wtime and btime: the largest int. A real-time clock runs once
+// both sides have moved, a correspondence one from the start. A state without our sent move yet (e.g.
+// an offer came first) is older than our board, where the clock has switched already.
+void LichessClient::updateClock(const QJsonObject& state, bool gameOver)
+{
+    if (!_hasClock || !state.contains(QStringLiteral("wtime")) || (!gameOver && !_sentMoves.isEmpty()))
+        return;
+    const int plies = int(_lastMovesList.size());
+    emit clockUpdated(state.value(QStringLiteral("wtime")).toInteger(), state.value(QStringLiteral("btime")).toInteger(),
+                      plies % 2 == 0, !gameOver && (_correspondence || plies >= 2));
 }
 
 // The moves of a gameState: new ones are the opponent's, or the echo of ours (_sentMoves). A list
