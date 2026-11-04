@@ -26,6 +26,7 @@ const char* EmptyFlag = " ";
 // GameResult of a checkmate.
 static const QString MateResultWhite = QStringLiteral("1-0 White victorious");
 static const QString MateResultBlack = QStringLiteral("0-1 Black victorious");
+static const QString OutOfTimeText = QStringLiteral(" ran out of time");
 
 void ClearBoard(QStringList& board, const QString& cleanValue = EmptyFlag)
 {
@@ -52,6 +53,8 @@ ChessConnector::ChessConnector(QObject* parent)
 	});
 	connect(_gate, &MoveGate::releaseBatch, this, &ChessConnector::playOnlineMoves);
 	connect(_gate, &MoveGate::idle, this, &ChessConnector::boardIdle);
+	_clock = new GameClock(this);
+	connect(_clock, &GameClock::flagged, this, &ChessConnector::onClockFlagged);
 	_leaveAfterResign.setSingleShot(true);
 	connect(&_leaveAfterResign, &QTimer::timeout, this, &ChessConnector::endGame);
 	_pieces->sync(_game->GetCurrentBoard());
@@ -76,12 +79,8 @@ ChessConnector::ChessConnector(QObject* parent)
 				emit checkMateNotify();
 				if (_player) return;
 				const bool whiteMated = _game->IsWhiteMove(); // the side to move is mated
-				_gameOver = true;
-				flagKing(whiteMated);
-				recordResult(whiteMated ? -1 : 1);
-				setResult(whiteMated ? MateResultBlack : MateResultWhite,
+				endGameWithLoser(whiteMated, whiteMated ? MateResultBlack : MateResultWhite,
 					sideName(!whiteMated) + QStringLiteral(" wins by checkmate"));
-				emit checkMateResult(whiteMated ? QStringLiteral("Black Won") : QStringLiteral("White Won"));
 			}
 			else if (event.GetType() == EtCastling)
 			{
@@ -235,6 +234,7 @@ void ChessConnector::onHumanMoveDone()
 {
 	EmitMoveCountUpdates();
 	_gate->moveShown(); // the player's move is on the board: the robot's answer waits for it
+	localMoveOnBoard();
 
 	if (!_onlineGameId.isEmpty() && _lichessClient) {
 		const auto& rec = _game->GetGameRecord();
@@ -245,6 +245,19 @@ void ChessConnector::onHumanMoveDone()
 
 	if (_engineWorker && !_gameOver && _engineAutoPlay)
 		askEngineMove();
+}
+
+// Before the robot is asked: its clock runs while it thinks.
+void ChessConnector::localMoveOnBoard()
+{
+	if (_gameOver || isOnlineGame())
+		return;
+	if (_game->IsStalemate()) { // Game only reports a mate
+		recordResult(0);
+		setResult(QStringLiteral("1/2-1/2 Draw by stalemate"), QStringLiteral("Draw by stalemate"));
+		return;
+	}
+	_clock->moveMade(!_game->IsWhiteMove(), _game->GetMoveCount());
 }
 
 QStringList& ChessConnector::PossibleMoves()
@@ -416,6 +429,7 @@ void ChessConnector::setResult(const QString& result, const QString& text)
 	_resultText = text;
 	if (!result.isEmpty()) {
 		_gameOver = true;
+		_clock->pause();      // the times stay on the cards
 		clearPossibleMoves(); // drop move highlights of a selected piece
 		setPendingOffer({});
 		setOpponentGone(false);
@@ -617,6 +631,7 @@ void ChessConnector::makeMove(int from, int to)
 
 void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 {
+	_clock->stop();
 	stopEngineThread();
 	_promotionPending = false;
 	_player = nullptr;
@@ -681,7 +696,7 @@ void ChessConnector::onLichessGameEnded(const QString& status, const QString& wi
 	// The side that gave up, ran out of time or left.
 	static const QHash<QString, QString> loserText = {
 		{ QStringLiteral("resign"),    QStringLiteral(" resigned") },
-		{ QStringLiteral("outoftime"), QStringLiteral(" ran out of time") },
+		{ QStringLiteral("outoftime"), OutOfTimeText },
 		{ QStringLiteral("timeout"),   QStringLiteral(" left the game") },
 		{ QStringLiteral("noStart"),   QStringLiteral(" didn't move") },
 	};
@@ -734,12 +749,49 @@ void ChessConnector::resignGame()
 	}
 	// vs Robot the human resigns. Two players on one device: the side to move resigns.
 	const bool whiteResigns = _wasVsComputer ? _config.playerPlaysWhite : IsWhiteMove() == 1;
-	_gameOver = true;
-	flagKing(whiteResigns);
-	recordResult(whiteResigns ? -1 : 1);
-	setResult(whiteResigns ? QStringLiteral("0-1 Black won by resignation") : QStringLiteral("1-0 White won by resignation"),
+	endGameWithLoser(whiteResigns, whiteResigns ? QStringLiteral("0-1 Black won by resignation") : QStringLiteral("1-0 White won by resignation"),
 		sideName(whiteResigns) + QStringLiteral(" resigned"));
-	emit checkMateResult(whiteResigns ? QStringLiteral("Black Won") : QStringLiteral("White Won"));
+}
+
+void ChessConnector::endGameWithLoser(bool white, const QString& result, const QString& text)
+{
+	_gameOver = true;
+	flagKing(white);
+	recordResult(white ? -1 : 1);
+	setResult(result, text);
+	emit checkMateResult(white ? QStringLiteral("Black Won") : QStringLiteral("White Won"));
+}
+
+// Lichess's rule: the side out of time loses, unless the other side can't mate. Lichess ends its own
+// games (GameClock doesn't flag there).
+void ChessConnector::onClockFlagged(bool white)
+{
+	dropRobotAnswer(); // it comes too late
+	// The piece was still being chosen: the move isn't finished, so it doesn't stand.
+	if (_promotionPending) {
+		_promotionPending = false;
+		_game->UndoMove();
+		emit pawnPromotionCancelled();
+	}
+	_gameOver = true;
+	const QString outOfTime = sideName(white) + OutOfTimeText;
+	if (!_game->GetCurrentBoard().CanMate(white ? PieceColors::Dark : PieceColors::Light)) {
+		recordResult(0);
+		setResult(QStringLiteral("1/2-1/2 Draw on time"), QStringLiteral("Draw: ") + outOfTime);
+		return;
+	}
+	endGameWithLoser(white, white ? QStringLiteral("0-1 Black won on time") : QStringLiteral("1-0 White won on time"), outOfTime);
+}
+
+void ChessConnector::dropRobotAnswer()
+{
+	_gate->clear();
+	++_engineRequest;
+	_resignAfterEngineMove = false;
+	if (_engineThinking) {
+		_engineThinking = false;
+		emit engineThinkingChanged();
+	}
 }
 
 bool ChessConnector::canOfferDraw() const
@@ -776,7 +828,7 @@ void ChessConnector::requestTakeback()
 {
 	if (!_onlineGameId.isEmpty() && _lichessClient)
 		_lichessClient->requestTakeback(_onlineGameId, true);
-	else
+	else if (!_clock->timeUp()) // a flag ends the game for good: the side out of time has nothing to go on with
 		movePrev();
 }
 
@@ -865,8 +917,10 @@ void ChessConnector::rematch()
 		startNewGame();
 }
 
-void ChessConnector::startComputerGame(int level, int side)
+void ChessConnector::startComputerGame(int level, int side, int limitSec, int incSec)
 {
+	_clockLimitSec = limitSec;
+	_clockIncSec = incSec;
 	setPlayerPlaysWhite(side == 2 ? QRandomGenerator::global()->bounded(2) == 0 : side == 0);
 	if (_avatarProvider)
 		_avatarProvider->randomize(true); // the opponent shows the robot
@@ -874,8 +928,10 @@ void ChessConnector::startComputerGame(int level, int side)
 	setGameMode(QStringLiteral("computer"), QStringLiteral("Robot"));
 }
 
-void ChessConnector::startLocalGame(bool playerPlaysWhite, const QString& opponentUserId)
+void ChessConnector::startLocalGame(bool playerPlaysWhite, const QString& opponentUserId, int limitSec, int incSec)
 {
+	_clockLimitSec = limitSec;
+	_clockIncSec = incSec;
 	QString name = QStringLiteral("Guest");
 	QString avatar;
 	QString opponentId;
@@ -911,11 +967,23 @@ void ChessConnector::startNewGame()
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) setResult({}, {});
 	_game->Restart();
+	startClock();
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
 	emit newGameStarted(false);
 
 	qDebug() << "Cpp Game restarted!";
+}
+
+void ChessConnector::startClock()
+{
+	if (_clockLimitSec == 0 && _clockIncSec == 0) {
+		_clock->stop();
+		return;
+	}
+	// The low-time sound is for the people at this computer: both in a two-player game.
+	_clock->setLowTimeSides(!_wasVsComputer || _config.playerPlaysWhite, !_wasVsComputer || !_config.playerPlaysWhite);
+	_clock->start(_clockLimitSec * 1000LL, _clockIncSec * 1000LL);
 }
 
 void ChessConnector::startNewGameWithComputer(int level)
@@ -936,6 +1004,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_game->EndGame();
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) setResult({}, {});
+	startClock();
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
 	emit newGameStarted(true);
@@ -992,6 +1061,18 @@ int ChessConnector::playMoves(const QStringList& uciMoves)
 	appendMoveToHistory(); // rebuilds the whole list when several moves came at once
 	EmitMoveCountUpdates();
 	return played;
+}
+
+void ChessConnector::setScreenshotScene(const QVariantMap& scene)
+{
+	_screenshotScene = scene;
+	_clock->setClock([] { return qint64(0); }); // time stands still: the same scene gives the same picture
+}
+
+void ChessConnector::setScreenshotClock(int whiteMs, int blackMs)
+{
+	// While a promotion waits the pawn has moved, but its side's clock still runs.
+	_clock->setSnapshot(whiteMs, blackMs, _game->IsWhiteMove() != _promotionPending, true);
 }
 
 void ChessConnector::setUseFen(bool v)
@@ -1073,9 +1154,10 @@ void ChessConnector::askEngineMove()
 	auto worker = _engineWorker;
 	const int request = ++_engineRequest;
 	const auto history = _game->GetGameRecord();
+	const int maxMoveMs = int(_clock->moveBudgetMs(!_config.playerPlaysWhite));
 	ENGINE_TRACE("ask: request" << request << "," << history.size() << "plies, worker" << (const void*)worker);
-	const bool posted = QMetaObject::invokeMethod(worker, [worker, request, history] { worker->findMove(request, history); },
-		Qt::QueuedConnection);
+	const bool posted = QMetaObject::invokeMethod(worker,
+		[worker, request, history, maxMoveMs] { worker->findMove(request, history, maxMoveMs); }, Qt::QueuedConnection);
 	ENGINE_TRACE("ask: request" << request << (posted ? "posted" : "NOT posted"));
 	Q_UNUSED(posted);
 }
@@ -1087,6 +1169,10 @@ void ChessConnector::onEngineMoveFound(int request, const QString& move)
 			<< ", thinking" << _engineThinking);
 		return;
 	}
+	// The player is looking at an earlier move: the gate doesn't show moves while reviewing, but the
+	// robot's clock is running. As with a Lichess opponent: back to the live position, then the move.
+	if (reviewMode() && _clock->enabled())
+		reviewLast();
 	ENGINE_TRACE("answer" << move << "to request" << request << "held until the board is idle");
 	_gate->push(move, MoveGate::Source::Robot); // playRobotMove() plays it when the board is idle
 }
@@ -1113,6 +1199,7 @@ void ChessConnector::playRobotMove(const QString& move)
 	}
 	appendMoveToHistory();
 	EmitMoveCountUpdates();
+	localMoveOnBoard();
 	_gate->moveShown(true);
 	if (_resignAfterEngineMove) {
 		_resignAfterEngineMove = false;
@@ -1218,18 +1305,25 @@ void ChessConnector::afterHeldMoves(std::function<void()> action)
 		action();
 }
 
-// Entering the review of an online game: the opponent's moves still held are played now (the board
-// shows an earlier position anyway), so the move list is complete and nothing waits for the review
-// to end while the player's clock runs on Lichess.
-void ChessConnector::showHeldOnlineMoves()
+// Entering the review of a game on a clock: the moves still held are played now (the board shows an
+// earlier position anyway), so the move list is complete and nothing waits for the review to end
+// while a clock runs. A Lichess game always has one, on Lichess.
+void ChessConnector::showHeldMoves()
 {
-	if (isOnlineGame() && !reviewMode())
+	if ((isOnlineGame() || _clock->enabled()) && !reviewMode())
 		_gate->releaseAll();
 }
 
 void ChessConnector::setBoardSettled(bool settled)
 {
 	_gate->setStageReady(settled);
+}
+
+// Continue: the clock waits for the page. Not for the board to settle: a review doesn't stop it.
+void ChessConnector::pageOpened()
+{
+	if (!_gameOver)
+		_clock->resume();
 }
 
 void ChessConnector::setMoveTiming(int slideMs)
@@ -1253,6 +1347,7 @@ void ChessConnector::onEngineMoveError(int request, const QString& message, cons
 	}
 	_engineThinking = false;
 	emit engineThinkingChanged();
+	_clock->pause(); // no answer is coming: that's no win on time. Undo goes on with the game
 	qDebug() << "[Engine] move error:" << message;
 
 	// One log line per dump line so the board and the move list stay readable in the log file.
@@ -1314,6 +1409,7 @@ bool ChessConnector::loadGame()
 		if (fileExists(savedGamePath()))
 		{
 			_gate->clear(); // a held move belongs to the game being left
+			_clock->stop();
 			const auto info = _userManager ? _userManager->savedGameInfo() : UserManager::GameSaveInfo{};
 			_config.playerPlaysWhite = info.playerPlaysWhite;
 			emit playerPlaysWhiteChanged();
@@ -1360,16 +1456,11 @@ void ChessConnector::movePrev()
 {
 	if (!_player) {
 		if (_engineWorker && !reviewMode()) {
-			if (_engineThinking) {
-				// The robot's answer may be waiting in the gate or still on its way: the takeback
-				// drops it, so stop waiting for it (nothing else would clear the thinking state).
-				// A resignation confirmed while it thought is cancelled by the takeback.
-				_gate->clear();
-				++_engineRequest;
-				_engineThinking = false;
-				_resignAfterEngineMove = false;
-				emit engineThinkingChanged();
-			}
+			// The robot's answer may be waiting in the gate or still on its way: the takeback
+			// drops it, so stop waiting for it (nothing else would clear the thinking state).
+			// A resignation confirmed while it thought is cancelled by the takeback.
+			if (_engineThinking)
+				dropRobotAnswer();
 			if (_promotionPending) return;
 			int count = _game->GetMoveCount();
 			if (count == 0) {
@@ -1384,14 +1475,19 @@ void ChessConnector::movePrev()
 			// player's move; after the player mated the robot, only the player's move.
 			const bool robotToMove = _game->IsWhiteMove() != _config.playerPlaysWhite;
 			int movesToUndo = (robotToMove || count < 2) ? 1 : 2;
-			for (int i = 0; i < movesToUndo; i++)
+			for (int i = 0; i < movesToUndo; i++) {
+				if (i > 0 || !_gameOver) // the move that ended the game got no increment
+					_clock->moveTakenBack(!_game->IsWhiteMove(), _game->GetMoveCount());
 				_game->UndoMove();
+			}
 			// Taking back the last moves of a finished game (mate or resign) resumes it.
 			if (_gameOver) {
 				_gameOver = false;
 				setFlaggedKing(-1);
 				if (!_gameResult.isEmpty()) setResult({}, {});
 			}
+			_clock->resume();
+			_clock->setTurn(_game->IsWhiteMove(), _game->GetMoveCount());
 			buildFullHistoryCache();
 			clearPossibleMoves();
 			EmitMoveCountUpdates();
@@ -1438,7 +1534,7 @@ void ChessConnector::reviewFirst() {
 		EmitMoveCountUpdates(false);
 		return;
 	}
-	showHeldOnlineMoves();
+	showHeldMoves();
 	_reviewIndex = 0;
 	emitBoardState();
 	emit reviewStateChanged();
@@ -1451,7 +1547,7 @@ void ChessConnector::reviewPrev() {
 		EmitMoveCountUpdates(false);
 		return;
 	}
-	showHeldOnlineMoves();
+	showHeldMoves();
 	int cur = reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
 	if (cur <= 0) return;
 	_reviewIndex = cur - 1;
@@ -1500,7 +1596,7 @@ void ChessConnector::reviewTo(int ply) {
 		reviewLast();
 		return;
 	}
-	showHeldOnlineMoves();
+	showHeldMoves();
 	_reviewIndex = std::max(0, ply);
 	emitBoardState();
 	emit reviewStateChanged();
@@ -1531,6 +1627,7 @@ void ChessConnector::endGame()
 	setOpponentGone(false);
 	if (canAutoSave())
 		autoSaveGame();
+	_clock->stop();
 	if (!_onlineGameId.isEmpty()) {
 		if (_lichessClient) _lichessClient->stopStream();
 		_onlineGameId.clear();
@@ -1600,6 +1697,16 @@ bool ChessConnector::continueGame()
 	}
 	_gameOver = false;
 
+	// The times as they were left, paused until the page is open (pageOpened). Unlike on Lichess a
+	// local game can be left.
+	_clockLimitSec = info.clockLimitSec;
+	_clockIncSec = info.clockIncSec;
+	startClock();
+	if (_clock->enabled()) {
+		_clock->pause();
+		_clock->setSnapshot(info.whiteMs, info.blackMs, _game->IsWhiteMove(), _game->GetMoveCount() >= 2);
+	}
+
 	deleteAutoSave();
 	buildFullHistoryCache();
 	emit canContinueChanged();
@@ -1642,6 +1749,12 @@ void ChessConnector::autoSaveGame()
 		info.computerLevel = _config.lastLevel;
 		info.resultRecorded = _resultRecorded;
 		info.startDate = _gameDate;
+		if (_clock->enabled()) {
+			info.clockLimitSec = _clockLimitSec;
+			info.clockIncSec = _clockIncSec;
+			info.whiteMs = _clock->remainingMs(true);
+			info.blackMs = _clock->remainingMs(false);
+		}
 		if (_avatarProvider) {
 			info.playerAvatarName = _avatarProvider->playerRawName();
 			info.opponentAvatarName = _avatarProvider->opponentRawName();

@@ -56,6 +56,10 @@ public:
         QDate   startDate;                 // the day the game started (PGN Date); invalid in older saves
         int     computerLevel  = 0;        // vs Robot: the level played; 0 in older saves
         bool    resultRecorded = false;    // the statistics already have this game (a mate, then undo)
+        int     clockLimitSec  = 0;        // the time control; 0 and 0: no clock
+        int     clockIncSec    = 0;
+        qint64  whiteMs        = 0;        // the time left when the game was left
+        qint64  blackMs        = 0;
     };
 
     // One line of the statistics: the games against one opponent.

@@ -17,7 +17,7 @@ void EngineWorker::killEngine()
 
 // Runs on the engine thread. ChessEnginePlayer (and its QProcess) are created here
 // so they are owned by and always accessed from the engine thread.
-void EngineWorker::findMove(int request, const Chess::MovesHistory& history)
+void EngineWorker::findMove(int request, const Chess::MovesHistory& history, int maxMoveMs)
 {
     if (_abandoned.load())
         return; // the game was left before this request started
@@ -31,7 +31,7 @@ void EngineWorker::findMove(int request, const Chess::MovesHistory& history)
         }
         if (_abandoned.load())
             return; // stopped while the engine was starting
-        const auto move = QString::fromStdString(_enginePlayer->FindMove(history));
+        const auto move = QString::fromStdString(_enginePlayer->FindMove(history, std::chrono::milliseconds(maxMoveMs)));
         ENGINE_TRACE("worker: request" << request << "answers" << move);
         emit moveFound(request, move);
     } catch (const std::exception& e) {

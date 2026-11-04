@@ -46,6 +46,7 @@ void GameClock::start(qint64 limitMs, qint64 incrementMs, bool localFlag)
 void GameClock::stop()
 {
 	_enabled = false;
+	_flagged = false; // the next game may have no clock: its Undo must work
 	_running = Side::None;
 	_timer.stop();
 	tick();
@@ -70,6 +71,18 @@ void GameClock::setTurn(bool whiteToMove, int ply)
 	commit(_clock());
 	_running = ply >= 2 ? (whiteToMove ? Side::White : Side::Black) : Side::None;
 	tick();
+}
+
+// Undo vs the robot needs nobody's consent, so the time spent isn't given back as on Lichess: that
+// would be free thinking time. The increment goes, or a move and Undo over and over would add time
+// for ever. Not below the last second: an Undo shouldn't lose the game by itself.
+void GameClock::moveTakenBack(bool whiteMoved, int ply)
+{
+	if (!_enabled || ply < 3) // the first two moves got no increment
+		return;
+	commit(_clock());
+	qint64& ms = stored(whiteMoved);
+	ms = std::max(ms - _incrementMs, std::min(ms, SecondMs));
 }
 
 void GameClock::setSnapshot(qint64 whiteMs, qint64 blackMs, bool whiteToMove, bool running)
@@ -118,7 +131,16 @@ qint64 GameClock::remainingMs(bool white, qint64 now) const
 
 qint64 GameClock::lowTimeMs() const
 {
-	return std::clamp<qint64>(_limitMs / 8, 10 * SecondMs, 60 * SecondMs);
+	return std::min(60 * SecondMs, _limitMs < 60 * SecondMs ? std::max(2 * SecondMs, _limitMs / 5)
+	                                                        : std::max(10 * SecondMs, _limitMs / 8));
+}
+
+qint64 GameClock::moveBudgetMs(bool white) const
+{
+	if (!_enabled)
+		return 0;
+	const qint64 left = remainingMs(white);
+	return std::max<qint64>(1, std::min(left / 2, std::max<qint64>(100, left / 30 + _incrementMs / 2)));
 }
 
 void GameClock::commit(qint64 now)
@@ -149,7 +171,7 @@ QString GameClock::format(qint64 ms)
 	const qint64 seconds = ms / SecondMs % 60;
 	const QChar zero(u'0');
 	if (hours > 0)
-		return QStringLiteral("%1:%2:%3").arg(hours).arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero);
+		return QStringLiteral("%1:%2:%3").arg(hours, 2, 10, zero).arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero);
 	if (ms < TenthsBelowMs)
 		return QStringLiteral("%1:%2.%3").arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero).arg(ms / 100 % 10);
 	return QStringLiteral("%1:%2").arg(minutes, 2, 10, zero).arg(seconds, 2, 10, zero);

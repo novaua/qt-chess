@@ -36,7 +36,7 @@ static GameAptr Replay(const MovesHistory& history, size_t count)
 	return game;
 }
 
-std::string ChessEnginePlayer::FindMove(const MovesHistory& history)
+std::string ChessEnginePlayer::FindMove(const MovesHistory& history, std::chrono::milliseconds maxMoveTime)
 {
 	int n = static_cast<int>(history.size());
 
@@ -72,7 +72,8 @@ std::string ChessEnginePlayer::FindMove(const MovesHistory& history)
 	}
 
 	if (_level.UsesEngineElo())
-		return _connector->GetEngineMove(req, _level.MoveTime()).BestMove;
+		return _connector->GetEngineMove(req, maxMoveTime.count() > 0 ? std::min(_level.MoveTime(), maxMoveTime)
+		                                                              : _level.MoveTime()).BestMove;
 
 	auto candidates = _connector->GetCandidateMoves(req, _level.CandidateCount(), _level.SearchDepth());
 	return PickWeakMove(candidates, _level.TemperatureCp(), _rng);

@@ -37,10 +37,14 @@ Item {
             else                      UserManager.createUser("Tester", "wizard")
         }
         // A second profile to play against: same names and avatars every time.
-        var gameScene = ["game", "leave-online", "continue", "review", "result", "ended", "moves", "select", "drag", "slides"].includes(name)
-        if ((gameScene || name === "players") && UserManager.userCount < 2) {
+        var gameScene = ["game", "leave-online", "continue", "review", "result", "ended", "moves", "select", "drag", "slides",
+                         "clock", "clock-low", "clock-flag", "clock-promotion", "clock-continue", "stalemate"].includes(name)
+        if ((gameScene || name.startsWith("players")) && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
+            if (name === "players-many")   // the opponents wrap: with -Size 640x560 the dialog scrolls
+                for (const other of ["Alice", "Carol", "Dan", "Eve", "Frank"])
+                    UserManager.createUser(other, "girl")
             UserManager.login(me)
         }
 
@@ -54,7 +58,7 @@ Item {
             window.openOnline()
         }
         if (name === "computer") dialogs.computer.openNew()
-        if (name === "players")  dialogs.twoPlayer.open()
+        if (name.startsWith("players")) dialogs.twoPlayer.open()
         if (name === "robot") {
             // A saved game vs the robot (level 5, the player is Black) where White mates in one,
             // then Continue: the engine finds Qh5#, played on the GUI thread (BL-09). Needs Stockfish.
@@ -69,16 +73,36 @@ Item {
                            + "c3d5 a5d8 d5f6 d8f6 d1e2 f5c2"
             var defaultMoves = ({ continue: "e2e4 e7e5", review: middlegame, moves: middlegame, select: "e2e4 e7e5", drag: "e2e4 e7e5",
                                   slides: "e2e4 e7e5", "leave-online": "e2e4 e7e5",
-                                  result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4" })[name] ?? ""
+                                  result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4",
+                                  clock: "e2e4 e7e5 g1f3", "clock-low": "e2e4 e7e5 g1f3", "clock-flag": "e2e4 e7e5",
+                                  "clock-continue": "e2e4 e7e5", "clock-promotion": "a2a4 b7b5 a4b5 a7a6 b5a6 c8b7 a6b7 d8c8",
+                                  stalemate: "e2e3 a7a5 d1h5 a8a6 h5a5 h7h5 h2h4 a6h6 a5c7 f7f6 c7d7 e8f7 d7b7 d8d3 "
+                                           + "b7b8 d3h7 b8c8 f7g6" })[name] ?? ""
+            // White's and Black's time: time stands still in this mode, so a scene sets what it shows.
+            var clockTimes = ({ clock: [171000, 163000], "clock-low": [41000, 8450], "clock-flag": [0, 120000],
+                                "clock-promotion": [30000, 120000], "clock-continue": [95000, 62000] })[name]
+            var limitSec = clockTimes ? 180 : 0
+            var incSec = clockTimes ? 2 : 0
             var bob = UserManager.users.find(u => u.name === "Bob")
-            if (name === "continue")   // only a game vs the robot is autosaved; White: no engine needed
-                ChessConnector.startComputerGame(3, 0)
+            var robot = name === "continue" || name === "clock-continue"
+            if (robot)   // only a game vs the robot is autosaved; White: no engine needed
+                ChessConnector.startComputerGame(3, 0, limitSec, incSec)
             else
-                ChessConnector.startLocalGame(!shot.black, bob ? bob.id : "")
+                ChessConnector.startLocalGame(!shot.black, bob ? bob.id : "", limitSec, incSec)
             if (shot.moves || defaultMoves)
                 ChessConnector.applyMoves(shot.moves || defaultMoves)
-            if (name === "continue")
+            if (clockTimes)
+                ChessConnector.setScreenshotClock(clockTimes[0], clockTimes[1])
+            if (robot)
                 ChessConnector.endGame()   // autosaved: Home offers to continue it
+            if (name === "clock-continue")
+                ChessConnector.continueGame()
+            if (name === "stalemate")
+                ChessConnector.movePiece(58, 44)   // Qe6: played like the player's move, so the game sees it
+            if (name === "clock-promotion") {
+                ChessConnector.movePiece(49, 56)   // bxa8: the piece picker opens ...
+                ChessConnector.setScreenshotClock(0, 120000)   // ... and the time runs out: the pawn goes back
+            }
             if (name === "review")
                 ChessConnector.reviewTo(9)
             if (name === "moves")
@@ -125,7 +149,8 @@ Item {
         if (ChessConnector.GameResult !== "") {
             resultCardTimer.start()
         } else {
-            readyTimer.interval = 0
+            // clock-continue: past the second the clock waits for the page, or the shot races with it.
+            readyTimer.interval = shot.scene === "clock-continue" ? 1500 : 0
             readyTimer.start()
         }
     }

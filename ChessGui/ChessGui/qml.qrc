@@ -12,6 +12,7 @@
         <file>qml/ConfirmDialog.qml</file>
         <file>qml/LeaveOnlineDialog.qml</file>
         <file>qml/ChoiceRow.qml</file>
+        <file>qml/TimeControlPicker.qml</file>
         <file>qml/ComputerGameDialog.qml</file>
         <file>qml/TwoPlayerDialog.qml</file>
         <file>qml/HomePage.qml</file>
@@ -132,5 +133,6 @@
         <file alias="checkmate.wav">sounds/checkmate.wav</file>
         <file alias="win.wav">sounds/win.wav</file>
         <file alias="move_opponent.wav">sounds/move_opponent.wav</file>
+        <file alias="lowtime.wav">sounds/lowtime.wav</file>
     </qresource>
 </RCC>

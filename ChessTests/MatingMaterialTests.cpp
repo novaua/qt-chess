@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include <CppUnitTest.h>
 #include "../ChessCore/Board.h"
+#include "../ChessCore/Game.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace Chess;
@@ -26,6 +27,25 @@ TEST_CLASS(MatingMaterialTests)
     }
 
 public:
+    // The shortest known stalemate (Sam Loyd). A mate isn't one.
+    TEST_METHOD(Game_IsStalemate)
+    {
+        Game game;
+        game.Restart();
+        for (const char* move : { "e2e3", "a7a5", "d1h5", "a8a6", "h5a5", "h7h5", "h2h4", "a6h6", "a5c7", "f7f6",
+                                  "c7d7", "e8f7", "d7b7", "d8d3", "b7b8", "d3h7", "b8c8", "f7g6" })
+            game.DoMove(Move::Parse(move));
+        Assert::IsFalse(game.IsStalemate());
+        game.DoMove(Move::Parse("c8e6"));
+        Assert::IsTrue(game.IsStalemate());
+
+        Game mated;
+        mated.Restart();
+        for (const char* move : { "f2f3", "e7e5", "g2g4", "d8h4" })
+            mated.DoMove(Move::Parse(move));
+        Assert::IsFalse(mated.IsStalemate());
+    }
+
     TEST_METHOD(StartPosition_BothCanMate)
     {
         Board board;

@@ -39,8 +39,8 @@ public:
     void killEngine();
 
     // Runs on the engine thread. `request` comes back with the answer, so the caller can
-    // drop the answer to a request it no longer waits for.
-    void findMove(int request, const Chess::MovesHistory& history);
+    // drop the answer to a request it no longer waits for. maxMoveMs: the robot's clock (0: none).
+    void findMove(int request, const Chess::MovesHistory& history, int maxMoveMs = 0);
 
 signals:
     void moveFound(int request, QString move); // UCI, e.g. "e7e8q"

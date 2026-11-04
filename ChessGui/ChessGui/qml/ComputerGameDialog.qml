@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import ChessPlusPlus
 
-// New game against the robot: the player's side and the level.
+// New game against the robot: the player's side, the level and the clock.
 AppDialog {
     id: dialog
 
@@ -15,6 +15,7 @@ AppDialog {
     function openNew() {
         level = ChessConnector.LastLevel
         side.checkedIndex = ChessConnector.PlayerPlaysWhite ? 0 : 1
+        clock.restore()
         open()
     }
 
@@ -23,7 +24,10 @@ AppDialog {
     title: "Play vs computer"
     width: 420
 
-    onAccepted: ChessConnector.startComputerGame(Math.round(levelSlider.value), side.checkedIndex)
+    onAccepted: {
+        clock.remember()
+        ChessConnector.startComputerGame(Math.round(levelSlider.value), side.checkedIndex, clock.limitSec, clock.incSec)
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -72,6 +76,16 @@ AppDialog {
             font: Theme.caption
             color: Theme.textSecondary
             wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
+
+        Label {
+            text: "Clock"
+            color: Theme.textSecondary; font: Theme.caption
+            Layout.topMargin: Theme.s2
+        }
+        TimeControlPicker {
+            id: clock
             Layout.fillWidth: true
         }
     }

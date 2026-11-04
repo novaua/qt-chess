@@ -78,7 +78,10 @@ Page {
     Timer {
         id: openTimer
         interval: 1000
-        onTriggered: page._openSecondPassed = true
+        onTriggered: {
+            ChessConnector.pageOpened()   // before a held move plays
+            page._openSecondPassed = true
+        }
     }
     Connections {
         target: Theme
@@ -163,6 +166,7 @@ Page {
         IconButton {
             // vs Robot this also takes back the last moves of a finished game, which resumes it.
             visible: page.mode === "computer" || (page.mode === "online" && !page.gameOver)
+            enabled: !ChessConnector.Clock.timeUp // a flag ends the game for good
             icon.source: Theme.icon("undo")
             tip: page.mode === "online" ? "Propose takeback (Ctrl+Z)" : "Undo move (Ctrl+Z)"
             onClicked: ChessConnector.requestTakeback()
@@ -271,6 +275,9 @@ Page {
         pieces:    white ? ChessConnector.CapturedByLight : ChessConnector.CapturedByDark
         advantage: white ? ChessConnector.MaterialBalance : -ChessConnector.MaterialBalance
         isActive:  !page.gameOver && page.mode !== "replay" && (ChessConnector.IsWhiteMove === 1) === white
+        clockText:    white ? ChessConnector.Clock.whiteText : ChessConnector.Clock.blackText
+        clockRunning: white ? ChessConnector.Clock.whiteRunning : ChessConnector.Clock.blackRunning
+        clockLow:     white ? ChessConnector.Clock.whiteLow : ChessConnector.Clock.blackLow
         onAvatarClicked: page.levelsHelpRequested()
     }
 

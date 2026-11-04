@@ -18,6 +18,7 @@
 #include "boardpieces.h"
 #include "movelistmodel.h"
 #include "movegate.h"
+#include "gameclock.h"
 #include "engineworker.h"
 #include "AppConfig.h"
 #include "AvatarProvider.h"
@@ -75,6 +76,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool OpponentGone    READ opponentGone    NOTIFY opponentGoneChanged)
 		Q_PROPERTY(int  ClaimWinSeconds READ claimWinSeconds NOTIFY opponentGoneChanged) // when it became gone; -1 = not said
 		Q_PROPERTY(QString ContinueDescription READ continueDescription NOTIFY canContinueChanged) // the autosaved game, e.g. "vs Bob"
+		Q_PROPERTY(GameClock* Clock READ clock CONSTANT) // the game's clocks; Clock.enabled false: none
 		// --screenshot mode: { scene, moves, black, dark, width, height }; empty in a normal run
 		Q_PROPERTY(QVariantMap ScreenshotScene READ screenshotScene CONSTANT)
 public:
@@ -84,7 +86,7 @@ public:
 	void setAvatarProvider(AvatarProvider* ap) { _avatarProvider = ap; }
 	void setUserManager(UserManager* um);
 	void setLichessClient(LichessClient* lc);
-	void setScreenshotScene(const QVariantMap& scene) { _screenshotScene = scene; }
+	void setScreenshotScene(const QVariantMap& scene);
 
 	int MoveCount();
 	int IsWhiteMove();
@@ -127,6 +129,7 @@ public:
 	QStringList capturedByLight() const;
 	int materialBalance() const;
 	QVariantMap screenshotScene() const { return _screenshotScene; }
+	GameClock* clock() const { return _clock; }
 	QAbstractItemModel* pieces() const { return _pieces; }
 	int selectedSquare() const { return _selectedSquare; }
 	int movableColor() const;
@@ -168,6 +171,7 @@ signals:
 
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
+	void pawnPromotionCancelled(); // the time ran out while the piece was being chosen
 
 	void noSavedGame();
 	void savedOk();
@@ -183,13 +187,16 @@ signals:
 public slots:
 	// One call per user action (CLAUDE.md "Key Conventions"). A Lichess game starts and ends
 	// through LichessClient::gameStarted / gameEnded, handled below.
-	Q_INVOKABLE void startComputerGame(int level, int side); // side: 0 White, 1 Black, 2 Random
-	Q_INVOKABLE void startLocalGame(bool playerPlaysWhite, const QString& opponentUserId); // "" = Guest
+	// limitSec, incSec: the time control; 0 and 0: no clock.
+	Q_INVOKABLE void startComputerGame(int level, int side, int limitSec = 0, int incSec = 0); // side: 0 White, 1 Black, 2 Random
+	Q_INVOKABLE void startLocalGame(bool playerPlaysWhite, const QString& opponentUserId, int limitSec = 0, int incSec = 0); // "" = Guest
 	Q_INVOKABLE bool continueGame();
 	void setUseFen(bool v);
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
+	Q_INVOKABLE void setScreenshotClock(int whiteMs, int blackMs); // --screenshot: the times to show; the side to move runs
 	// The game page has settled (open for a second, the board not turning): a held move may show.
 	Q_INVOKABLE void setBoardSettled(bool settled);
+	Q_INVOKABLE void pageOpened(); // the game page has been open for a second: a continued game's clock starts
 	// Theme.slow, or 0 with Reduce animations: how long a piece slides.
 	Q_INVOKABLE void setMoveTiming(int slideMs);
 	// The gate: the page has settled, it shows the live position, and no move waits to be shown.
@@ -238,6 +245,7 @@ private slots:
 		const QString& opponentAvatar);
 	void onLichessGameEnded(const QString& status, const QString& winner);
 	void onLichessOpponentGone(bool gone, int claimWinInSeconds);
+	void onClockFlagged(bool white); // a local game: that side's time is up
 
 private:
 	void startNewGame();
@@ -251,6 +259,8 @@ private:
 	void setPendingOffer(const QString& offer);
 	void setOpponentGone(bool gone, int claimWinInSeconds = -1);
 	void flagKing(bool white); // mark that side's king as the loser (resign / time)
+	void endGameWithLoser(bool white, const QString& result, const QString& text); // mate, resignation, time
+	void dropRobotAnswer();    // on its way or waiting in the gate: nothing waits for it any more
 	QString sideName(bool white) const; // who plays that colour
 	QStringList capturedPieces(Chess::PieceColors capturedColor) const;
 	const Chess::MovesHistory& shownHistory() const; // the saved game in replay, else the game record
@@ -261,6 +271,8 @@ private:
 	std::shared_ptr<Chess::Game> shownGame() const; // the position on the board: a replay while reviewing
 	void schedulePiecesSync();  // update Pieces once, after the current change is complete
 	void onHumanMoveDone();
+	void localMoveOnBoard(); // a move of a local game is on the board: a stalemate, or the other clock runs
+	void startClock();        // a new or continued local game: _clockLimitSec and _clockIncSec
 	void playRobotMove(const QString& uciMove); // the gate released it: play it on the GUI thread
 	void onGateRelease(const QString& uciMove, MoveGate::Source source);
 	void onLichessOpponentMoves(const QString& uciMoves); // one move, or the whole game on a resync
@@ -268,7 +280,7 @@ private:
 	void playOnlineMoves(const QStringList& uciMoves); // the gate released them: play them
 	int  playMoves(const QStringList& uciMoves);       // on the game, then history and counters; how many were played
 	void afterHeldMoves(std::function<void()> action); // now, or once the opponent's held moves are shown
-	void showHeldOnlineMoves(); // entering the review of an online game: play the held moves now
+	void showHeldMoves(); // entering the review of a game on a clock: play the held moves now
 	void emitBoardState(); // after _reviewIndex changed
 	void EmitMoveCountUpdates(bool emitHistoryChanged = true);
 	void buildFullHistoryCache();
@@ -302,6 +314,9 @@ private:
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
 	MoveGate* _gate = nullptr; // holds the robot's and the Lichess opponent's moves until the board is idle (BL-14)
+	GameClock* _clock = nullptr;
+	int _clockLimitSec = 0; // the local game's time control, kept for a rematch
+	int _clockIncSec = 0;
 	bool _piecesAnew = false;  // the next Pieces sync shows the position anew, without slides (a resync)
 	std::vector<std::function<void()>> _afterHeldMoves; // e.g. a draw offer that came with the opponent's held move
 	bool _engineThinking = false;

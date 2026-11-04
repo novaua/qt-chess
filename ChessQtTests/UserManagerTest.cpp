@@ -342,11 +342,19 @@ namespace UserManagerTests
 				info.isSinglePlayer = true;
 				info.computerLevel  = 5;
 				info.resultRecorded = true;
+				info.clockLimitSec  = 180;
+				info.clockIncSec    = 2;
+				info.whiteMs        = 95000;
+				info.blackMs        = 62000;
 				um.setAutoSaveInfo(info);
 			}
 			const auto info = UserManager().autoSaveInfo();
 			Assert::AreEqual(5, info.computerLevel);
 			Assert::IsTrue(info.resultRecorded);
+			Assert::AreEqual(180, info.clockLimitSec);
+			Assert::AreEqual(2, info.clockIncSec);
+			Assert::AreEqual(qint64(95000), info.whiteMs);
+			Assert::AreEqual(qint64(62000), info.blackMs);
 		}
 
 		// ── Export / import ─────────────────────────────────────────────────
