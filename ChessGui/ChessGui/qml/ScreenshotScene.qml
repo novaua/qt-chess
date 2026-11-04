@@ -56,6 +56,15 @@ Item {
         if (name.startsWith("online")) {
             // main.cpp: Tester with a Lichess account for online and online-empty, the games for online.
             window.openOnline()
+            if (name === "online-blitz" || name === "online-challenge") {
+                pages.currentItem.challengeOpponent = "Friend"
+                pages.currentItem.challengeClock.select(3)   // 5+3
+            }
+            if (name === "online-challenge") {   // sent to Friend: no link, Lichess isn't asked
+                window._pendingChallengeId = "scene"
+                window._pendingOpponentName = "Friend"
+                dialogs.challenge.open()
+            }
         }
         if (name === "computer") dialogs.computer.openNew()
         if (name.startsWith("players")) dialogs.twoPlayer.open()

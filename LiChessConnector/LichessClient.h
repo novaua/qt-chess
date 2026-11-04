@@ -47,6 +47,11 @@ public:
 	// days > 0 (with minutes 0): a correspondence game with that many days per move.
 	Q_INVOKABLE void createOpenChallenge(int minutes, int increment, const QString& color, const QString& variant,
 	                                     int days = 0);
+	// A challenge to a named player: the only way to play Blitz from a Board API app (LI-02). Sent:
+	// directChallengeSent; refused by Lichess (no such player): networkError. limitSec 0 with days 0:
+	// unlimited. color: "white", "black" or "random".
+	Q_INVOKABLE void challengePlayer(const QString& username, int limitSec, int incrementSec, int days, const QString& color);
+	Q_INVOKABLE static bool isUsername(const QString& text); // could be one: 2 to 30 letters, digits, - or _
 	// color: accept an open challenge as that side ("" = whatever Lichess gives).
 	Q_INVOKABLE void acceptChallenge(const QString& challengeId, const QString& color = {});
 	// "Join a game": a Lichess link or a game id. A player link (…?color=black, …/black) joins as
@@ -191,6 +196,7 @@ private:
 	bool           _hasClock             = false;   // this game has one: real time or correspondence
 	bool           _correspondence       = false;
 	QNetworkReply* _directChallengeReply = nullptr; // keepAliveStream: open while the challenge waits
+	QString        _directOpponentName;             // who it was sent to
 	QString        _directChallengeId;
 	bool           _directChallengeAccepted = false;
 	bool           _directChallengeDone     = false; // a {"done":...} line arrived

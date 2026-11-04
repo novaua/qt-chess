@@ -239,7 +239,7 @@ ApplicationWindow {
         sourceComponent: ScreenshotScene {
             window: root
             pages: stack
-            dialogs: ({ createUser: createUserDialog, restoreBackup: restoreBackupDialog, levels: levelsHelp,
+            dialogs: ({ challenge: challengeDialog, createUser: createUserDialog, restoreBackup: restoreBackupDialog, levels: levelsHelp,
                         computer: computerDialog, twoPlayer: twoPlayerDialog, leaveOnline: leaveOnlineDialog })
         }
     }
@@ -569,13 +569,14 @@ ApplicationWindow {
             _pendingChallengeId   = challengeId
             _pendingChallengeUrl  = ""
             _pendingOpponentName  = opponentName
-            _pendingRematch       = true
+            _pendingRematch       = ChessConnector.InGame
             challengeDialog.open()
         }
 
         function onChallengeDeclined(opponentName) {
+            const what = _pendingRematch ? "rematch" : "challenge"
             clearPendingChallenge()
-            messageBar.show(opponentName + " declined the rematch", "caution")
+            messageBar.show(opponentName + " declined the " + what, "caution")
         }
 
         // Back to the Online page, which is under the dialog (a rematch: the game page).

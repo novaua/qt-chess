@@ -4,6 +4,26 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-04 — LI-02 step 4: the challenge card (branch: challengeCard_041126)
+
+### What was done
+- **The picker on the card**: `TimeControlPicker` gets `online` (no Bullet, no No clock) and `blitzAllowed`. Blitz tiles are dim until a username is entered, with a line saying why. Real time is now the card's default, not Unlimited, so the tiles show first.
+- **The rating**: "Your Rapid rating: 1688" for the chosen mode, also Correspondence; nothing for Unlimited or a pool without a rating.
+- **By name**: an optional "Lichess username" field. `LichessClient::challengePlayer()` sends a direct challenge through the rematch's `challengeUser()` and its wait for the game. The Create button then says "Challenge <name>", and stays off for a Blitz tile with no name.
+- **The rematch's code assumed every direct challenge was a rematch**: the opponent's name came from the last game, so a new challenge would have named the wrong player, and the dialog, the declined message and the errors all said "rematch". `_directOpponentName` holds who it was sent to, and `_pendingRematch` is now true only in a game, as for a link.
+- **Usernames**: `isUsername()` (Lichess's `[a-zA-Z0-9_-]{2,30}`) before the name goes into the URL. The test caught `$` letting a trailing newline through: `anchoredPattern`.
+- **Scenes**: `online-blitz`, `online-challenge`; `online` and `online-empty` show the new card.
+- **Tests**: 2 in `LichessClientTest`. Release builds; ChessTests + ChessQtTests **289 pass**.
+
+### Not checked yet
+- Nothing has run against the real Lichess (step 5): a challenge by name, Blitz, declined, no such player. `challengePlayer()` past the name check has no test: it needs the network.
+- The challenges are casual, as links and rematches always were here: `rated=false`. The card shows a rating, but these games don't change it.
+
+### Next
+- Step 5: docs and hand tests.
+
+---
+
 ## 2026-11-04 — LI-02 step 3: the Lichess clock (branch: lichessClock_041126)
 
 ### What was done

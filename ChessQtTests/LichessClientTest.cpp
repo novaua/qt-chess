@@ -369,6 +369,32 @@ namespace LichessTests
 			client.setToken({}); // no network call was made: nothing to clean up
 		}
 
+		// It goes into the URL of the challenge.
+		TEST_METHOD(IsUsername_Test)
+		{
+			Assert::IsTrue(LichessClient::isUsername("DrNykterstein"));
+			Assert::IsTrue(LichessClient::isUsername("a_b-3"));
+			Assert::IsTrue(LichessClient::isUsername("ab"));
+			Assert::IsTrue(LichessClient::isUsername(QString(30, 'x')));
+			Assert::IsFalse(LichessClient::isUsername(""));
+			Assert::IsFalse(LichessClient::isUsername("a"));
+			Assert::IsFalse(LichessClient::isUsername(QString(31, 'x')));
+			Assert::IsFalse(LichessClient::isUsername("two words"));
+			Assert::IsFalse(LichessClient::isUsername("../account"));
+			Assert::IsFalse(LichessClient::isUsername("name?x=1"));
+			Assert::IsFalse(LichessClient::isUsername("name\n"));
+		}
+
+		// A bad name never reaches Lichess: the error comes at once.
+		TEST_METHOD(ChallengePlayer_BadName_ErrorWithoutARequest_Test)
+		{
+			LichessClient client;
+			QStringList errors;
+			QObject::connect(&client, &LichessClient::networkError, [&](QString message) { errors << message; });
+			client.challengePlayer("../account", 300, 3, 0, "random");
+			Assert::AreEqual(1, (int)errors.size());
+		}
+
 		TEST_METHOD(TimeLeftText_Units_Test)
 		{
 			Assert::AreEqual(QString("45 s"),   LichessClient::timeLeftText(45));
