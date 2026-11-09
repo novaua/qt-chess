@@ -416,6 +416,7 @@ ApplicationWindow {
         id: gamePage
         GamePage {
             rematchPending: root._pendingRematch
+            infoBarsHeight: infoBars.height
             onHomeRequested:        root.leaveGame()
             onNewGameRequested:     root.newGameLikeThis()
             onExportPgnRequested:   root.exportPgn()
@@ -436,7 +437,9 @@ ApplicationWindow {
     }
 
     // ── InfoBars: messages and Lichess offers, under the command bar ────────
+    // The game page makes room for them (GamePage.infoBarsHeight); the other pages centre or scroll their content.
     Column {
+        id: infoBars
         anchors {
             top: parent.top; topMargin: Theme.commandBarHeight + Theme.s2
             horizontalCenter: parent.horizontalCenter

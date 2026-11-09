@@ -12,6 +12,9 @@ Page {
     objectName: "game"
 
     property bool rematchPending: false   // a Lichess rematch challenge waits for the opponent
+    // The window's InfoBars under the command bar (an offer, a challenge, a lost connection): the
+    // board and the cards start below them, so no bar covers the opponent's card.
+    property real infoBarsHeight: 0
 
     signal homeRequested()
     signal newGameRequested()      // the result card: a new game of the same kind
@@ -299,6 +302,7 @@ Page {
         anchors {
             fill: parent
             margins: Theme.s4
+            topMargin: Theme.s4 + page.infoBarsHeight
             bottomMargin: wide ? Theme.s4 : Theme.sheetHandleHeight + Theme.s2
         }
 
