@@ -114,6 +114,7 @@
     <ClCompile Include="AppLogTest.cpp" />
     <ClCompile Include="ChessEnginePlayerTest.cpp" />
     <ClCompile Include="LichessClientTest.cpp" />
+    <ClCompile Include="LichessStreamTest.cpp" />
     <ClCompile Include="UciConnectorTest.cpp" />
     <ClCompile Include="UserManagerTest.cpp" />
     <!-- UserManager and what it needs, from the app (it has no library of its own) -->

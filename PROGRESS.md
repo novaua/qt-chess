@@ -4,6 +4,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — BL-10 step 1: `LichessStream` (branch: lichessStream_091126)
+
+### What was done
+- **`LichessStream`** (LiChessConnector, new): one Lichess ndjson stream that stays open, LI-06's reconnect taken out of `LichessClient` so the event stream (step 2) can use it too. `open` (not established yet: its end is reported, `ended`), `setReconnect(true)` once established (then the 20 s silence watchdog runs and a loss reconnects after 1, 2, 4, 8, then 15 s, `connectionChanged(false)`), `connected()` from the owner when it's back (`connectionChanged(true)`), `reopen()` (a resync: not a loss), `close()`. Lichess's 4xx stops it (`stopped`), a 401 also when Lichess's own check hasn't marked the reply yet; no answer or a 5xx is retried. It splits and logs the lines; a receiver that closes it on a line (the game's end) stops the reading.
+- **`LichessClient`** keeps the game's side: the stream is established by the first `gameFull`, back after the resync's moves (`connected()` before a lost move's message, as in LI-06), closed at the game's end; `gameStreamEnded` (before gameFull: the old messages) and `gameStreamRefused` (4xx mid-game). `_streamReply`, `_gameOver`, `_streamLost`, the timers and the backoff state are gone from it.
+- **Tests**: `FakeLichess` moved to `ChessQtTests/FakeLichess.h` (with `waitUntil`); **`LichessStreamTest`**, 10 tests: lines and the end before it's established, closed → back, silent → back, keep-alive keeps it, 404 and 401 stop it, 503 is retried, the backoff doubles (100, 200, 400 ms), `reopen` isn't a loss, `close` while a reconnect waits, a receiver closing on a line. The LI-06 `LichessReconnectTests` unchanged and passing. Release builds; ChessTests + ChessQtTests **325 pass**; the 20 stream tests 10 runs.
+- No behaviour change: the online scenes (`takeback`, `clock-online`, `premove*`, `reconnecting`) as before (screen locked: the known 0.06 % text difference in `premove-played`/`-dropped`).
+- The branch switch for this step first failed on five locked files (they kept their pre-LI-06 content); stashed (`stash@{0}`, "stale pre-LI-06 copies"), `develop` pulled, the branch made again from it.
+
+### Next
+- Step 2: the always-open event stream and `incomingChallenges`.
+
+---
+
 ## 2026-11-09 — BL-10 plan: Lichess challenges as notifications (branch: bl10Plan_091126)
 
 ### What was done
