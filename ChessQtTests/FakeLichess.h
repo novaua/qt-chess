@@ -19,6 +19,7 @@ namespace LichessTests
 	public:
 		std::function<void(QTcpSocket*, const QString& method, const QString& path)> onRequest;
 		QStringList requests; // "GET /api/board/game/stream/g1", ...
+		QStringList bodies;   // their bodies, in the same order ("reason=tooFast"; "" for a GET)
 
 		FakeLichess()
 		{
@@ -28,9 +29,17 @@ namespace LichessTests
 					auto received = std::make_shared<QByteArray>();
 					QObject::connect(socket, &QTcpSocket::readyRead, [this, socket, received]() {
 						*received += socket->readAll();
-						if (socket->property("answered").toBool() || !received->contains("\r\n\r\n"))
+						const int headEnd = int(received->indexOf("\r\n\r\n"));
+						if (socket->property("answered").toBool() || headEnd < 0)
+							return;
+						int length = 0; // the body, if any, may come in a later packet
+						for (const QByteArray& header : received->left(headEnd).split('\n'))
+							if (header.toLower().startsWith("content-length:"))
+								length = header.mid(15).trimmed().toInt();
+						if (received->size() < headEnd + 4 + length)
 							return;
 						socket->setProperty("answered", true);
+						bodies << QString::fromUtf8(received->mid(headEnd + 4, length));
 						const QList<QByteArray> requestLine = received->left(received->indexOf("\r\n")).split(' ');
 						const QString method = QString::fromLatin1(requestLine.value(0));
 						const QString path = QString::fromLatin1(requestLine.value(1));
@@ -53,6 +62,12 @@ namespace LichessTests
 		{
 			socket->write(QByteArray("HTTP/1.1 ") + QByteArray::number(status) + " " + reason
 			              + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+			socket->disconnectFromHost();
+		}
+		static void json(QTcpSocket* socket, const QByteArray& body)
+		{
+			socket->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
+			              + QByteArray::number(body.size()) + "\r\nConnection: close\r\n\r\n" + body);
 			socket->disconnectFromHost();
 		}
 		static void line(QTcpSocket* socket, const QByteArray& json)

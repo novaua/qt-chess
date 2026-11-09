@@ -346,6 +346,7 @@ int main(int argc, char* argv[])
 		if (!token.isEmpty()) { // neither in screenshot mode (setOffline)
 			lichessClient->refreshAccount();
 			lichessClient->refreshOngoingGames(); // LI-04: Continue and the Online page
+			lichessClient->startEventStream();    // BL-10: challenges, games started elsewhere
 		}
 	};
 	QObject::connect(userManager, &UserManager::activeUserChanged, [=]() {

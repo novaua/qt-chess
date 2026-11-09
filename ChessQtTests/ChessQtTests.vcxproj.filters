@@ -32,6 +32,9 @@
     <ClCompile Include="LichessStreamTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LichessChallengeTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="BoardPiecesTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
