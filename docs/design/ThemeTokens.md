@@ -189,3 +189,10 @@ It is registered through `qmldir` (`singleton Theme 1.0 Theme.qml`) and listed i
 - App icon: the board's white knight on a rounded tile in the board's green with a 2×2 board
   corner (`pics/app-icon.png`, `chess.ico`, installer images in `installer/art/`), drawn by
   `scripts/make_icons.py`. It replaces `pics/chess_icon.svg`.
+
+## 11. Added in BL-13 (wide game layout)
+
+- `playerColumnWidth` 260: in a wide window where it gives a board at least 24 px bigger, the player
+  cards go to a column left of the board (`GamePage.qml`, `area.side`) and the board takes the full
+  height. The cards are then `stacked` (`PlayerCard`): the clock on its own row at the column's outer
+  edge (`title` size, 48 high), the name row, the captured pieces wrapping (`CapturedStrip.wrapWidth`).
