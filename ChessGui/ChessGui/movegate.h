@@ -28,6 +28,9 @@ public:
 
 	void setTiming(const Timing& timing);
 	Timing timing() const { return _timing; }
+	// LI-06: false in a real-time Lichess game, where our clock runs on Lichess while a move waits:
+	// the opponent's moves then don't wait for the board (only for the page, setStageReady).
+	void setHoldOnline(bool hold);
 	void setStageReady(bool ready);       // the page has settled and the board isn't turning
 	void moveShown(bool byRobot = false); // a move was played: the board is busy for slideMs + pauseMs
 	void push(const QString& uciMove, Source source);
@@ -62,5 +65,6 @@ private:
 	qint64 _shownAt = 0;       // when the last move was shown
 	qint64 _playerShownAt = 0; // when the player's last move was shown
 	bool _stageReady = false;
+	bool _holdOnline = true;
 	bool _wasIdle = false;
 };

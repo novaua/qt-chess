@@ -17,16 +17,17 @@ Use this file to record where work stopped and what to do next. Newest entry at 
   - 7 against **`FakeLichess`**, a `QTcpServer` on 127.0.0.1 standing in for lichess.org (`setBaseUrl`, `setStreamTiming` for short waits), real sockets, no Lichess: the stream closes mid-game and the opponent moved meanwhile; the stream goes silent; keep-alive lines keep it; a move whose POST is cut off and Lichess hasn't got; a move whose POST times out but Lichess played; the game ends (no reconnect); leaving while reconnecting stops it.
   - Release builds; ChessTests + ChessQtTests **308 pass**, three full runs; the 9 new tests 25 runs. One early failure in a 5-run loop, not seen again: the keep-alive test allowed only 300 ms of silence, now 1 s.
 - **Scene `reconnecting`** (in `all`): the bar over a Lichess game.
+- **No 0.4 s hold in real-time Lichess games** (the owner's choice, only for games with a clock): `MoveGate::setHoldOnline(false)` from `onLichessClockStarted` for a real-time clock. The opponent's moves then wait only for the page (open a second, not turning, not reviewing), not for our move's slide and pause, so our Lichess clock doesn't run while the board holds their reply. Their piece may start sliding while ours still does, as on lichess.org. Correspondence, unlimited and robot games keep the hold; every new game starts with it (`beginGame`). 3 `MoveGateTest` tests.
 - **Screenshots**: the screen was locked (`LogonUI`): the dialog scenes and `clock-promotion` / `clock-continue` failed as known for a locked screen, and text renders slightly differently (premove-played/-dropped: 0.06 %, only the move-list text). All board scenes match. `reconnecting` has no baseline yet: take it on an unlocked screen (`Compare-Screenshots.ps1 -Update -Name reconnecting,reconnecting-dark`).
 
 ### Not checked yet (the owner, with a real Lichess game)
 - Pull the network cable / turn Wi-Fi off for 30 s in a game: the bar after at most 20 s, back on its own once the network is, with the opponent's moves made meanwhile.
 - Sleep the laptop during a correspondence game, wake it: the game catches up.
 - A move while offline: "Your move didn't reach Lichess" after the reconnect, or the game simply goes on if it got there.
-- Premoves feel as fast as on lichess.org.
+- Premoves and instant replies feel as fast as on lichess.org (a fast opponent's reply now slides in while our piece still slides).
 
 ### Next
-- Open from LI-05/LI-06: the board holds the opponent's reply up to 0.4 s after our move (BL-14's slide + pause) while our Lichess clock runs; drop the pause for real-time Lichess games if the owner wants it.
+- The owner's checks above; the `reconnecting` baseline on an unlocked screen.
 
 ---
 

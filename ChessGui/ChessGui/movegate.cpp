@@ -19,6 +19,12 @@ void MoveGate::setTiming(const Timing& timing)
 	tick();
 }
 
+void MoveGate::setHoldOnline(bool hold)
+{
+	_holdOnline = hold;
+	tick();
+}
+
 void MoveGate::setClock(std::function<qint64()> clock)
 {
 	_clock = std::move(clock);
@@ -94,7 +100,9 @@ bool MoveGate::isIdle() const
 
 qint64 MoveGate::allowedAt(Source source) const
 {
-	return source == Source::Robot ? std::max(_busyUntil, _robotEarliest) : _busyUntil;
+	if (source == Source::Robot)
+		return std::max(_busyUntil, _robotEarliest);
+	return _holdOnline ? _busyUntil : 0;
 }
 
 void MoveGate::releaseFront(qint64 now)

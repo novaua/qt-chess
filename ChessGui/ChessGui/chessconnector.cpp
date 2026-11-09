@@ -878,6 +878,9 @@ void ChessConnector::onLichessOpponentGone(bool gone, int claimWinInSeconds)
 void ChessConnector::onLichessClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence)
 {
 	_clock->setLowTimeSides(_config.playerPlaysWhite, !_config.playerPlaysWhite);
+	// Real time: the opponent's reply isn't held for our move's slide and pause (up to 0.4 s of our
+	// clock on Lichess, LI-06). Days per move: no hurry, the board shows one thing at a time.
+	_gate->setHoldOnline(correspondence);
 	if (correspondence)
 		_clock->startCorrespondence(limitMs);
 	else
@@ -1042,6 +1045,7 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 void ChessConnector::beginGame(bool online)
 {
 	_gate->clear(); // a held move belongs to the game being left
+	_gate->setHoldOnline(true);
 	cancelPremove();
 	_afterHeldMoves.clear();
 	_listAfterPromotion.reset();
