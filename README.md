@@ -12,8 +12,43 @@ Latest installer: [download the newest release](https://github.com/novaua/qt-che
 All versions: [Releases](https://github.com/novaua/qt-chess/releases). Release notes for each version are in [docs/release-notes](docs/release-notes).
 
 Tools required to compile:
-* MS Visual Studio 2022
+* MS Visual Studio 2022 (or newer) with the "Desktop development with C++" workload
 * Qt 6.12+ (with the Qt Multimedia add-on) and [Qt VS Tools](https://marketplace.visualstudio.com/items?itemName=TheQtCompany.QtVisualStudioTools2022)
+
+## Build and run from the command line (PowerShell)
+One-time setup:
+* Install Qt for MSVC 2022 64-bit, e.g. `C:\Qt\6.12.0\msvc2022_64`.
+* Install Qt VS Tools and start Visual Studio once: it sets the `QtMsBuild` user environment variable that MSBuild needs (open a new terminal afterwards).
+* In Visual Studio, **Extensions → Qt VS Tools → Qt Versions**, add that Qt under the name `6.12.0_msvc2022_64` (the name the project uses). Or skip this and pass `/p:QtInstall=<path>` to MSBuild (below).
+
+Build from the repository's root (no "Developer PowerShell" needed: `vswhere` finds MSBuild):
+```powershell
+$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+$msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+
+& $msbuild ChessCore.sln /p:Configuration=Release /p:Platform=x64 /m /v:minimal   # everything, with the tests
+& $msbuild ChessCore.sln /t:ChessGui /p:Configuration=Release /p:Platform=x64 /m /v:minimal   # only the app
+
+# Qt not registered in Qt VS Tools under that name: point MSBuild at it
+& $msbuild ChessCore.sln /p:Configuration=Release /p:Platform=x64 /m /v:minimal /p:QtInstall=C:\Qt\6.12.0\msvc2022_64
+```
+Use `/p:Configuration=Debug` for a debug build (output in `x64\Debug\`).
+
+Run: the build doesn't copy Qt next to the exe, so put Qt's `bin` on `PATH` first (in the same terminal):
+```powershell
+$env:PATH = "C:\Qt\6.12.0\msvc2022_64\bin;$env:PATH"
+.\x64\Release\ChessGui.exe
+.\x64\Release\ChessGui.exe --data-dir "$env:TEMP\chess-test"   # separate profiles, settings and saves
+```
+Playing against the computer needs a UCI engine: put `stockfish.exe` on `PATH` ([download Stockfish](https://stockfishchess.org/download/)); Settings → Computer shows the engine found.
+
+Tests (Microsoft CppUnitTest, run with `vstest.console`; Qt's `bin` on `PATH` as above, the engine tests need Stockfish):
+```powershell
+$vstest = & $vswhere -latest -find '**\vstest.console.exe' | Select-Object -First 1
+& $vstest x64\Release\ChessTests.dll x64\Release\ChessQtTests.dll
+```
+
+Screenshots of the app's views, without opening a window: `.\scripts\Take-Screenshot.ps1 -Scene all` (see the script's help: `Get-Help .\scripts\Take-Screenshot.ps1`).
 
 ## Build the installer locally
 Needs the tools above plus [Inno Setup 6](https://jrsoftware.org/isdl.php) and `windeployqt` on `PATH` (or pass `-QtBinDir`):
