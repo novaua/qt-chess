@@ -4,6 +4,21 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — BL-10 follow-up: the screenshot checks on an unlocked screen (branch: bl10ScreenChecks_091126)
+
+### What was done
+- The checks owed since LI-05 (`TASKS.md`, "Screenshots on an unlocked screen"), on an unlocked screen (no `LogonUI`), after #132:
+  - `Take-Screenshot.ps1 -Scene all` and `-Dark`, then `Compare-Screenshots.ps1`: **88 compared, 0 failed**. The dialog scenes, `clock-promotion`, `clock-continue` and the 0.06 % text in `premove-played` / `-dropped` that failed before were all the locked screen; `robot` in a real window passes too.
+  - **New baselines, accepted after a look** (contact sheet, light and dark): `reconnecting`, `challenge`, `challenge-ingame`, `challenge-unplayable`, `online-challenges`, and the new `online-challenges-decline`. `premove-robot` played its premove (1. e4 Nf6 2. Nf3) and stays without a baseline: the robot's moves vary.
+- **Scene `online-challenges-decline`** (new, in `all`): the Online page's Decline… menu open (Lichess's reasons, light and dark), so the popup is checked with every run instead of once by hand. It was repeatable over two more runs.
+- Noticed, not changed: the InfoBars over the game page (reconnecting, a challenge, as the draw offer before them) cover part of the opponent's card (the name is cut). That's the bars' existing design; say if it should change (e.g. BL-13's layout).
+- ChessTests + ChessQtTests **343 pass**.
+
+### Next
+- The owner's hand tests on real Lichess: BL-10 (`docs/BL-10-ManualTests.md`), LI-06, LI-05, LI-02, LI-04.
+
+---
+
 ## 2026-11-09 — BL-10: code review fixes (branch: bl10Review_091126)
 
 The owner's `/code-review medium` of all BL-10 PRs (#127–#131): 10 findings, all fixed, and one more found while testing them.
