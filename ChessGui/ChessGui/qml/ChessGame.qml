@@ -35,6 +35,48 @@ ApplicationWindow {
         || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible || leaveOnlineDialog.visible
         || pgnExportDialog.visible || profileExportDialog.visible || profileImportDialog.visible
         || importConflictDialog.visible || deleteProfileConfirm.visible || disconnectLichessConfirm.visible
+        || acceptChallengeConfirm.visible
+
+    // ── BL-10: Lichess challenges to the player ─────────────────────────
+    // The bar shows the oldest one not hidden. A rematch offer for the game on screen has its own bar.
+    property var  _hiddenChallenges: ({})   // id → true: "Hide" until the next challenge arrives
+    property bool _acceptingChallenge: false // Lichess's answer to Accept is awaited
+    readonly property var _challengesShown: LichessClient.incomingChallenges.filter(c =>
+        !_hiddenChallenges[c.id] && !(c.rematchOf !== "" && ChessConnector.PendingOffer === "rematch"))
+    readonly property var _challenge: _challengesShown.length > 0 ? _challengesShown[0] : null
+
+    function challengeText(c) {
+        const who = (c.challengerTitle ? c.challengerTitle + " " : "") + c.challengerName
+                  + (c.challengerRating > 0 ? " (" + c.challengerRating + (c.challengerProvisional ? "?" : "") + ")" : "")
+        const side = c.ourSide === "white" ? "You play White" : c.ourSide === "black" ? "You play Black" : "Random side"
+        let text = who + (c.rematchOf !== "" ? " offers a rematch" : " challenges you")
+                 + " · " + c.timeControlText + " · " + (c.rated ? "Rated" : "Casual") + " · " + side
+        if (!c.canPlayHere)
+            text += " · Can't be played in this app"
+        else if (!ChessConnector.CanAcceptChallenge)
+            text += ". Finish your game first: it waits on Lichess."
+        if (_challengesShown.length > 1)
+            text += " (+" + (_challengesShown.length - 1) + " more)"
+        return text
+    }
+
+    // A two-player game isn't saved: ask before leaving it. A robot game is autosaved, a Lichess game
+    // goes on at Lichess.
+    function acceptChallenge(id) {
+        if (_inGame && _mode === "local" && !_gameOver) {
+            acceptChallengeConfirm.challengeId = id
+            acceptChallengeConfirm.open()
+            return
+        }
+        _acceptingChallenge = true
+        ChessConnector.acceptChallenge(id)
+    }
+
+    function hideChallenge(id) {
+        const hidden = Object.assign({}, _hiddenChallenges)
+        hidden[id] = true
+        _hiddenChallenges = hidden
+    }
 
     // Green (weakest) → red (strongest), spread over however many levels there are.
     function levelColor(level) {
@@ -262,6 +304,7 @@ ApplicationWindow {
     SoundEffect { id: sndCheckmate; source: "qrc:/sounds/checkmate.wav"; volume: _sfxVolume }
     SoundEffect { id: sndWin;       source: "qrc:/sounds/win.wav";       volume: _sfxVolume }
     SoundEffect { id: sndLowTime;   source: "qrc:/sounds/lowtime.wav";   volume: _sfxVolume }
+    SoundEffect { id: sndChallenge; source: "qrc:/sounds/challenge.wav"; volume: _sfxVolume }
 
     title: _inGame ? "Chess++ — " + ChessConnector.GameTitle : "Chess++"
     color: Theme.windowBg
@@ -410,6 +453,39 @@ ApplicationWindow {
             id: messageBar
             width: parent.width
             timeout: 4000
+        }
+
+        // BL-10: a Lichess challenge to the player, over any page.
+        InfoBar {
+            id: challengeBar
+            objectName: "challengeBar"
+            width: parent.width
+            visible: root._challenge !== null && UserManager.isLoggedIn
+            closable: false
+            actionsBelow: true
+            text: root._challenge ? root.challengeText(root._challenge) : ""
+            // During a running real-time Lichess game: Decline only (the text says why).
+            Button {
+                visible: root._challenge !== null && root._challenge.canPlayHere && ChessConnector.CanAcceptChallenge
+                text: "Accept"
+                highlighted: true
+                enabled: !root._acceptingChallenge
+                onClicked: root.acceptChallenge(root._challenge.id)
+            }
+            Button {
+                visible: root._challenge !== null && !root._challenge.canPlayHere
+                text: "Open on lichess.org"
+                onClicked: Qt.openUrlExternally(root._challenge.url)
+            }
+            Button {
+                text: "Decline"
+                onClicked: LichessClient.declineChallenge(root._challenge.id)
+            }
+            Button {
+                text: "Hide"
+                flat: true
+                onClicked: root.hideChallenge(root._challenge.id)
+            }
         }
 
         // users.json didn't parse at start: nothing was loaded, and nothing is lost yet.
@@ -599,11 +675,23 @@ ApplicationWindow {
         function onChallengeCanceled() { clearPendingChallenge() }
 
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
+            _acceptingChallenge = false
             clearPendingChallenge()
         }
 
+        // BL-10: a new challenge to the player; one resent after a reconnect isn't new.
+        function onChallengeReceived(challengeId) {
+            if (AppSettings.musicEnabled)
+                sndChallenge.play()
+            if (!root.active)
+                root.alert(0)   // the taskbar button flashes until the window is activated
+        }
+
         function onNetworkError(message) {
-            if (challengeDialog.visible && _pendingRematch) {
+            if (_acceptingChallenge) {   // e.g. the challenger canceled meanwhile
+                _acceptingChallenge = false
+                messageBar.show("Couldn't accept the challenge: " + message, "critical")
+            } else if (challengeDialog.visible && _pendingRematch) {
                 clearPendingChallenge()
                 messageBar.show("Rematch failed: " + message, "critical")
             } else if (challengeDialog.visible) {
@@ -736,6 +824,18 @@ ApplicationWindow {
         defaultSuffix: "pgn"
         currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
         onAccepted: ChessConnector.exportPgn(selectedFile)
+    }
+
+    ConfirmDialog {
+        id: acceptChallengeConfirm
+        property string challengeId
+        title: "Leave this game?"
+        text: "A two-player game isn't saved. The Lichess game starts instead."
+        acceptText: "Accept challenge"
+        onAccepted: {
+            root._acceptingChallenge = true
+            ChessConnector.acceptChallenge(challengeId)
+        }
     }
 
     ConfirmDialog {

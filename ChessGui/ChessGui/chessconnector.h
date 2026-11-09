@@ -81,6 +81,9 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool CanOfferDraw    READ canOfferDraw    NOTIFY canOfferDrawChanged) // Lichess: from ply 2, then 20 plies after our last offer
 		Q_PROPERTY(bool OpponentGone    READ opponentGone    NOTIFY opponentGoneChanged)
 		Q_PROPERTY(bool Reconnecting    READ reconnecting    NOTIFY reconnectingChanged) // LI-06: the Lichess game's connection is lost
+		// BL-10: a challenge can be accepted now: not during a running real-time Lichess game (the
+		// player finishes it first); a robot, two-player or correspondence game is left for it.
+		Q_PROPERTY(bool CanAcceptChallenge READ canAcceptChallenge NOTIFY canAcceptChallengeChanged)
 		Q_PROPERTY(int  ClaimWinSeconds READ claimWinSeconds NOTIFY opponentGoneChanged) // when it became gone; -1 = not said
 		Q_PROPERTY(QString ContinueDescription READ continueDescription NOTIFY canContinueChanged) // the autosaved game, e.g. "vs Bob"
 		Q_PROPERTY(GameClock* Clock READ clock CONSTANT) // the game's clocks; Clock.enabled false: none
@@ -131,6 +134,7 @@ public:
 	bool    canOfferDraw() const;
 	bool    opponentGone()    const { return _opponentGone; }
 	bool    reconnecting()    const { return _reconnecting; }
+	bool    canAcceptChallenge() const { return !(isOnlineGame() && _gameResult.isEmpty() && _onlineRealTime); }
 	int     claimWinSeconds() const { return _claimWinSeconds; }
 	QString continueDescription() const;
 	QStringList capturedByDark()  const;
@@ -181,6 +185,7 @@ signals:
 	void canOfferDrawChanged();
 	void opponentGoneChanged();
 	void reconnectingChanged();
+	void canAcceptChallengeChanged();
 	void reconnected(); // the Lichess game's connection is back, the board up to date
 
 	void castlingNotify();
@@ -252,6 +257,10 @@ public slots:
 	Q_INVOKABLE void respondTakeback(bool accept);
 	Q_INVOKABLE void respondRematch(bool accept);
 	Q_INVOKABLE void rematch();
+	// BL-10: accept a Lichess challenge to the player, leaving the game on the board first (a robot
+	// game is autosaved, a correspondence game goes on at Lichess). The game starts through
+	// LichessClient::gameStarted, as for a link. Nothing while CanAcceptChallenge is false.
+	Q_INVOKABLE void acceptChallenge(const QString& challengeId);
 
 private slots:
 	void onEngineMoveFound(int request, const QString& move);
@@ -369,6 +378,7 @@ private:
 	int  _drawOfferPly = -1; // ply of our last Lichess draw offer; -1 = none in this game
 	bool _opponentGone = false;
 	bool _reconnecting = false;
+	bool _onlineRealTime = false; // the Lichess game on the board has a real-time clock
 	int  _claimWinSeconds = -1;
 	AppConfig _config;
 	int _reviewIndex = -1;

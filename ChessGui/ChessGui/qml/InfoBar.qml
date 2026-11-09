@@ -13,6 +13,7 @@ Rectangle {
     property string severity: "info"   // info, success, caution, critical
     property int    timeout:  0
     property bool   closable: true
+    property bool   actionsBelow: false // the buttons under the text (a long text with several buttons)
     default property alias actions: actionRow.data
 
     function show(message, messageSeverity) {
@@ -53,15 +54,21 @@ Rectangle {
             color: ({ success: Theme.success, caution: Theme.caution, critical: Theme.critical })[bar.severity]
                    ?? Theme.accent
         }
-        Label {
-            text: bar.text
-            wrapMode: Text.WordWrap
+        GridLayout {
             Layout.fillWidth: true
-        }
-        Row {
-            id: actionRow
-            spacing: Theme.s2
-            visible: children.length > 0
+            columns: bar.actionsBelow ? 1 : 2
+            columnSpacing: Theme.s3
+            rowSpacing: Theme.s2
+            Label {
+                text: bar.text
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            Row {
+                id: actionRow
+                spacing: Theme.s2
+                visible: children.length > 0
+            }
         }
         IconButton {
             dense: true

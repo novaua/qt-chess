@@ -134,5 +134,6 @@
         <file alias="win.wav">sounds/win.wav</file>
         <file alias="move_opponent.wav">sounds/move_opponent.wav</file>
         <file alias="lowtime.wav">sounds/lowtime.wav</file>
+        <file alias="challenge.wav">sounds/challenge.wav</file>
     </qresource>
 </RCC>

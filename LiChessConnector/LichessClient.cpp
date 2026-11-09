@@ -460,6 +460,7 @@ void LichessClient::resumeOpenChallenge(const QString& gameId, const QString& fr
 
 void LichessClient::acceptChallenge(const QString& challengeId, const QString& color)
 {
+    removeIncomingChallenge(challengeId); // BL-10: answered (a link's id isn't in the list)
     if (_acceptReply) {
         auto* previous = _acceptReply;
         _acceptReply = nullptr;
