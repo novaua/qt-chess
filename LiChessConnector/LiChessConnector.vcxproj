@@ -106,10 +106,12 @@
   <ItemGroup>
     <QtMoc Include="LichessClient.h" />
     <QtMoc Include="LichessAuth.h" />
+    <QtMoc Include="LichessStream.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="lichessconnector_global.h" />
     <ClCompile Include="LichessClient.cpp" />
     <ClCompile Include="LichessAuth.cpp" />
+    <ClCompile Include="LichessStream.cpp" />
     <ClInclude Include="stdafx.h" />
     <ResourceCompile Include="LiChessConnector.rc" />
     <ClCompile Include="stdafx.cpp">

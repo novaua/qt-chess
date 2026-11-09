@@ -43,12 +43,18 @@
     <ClCompile Include="LichessAuth.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LichessStream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="LichessClient.h">
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="LichessAuth.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="LichessStream.h">
       <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>

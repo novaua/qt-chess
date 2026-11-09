@@ -1,5 +1,6 @@
 #pragma once
 #include "lichessconnector_global.h"
+#include "LichessStream.h"
 #include <QNetworkAccessManager>
 #include <QTimer>
 #include <QVariantMap>
@@ -133,8 +134,8 @@ public:
 	// Tests and the takeback scene: the game of the lines fed to handleGameStreamLine(), without a stream.
 	void setCurrentGameId(const QString& gameId) { _currentGameId = gameId; }
 
-	// One line of the Board API game stream (handleStreamData; tests feed lines here).
-	// Returns false once the game has ended: the rest of the stream is not read.
+	// One line of the Board API game stream (from _gameStream; tests feed lines here).
+	// Returns false once the game has ended: the stream is closed, the rest not read.
 	bool handleGameStreamLine(const QByteArray& line);
 
 signals:
@@ -182,11 +183,8 @@ private:
 	void handleDirectChallengeLine(const QByteArray& line);
 	void stopDirectChallenge();
 	void stopWaitingForDirectChallenge(); // stop probing for the game; keeps the reply
-	void handleStreamData(QNetworkReply* reply);
-	void openGameStream();         // GET the stream of _currentGameId
-	void dropGameStream();         // abort it without reporting anything
-	void gameStreamLost();         // mid-game: reconnect after a while
-	void stopReconnecting(const QString& message); // Lichess refused the stream: give up
+	void gameStreamEnded(QNetworkReply::NetworkError error, const QString& errorString, bool authExpired); // before gameFull
+	void gameStreamRefused(bool authExpired, int httpStatus); // mid-game: Lichess said no, no more reconnects
 	bool resyncMoves(const QStringList& moves); // a gameFull after a reconnect; true: our move was lost
 	void applyStreamMoves(const QStringList& moves); // a gameState's moves against ours
 	void startClock(const QJsonObject& gameFull);
@@ -213,7 +211,7 @@ private:
 	QStringList           _lastMovesList;   // the moves the stream has shown
 	QStringList           _sentMoves;       // ours, sent but not in the stream yet (our board has them)
 	QStringList           _postsInFlight;   // ours whose POST has no answer yet (LI-06)
-	QNetworkReply* _streamReply      = nullptr;
+	LichessStream* _gameStream       = nullptr; // the Board API game stream; reconnects once gameFull came (LI-06)
 	QNetworkReply* _eventStreamReply = nullptr;
 	QNetworkReply* _probeReply       = nullptr;
 	QNetworkReply* _openChallengeReply   = nullptr; // POST /api/challenge/open in flight
@@ -221,12 +219,6 @@ private:
 	bool           _gameFullSeen         = false;   // the game stream has sent gameFull: the game is on
 	bool           _hasClock             = false;   // this game has one: real time or correspondence
 	bool           _correspondence       = false;
-	bool           _gameOver             = false;   // the stream has told the game's end: no reconnect
-	bool           _streamLost           = false;   // reconnecting (gameConnectionChanged)
-	int            _reconnectAttempt     = 0;
-	QTimer         _reconnectTimer;
-	QTimer         _streamWatchdog;                 // no line for this long: the connection is dead
-	int            _firstRetryMs         = 1000;
 	int            _moveTimeoutMs        = 10000;
 	QString        _baseUrl              = QStringLiteral("https://lichess.org");
 	QNetworkReply* _directChallengeReply = nullptr; // keepAliveStream: open while the challenge waits
