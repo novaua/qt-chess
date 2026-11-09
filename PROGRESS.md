@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — BL-10: code review fixes (branch: bl10Review_091126)
+
+The owner's `/code-review medium` of all BL-10 PRs (#127–#131): 10 findings, all fixed, and one more found while testing them.
+- **A refused Accept lost the challenge and the game on the board**: the row was removed and `endGame()` called before Lichess answered. Now the row stays until its game starts (`gameStart` removes it), and `ChessConnector::acceptChallenge` leaves the board alone; when the Lichess game starts, a robot game on the board is autosaved (`onLichessGameStarted`), as when leaving it for Home.
+- **Found while testing that**: Lichess answers 404 to Accept when the challenge is gone (canceled meanwhile), and the app took a 404 for "the game has started already" (the rejoin by id) and opened its game stream. For a challenge from the list a 404 now means it's gone: removed, "the challenge is no longer there".
+- **Accept failures had no signal of their own**: `_acceptingChallenge` took any `networkError` (e.g. a failed Decline) as the Accept's, and stayed set when `acceptChallenge` returned early. Now `LichessClient::challengeAcceptFailed(id, message)` for a challenge from the list (other accepts keep `networkError`), and `acceptChallenge` returns whether it sent anything; the window and the Online page use both.
+- **A refused event stream (a 4xx but 401, e.g. 429) gave up for the session**, silently: tried again after a minute (as Lichess asks after a 429).
+- **Blitz without `compat` counted as unplayable**: `parseChallenge` uses `playableHere(speed, "friend", variant)` (a challenge to us is a direct one).
+- **A challenge resent unchanged after a reconnect rebuilt the list** (an open Decline… menu would close): `incomingChallengesChanged` only for a changed row.
+- **The rematch offer gave two notices** (the challenge sound and the rematch bar), and the bar hid every rematch challenge while one was offered: `LichessClient.rematchOfferId` (new property); that offer makes no `challengeReceived`, and the bar leaves out only it.
+- **The accepted challenge's gameStart could beat the POST's answer** and count as a game started elsewhere (a needless refresh of Your games): skipped (`_acceptingId`).
+- **`LichessStream` after a 4xx still reopened on a resync**: a refusal closes it (`reopen()` does nothing; a new `open()` tries again).
+- **Formatting twice in QML**: `parseChallenge` gives `challengerText` ("FM Speedy (2105?)") and `sideText`; the bar and the Online page use them.
+- **Two decline paths**: `declineRematch` goes through `declineChallenge`.
+- **Tests**: 5 new (resent unchanged, the rematch offer while watching, Accept refused with 400 and 404, the accepted game's early gameStart, a 429 tried again) and 4 updated (Blitz without compat, the texts, `reopen` after a refusal). Release builds; ChessTests + ChessQtTests **343 pass**; the 38 Lichess stream tests 10 runs. The challenge scenes unchanged (22 bytes of text rendering on the locked screen).
+
+---
+
 ## 2026-11-09 — BL-10 step 5: hand tests and docs (branch: bl10Docs_091126)
 
 ### What was done

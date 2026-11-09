@@ -168,6 +168,10 @@ namespace LichessTests
 				Assert::AreEqual(2, lichess.count(Events));
 				Assert::IsFalse(stream.isOpen());
 				Assert::IsFalse(stream.lost());
+
+				stream.reopen(); // a resync doesn't ask again either
+				waitUntil([] { return false; }, 300);
+				Assert::AreEqual(2, lichess.count(Events));
 			}
 		}
 

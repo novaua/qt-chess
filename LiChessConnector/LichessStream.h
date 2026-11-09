@@ -21,7 +21,7 @@ public:
 	LichessStream(QNetworkAccessManager& nam, const QString& name, QObject* parent = nullptr);
 
 	void open(const QNetworkRequest& request); // replaces an open one; not established yet
-	void reopen();                             // now, with the same request (a resync), unless lost or closed
+	void reopen();                             // now, with the same request (a resync), unless lost, closed or refused
 	void close();                              // no more lines, no reconnect
 	void setReconnect(bool reconnect);         // established: a loss reconnects, the silence watchdog runs
 	void connected();                          // the owner has seen it's back: connectionChanged(true)
@@ -32,7 +32,7 @@ public:
 signals:
 	void line(const QByteArray& line);      // every line, trimmed; an empty one is a keep-alive
 	void connectionChanged(bool connected); // false when lost, true from connected()
-	void stopped(bool authExpired, int httpStatus); // Lichess refused it (4xx): no more attempts
+	void stopped(bool authExpired, int httpStatus); // Lichess refused it (4xx): closed, no more attempts
 	// Not established (setReconnect(false)): the reply ended. NoError: Lichess closed it.
 	void ended(QNetworkReply::NetworkError error, const QString& errorString, bool authExpired);
 

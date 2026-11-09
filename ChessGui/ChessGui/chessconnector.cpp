@@ -812,6 +812,12 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsWhite,
 	const QString& opponentName, const QString& opponentAvatar)
 {
+	// A Lichess game replaces a robot game (BL-10: a challenge accepted during it): kept for
+	// Continue, as when leaving it for Home.
+	if (canAutoSave()) {
+		autoSaveGame();
+		emit canContinueChanged();
+	}
 	startOnlineGame(gameId, playingAsWhite);
 	if (_avatarProvider)
 		_avatarProvider->setOpponentFromUser(opponentAvatar.isEmpty() ? QStringLiteral("unicorn") : opponentAvatar);
@@ -1064,13 +1070,12 @@ void ChessConnector::beginGame(bool online)
 	emit canRematchChanged();
 }
 
-void ChessConnector::acceptChallenge(const QString& challengeId)
+bool ChessConnector::acceptChallenge(const QString& challengeId)
 {
 	if (!_lichessClient || !canAcceptChallenge())
-		return;
-	if (inGame())
-		endGame(); // a robot game is autosaved; a Lichess game goes on there (correspondence, or finished)
+		return false;
 	_lichessClient->acceptChallenge(challengeId); // the challenger chose the sides
+	return true;
 }
 
 void ChessConnector::rematch()

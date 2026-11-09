@@ -30,8 +30,7 @@ Page {
 
     // BL-10: one line under the challenger's name.
     function _challengeDetails(c) {
-        const side = c.ourSide === "white" ? "You play White" : c.ourSide === "black" ? "You play Black" : "Random side"
-        const parts = [c.timeControlText, _speedName(c.speed), c.rated ? "Rated" : "Casual", side]
+        const parts = [c.timeControlText, _speedName(c.speed), c.rated ? "Rated" : "Casual", c.sideText]
         if (c.variant !== "standard")
             parts.push(c.variant)
         if (c.rematchOf !== "")
@@ -126,6 +125,10 @@ Page {
             page._busy = false
             errorBar.show(message, "critical")
         }
+        function onChallengeAcceptFailed(challengeId, message) {
+            page._busy = false
+            errorBar.show("Couldn't accept the challenge: " + message, "critical")
+        }
     }
 
     background: Rectangle { color: Theme.windowBg }
@@ -208,11 +211,7 @@ Page {
                                 spacing: Theme.s1
 
                                 Label {
-                                    text: (challengeRow.modelData.challengerTitle ? challengeRow.modelData.challengerTitle + " " : "")
-                                          + challengeRow.modelData.challengerName
-                                          + (challengeRow.modelData.challengerRating > 0
-                                             ? " (" + challengeRow.modelData.challengerRating
-                                               + (challengeRow.modelData.challengerProvisional ? "?" : "") + ")" : "")
+                                    text: challengeRow.modelData.challengerText
                                     font: Theme.bodyStrong
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
@@ -234,10 +233,12 @@ Page {
                                         highlighted: challengeRow.modelData.canPlayHere
                                         enabled: !page._busy
                                         onClicked: {
-                                            if (challengeRow.modelData.canPlayHere)
-                                                page._start(() => ChessConnector.acceptChallenge(challengeRow.modelData.id))
-                                            else
+                                            if (!challengeRow.modelData.canPlayHere) {
                                                 Qt.openUrlExternally(challengeRow.modelData.url)
+                                                return
+                                            }
+                                            errorBar.visible = false
+                                            page._busy = ChessConnector.acceptChallenge(challengeRow.modelData.id)
                                         }
                                     }
                                     Button {
