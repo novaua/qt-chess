@@ -4,6 +4,21 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — BL-10 step 5: hand tests and docs (branch: bl10Docs_091126)
+
+### What was done
+- **`docs/BL-10-ManualTests.md`**: 13 scenarios with the app's own texts, for two Lichess accounts (A in the app, B in a browser; a third for one scenario): a challenge on Home and Accept, in the background (sound, taskbar flash), Decline with and without a reason, the challenger cancels, an unplayable one, during a running Rapid game, during a robot game, during a two-player game (the question), two at once and Hide, the connection drops, a game started elsewhere, a rematch after leaving, another profile.
+- The plan's status: coded (#127–#130), hand tests left. `TASKS.md` BL-10 the same.
+
+### BL-10 is coded (#127–#130); open
+- The owner's hand tests (`docs/BL-10-ManualTests.md`).
+- The screenshot baselines of the four challenge scenes and a look at the Decline… menu, on an unlocked screen (`TASKS.md`, "Screenshots on an unlocked screen").
+
+### Next
+- The owner's choice: the hand tests (BL-10, LI-06, LI-05, LI-02, LI-04 are all open), or the next item in `TASKS.md`.
+
+---
+
 ## 2026-11-09 — BL-10 step 4: the Online page and Home (branch: onlineChallenges_091126)
 
 ### What was done
