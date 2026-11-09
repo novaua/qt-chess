@@ -4,6 +4,17 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — BL-13 plan: the game page on wide screens (branch: bl13Plan_091126)
+
+### What was done
+- **`docs/BL-13-WideLayoutPlan.md`**: the player cards move to a 260 px column left of the board when that gives a board at least 24 px bigger than today's layout (computed from both layouts, not an aspect ratio): +16 % at 1920 × 1080 and 1400 × 900, +27 % at 1280 × 720; snapped halves, landscape windows bound by width and narrow windows keep today's layout. The column's cards: name, a larger clock on its own row, the captured pieces wrapping; mirrored as on lichess.org. The moves panel unchanged. 22 new sized screenshot scenes (light and dark) in `all`, incl. two sizes that must not switch.
+- Builds on #134 (the InfoBars make room on the game page): in the column layout that would shrink the board while a bar shows, so the plan proposes the bars between the column's cards.
+
+### Next
+- The owner's choices in the plan's §8 (Q1 the InfoBars, Q2 the cards' order, Q3 the switch rule, Q4 the extra width), then step 1.
+
+---
+
 ## 2026-11-09 — The InfoBars no longer cover the opponent's card (branch: infoBarsRoom_091126)
 
 ### What was done
