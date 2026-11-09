@@ -4,6 +4,25 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — BL-10 step 3: Accept and the challenge bar (branch: challengeBar_091126)
+
+### What was done
+- **`ChessConnector.acceptChallenge(id)`** (one call: it may leave a game, CLAUDE.md rule 1) and **`CanAcceptChallenge`**: false only during a running real-time Lichess game (`_onlineRealTime`, from `onLichessClockStarted`). Otherwise it ends the game on the board (`endGame()`: a robot game is autosaved, a Lichess correspondence or unlimited game goes on at Lichess, a finished game is left) and `LichessClient::acceptChallenge(id)` (now also removes the row); the game starts through `gameStarted` as for a link.
+- **The challenge bar** (`ChessGame.qml`, in the InfoBar column, so over every page while logged in): the oldest challenge not hidden, "FriendlyRival (1712) challenges you · 10+5 · Casual · You play Black (+1 more)", "offers a rematch" for a rematch (not shown while the finished game's own rematch bar is up). Buttons under the text (`InfoBar.actionsBelow`, new; other bars unchanged): **Accept** (hidden during a running real-time Lichess game: the text says "Finish your game first: it waits on Lichess"), or **Open on lichess.org** for one this app can't play ("Can't be played in this app"), **Decline**, **Hide** (until the next challenge; it stays on Lichess).
+- **A running two-player game** asks first ("Leave this game? A two-player game isn't saved."): it would be lost. A robot game (autosaved) and a Lichess game (goes on there) don't.
+- **Attention**: a new challenge (`challengeReceived`, not one resent after a reconnect) plays `sounds/challenge.wav` (three rising notes, new in `scripts/make_sounds.py`; the effects switch and volume as the others) and, when the window isn't active, flashes the taskbar button until it is (`Window.alert(0)`, no extra Qt module).
+- **Accept fails** (the challenger canceled meanwhile): "Couldn't accept the challenge: …" as an InfoBar on any page.
+- **Scenes** (in `all`, fed to the event stream's parser, no network): `challenge` (two challenges on Home), `challenge-unplayable` (a Bullet challenge from an FM), `challenge-ingame` (a real-time Lichess game, Decline only).
+- Release builds; ChessTests + ChessQtTests **338 pass**. Screenshots on a locked screen: all board and InfoBar scenes match (the `takeback` bar unchanged by `actionsBelow`); the dialog scenes, `clock-promotion`, `clock-continue` and the premove text fail as known for a locked screen. The three challenge scenes have no baseline yet (on the unlocked-screen list in `TASKS.md`).
+
+### Not checked yet
+- Everything with a real Lichess challenge (step 5's hand tests): the sound, the taskbar flash, Accept from Home, from a robot game and from a two-player game, Decline, Open on lichess.org.
+
+### Next
+- Step 4: the "Challenges to you" card on the Online page (all of them, decline reasons), and Home's Play online description.
+
+---
+
 ## 2026-11-09 — BL-10 step 2: the event stream and incoming challenges (branch: eventStream_091126)
 
 ### What was done

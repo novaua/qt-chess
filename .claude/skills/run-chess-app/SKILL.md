@@ -56,7 +56,10 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   `premove`, `premove-played`, `premove-dropped` (LI-05: a Lichess game fed to the stream parser, no network:
   Bf1-c4 waiting in red and the d2 pawn's premove dots; Black's Nc6 comes and Bc4 is played (our moves aren't
   posted in screenshot mode); e4-e5 waiting, gone after Nc6), `reconnecting` (LI-06: the same game with its
-  connection lost: the caution bar), `all`. `premove-robot` (not in `all`: needs
+  connection lost: the caution bar), `challenge` (BL-10: two Lichess challenges to Tester on Home, fed to
+  the event stream's parser: the bar with Accept / Decline / Hide and "+1 more"), `challenge-unplayable`
+  (a Bullet challenge: Open on lichess.org instead of Accept), `challenge-ingame` (a real-time Lichess
+  game on the board, then a challenge: Decline only, "Finish your game first"), `all`. `premove-robot` (not in `all`: needs
   Stockfish; no baseline, the robot's moves vary): 1. e4 vs the robot, Nf3 premoved and played after its answer. `robot` (not in `all`: needs Stockfish): a saved game vs the robot at
   level 5, continued, where the robot mates with Qh5# (the engine's answer is played on the GUI thread).
   `slides` (not in `all`): the BL-14 frame-trace scene — animations on (every other scene forces them

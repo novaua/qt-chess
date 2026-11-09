@@ -159,7 +159,8 @@ Item {
             }
         }
 
-        if (["takeback", "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting"].includes(name)) {
+        if (["takeback", "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting",
+             "challenge-ingame"].includes(name)) {
             ChessConnector.screenshotSceneSetUp()   // main.cpp feeds the Lichess game and says when the board is ready
             return
         }

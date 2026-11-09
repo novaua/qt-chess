@@ -116,6 +116,8 @@ ChessConnector::ChessConnector(QObject* parent)
 	                      &ChessConnector::gameResultChanged })
 		connect(this, changed, this, &ChessConnector::movableColorChanged);
 	connect(this, &ChessConnector::pawnPromotionNotify, this, &ChessConnector::movableColorChanged);
+	for (auto changed : { &ChessConnector::isOnlineGameChanged, &ChessConnector::gameResultChanged })
+		connect(this, changed, this, &ChessConnector::canAcceptChallengeChanged);
 }
 
 int ChessConnector::MoveCount()
@@ -781,6 +783,7 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	setPendingOffer({});
 	setOpponentGone(false);
 	setReconnecting(false);
+	_onlineRealTime = false; // until its clock says (onLichessClockStarted)
 	_engineAutoPlay = false;
 	_onlineGameId = gameId;
 	_drawOfferPly = -1;
@@ -881,6 +884,8 @@ void ChessConnector::onLichessClockStarted(qint64 limitMs, qint64 incrementMs, b
 	// Real time: the opponent's reply isn't held for our move's slide and pause (up to 0.4 s of our
 	// clock on Lichess, LI-06). Days per move: no hurry, the board shows one thing at a time.
 	_gate->setHoldOnline(correspondence);
+	_onlineRealTime = !correspondence;
+	emit canAcceptChallengeChanged();
 	if (correspondence)
 		_clock->startCorrespondence(limitMs);
 	else
@@ -1057,6 +1062,15 @@ void ChessConnector::beginGame(bool online)
 	if (_lastGameOnline == online) return;
 	_lastGameOnline = online;
 	emit canRematchChanged();
+}
+
+void ChessConnector::acceptChallenge(const QString& challengeId)
+{
+	if (!_lichessClient || !canAcceptChallenge())
+		return;
+	if (inGame())
+		endGame(); // a robot game is autosaved; a Lichess game goes on there (correspondence, or finished)
+	_lichessClient->acceptChallenge(challengeId); // the challenger chose the sides
 }
 
 void ChessConnector::rematch()

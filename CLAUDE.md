@@ -77,7 +77,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
 
 ### ChessGui (Qt QML application)
 
-- **`chessconnector.h/cpp`** — the C++/QML bridge for the chess game; exposes `Q_PROPERTY` bindings and slots that QML calls. Premove (LI-05, vs the robot and on Lichess, not two players): during the opponent's turn `figureSelected` / `movePiece` set `PremoveFrom`/`PremoveTo` instead of moving (`PremoveDots`: the dots are premove targets); it is played right after the opponent's move if legal then, else dropped silently; `cancelPremove()` (right click, Esc)
+- **`chessconnector.h/cpp`** — the C++/QML bridge for the chess game; exposes `Q_PROPERTY` bindings and slots that QML calls. Premove (LI-05, vs the robot and on Lichess, not two players): during the opponent's turn `figureSelected` / `movePiece` set `PremoveFrom`/`PremoveTo` instead of moving (`PremoveDots`: the dots are premove targets); it is played right after the opponent's move if legal then, else dropped silently; `cancelPremove()` (right click, Esc). `acceptChallenge(id)` (BL-10): leaves the game on the board for a Lichess challenge, unless it's a running real-time Lichess game (`CanAcceptChallenge`)
 - **`boardpieces.h/cpp`** — `BoardPieces`, the pieces model behind `ChessConnector.Pieces`: one row per piece that keeps its id while it moves (`BoardDiff`), so the board can slide it
 - **`movelistmodel.h/cpp`** — `MoveListModel`, the move list behind `ChessConnector.MoveHistory`: one row per move number, and a move changes only its row instead of rebuilding the list
 - **`movegate.h/cpp`** — `MoveGate`, which holds the moves from outside (the robot's answer, the Lichess opponent's) and releases them one at a time when the board is idle (a Lichess resync of more than two: all at once; in a real-time Lichess game the opponent's moves don't wait for the board, only for the page: `setHoldOnline`, LI-06); `ChessConnector` owns one, `GamePage` reports the board settled and the slide time
@@ -88,7 +88,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
   - `ChessGame.qml` — the window: a `StackView` with one page (`WelcomePage` on first run,
     `ProfilePickerPage`, `HomePage`, `GamePage`; `route()` picks it from `UserManager` and
     `ChessConnector.InGame`), with `ProfilePage` or `SettingsPage` pushed over Home or the game, `OnlinePage` over Home; the
-    InfoBars and every dialog. Pages ask for dialogs through signals.
+    InfoBars (also the BL-10 challenge bar over every page: Accept / Open on lichess.org, Decline, Hide; a sound and the taskbar flash for a new one) and every dialog. Pages ask for dialogs through signals.
   - `HomePage.qml` (account menu, Continue: the robot's autosaved game first, else the unfinished Lichess games on the Online page; action cards), `OnlinePage.qml` (pushed by "Play online": the unfinished Lichess games as `BoardPreview` cards with Continue, a new challenge (a link, or to a named Lichess player, the only way to play Blitz), join by link; LI-04), `GamePage.qml` (command bar, board between
     two `PlayerCard`s with a `CapturedStrip` and "+N", the moves (`MovesPanel` + `MoveList`) beside
     the board or in a bottom sheet, `ResultCard` over the board)
