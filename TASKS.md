@@ -26,6 +26,12 @@
 
 Manual checks, no code (do any time):
 
+- [ ] **Screenshots on an unlocked screen** (owed by LI-05 / LI-06, 2026-11-09: the screen was locked during those runs, `LogonUI` running). On a locked screen popups don't draw in the hidden window, animations freeze and text renders slightly differently, so these could not be checked. Qt's `bin` on `PATH` first (`$env:PATH = "D:\Tools\Qt\6.12.0\msvc2022_64\bin;$env:PATH"`), screen unlocked and the session not minimised:
+  - [ ] `.\scripts\Take-Screenshot.ps1 -Scene all` and `-Scene all -Dark`, then `.\scripts\Compare-Screenshots.ps1`: expect 0 failed. Failed while locked: the dialog scenes (`computer`, `players`, `players-many`, `create-user`, `import`, `levels`, `restore`, `leave-online`, `online-challenge`, light and dark) and two timeouts (`clock-promotion`, `clock-continue`).
+  - [ ] `premove-played` and `premove-dropped` (light and dark) differed by 0.06 %, only in the move-list text: they should match again; if they still differ, look at the diff in `test-results\diffs\` and re-accept them only if it is text rendering.
+  - [ ] `reconnecting` (new, LI-06): look at the picture (the caution bar over the board), then accept it: `.\scripts\Compare-Screenshots.ps1 -Update -Name reconnecting,reconnecting-dark`.
+  - [ ] `robot` in a real window (needs Stockfish; it timed out while locked, passed `-Offscreen`).
+  - [ ] `premove-robot` (needs Stockfish, no baseline): three or four moves, Nf3 played after the robot's first answer.
 - [ ] Installer: install the Microsoft VC++ runtime when missing (branch `fixVcRedistInstall_281026`)
   - [x] `vc_redist.x64.exe` no longer copied into `{app}`; unpacked to `{tmp}` and run (`/install /quiet /norestart`) only if the installed runtime (registry `VC\Runtimes\x64`) is missing or older than the bundled one; exit codes 0/1638 OK, 3010 → restart offered, others → warning with download link
   - [x] `Build-Installer.ps1` sets `VCINSTALLDIR` so local builds bundle it too; the build fails if it's missing
