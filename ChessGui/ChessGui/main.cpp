@@ -82,7 +82,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
 	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online", "takeback",
 	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting",
-	                  "challenge", "challenge-unplayable", "challenge-ingame" }.contains(scene))
+	                  "challenge", "challenge-unplayable", "challenge-ingame", "online-challenges" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -199,20 +199,21 @@ static void playReconnectingScene(ChessConnector* connector, LichessClient* lich
 // (TesterChess on Lichess), fed to the event stream's parser (no network).
 static void seedChallenges(LichessClient* lichess, const QString& scene)
 {
-	if (scene == "challenge-unplayable") {
+	if (scene == "challenge-unplayable" || scene == "online-challenges") {
 		lichess->handleEventStreamLine(R"({"type":"challenge","compat":{"bot":false,"board":false},"challenge":{
 			"id":"chal0003","url":"https://lichess.org/chal0003","status":"created","direction":"in",
 			"challenger":{"id":"speedy","name":"Speedy","rating":2105,"title":"FM"},"destUser":{"id":"testerchess","name":"TesterChess"},
 			"variant":{"key":"standard"},"rated":true,"speed":"bullet",
 			"timeControl":{"type":"clock","limit":60,"increment":0,"show":"1+0"},"color":"random"}})");
-		return;
+		if (scene == "challenge-unplayable")
+			return;
 	}
 	lichess->handleEventStreamLine(R"({"type":"challenge","compat":{"bot":false,"board":true},"challenge":{
 		"id":"chal0001","url":"https://lichess.org/chal0001","status":"created","direction":"in",
 		"challenger":{"id":"friendlyrival","name":"FriendlyRival","rating":1712,"provisional":false},"destUser":{"id":"testerchess","name":"TesterChess"},
 		"variant":{"key":"standard"},"rated":false,"speed":"rapid",
 		"timeControl":{"type":"clock","limit":600,"increment":5,"show":"10+5"},"color":"white"}})");
-	if (scene == "challenge")
+	if (scene == "challenge" || scene == "online-challenges")
 		lichess->handleEventStreamLine(R"({"type":"challenge","compat":{"bot":false,"board":true},"challenge":{
 			"id":"chal0002","url":"https://lichess.org/chal0002","status":"created","direction":"in",
 			"challenger":{"id":"slowplayer","name":"SlowPlayer","rating":1540,"provisional":true},"destUser":{"id":"testerchess","name":"TesterChess"},
@@ -269,7 +270,7 @@ int main(int argc, char* argv[])
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
 		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge",
 		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting",
-		"challenge", "challenge-unplayable", "challenge-ingame"
+		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -397,7 +398,7 @@ int main(int argc, char* argv[])
 	// The online scene's games (no network in screenshot mode): after the token, which resets the list.
 	if (screenshotMode && connector->screenshotScene().contains("ongoingGames"))
 		lichessClient->setOngoingGames(connector->screenshotScene().value("ongoingGames").toList());
-	if (screenshotMode && (scene == "challenge" || scene == "challenge-unplayable")) // after the token too
+	if (screenshotMode && (scene == "challenge" || scene == "challenge-unplayable" || scene == "online-challenges")) // after the token too
 		seedChallenges(lichessClient, scene);
 	QObject::connect(lichessClient, &LichessClient::accountFetched, userManager, &UserManager::setLichessAccount);
 	QObject::connect(lichessClient, &LichessClient::authExpired, userManager, &UserManager::setLichessExpired);

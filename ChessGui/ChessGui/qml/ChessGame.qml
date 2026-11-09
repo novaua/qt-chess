@@ -460,7 +460,7 @@ ApplicationWindow {
             id: challengeBar
             objectName: "challengeBar"
             width: parent.width
-            visible: root._challenge !== null && UserManager.isLoggedIn
+            visible: root._challenge !== null && UserManager.isLoggedIn && root._page !== "online"   // the page lists them all
             closable: false
             actionsBelow: true
             text: root._challenge ? root.challengeText(root._challenge) : ""

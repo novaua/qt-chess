@@ -175,7 +175,11 @@ Page {
                 }
                 HomeCard {
                     text: "Play online"
-                    description: UserManager.lichessConnected ? "Challenge a friend on Lichess"
+                    // BL-10: the challenges waiting for an answer are on the Online page.
+                    description: UserManager.lichessConnected
+                                 ? (LichessClient.incomingChallenges.length === 1 ? "1 challenge waiting for you"
+                                    : LichessClient.incomingChallenges.length > 1 ? LichessClient.incomingChallenges.length + " challenges waiting for you"
+                                    : "Challenge a friend on Lichess")
                                : UserManager.lichessNeedsReconnect ? "Lichess sign-in expired: reconnect in your profile"
                                : "Link your Lichess account in your profile first"
                     dimmed: !UserManager.lichessConnected

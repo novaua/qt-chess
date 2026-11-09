@@ -4,6 +4,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — BL-10 step 4: the Online page and Home (branch: onlineChallenges_091126)
+
+### What was done
+- **"Challenges to you"** on the Online page, above Your games, while there are any: one card per challenge, oldest first: the challenger (title, name, rating, `?` when provisional), "10+5 · Rapid · Casual · You play Black" (the variant, "Rematch", "Can't be played in Chess++ yet" when so), **Accept** (`ChessConnector.acceptChallenge`, through the page's busy/error handling like Continue) or **Open on lichess.org**, and **Decline…**: a menu with Lichess's reasons ("Decline", "Not now", "Too fast for me", "Too slow for me", "Not this time control", "Casual games only", "Rated games only", "Standard chess only").
+- **The window's challenge bar** isn't shown over the Online page: the page lists them all.
+- **Home**: the Play online card says "1 challenge waiting for you" / "N challenges waiting for you" while there are any.
+- **Scene `online-challenges`** (in `all`): three challenges (one Bullet: Open on lichess.org). `online`, `online-empty`, `home` unchanged.
+- Release builds; ChessTests + ChessQtTests **338 pass** (QML only, apart from the scene). The screen was locked: the new scene and `challenge` look right; baselines and a look at the Decline… menu (a popup) on the unlocked-screen list in `TASKS.md`.
+
+### Next
+- Step 5: `docs/BL-10-ManualTests.md` (the plan's 11 scenarios with the app's texts), docs; then the owner's hand tests.
+
+---
+
 ## 2026-11-09 — BL-10 step 3: Accept and the challenge bar (branch: challengeBar_091126)
 
 ### What was done

@@ -3,8 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import ChessPlusPlus
 
-// The ways to play on Lichess (LI-04, docs/LI-04-RejoinPlan.md): the player's unfinished games
-// (Continue rejoins one), a new challenge, joining by link. Pushed over Home by "Play online"; Back
+// The ways to play on Lichess (LI-04, docs/LI-04-RejoinPlan.md): the challenges to the player
+// (BL-10), the player's unfinished games (Continue rejoins one), a new challenge, joining by link. Pushed over Home by "Play online"; Back
 // pops it. A game that starts replaces it by the game page (ChessGame.qml route()); the challenge
 // waiting for the friend is ChessGame.qml's ChallengeDialog, over this page.
 Page {
@@ -26,6 +26,29 @@ Page {
 
     readonly property var _games: LichessClient.ongoingGames
     readonly property int _myTurnCount: _games.filter(g => g.isMyTurn).length
+    readonly property var _challenges: LichessClient.incomingChallenges
+
+    // BL-10: one line under the challenger's name.
+    function _challengeDetails(c) {
+        const side = c.ourSide === "white" ? "You play White" : c.ourSide === "black" ? "You play Black" : "Random side"
+        const parts = [c.timeControlText, _speedName(c.speed), c.rated ? "Rated" : "Casual", side]
+        if (c.variant !== "standard")
+            parts.push(c.variant)
+        if (c.rematchOf !== "")
+            parts.push("Rematch")
+        return parts.filter(p => p !== "").join(" · ")
+    }
+    // The reasons Lichess shows the challenger (LichessClient::declineChallenge).
+    readonly property var _declineReasons: [
+        { text: "Decline",                     reason: "generic" },
+        { text: "Not now",                     reason: "later" },
+        { text: "Too fast for me",             reason: "tooFast" },
+        { text: "Too slow for me",             reason: "tooSlow" },
+        { text: "Not this time control",       reason: "timeControl" },
+        { text: "Casual games only",           reason: "casual" },
+        { text: "Rated games only",            reason: "rated" },
+        { text: "Standard chess only",         reason: "standard" }
+    ]
 
     // Not while one is running: a new token (main.cpp) has started one already.
     function _refresh() {
@@ -148,6 +171,97 @@ Page {
                     icon.source: Theme.icon("person")
                     highlighted: true
                     onClicked: page.profileRequested()
+                }
+            }
+
+            // ── BL-10: the challenges to the player, oldest first (the window's bar shows only one,
+            // and not over this page) ──
+            SectionCard {
+                id: challengesCard
+                objectName: "challengesCard"
+                visible: UserManager.lichessConnected && page._challenges.length > 0
+                title: "Challenges to you"
+                subtitle: page._challenges.length === 1 ? "1 player is waiting for your answer."
+                                                        : page._challenges.length + " players are waiting for your answer."
+                Layout.fillWidth: true
+
+                ColumnLayout {
+                    spacing: Theme.s2
+                    Layout.fillWidth: true
+
+                    Repeater {
+                        model: page._challenges
+                        delegate: Rectangle {
+                            id: challengeRow
+                            required property var modelData
+                            Layout.fillWidth: true
+                            implicitHeight: challengeColumn.implicitHeight + 2 * Theme.s3
+                            radius: Theme.radiusCard
+                            color: Theme.layerBg
+                            border.color: Theme.cardStroke
+                            Accessible.role: Accessible.ListItem
+                            Accessible.name: modelData.challengerName + ", " + page._challengeDetails(modelData)
+
+                            ColumnLayout {
+                                id: challengeColumn
+                                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.s3 }
+                                spacing: Theme.s1
+
+                                Label {
+                                    text: (challengeRow.modelData.challengerTitle ? challengeRow.modelData.challengerTitle + " " : "")
+                                          + challengeRow.modelData.challengerName
+                                          + (challengeRow.modelData.challengerRating > 0
+                                             ? " (" + challengeRow.modelData.challengerRating
+                                               + (challengeRow.modelData.challengerProvisional ? "?" : "") + ")" : "")
+                                    font: Theme.bodyStrong
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                                Label {
+                                    text: page._challengeDetails(challengeRow.modelData)
+                                          + (challengeRow.modelData.canPlayHere ? "" : " · Can't be played in Chess++ yet")
+                                    font: Theme.caption
+                                    color: Theme.textSecondary
+                                    wrapMode: Text.WordWrap
+                                    Layout.fillWidth: true
+                                }
+                                RowLayout {
+                                    spacing: Theme.s2
+                                    Layout.topMargin: Theme.s1
+                                    Button {
+                                        text: challengeRow.modelData.canPlayHere ? "Accept" : "Open on lichess.org"
+                                        icon.source: Theme.icon(challengeRow.modelData.canPlayHere ? "play" : "link")
+                                        highlighted: challengeRow.modelData.canPlayHere
+                                        enabled: !page._busy
+                                        onClicked: {
+                                            if (challengeRow.modelData.canPlayHere)
+                                                page._start(() => ChessConnector.acceptChallenge(challengeRow.modelData.id))
+                                            else
+                                                Qt.openUrlExternally(challengeRow.modelData.url)
+                                        }
+                                    }
+                                    Button {
+                                        id: declineButton
+                                        text: "Decline…"
+                                        enabled: !page._busy
+                                        onClicked: declineMenu.open()
+                                        Menu {
+                                            id: declineMenu
+                                            y: declineButton.height
+                                            Repeater {
+                                                model: page._declineReasons
+                                                delegate: MenuItem {
+                                                    required property var modelData
+                                                    text: modelData.text
+                                                    onTriggered: LichessClient.declineChallenge(challengeRow.modelData.id, modelData.reason)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
