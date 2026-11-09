@@ -62,6 +62,8 @@ QtObject {
     readonly property color selected:     Qt.alpha(accent, 0.45)
     readonly property color dropSquare:   accent   // outline of the square under a dragged piece
     readonly property color legalMoveDot: Qt.alpha("#000000", 0.22)
+    readonly property color premove:      Qt.alpha("#C42B1C", 0.5)    // a premove's two squares (red, as on Lichess)
+    readonly property color premoveDot:   Qt.alpha("#8B1A10", 0.4)    // where a premove may go
     readonly property color checkGlowCenter: "#FFD54A"   // the king in check: yellow in the middle …
     readonly property color checkGlowEdge:   "#E5341F"   // … red towards the edges
     // Pieces off the board (move list): a glow of the other colour, so both show on any panel.

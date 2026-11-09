@@ -81,7 +81,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
 	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online", "takeback",
-	                  "clock-online", "clock-correspondence" }.contains(scene))
+	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -152,6 +152,34 @@ static void playClockScene(ChessConnector* connector, LichessClient* lichess, co
 		[=]() { emit connector->screenshotSceneReady(); }, Qt::SingleShotConnection);
 }
 
+// Scenes "premove", "premove-played" and "premove-dropped" (LI-05): a Lichess game fed to the stream
+// parser, White (us) after 1. e4 e5 2. Nf3, Black to move. premove: Bf1-c4 waits, the d2 pawn shows
+// where it may go. premove-played: Black's Nc6 comes, then Bc4 is played (not posted: offline).
+// premove-dropped: e4-e5 waits, and after Nc6 the pawn can't move there: the premove is gone.
+static void playPremoveScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
+{
+	lichess->setCurrentGameId(QStringLiteral("premove1"));
+	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"premove1",
+		"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},
+		"state":{"moves":"e2e4 e7e5 g1f3","status":"started"}})");
+	auto step = std::make_shared<int>(0);
+	QObject::connect(connector, &ChessConnector::boardIdle, lichess, [=]() {
+		if (++*step == 1) {
+			const bool dropped = scene == "premove-dropped";
+			connector->figureSelected(dropped ? Chess::e4 : Chess::f1);
+			connector->figureSelected(dropped ? Chess::e5 : Chess::c4);
+			if (scene == "premove") {
+				connector->figureSelected(Chess::d2);
+				emit connector->screenshotSceneReady();
+			}
+			else
+				lichess->handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 g1f3 b8c6","status":"started"})");
+		}
+		else if (*step == 2 && scene != "premove")
+			emit connector->screenshotSceneReady();
+	});
+}
+
 int main(int argc, char* argv[])
 {
 	// Windows 11 look; follows the system light/dark theme and accent colour (Theme.qml can force one).
@@ -187,7 +215,8 @@ int main(int argc, char* argv[])
 		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "game", "leave-online", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
-		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge"
+		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge",
+		"premove", "premove-played", "premove-dropped", "premove-robot"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -344,6 +373,9 @@ int main(int argc, char* argv[])
 	if (screenshotMode && (scene == "clock-online" || scene == "clock-correspondence"))
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
 			[=]() { playClockScene(connector, lichessClient, scene); }, Qt::QueuedConnection);
+	if (screenshotMode && scene.startsWith("premove") && scene != "premove-robot")
+		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
+			[=]() { playPremoveScene(connector, lichessClient, scene); }, Qt::QueuedConnection);
 	if (!engine.rootObjects().isEmpty())
 		FrameTrace::watch(qobject_cast<QQuickWindow*>(engine.rootObjects().first()));
 

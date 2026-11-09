@@ -76,6 +76,17 @@ Item {
             ChessConnector.endGame()                  // ... and that answer is dropped
             ChessConnector.continueGame()
         }
+        if (name === "premove-robot") {
+            // LI-05 check, needs Stockfish: 1. e4 against the robot (level 1), and Ng1-f3 premoved
+            // while it thinks. Its answer comes, then Nf3 is played (by the shot, a second later, the
+            // robot has answered that too).
+            ChessConnector.startComputerGame(1, 0)
+            ChessConnector.movePiece(12, 28)
+            ChessConnector.figureSelected(6)
+            ChessConnector.figureSelected(21)
+            premoveRobotTimer.start()
+            return
+        }
         if (gameScene) {
             // A Scandinavian with captures on both sides (Black +1), and Fool's mate for the result.
             var middlegame = "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 c1d2 c7c6 "
@@ -148,7 +159,7 @@ Item {
             }
         }
 
-        if (["takeback", "clock-online", "clock-correspondence"].includes(name)) {
+        if (["takeback", "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped"].includes(name)) {
             ChessConnector.screenshotSceneSetUp()   // main.cpp feeds the Lichess game and says when the board is ready
             return
         }
@@ -206,6 +217,20 @@ Item {
     Timer {
         id: readyTimer
         onTriggered: ChessConnector.screenshotSceneReady()
+    }
+
+    // Scene "premove-robot": wait for the robot's answer and the premove after it.
+    Timer {
+        id: premoveRobotTimer
+        interval: 50
+        repeat: true
+        onTriggered: {
+            if (ChessConnector.MoveCount < 3)
+                return
+            stop()
+            readyTimer.interval = 0
+            readyTimer.start()
+        }
     }
 
     // Scene "slides" (BL-14): select the g1 knight, then Nf3, Nf6, Bc4, Nc6, 0.4–1 s apart.

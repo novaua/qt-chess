@@ -30,6 +30,7 @@ Page {
     property bool _resultPending: false     // the result waits for the board to settle (gate idle)
     property bool _resultCardClosed: false
     readonly property bool pieceDragging: chessBoard.dragging   // Esc puts the piece back, doesn't leave
+    readonly property bool premovePending: ChessConnector.PremoveFrom >= 0   // Esc cancels it, doesn't leave
     property alias board: chessBoard                            // for ScreenshotScene's drag scene
 
     function flipBoard() { chessBoard.angle = chessBoard.angle === 0 ? 180 : 0 }

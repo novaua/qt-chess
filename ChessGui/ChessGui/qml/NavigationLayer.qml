@@ -23,7 +23,7 @@ Item {
 
             Rectangle{
                 id:navigationLayerRec
-                color: Theme.legalMoveDot
+                color: ChessConnector.PremoveDots ? Theme.premoveDot : Theme.legalMoveDot
 
                 anchors.centerIn: navigationLayerItm
                 smooth: true

@@ -76,7 +76,8 @@ public:
 	QString ongoingGamesError() const { return _ongoingGamesError; }
 	void setOngoingGames(const QVariantList& games); // tests and screenshot scenes (no network), from C++
 	// Screenshot mode: the refreshes the app starts on its own (refreshAccount, refreshOngoingGames)
-	// do nothing; the scenes' token is a placeholder, and no scene creates, joins or plays a game.
+	// do nothing, and our moves aren't posted (the premove scenes play one); the scenes' token is a
+	// placeholder, and no scene creates or joins a game.
 	void setOffline(bool offline) { _offline = offline; }
 	// The rows of ongoingGames from the answer of /api/account/playing ({ "nowPlaying": [...] }).
 	static QVariantList parseOngoingGames(const QJsonObject& playing);

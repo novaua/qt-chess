@@ -35,6 +35,14 @@ Item {
                 z: 1
             }
 
+            // The premove waiting for the opponent's move (LI-05), over the last move
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.premove
+                visible: index === ChessConnector.PremoveFrom || index === ChessConnector.PremoveTo
+                z: 1
+            }
+
             // The king in check glows (red-yellow) and pulses, so a missed "Check" message doesn't
             // leave the player wondering why most moves are refused.
             Shape {

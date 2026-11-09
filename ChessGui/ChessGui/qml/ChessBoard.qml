@@ -70,6 +70,11 @@ Rectangle {
                     ChessConnector.figureSelected(square)
             }
         }
+        // A right click cancels a premove, as on Lichess.
+        TapHandler {
+            acceptedButtons: Qt.RightButton
+            onTapped: ChessConnector.cancelPremove()
+        }
     }
 
     MarkerColumn {

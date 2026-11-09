@@ -29,7 +29,7 @@ vstest.console.exe x64\Debug\ChessTests.dll
 vstest.console.exe x64\Debug\ChessQtTests.dll
 ```
 
-- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`, `MatingMaterialTests.cpp`). Plain C++, no Qt.
+- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`, `MatingMaterialTests.cpp`, `PremoveTests.cpp`). Plain C++, no Qt.
 - `ChessQtTests/` — the Qt parts: `UciConnectorTest.cpp` (UCI protocol), `ChessEnginePlayerTest.cpp`, `LichessClientTest.cpp`, `BoardPiecesTest.cpp`,
   `MoveListModelTest.cpp`, `UserManagerTest.cpp`, `GameClockTest.cpp`. Needs Qt's `bin` on `PATH`; the engine tests need Stockfish.
 
@@ -63,7 +63,7 @@ ChessGui (QML app)
 All chess logic, isolated in the `Chess::` namespace. Key types:
 
 - `Board` — 64-square state; owns piece positions
-- `Game` — orchestrates turns, validates moves, fires events to listeners (observer pattern via `EventBase`/`PawnPromotionEvent`)
+- `Game` — orchestrates turns, validates moves, fires events to listeners (observer pattern via `EventBase`/`PawnPromotionEvent`); `GetPremoveTargets` for premoves (LI-05)
 - `Move` / `HistoryMove` — move representation (from/to squares, capture flag, promotion)
 - `MoveGeneration` — generates pseudo-legal and legal moves including castling and en passant
 - `ChessEnginePlayer` — wraps `UciConnector` to produce computer moves
@@ -76,7 +76,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
 
 ### ChessGui (Qt QML application)
 
-- **`chessconnector.h/cpp`** — the C++/QML bridge for the chess game; exposes `Q_PROPERTY` bindings and slots that QML calls
+- **`chessconnector.h/cpp`** — the C++/QML bridge for the chess game; exposes `Q_PROPERTY` bindings and slots that QML calls. Premove (LI-05, vs the robot and on Lichess, not two players): during the opponent's turn `figureSelected` / `movePiece` set `PremoveFrom`/`PremoveTo` instead of moving (`PremoveDots`: the dots are premove targets); it is played after the opponent's move has slid in if legal then, else dropped silently; `cancelPremove()` (right click, Esc)
 - **`boardpieces.h/cpp`** — `BoardPieces`, the pieces model behind `ChessConnector.Pieces`: one row per piece that keeps its id while it moves (`BoardDiff`), so the board can slide it
 - **`movelistmodel.h/cpp`** — `MoveListModel`, the move list behind `ChessConnector.MoveHistory`: one row per move number, and a move changes only its row instead of rebuilding the list
 - **`movegate.h/cpp`** — `MoveGate`, which holds the moves from outside (the robot's answer, the Lichess opponent's) and releases them one at a time when the board is idle (a Lichess resync of more than two: all at once); `ChessConnector` owns one, `GamePage` reports the board settled and the slide time
@@ -92,8 +92,8 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
     two `PlayerCard`s with a `CapturedStrip` and "+N", the moves (`MovesPanel` + `MoveList`) beside
     the board or in a bottom sheet, `ResultCard` over the board)
   - `ChessBoard.qml` — the board: one geometry for all layers (`squareX/Y`, `squareAt`, a1 bottom left; turned for Black by `rotation`), the click `TapHandler`, the drag state (`dragFrom`, `dragPoint`, `dropSquare`) and the dragged piece under the pointer, coordinates, promotion dialog
-  - `ChessFigures.qml` — the pieces, one item per row of `ChessConnector.Pieces` on its square; it slides when the square changes, a captured one fades out; a `DragHandler` per piece of the side to move (drop → `ChessConnector.movePiece`)
-  - `ChessBoxes.qml` — the squares and their highlights (last move, check, flagged king, selected piece); `NavigationLayer.qml` — the legal-move dots
+  - `ChessFigures.qml` — the pieces, one item per row of `ChessConnector.Pieces` on its square; it slides when the square changes, a captured one fades out; a `DragHandler` per piece of the side to move, or of the player during the opponent's turn (a premove) (drop → `ChessConnector.movePiece`)
+  - `ChessBoxes.qml` — the squares and their highlights (last move, premove, check, flagged king, selected piece); `NavigationLayer.qml` — the legal-move dots (premove targets in red)
   - Shared: `Theme.qml` and `AppSettings.qml` (singletons; `AppSettings` is the QtCore `Settings` with the
     app's own options), `SettingRow`, `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`, `SectionCard`, `AvatarPicker`, `TimeControlPicker` (the clock tiles of the setup dialogs and the challenge card), `FocusRing` (keyboard focus outline for custom-drawn items)
   - Tooling: `ScreenshotScene` (the `--screenshot` scenes; loaded only in that mode, keep debug/test helpers there, not in the pages)

@@ -52,6 +52,11 @@ namespace Chess
 
 		std::vector<Move> GetPossibleMoves(int index);
 		std::vector<Move> GetAllowedMoves(int index);
+		// A premove (LI-05): the squares the piece on that square might go to once the other side has
+		// made one move. By the piece's shape, without checks: a line stops at our own piece (it may be
+		// taken, then we take back) and passes one of theirs (it may move away). Whether the move is
+		// legal is decided when it is played.
+		std::vector<BoardPosition> GetPremoveTargets(int index);
 
 		Piece GetPieceAt(int index) const;
 		const Board& GetCurrentBoard() const { return *_boardAptr; }

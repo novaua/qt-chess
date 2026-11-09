@@ -768,9 +768,10 @@ ApplicationWindow {
         enabled: (_onGamePage || _onPushedPage) && !_dialogOpen
                  && !(_onGamePage && stack.currentItem.pieceDragging)
         onActivated: {
-            if (_onPushedPage)                    _closePage(_page)
-            else if (stack.currentItem.sheetOpen) stack.currentItem.sheetOpen = false   // an open move sheet first
-            else                                  leaveGame()
+            if (_onPushedPage)                         _closePage(_page)
+            else if (stack.currentItem.sheetOpen)      stack.currentItem.sheetOpen = false   // an open move sheet first
+            else if (stack.currentItem.premovePending) ChessConnector.cancelPremove()       // then a premove (LI-05)
+            else                                       leaveGame()
         }
     }
     // New game: on Home the game vs the computer; in a finished game the result card's New game
