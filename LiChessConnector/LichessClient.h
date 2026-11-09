@@ -2,6 +2,7 @@
 #include "lichessconnector_global.h"
 #include "LichessStream.h"
 #include <QNetworkAccessManager>
+#include <QSet>
 #include <QTimer>
 #include <QVariantMap>
 
@@ -31,6 +32,11 @@ class LICHESSCONNECTOR_EXPORT LichessClient: public QObject
 	Q_PROPERTY(QVariantList ongoingGames READ ongoingGames NOTIFY ongoingGamesChanged)
 	Q_PROPERTY(bool ongoingGamesLoading READ ongoingGamesLoading NOTIFY ongoingGamesChanged)
 	Q_PROPERTY(QString ongoingGamesError READ ongoingGamesError NOTIFY ongoingGamesChanged) // the last refresh failed
+	// BL-10: the challenges to the player waiting on Lichess, oldest first: id, url, challengerId,
+	// challengerName, challengerRating (0: none), challengerProvisional, challengerTitle,
+	// timeControlText ("10+5", "3 days per move", "Unlimited"), speed, rated, variant, ourSide
+	// ("white", "black", "random"), canPlayHere (the Board API can play it), rematchOf.
+	Q_PROPERTY(QVariantList incomingChallenges READ incomingChallenges NOTIFY incomingChallengesChanged)
 
 public:
 	explicit LichessClient(QObject* parent = nullptr);
@@ -65,12 +71,27 @@ public:
 	// LI-06: open the running game's stream again now; its gameFull tells what Lichess has (a move of
 	// ours that got no answer). While the stream is lost it reconnects on its own.
 	void resyncGame();
-	// Tests: a fake server instead of lichess.org, and shorter waits: the stream is lost after
+	// Tests: a fake server instead of lichess.org, and shorter waits: a stream is lost after
 	// silenceMs without even a keep-alive line (Lichess sends one every 7 s), the first reconnect
 	// comes after firstRetryMs (then twice as long each time, up to 15 s), a move without an answer
-	// gives up after moveTimeoutMs.
+	// gives up after moveTimeoutMs, and challenges not resent within settleMs of a reconnect are gone.
 	void setBaseUrl(const QString& url) { _baseUrl = url; }
-	void setStreamTiming(int silenceMs, int firstRetryMs, int moveTimeoutMs);
+	void setStreamTiming(int silenceMs, int firstRetryMs, int moveTimeoutMs, int settleMs = 3000);
+
+	// BL-10: the account's event stream (/api/stream/event), open and reconnecting until the token
+	// changes: incoming challenges, the start of a game we wait for, rematch offers, games started or
+	// ended elsewhere. Lichess allows one per token: everything here shares it. No-op without a token
+	// or offline (screenshot mode).
+	void startEventStream();
+	bool eventStreamOpen() const { return _eventStream->isOpen(); }
+	QVariantList incomingChallenges() const { return _incomingChallenges; }
+	// Lichess shows the challenger the reason: generic, later, tooFast, tooSlow, timeControl, rated,
+	// casual, standard, variant, noBot, onlyBot.
+	Q_INVOKABLE void declineChallenge(const QString& challengeId, const QString& reason = QStringLiteral("generic"));
+	// A "challenge" event ({ challenge, compat }) as a row of incomingChallenges.
+	static QVariantMap parseChallenge(const QJsonObject& challengeEvent);
+	// One line of the event stream (tests feed lines here).
+	void handleEventStreamLine(const QByteArray& line);
 	// registerAsPlayer: POST /accept on our own open challenge first (needed for the Board API
 	// stream of an open challenge; not possible for a challenge we sent to a user), as myColor.
 	Q_INVOKABLE void waitForGameStart(const QString& gameId, bool registerAsPlayer = true, const QString& myColor = {});
@@ -166,6 +187,8 @@ signals:
 	void drawOfferReceived();
 	void takebackRequested();
 	void ongoingGamesChanged();
+	void incomingChallengesChanged();
+	void challengeReceived(QString challengeId); // BL-10: a new one (not one resent after a reconnect)
 	// LI-06: the running game's stream was lost (false; it reconnects on its own) or is back (true,
 	// once its gameFull has handed over what changed: the moves follow through the gate).
 	void gameConnectionChanged(bool connected);
@@ -191,10 +214,10 @@ private:
 	void updateClock(const QJsonObject& state, bool gameOver); // a gameFull's state, or a gameState
 	void replaceMoveList(const QStringList& moves, bool moveRefused = false);
 
-	void handleEventStreamData(QNetworkReply* reply);
 	void handleRematchOffer(const QString& type, const QJsonObject& challenge);
-	void openEventStream();
-	void stopEventStream();
+	void addIncomingChallenge(const QJsonObject& challengeEvent);
+	void removeIncomingChallenge(const QString& challengeId);
+	void dropChallengesNotResent(); // after a reconnect: the ones Lichess didn't send again are gone
 	void checkGameReady();
 	void stopProbe(); // abort the /api/board/game/stream probe of checkGameReady()
 	void onGameStartDetected(const QString& gameId);
@@ -212,7 +235,12 @@ private:
 	QStringList           _sentMoves;       // ours, sent but not in the stream yet (our board has them)
 	QStringList           _postsInFlight;   // ours whose POST has no answer yet (LI-06)
 	LichessStream* _gameStream       = nullptr; // the Board API game stream; reconnects once gameFull came (LI-06)
-	QNetworkReply* _eventStreamReply = nullptr;
+	LichessStream* _eventStream      = nullptr; // BL-10: the account's events, open while there is a token
+	bool           _eventStreamFresh = false;   // (re)opened: its first line marks it connected
+	QVariantList   _incomingChallenges;
+	QSet<QString>  _challengesResent;           // since the event stream came back
+	QTimer         _challengesSettle;           // then drop the ones not resent
+	QTimer         _ongoingRefresh;             // gameStart / gameFinish elsewhere: one refresh for a burst
 	QNetworkReply* _probeReply       = nullptr;
 	QNetworkReply* _openChallengeReply   = nullptr; // POST /api/challenge/open in flight
 	QNetworkReply* _acceptReply          = nullptr; // acceptChallenge's POST in flight (then the stream)

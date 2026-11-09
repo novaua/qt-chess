@@ -4,6 +4,23 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — BL-10 step 2: the event stream and incoming challenges (branch: eventStream_091126)
+
+### What was done
+- **The account's event stream, always open** (`LichessClient::startEventStream`, a `LichessStream`): opened by `main.cpp` when a token is set (not in screenshot mode), reconnecting from the start (no "game" to establish it), closed by a token change (another profile, sign-out, an expired link: a 401 reaches `checkAuthExpired`, the link expires, the token goes).
+- **One per token, shared**: `waitForGameStart` (our challenge's game) no longer opens its own stream; it waits for the `gameStart` on the open one (the 3 s probe of the game stream stays as the fallback). `watchForRematch` is a flag on it. `stopStream()` (leaving a game) leaves it open: it belongs to the account. `openEventStream`, `stopEventStream` and `_eventStreamReply` are gone.
+- **`incomingChallenges`**: challenges *to* us (`direction: in`, or without it when we are the `destUser`; never ours), oldest first, one row each from `parseChallenge` (challenger, rating and provisional, "10+5" / "3 days per move" / "Unlimited", rated, speed, variant, our side, `canPlayHere`: `compat.board` and the standard variant, by speed when compat is missing, the URL, `rematchOf`). `challenge` adds or updates (resent: no second `challengeReceived`), `challengeCanceled` / `challengeDeclined` and the `gameStart` of its game remove it. After a (re)connect Lichess resends all current challenges: those not resent within 3 s were canceled while away and are dropped.
+- **`declineChallenge(id, reason)`**: `POST /api/challenge/{id}/decline` with the reason; the row goes at once; a 404 (canceled meanwhile) is fine. `declineRematch` also removes its row.
+- **Your games, live**: `gameStart` / `gameFinish` of a game other than the one on the board refresh `ongoingGames`, once per burst (500 ms).
+- No UI yet (step 3: the bar, Accept, the sound and the flash).
+- **Tests**: `LichessChallengeTest.cpp`, 13 tests: parsing (real time, correspondence, unlimited, sides, what this app can play), stream lines (listed once and canceled, our own not listed, removed by its game's start or a decline, a token change clears), and against `FakeLichess` (which now keeps request bodies): a challenge arrives and is canceled, a reconnect resends one and drops the one gone, waiting for a game shares the stream (one GET, still open after `stopStream`), Decline sends the reason, games elsewhere refresh Your games once, a token change closes the stream. Release builds; ChessTests + ChessQtTests **338 pass**; the 33 Lichess stream tests 10 runs.
+- Screenshots: no UI change; `home`, `online`, `continue-online`, `takeback`, `profile` match, and no scene opens the stream (offline).
+
+### Next
+- Step 3: Accept (`ChessConnector.acceptChallenge`, `CanAcceptChallenge`), the challenge bar, the sound and the taskbar flash; scenes.
+
+---
+
 ## 2026-11-09 — BL-10 step 1: `LichessStream` (branch: lichessStream_091126)
 
 ### What was done
