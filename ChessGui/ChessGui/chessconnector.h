@@ -34,7 +34,13 @@ class ChessConnector : public QObject
 		// piece that keeps its id while it moves: { pieceId, square, piece, taken } (BoardPieces).
 		Q_PROPERTY(QAbstractItemModel* Pieces READ pieces CONSTANT)
 		Q_PROPERTY(int SelectedSquare READ selectedSquare NOTIFY PossibleMovesChanged) // the piece whose moves show, or -1
-		Q_PROPERTY(int MovableColor READ movableColor NOTIFY movableColorChanged) // whose pieces the player can move now: 0 none, 1 White, 2 Black
+		Q_PROPERTY(int MovableColor READ movableColor NOTIFY movableColorChanged) // whose pieces the player can move (or premove) now: 0 none, 1 White, 2 Black
+		// LI-05: a move picked during the robot's or the Lichess opponent's turn, played when it comes
+		// if it is legal then. Its two squares, or -1. Hidden (-1) while reviewing: it is kept, and played
+		// once the board is back at the live position.
+		Q_PROPERTY(int PremoveFrom READ premoveFrom NOTIFY premoveChanged)
+		Q_PROPERTY(int PremoveTo   READ premoveTo   NOTIFY premoveChanged)
+		Q_PROPERTY(bool PremoveDots READ premoveDots NOTIFY PossibleMovesChanged) // the dots are where a premove may go
 		Q_PROPERTY(int IsWhiteMove READ IsWhiteMove NOTIFY IsWhiteMoveChanged)
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
 		Q_PROPERTY(bool CanContinue READ canContinue NOTIFY canContinueChanged)
@@ -133,6 +139,9 @@ public:
 	QAbstractItemModel* pieces() const { return _pieces; }
 	int selectedSquare() const { return _selectedSquare; }
 	int movableColor() const;
+	int premoveFrom() const { return reviewMode() ? -1 : _premoveFrom; }
+	int premoveTo()   const { return reviewMode() ? -1 : _premoveTo; }
+	bool premoveDots() const { return _premoveDots; }
 
 	QStringList& PossibleMoves();
 	void setPossibleMoves(const QStringList& moves);
@@ -140,6 +149,7 @@ public:
 signals:
 	void PossibleMovesChanged();
 	void movableColorChanged();
+	void premoveChanged();
 
 	void moveCountChanged();
 	void IsWhiteMoveChanged();
@@ -210,6 +220,7 @@ public slots:
 
 	void figureSelected(int index); // a click: show the piece's moves, or play the move to that square
 	Q_INVOKABLE bool movePiece(int from, int to); // a drop: plays it if legal, else false (the piece goes back)
+	Q_INVOKABLE void cancelPremove(); // a right click or Esc: no premove, no premove dots
 	void pawnPromote(int index, const QString& piece);
 
 	void saveGame();
@@ -266,8 +277,14 @@ private:
 	QStringList capturedPieces(Chess::PieceColors capturedColor) const;
 	const Chess::MovesHistory& shownHistory() const; // the saved game in replay, else the game record
 	QString opponentNameOf(const UserManager::GameSaveInfo& info) const;
-	void makeMove(int from, int to);
+	void makeMove(int from, int to, Chess::PieceTypes promoteTo = Chess::EMPTY); // EMPTY: the player picks the piece
 	bool canPlayerMove() const; // the player may move a piece now (not the robot's turn, not reviewing, ...)
+	bool canPremove() const;    // the player may pick a premove now: the robot's or the Lichess opponent's turn
+	bool isPlayerPiece(int square) const; // vs the robot or on Lichess: the player's own piece stands there
+	void setPremove(int from, int to);
+	void opponentMoveShown(); // the robot's or the Lichess opponent's move is on the board: a premove follows
+	void playPremove();       // the opponent's move has slid in: the premove, if it is legal now
+	void refreshSelection();  // the turn changed under a selected piece: its dots follow
 	void clearPossibleMoves();  // no piece selected, no move dots
 	std::shared_ptr<Chess::Game> shownGame() const; // the position on the board: a replay while reviewing
 	void schedulePiecesSync();  // update Pieces once, after the current change is complete
@@ -301,6 +318,10 @@ private:
 private:
 	QStringList _possibleMoves;
 	int _selectedSquare = -1;
+	bool _premoveDots = false;
+	int _premoveFrom = -1;
+	int _premoveTo = -1;
+	QTimer _premoveTimer; // the opponent's move slides in, then the premove is played
 	BoardPieces* _pieces = nullptr;
 	bool _piecesSyncPosted = false;
 

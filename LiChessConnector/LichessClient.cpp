@@ -791,6 +791,8 @@ void LichessClient::replaceMoveList(const QStringList& moves, bool moveRefused)
 void LichessClient::postMove(const QString& gameId, const QString& uciMove)
 {
     trackSentMove(uciMove);
+    if (_offline)
+        return; // screenshot mode: the scene's stream says what Lichess made of it
 
     auto* reply = _nam.post(
         makeRequest(QStringLiteral("/api/board/game/") + gameId

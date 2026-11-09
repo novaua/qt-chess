@@ -387,6 +387,107 @@ namespace Chess
 			: std::vector<Move>();
 	}
 
+	std::vector<BoardPosition> Game::GetPremoveTargets(int index) const
+	{
+		std::vector<BoardPosition> targets;
+		if (index < 0 || index >= BpMax)
+			return targets;
+		const Board& board = *_boardAptr;
+		const Piece piece = board.At(index);
+		const PieceColors own = piece.Color;
+		if (own == PieceColors::Empty)
+			return targets;
+
+		const int file = index % 8;
+		const int rank = index / 8;
+		auto onBoard = [](int f, int r) { return 0 <= f && f < 8 && 0 <= r && r < 8; };
+		auto colorAt = [&](int f, int r) { return board.At(r * 8 + f).Color; };
+		auto add = [&](int f, int r) {
+			const Piece target = board.At(r * 8 + f);
+			if (!(target.Color == own && target.Type == KING)) // our king is never taken
+				targets.push_back(BoardPosition(r * 8 + f));
+		};
+		auto line = [&](int df, int dr) {
+			int theirs = 0;
+			for (int f = file + df, r = rank + dr; onBoard(f, r); f += df, r += dr) {
+				add(f, r);
+				const auto color = colorAt(f, r);
+				if (color == own || (color != PieceColors::Empty && ++theirs == 2))
+					break;
+			}
+		};
+
+		switch (piece.Type) {
+		case PAWN: {
+			const int dir = own == PieceColors::Light ? 1 : -1;
+			const int next = rank + dir;
+			if (!onBoard(file, next))
+				break;
+			if (colorAt(file, next) != own)
+				add(file, next);
+			for (int df : { -1, 1 }) // a capture, also one the other side may walk into, or en passant
+				if (onBoard(file + df, next))
+					add(file + df, next);
+			if (rank == (own == PieceColors::Light ? 1 : 6)) {
+				const auto middle = colorAt(file, next);
+				const auto far = colorAt(file, next + dir);
+				if (middle != own && far != own && (middle == PieceColors::Empty || far == PieceColors::Empty))
+					add(file, next + dir);
+			}
+			break;
+		}
+		case KNIGHT: {
+			static const int jumps[8][2] = { { 1, 2 }, { 2, 1 }, { 2, -1 }, { 1, -2 }, { -1, -2 }, { -2, -1 }, { -2, 1 }, { -1, 2 } };
+			for (const auto& jump : jumps)
+				if (onBoard(file + jump[0], rank + jump[1]))
+					add(file + jump[0], rank + jump[1]);
+			break;
+		}
+		case BISHOP:
+		case ROOK:
+		case QUEEN:
+			for (int df = -1; df <= 1; ++df)
+				for (int dr = -1; dr <= 1; ++dr) {
+					const bool diagonal = df != 0 && dr != 0;
+					if ((df == 0 && dr == 0) || (piece.Type == BISHOP && !diagonal) || (piece.Type == ROOK && diagonal))
+						continue;
+					line(df, dr);
+				}
+			break;
+		case KING: {
+			for (int df = -1; df <= 1; ++df)
+				for (int dr = -1; dr <= 1; ++dr)
+					if ((df != 0 || dr != 0) && onBoard(file + df, rank + dr))
+						add(file + df, rank + dr);
+			// Castling: the king and that rook haven't moved, and none of our pieces stands between.
+			const int home = own == PieceColors::Light ? e1 : e8;
+			auto castling = [&](bool kingside) {
+				const int rookAt = kingside ? home + 3 : home - 4;
+				const Piece rook = board.At(rookAt);
+				if (rook.Type != ROOK || rook.Color != own)
+					return;
+				for (int sq = std::min(home, rookAt) + 1; sq < std::max(home, rookAt); ++sq)
+					if (board.At(sq).Color == own)
+						return;
+				targets.push_back(BoardPosition(kingside ? home + 2 : home - 2));
+			};
+			if (index == home && CanCastleKingside(own))
+				castling(true);
+			if (index == home && CanCastleQueenside(own))
+				castling(false);
+			break;
+		}
+		default:
+			break;
+		}
+		return targets;
+	}
+
+	bool Game::IsPromotion(int from, int to) const
+	{
+		return 0 <= from && from < BpMax && _boardAptr->At(from).Type == PAWN && (to / 8 == 0 || to / 8 == 7);
+	}
+
 	void Game::RegisterLogger(const LoggerCallback& loggerCallback)
 	{
 		_logger = loggerCallback;
@@ -400,7 +501,7 @@ namespace Chess
 		}
 	}
 
-	bool Game::CanCastleKingside(PieceColors c)
+	bool Game::CanCastleKingside(PieceColors c) const
 	{
 		BoardPosition kingPos = (c == PieceColors::Light) ? e1 : e8;
 		BoardPosition rookPos = (c == PieceColors::Light) ? h1 : h8;
@@ -415,7 +516,7 @@ namespace Chess
 		return true;
 	}
 
-	bool Game::CanCastleQueenside(PieceColors c)
+	bool Game::CanCastleQueenside(PieceColors c) const
 	{
 		BoardPosition kingPos = (c == PieceColors::Light) ? e1 : e8;
 		BoardPosition rookPos = (c == PieceColors::Light) ? a1 : a8;

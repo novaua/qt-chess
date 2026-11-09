@@ -57,6 +57,8 @@ ChessConnector::ChessConnector(QObject* parent)
 	connect(_clock, &GameClock::flagged, this, &ChessConnector::onClockFlagged);
 	_leaveAfterResign.setSingleShot(true);
 	connect(&_leaveAfterResign, &QTimer::timeout, this, &ChessConnector::endGame);
+	_premoveTimer.setSingleShot(true);
+	connect(&_premoveTimer, &QTimer::timeout, this, &ChessConnector::playPremove);
 	_pieces->sync(_game->GetCurrentBoard());
 
 	_game->RegisterBoardChanged(
@@ -104,6 +106,7 @@ ChessConnector::ChessConnector(QObject* parent)
 	ClearBoard(_possibleMoves);
 
 	connect(this, &ChessConnector::reviewStateChanged, this, &ChessConnector::flaggedKingChanged);
+	connect(this, &ChessConnector::reviewStateChanged, this, &ChessConnector::premoveChanged); // hidden while reviewing
 	connect(this, &ChessConnector::reviewStateChanged, this, &ChessConnector::capturedChanged); // of the reviewed position
 
 	// What canPlayerMove() depends on. (_gameOver changes with the result or a new game.)
@@ -148,20 +151,102 @@ bool ChessConnector::canPlayerMove() const
 
 int ChessConnector::movableColor() const
 {
-	return canPlayerMove() ? (_game->IsWhiteMove() ? 1 : 2) : 0;
+	if (canPlayerMove())
+		return _game->IsWhiteMove() ? 1 : 2;
+	return canPremove() ? (_config.playerPlaysWhite ? 1 : 2) : 0;
+}
+
+// Not in a two-player game: both sides sit at this board and move in turn.
+bool ChessConnector::canPremove() const
+{
+	if (_player || reviewMode() || _promotionPending || _gameOver)
+		return false;
+	if (!isOnlineGame() && !_wasVsComputer)
+		return false;
+	return _game->IsWhiteMove() != _config.playerPlaysWhite;
+}
+
+bool ChessConnector::isPlayerPiece(int square) const
+{
+	const auto own = _config.playerPlaysWhite ? Chess::PieceColors::Light : Chess::PieceColors::Dark;
+	return 0 <= square && square < 64 && _game->GetPieceAt(square).Color == own;
+}
+
+void ChessConnector::setPremove(int from, int to)
+{
+	if (_premoveFrom == from && _premoveTo == to)
+		return;
+	_premoveFrom = from;
+	_premoveTo = to;
+	emit premoveChanged();
+}
+
+void ChessConnector::cancelPremove()
+{
+	_premoveTimer.stop();
+	setPremove(-1, -1);
+	if (_premoveDots)
+		clearPossibleMoves();
+}
+
+// Like Lichess: the premove is played as soon as the opponent's move is there, without the pause the
+// robot's and the opponent's moves wait for, only after its slide (one thing at a time, BL-14).
+void ChessConnector::opponentMoveShown()
+{
+	if (_premoveFrom >= 0)
+		_premoveTimer.start(_gate->timing().slideMs);
+	else
+		refreshSelection();
+}
+
+void ChessConnector::playPremove()
+{
+	const int from = _premoveFrom;
+	const int to = _premoveTo;
+	if (from < 0 || reviewMode()) // reviewing: it waits for the live position (reviewLast)
+		return;
+	if (!canPlayerMove()) {
+		if (!canPremove()) // e.g. the opponent's move ended the game
+			cancelPremove();
+		return;            // not our turn yet: it waits for the next move
+	}
+	setPremove(-1, -1);
+	const auto moves = _game->GetAllowedMoves(from);
+	if (std::none_of(moves.begin(), moves.end(), [to](const Chess::Move& m) { return m.To == to; })) {
+		qDebug() << "Premove" << from << "->" << to << "isn't legal any more: dropped";
+		refreshSelection(); // dropped silently, as on Lichess
+		return;
+	}
+	clearPossibleMoves();
+	// Lichess's premove promotes to a queen: there is no time to ask.
+	makeMove(from, to, _game->IsPromotion(from, to) ? Chess::QUEEN : Chess::EMPTY);
+}
+
+void ChessConnector::refreshSelection()
+{
+	const int square = _selectedSquare;
+	if (square < 0)
+		return;
+	clearPossibleMoves();
+	figureSelected(square);
 }
 
 void ChessConnector::clearPossibleMoves()
 {
 	ClearBoard(_possibleMoves);
 	_selectedSquare = -1;
+	_premoveDots = false;
 	FrameTraceScope trace("move dots cleared");
 	emit PossibleMovesChanged();
 }
 
+// During the opponent's turn the clicks pick a premove instead: our piece shows where it may go
+// (a pending premove stays until another one is picked), a dot sets it, any other square cancels it.
+// A click on our own piece always selects it, also on a dot: a recapture premove is dragged there.
 void ChessConnector::figureSelected(int index)
 {
-	if (!canPlayerMove() || index < 0 || index >= 64)
+	const bool premove = !canPlayerMove() && canPremove();
+	if ((!premove && !canPlayerMove()) || index < 0 || index >= 64)
 		return;
 
 	//find possible moves for the position and notify IU
@@ -173,9 +258,26 @@ void ChessConnector::figureSelected(int index)
 
 	ClearBoard(_possibleMoves);
 	_selectedSquare = -1;
-	if (selected != -1)
+	_premoveDots = false;
+	if (selected != -1 && premove && !isPlayerPiece(index))
+	{
+		setPremove(selected, index);
+	}
+	else if (selected != -1)
 	{
 		makeMove(BoardPosition(selected), BoardPosition(index));
+	}
+	else if (premove)
+	{
+		if (isPlayerPiece(index)) {
+			for (auto to : _game->GetPremoveTargets(index))
+				_possibleMoves[to] = QString::number(index);
+			_selectedSquare = index;
+			_premoveDots = true;
+		}
+		else {
+			setPremove(-1, -1);
+		}
 	}
 	else
 	{
@@ -194,6 +296,18 @@ void ChessConnector::figureSelected(int index)
 
 bool ChessConnector::movePiece(int from, int to)
 {
+	// A premove: the piece goes back to its square and the two squares show the move; a drop
+	// anywhere else cancels the premove.
+	if (!canPlayerMove() && canPremove()) {
+		std::vector<Chess::BoardPosition> targets;
+		if (isPlayerPiece(from))
+			targets = _game->GetPremoveTargets(from);
+		const bool target = std::find(targets.begin(), targets.end(), to) != targets.end();
+		clearPossibleMoves();
+		setPremove(target ? from : -1, target ? to : -1);
+		return false;
+	}
+
 	bool legal = false;
 	if (canPlayerMove() && 0 <= from && from < 64 && 0 <= to && to < 64) {
 		const auto moves = _game->GetAllowedMoves(from);
@@ -432,6 +546,7 @@ void ChessConnector::setResult(const QString& result, const QString& text)
 		_gameOver = true;
 		_clock->pause();      // the times stay on the cards
 		clearPossibleMoves(); // drop move highlights of a selected piece
+		cancelPremove();
 		setPendingOffer({});
 		setOpponentGone(false);
 	}
@@ -609,11 +724,15 @@ int ChessConnector::materialBalance() const
 	return Chess::MaterialBalance(shownGame()->GetCurrentBoard());
 }
 
-void ChessConnector::makeMove(int from, int to)
+void ChessConnector::makeMove(int from, int to, Chess::PieceTypes promoteTo)
 {
+	// The player's own move (also in the moment the premove waits for the opponent's slide): a
+	// pending premove was meant for the position before it.
+	_premoveTimer.stop();
+	setPremove(-1, -1);
 	try
 	{
-		_game->DoMove((BoardPosition)from, (BoardPosition)to);
+		_game->DoMove(Move{ (BoardPosition)from, (BoardPosition)to, false, { promoteTo, PieceColors::Empty } });
 	}
 	catch (ChessException& ex)
 	{
@@ -901,6 +1020,7 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 void ChessConnector::beginGame(bool online)
 {
 	_gate->clear(); // a held move belongs to the game being left
+	cancelPremove();
 	_afterHeldMoves.clear();
 	_listAfterPromotion.reset();
 	_gameDate = QDate::currentDate();
@@ -1198,6 +1318,7 @@ void ChessConnector::playRobotMove(const QString& move)
 		_game->DoMove(Chess::Move::Parse(move.toStdString()));
 	}
 	catch (const std::exception& ex) {
+		cancelPremove(); // no move came to answer
 		onEngineMoveError(_engineRequest, QStringLiteral("the engine's move %1 can't be played: %2").arg(move, ex.what()),
 			QStringLiteral("fen: ") + QString::fromStdString(_game->MakeFen()));
 		return;
@@ -1217,6 +1338,7 @@ void ChessConnector::playRobotMove(const QString& move)
 		_resignAfterEngineMove = false;
 		resignGame(); // no-op if the robot's move ended the game
 	}
+	opponentMoveShown();
 }
 
 void ChessConnector::onGateRelease(const QString& uciMove, MoveGate::Source source)
@@ -1260,6 +1382,7 @@ void ChessConnector::onLichessMoveListReplaced(const QString& uciMoves, bool mov
 	// A held opponent move may be one of those taken back; the rest of the list is played below.
 	// What came with it (a draw offer) still stands on Lichess: it is shown after the list.
 	_gate->clear();
+	cancelPremove(); // it was for another position
 	const auto after = std::move(_afterHeldMoves);
 	_afterHeldMoves.clear();
 	if (reviewMode())
@@ -1307,6 +1430,7 @@ void ChessConnector::playOnlineMoves(const QStringList& uciMoves)
 	_gate->moveShown(true); // not the player's move
 	if (_gate->holding())
 		return;
+	opponentMoveShown();
 	// What came with the moves (a draw offer, a takeback request) is shown now.
 	const auto after = std::move(_afterHeldMoves);
 	_afterHeldMoves.clear();
@@ -1426,6 +1550,7 @@ bool ChessConnector::loadGame()
 		if (fileExists(savedGamePath()))
 		{
 			_gate->clear(); // a held move belongs to the game being left
+			cancelPremove();
 			_clock->stop();
 			const auto info = _userManager ? _userManager->savedGameInfo() : UserManager::GameSaveInfo{};
 			_config.playerPlaysWhite = info.playerPlaysWhite;
@@ -1479,6 +1604,7 @@ void ChessConnector::movePrev()
 			if (_engineThinking)
 				dropRobotAnswer();
 			if (_promotionPending) return;
+			cancelPremove(); // it was for the position being taken back
 			int count = _game->GetMoveCount();
 			if (count == 0) {
 				// Nothing to take back. If the answer just dropped was the robot's first move (or
@@ -1596,8 +1722,10 @@ void ChessConnector::reviewLast() {
 	_reviewIndex = -1;
 	emitBoardState();
 	// The jump back to the live position animates the pieces: a held robot answer (the board wasn't
-	// settled while reviewing) waits for it.
+	// settled while reviewing) waits for it, and so does a premove kept during the review.
 	_gate->moveShown();
+	if (_premoveFrom >= 0)
+		_premoveTimer.start(_gate->timing().slideMs);
 	emit reviewStateChanged();
 }
 
@@ -1637,6 +1765,7 @@ void ChessConnector::resignAndLeave()
 void ChessConnector::endGame()
 {
 	_leaveAfterResign.stop(); // also when the game is left another way (Home again, switch user)
+	cancelPremove();
 	resetMoveHistoryCache();
 	setFlaggedKing(-1);
 	_resignAfterEngineMove = false;
