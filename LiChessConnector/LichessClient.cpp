@@ -48,9 +48,16 @@ LichessClient::LichessClient(QObject* parent)
             _eventStreamFresh = true;
     });
     // A 401 also reaches checkAuthExpired: the link expires, the token goes, and with it the stream.
-    connect(_eventStream, &LichessStream::stopped, this, [](bool authExpired, int status) {
+    // Any other "no" (429: too many requests or streams) is tried again after a minute, as Lichess
+    // asks after a 429.
+    connect(_eventStream, &LichessStream::stopped, this, [this](bool authExpired, int status) {
         qDebug() << "LichessClient: event stream refused | HTTP" << status << "| sign-in expired:" << authExpired;
+        if (!authExpired)
+            _eventStreamRetry.start();
     });
+    _eventStreamRetry.setSingleShot(true);
+    _eventStreamRetry.setInterval(60000);
+    connect(&_eventStreamRetry, &QTimer::timeout, this, &LichessClient::startEventStream);
     _challengesSettle.setSingleShot(true);
     _challengesSettle.setInterval(3000);
     connect(&_challengesSettle, &QTimer::timeout, this, &LichessClient::dropChallengesNotResent);
@@ -59,12 +66,14 @@ LichessClient::LichessClient(QObject* parent)
     connect(&_ongoingRefresh, &QTimer::timeout, this, &LichessClient::refreshOngoingGames);
 }
 
-void LichessClient::setStreamTiming(int silenceMs, int firstRetryMs, int moveTimeoutMs, int settleMs)
+void LichessClient::setStreamTiming(int silenceMs, int firstRetryMs, int moveTimeoutMs, int settleMs,
+                                    int refusedRetryMs)
 {
     _gameStream->setTiming(silenceMs, firstRetryMs);
     _eventStream->setTiming(silenceMs, firstRetryMs);
     _moveTimeoutMs = moveTimeoutMs;
     _challengesSettle.setInterval(settleMs);
+    _eventStreamRetry.setInterval(refusedRetryMs);
 }
 
 // Any call made with our token that Lichess answers with 401: the token was revoked or expired.
@@ -123,6 +132,7 @@ void LichessClient::setToken(const QString& decryptedToken)
     if (changed) {
         setOngoingGames({}); // another account (or none): its games are not ours
         _eventStream->close(); // its events too; main.cpp opens it again for a new token
+        _eventStreamRetry.stop();
         _challengesSettle.stop();
         if (!_incomingChallenges.isEmpty()) {
             _incomingChallenges.clear();
@@ -460,7 +470,10 @@ void LichessClient::resumeOpenChallenge(const QString& gameId, const QString& fr
 
 void LichessClient::acceptChallenge(const QString& challengeId, const QString& color)
 {
-    removeIncomingChallenge(challengeId); // BL-10: answered (a link's id isn't in the list)
+    // BL-10: a challenge to the player stays listed until its game starts (gameStart removes it):
+    // if Lichess refuses, it's still there to decline.
+    const bool incoming = isIncomingChallenge(challengeId);
+    _acceptingId = challengeId;
     if (_acceptReply) {
         auto* previous = _acceptReply;
         _acceptReply = nullptr;
@@ -470,8 +483,10 @@ void LichessClient::acceptChallenge(const QString& challengeId, const QString& c
     // Kept so stopStream() can drop it (Back on the Online page before Lichess answered).
     _acceptReply = reply;
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply, challengeId]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, challengeId, incoming]() {
         reply->deleteLater();
+        if (_acceptingId == challengeId)
+            _acceptingId.clear();
         if (reply != _acceptReply)
             return; // stopped or replaced: no game must start
         _acceptReply = nullptr;
@@ -480,14 +495,21 @@ void LichessClient::acceptChallenge(const QString& challengeId, const QString& c
         qDebug() << "LichessClient: accept" << challengeId
                  << "| HTTP" << status << "| error:" << reply->error()
                  << "| body:" << body.left(200);
-        // A 404 is fine: the game has started already (a rejoin by id), the stream follows.
-        // Anything else that failed: Lichess's own reason (e.g. a challenge for someone else).
-        if (reply->property("authExpiredReported").toBool() || status == 401) {
-            emit networkError(QStringLiteral("Lichess sign-in expired"));
+        // A 404 is fine for a link or an id: the game has started already (a rejoin), the stream
+        // follows. Anything else that failed: Lichess's own reason (e.g. a challenge for someone else).
+        const bool authExpired = reply->property("authExpiredReported").toBool() || status == 401;
+        // A challenge to the player that is gone (canceled meanwhile) also answers 404: not a game.
+        if (incoming && status == 404) {
+            removeIncomingChallenge(challengeId);
+            emit challengeAcceptFailed(challengeId, QStringLiteral("the challenge is no longer there"));
             return;
         }
-        if (reply->error() != QNetworkReply::NoError && status != 404) {
-            emit networkError(apiErrorMessage(body, reply));
+        if (authExpired || (reply->error() != QNetworkReply::NoError && status != 404)) {
+            const QString message = authExpired ? QStringLiteral("Lichess sign-in expired") : apiErrorMessage(body, reply);
+            if (incoming)
+                emit challengeAcceptFailed(challengeId, message);
+            else
+                emit networkError(message);
             return;
         }
         streamGame(challengeId);
@@ -548,7 +570,7 @@ void LichessClient::handleEventStreamLine(const QByteArray& line)
                 return;
             }
         }
-        if (gameId != _currentGameId) // a game started or ended elsewhere: Your games (LI-04)
+        if (gameId != _currentGameId && gameId != _acceptingId) // a game started or ended elsewhere: Your games (LI-04)
             _ongoingRefresh.start();
         return;
     }
@@ -584,8 +606,10 @@ void LichessClient::addIncomingChallenge(const QJsonObject& challengeEvent)
     _challengesResent.insert(id);
     for (auto& existing : _incomingChallenges) {
         if (existing.toMap().value(QStringLiteral("id")).toString() == id) {
-            existing = row; // resent after a reconnect, or changed: not a new one
-            emit incomingChallengesChanged();
+            if (existing.toMap() != row) { // resent after a reconnect, usually unchanged: not a new one
+                existing = row;
+                emit incomingChallengesChanged();
+            }
             return;
         }
     }
@@ -593,7 +617,23 @@ void LichessClient::addIncomingChallenge(const QJsonObject& challengeEvent)
              << row.value(QStringLiteral("timeControlText")).toString() << "|" << id;
     _incomingChallenges.append(row);
     emit incomingChallengesChanged();
-    emit challengeReceived(id);
+    if (id != _rematchOfferId) // the finished game's rematch bar is its notice
+        emit challengeReceived(id);
+}
+
+bool LichessClient::isIncomingChallenge(const QString& challengeId) const
+{
+    return std::any_of(_incomingChallenges.begin(), _incomingChallenges.end(), [&](const QVariant& row) {
+        return row.toMap().value(QStringLiteral("id")).toString() == challengeId;
+    });
+}
+
+void LichessClient::setRematchOfferId(const QString& id)
+{
+    if (_rematchOfferId == id)
+        return;
+    _rematchOfferId = id;
+    emit rematchOfferIdChanged();
 }
 
 void LichessClient::removeIncomingChallenge(const QString& challengeId)
@@ -652,26 +692,40 @@ QVariantMap LichessClient::parseChallenge(const QJsonObject& challengeEvent)
     const QString speed   = challenge.value(QStringLiteral("speed")).toString();
     const QString variant = challenge.value(QStringLiteral("variant")).toObject()
                                 .value(QStringLiteral("key")).toString(QStringLiteral("standard"));
-    // Lichess says whether the Board API can play it; without that, by the speeds it plays (LI-02).
+    // Lichess says whether the Board API can play it; without that, by the speeds it plays: a
+    // challenge to us is a direct one ("friend"), so Blitz too.
     const QJsonObject compat = challengeEvent.value(QStringLiteral("compat")).toObject();
-    const bool board = compat.contains(QStringLiteral("board"))
-        ? compat.value(QStringLiteral("board")).toBool()
-        : (speed == QLatin1String("rapid") || speed == QLatin1String("classical") || speed == QLatin1String("correspondence"));
+    const bool canPlayHere = compat.contains(QStringLiteral("board"))
+        ? compat.value(QStringLiteral("board")).toBool() && variant == QLatin1String("standard")
+        : playableHere(speed, QStringLiteral("friend"), variant);
+
+    // As the bar and the Online page show them.
+    const QString title = challenger.value(QStringLiteral("title")).toString();
+    const int rating = challenger.value(QStringLiteral("rating")).toInt();
+    const bool provisional = challenger.value(QStringLiteral("provisional")).toBool();
+    const QString challengerText = (title.isEmpty() ? QString() : title + QLatin1Char(' '))
+        + challenger.value(QStringLiteral("name")).toString()
+        + (rating > 0 ? QStringLiteral(" (%1%2)").arg(rating).arg(provisional ? QStringLiteral("?") : QString()) : QString());
+    const QString sideText = ourSide == QLatin1String("white") ? QStringLiteral("You play White")
+                           : ourSide == QLatin1String("black") ? QStringLiteral("You play Black")
+                                                               : QStringLiteral("Random side");
 
     return QVariantMap{
         { QStringLiteral("id"),                    challenge.value(QStringLiteral("id")).toString() },
         { QStringLiteral("url"),                   challenge.value(QStringLiteral("url")).toString() },
         { QStringLiteral("challengerId"),          challenger.value(QStringLiteral("id")).toString() },
         { QStringLiteral("challengerName"),        challenger.value(QStringLiteral("name")).toString() },
-        { QStringLiteral("challengerRating"),      challenger.value(QStringLiteral("rating")).toInt() },
-        { QStringLiteral("challengerProvisional"), challenger.value(QStringLiteral("provisional")).toBool() },
-        { QStringLiteral("challengerTitle"),       challenger.value(QStringLiteral("title")).toString() },
+        { QStringLiteral("challengerRating"),      rating },
+        { QStringLiteral("challengerProvisional"), provisional },
+        { QStringLiteral("challengerTitle"),       title },
+        { QStringLiteral("challengerText"),        challengerText },
         { QStringLiteral("timeControlText"),       timeControlText },
         { QStringLiteral("speed"),                 speed },
         { QStringLiteral("rated"),                 challenge.value(QStringLiteral("rated")).toBool() },
         { QStringLiteral("variant"),               variant },
         { QStringLiteral("ourSide"),               ourSide },
-        { QStringLiteral("canPlayHere"),           board && variant == QLatin1String("standard") },
+        { QStringLiteral("sideText"),              sideText },
+        { QStringLiteral("canPlayHere"),           canPlayHere },
         { QStringLiteral("rematchOf"),             challenge.value(QStringLiteral("rematchOf")).toString() },
     };
 }
@@ -1223,7 +1277,7 @@ void LichessClient::watchForRematch()
     if (!canRematch() || _lastGame.opponentId.isEmpty() || _lastGame.gameId.isEmpty())
         return; // an anonymous opponent can't offer one
     _watchingForRematch = true;
-    _rematchOfferId.clear();
+    setRematchOfferId({});
     startEventStream(); // open already while there is a token
 }
 
@@ -1248,7 +1302,7 @@ void LichessClient::handleRematchOffer(const QString& type, const QJsonObject& c
     const QString id = challenge.value(QStringLiteral("id")).toString();
     if (type == QLatin1String("challengeCanceled")) {
         if (!id.isEmpty() && id == _rematchOfferId) {
-            _rematchOfferId.clear();
+            setRematchOfferId({});
             emit rematchOfferCanceled();
         }
         return;
@@ -1256,7 +1310,7 @@ void LichessClient::handleRematchOffer(const QString& type, const QJsonObject& c
     if (!isRematchOffer(challenge, _lastGame.gameId, _username))
         return;
     qDebug() << "LichessClient: rematch offered" << id << "| rematch of" << _lastGame.gameId;
-    _rematchOfferId = id;
+    setRematchOfferId(id);
     emit rematchOffered();
 }
 
@@ -1290,9 +1344,8 @@ void LichessClient::declineRematch()
 {
     if (_rematchOfferId.isEmpty())
         return;
-    postGameAction(QStringLiteral("/api/challenge/") + _rematchOfferId + QStringLiteral("/decline"));
-    removeIncomingChallenge(_rematchOfferId);
-    _rematchOfferId.clear();
+    declineChallenge(_rematchOfferId); // also removes it from incomingChallenges
+    setRematchOfferId({});
 }
 
 void LichessClient::stopDirectChallenge()
@@ -1346,7 +1399,7 @@ RematchInfo LichessClient::parseRematchInfo(const QJsonObject& gameFull, const Q
 void LichessClient::stopStream()
 {
     _watchingForRematch = false;
-    _rematchOfferId.clear();
+    setRematchOfferId({});
     stopDirectChallenge();
     if (_openChallengeReply) {
         auto* reply = _openChallengeReply;

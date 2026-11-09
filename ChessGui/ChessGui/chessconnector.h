@@ -257,10 +257,12 @@ public slots:
 	Q_INVOKABLE void respondTakeback(bool accept);
 	Q_INVOKABLE void respondRematch(bool accept);
 	Q_INVOKABLE void rematch();
-	// BL-10: accept a Lichess challenge to the player, leaving the game on the board first (a robot
-	// game is autosaved, a correspondence game goes on at Lichess). The game starts through
-	// LichessClient::gameStarted, as for a link. Nothing while CanAcceptChallenge is false.
-	Q_INVOKABLE void acceptChallenge(const QString& challengeId);
+	// BL-10: accept a Lichess challenge to the player. The game on the board stays until Lichess has
+	// started the new one (then a robot game is autosaved, a correspondence game goes on at Lichess),
+	// so a refused Accept (LichessClient::challengeAcceptFailed) loses nothing. The game starts
+	// through LichessClient::gameStarted, as for a link. False (nothing sent) while
+	// CanAcceptChallenge is false.
+	Q_INVOKABLE bool acceptChallenge(const QString& challengeId);
 
 private slots:
 	void onEngineMoveFound(int request, const QString& move);

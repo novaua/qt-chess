@@ -59,6 +59,8 @@ namespace LichessTests
 			Assert::AreEqual(QString("black"), row.value("ourSide").toString(), L"the challenger plays White");
 			Assert::IsTrue(row.value("canPlayHere").toBool());
 			Assert::AreEqual(QString("https://lichess.org/c1"), row.value("url").toString());
+			Assert::AreEqual(QString("Friend (1712?)"), row.value("challengerText").toString());
+			Assert::AreEqual(QString("You play Black"), row.value("sideText").toString());
 		}
 
 		TEST_METHOD(ParseChallenge_TimeControlsAndSides)
@@ -72,17 +74,60 @@ namespace LichessTests
 			Assert::AreEqual(QString("Unlimited"), parse(R"({"type":"unlimited"})", "black").value("timeControlText").toString());
 			Assert::AreEqual(QString("white"), parse(R"({"type":"unlimited"})", "black").value("ourSide").toString());
 			Assert::AreEqual(QString("random"), parse(R"({"type":"unlimited"})", "random").value("ourSide").toString());
+			Assert::AreEqual(QString("Random side"), parse(R"({"type":"unlimited"})", "random").value("sideText").toString());
+			Assert::AreEqual(QString("FM Speedy (2105)"), LichessClient::parseChallenge(json(
+				R"({"type":"challenge","challenge":{"id":"c7","challenger":{"name":"Speedy","rating":2105,"title":"FM"}}})"))
+				.value("challengerText").toString());
 		}
 
 		// Lichess's compat.board decides; Chess960 waits for LI-01; without compat, the speeds the
-		// Board API plays.
+		// Board API plays in a direct challenge, which a challenge to us is: Blitz too.
 		TEST_METHOD(ParseChallenge_WhatThisAppCanPlay)
 		{
 			auto canPlay = [](const QByteArray& event) { return LichessClient::parseChallenge(json(event)).value("canPlayHere").toBool(); };
 			Assert::IsFalse(canPlay(challengeEvent("c3", "in", "", R"("compat":{"bot":false,"board":false},)")), L"e.g. Bullet");
 			Assert::IsFalse(canPlay(R"({"type":"challenge","compat":{"board":true},"challenge":{"id":"c4","variant":{"key":"chess960"},"speed":"rapid"}})"));
-			Assert::IsFalse(canPlay(R"({"type":"challenge","challenge":{"id":"c5","speed":"blitz"}})"));
+			Assert::IsTrue(canPlay(R"({"type":"challenge","challenge":{"id":"c5","speed":"blitz"}})"));
 			Assert::IsTrue(canPlay(R"({"type":"challenge","challenge":{"id":"c6","speed":"classical"}})"));
+			Assert::IsFalse(canPlay(R"({"type":"challenge","challenge":{"id":"c8","speed":"bullet"}})"));
+		}
+
+		// Resent unchanged after a reconnect: the list isn't rebuilt (an open Decline… menu stays).
+		TEST_METHOD(EventLine_ResentUnchanged_NoChange)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			int changes = 0;
+			QObject::connect(&client, &LichessClient::incomingChallengesChanged, [&]() { ++changes; });
+			client.handleEventStreamLine(challengeEvent("c1"));
+			client.handleEventStreamLine(challengeEvent("c1"));
+			Assert::AreEqual(1, changes);
+			client.handleEventStreamLine(challengeEvent("c1", "in", R"(,"rated":false)"));
+			Assert::AreEqual(2, changes, L"changed: updated");
+		}
+
+		// The finished game's rematch offer has its own bar: no challenge sound, and its id says which
+		// row the challenge bar leaves out.
+		TEST_METHOD(RematchOffer_WhileWatching_NoSecondNotice)
+		{
+			LichessClient client;
+			client.setOffline(true); // no event stream to open
+			client.setUsername("me");
+			client.setToken("token");
+			client.handleGameStreamLine(R"({"type":"gameFull","id":"game0001","white":{"id":"me","name":"Me"},"black":{"id":"friend","name":"Friend"},
+				"state":{"moves":"e2e4","status":"started"}})");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4","status":"resign","winner":"white"})");
+			client.watchForRematch();
+			QStringList received;
+			QObject::connect(&client, &LichessClient::challengeReceived, [&](QString id) { received << id; });
+
+			client.handleEventStreamLine(challengeEvent("rem00001", "in", R"(,"rematchOf":"game0001")"));
+
+			Assert::AreEqual(QString("rem00001"), client.rematchOfferId());
+			areEqual({ "rem00001" }, ids(client));
+			Assert::IsTrue(received.isEmpty());
+			client.stopStream(); // left the finished game: the challenge bar may show it now
+			Assert::AreEqual(QString(), client.rematchOfferId());
 		}
 
 		TEST_METHOD(EventLine_ChallengeToUs_ListedOnce_ThenCanceled)
@@ -280,6 +325,110 @@ namespace LichessTests
 			waitUntil([] { return false; }, 1200);
 
 			Assert::AreEqual(1, lichess.count("GET /api/account/playing?nb=50"));
+		}
+
+		// Lichess refuses Accept: the failure is the challenge's, not a network error. A 400 (e.g. not
+		// allowed): it stays listed, to decline. A 404: it's gone (canceled meanwhile), not a game to
+		// stream as for a link.
+		TEST_METHOD(AcceptRefused_ByReason)
+		{
+			for (int status : { 400, 404 }) {
+				FakeLichess lichess;
+				lichess.onRequest = [status](QTcpSocket* socket, const QString& method, const QString&) {
+					if (method == "POST") {
+						const QByteArray body = R"({"error":"Not allowed"})";
+						socket->write("HTTP/1.1 " + QByteArray::number(status) + " Refused\r\nContent-Type: application/json\r\nContent-Length: "
+						              + QByteArray::number(body.size()) + "\r\nConnection: close\r\n\r\n" + body);
+						socket->disconnectFromHost();
+						return;
+					}
+					FakeLichess::startStream(socket);
+					FakeLichess::line(socket, challengeEvent("c1"));
+				};
+				LichessClient client;
+				setUp(client, lichess);
+				QStringList events;
+				QObject::connect(&client, &LichessClient::challengeAcceptFailed, [&](QString id, QString message) { events << "failed " + id + ": " + message; });
+				QObject::connect(&client, &LichessClient::networkError, [&](QString message) { events << "error " + message; });
+
+				client.startEventStream();
+				waitUntil([&] { return !client.incomingChallenges().isEmpty(); });
+				client.acceptChallenge("c1");
+				Assert::IsFalse(client.incomingChallenges().isEmpty(), L"listed until Lichess answers");
+				waitUntil([&] { return !events.isEmpty(); });
+				waitUntil([] { return false; }, 200);
+
+				Assert::AreEqual(1, int(events.size()));
+				Assert::IsTrue(events[0].startsWith("failed c1: "), events[0].toStdWString().c_str());
+				Assert::AreEqual(status == 404 ? 0 : 1, int(client.incomingChallenges().size()));
+				Assert::AreEqual(0, lichess.count("GET /api/board/game/stream/c1"), L"no game to stream");
+			}
+		}
+
+		// Accepted, and Lichess's gameStart beats the answer to the POST: it's our game, not one
+		// started elsewhere (no refresh of Your games), and it leaves the list.
+		TEST_METHOD(Accept_GameStartBeforeTheAnswer_NotElsewhere)
+		{
+			FakeLichess lichess;
+			QTcpSocket* events = nullptr;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString& method, const QString& path) {
+				if (method == "POST") {
+					FakeLichess::line(events, R"({"type":"gameStart","game":{"gameId":"c1","fullId":"c1abcdef"}})");
+					QTimer::singleShot(300, socket, [socket]() { FakeLichess::json(socket, R"({"ok":true})"); });
+					return;
+				}
+				if (path.startsWith("/api/account/playing")) {
+					FakeLichess::json(socket, R"({"nowPlaying":[]})");
+					return;
+				}
+				FakeLichess::startStream(socket);
+				if (path == "/api/stream/event") {
+					events = socket;
+					FakeLichess::line(socket, challengeEvent("c1"));
+				} else {
+					FakeLichess::line(socket, R"({"type":"gameFull","id":"c1","white":{"id":"friend"},"black":{"id":"me"},"state":{"moves":"","status":"started"}})");
+				}
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList started;
+			QObject::connect(&client, &LichessClient::gameStarted, [&](QString id, bool, QString, QString) { started << id; });
+
+			client.startEventStream();
+			waitUntil([&] { return !client.incomingChallenges().isEmpty(); });
+			client.acceptChallenge("c1");
+			waitUntil([&] { return !started.isEmpty(); });
+			waitUntil([] { return false; }, 800); // longer than the refresh's 500 ms
+
+			areEqual({ "c1" }, started);
+			Assert::IsTrue(client.incomingChallenges().isEmpty());
+			Assert::AreEqual(0, lichess.count("GET /api/account/playing?nb=50"));
+		}
+
+		// Lichess refuses the event stream with something else than a 401 (429: too many): asked again
+		// later, not given up for the session.
+		TEST_METHOD(EventStreamRefused_TriedAgainLater)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				if (lichess.count(Events) == 1) {
+					FakeLichess::answer(socket, 429, "Too Many Requests");
+					return;
+				}
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, challengeEvent("c1"));
+			};
+			LichessClient client;
+			client.setUsername("me");
+			client.setBaseUrl(lichess.url());
+			client.setStreamTiming(5000, 100, 5000, 300, 300);
+			client.setToken("token");
+
+			client.startEventStream();
+			waitUntil([&] { return !client.incomingChallenges().isEmpty(); });
+
+			Assert::AreEqual(2, lichess.count(Events));
+			areEqual({ "c1" }, ids(client));
 		}
 
 		// Another profile's account: its stream goes; main.cpp opens one for the new token.

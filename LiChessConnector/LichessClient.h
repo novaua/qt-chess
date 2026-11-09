@@ -34,9 +34,13 @@ class LICHESSCONNECTOR_EXPORT LichessClient: public QObject
 	Q_PROPERTY(QString ongoingGamesError READ ongoingGamesError NOTIFY ongoingGamesChanged) // the last refresh failed
 	// BL-10: the challenges to the player waiting on Lichess, oldest first: id, url, challengerId,
 	// challengerName, challengerRating (0: none), challengerProvisional, challengerTitle,
-	// timeControlText ("10+5", "3 days per move", "Unlimited"), speed, rated, variant, ourSide
-	// ("white", "black", "random"), canPlayHere (the Board API can play it), rematchOf.
+	// challengerText ("FM Speedy (2105?)"), timeControlText ("10+5", "3 days per move", "Unlimited"),
+	// speed, rated, variant, ourSide ("white", "black", "random"), sideText ("You play Black",
+	// "Random side"), canPlayHere (the Board API can play it), rematchOf.
 	Q_PROPERTY(QVariantList incomingChallenges READ incomingChallenges NOTIFY incomingChallengesChanged)
+	// The opponent's rematch offer the finished game's own bar shows (watchForRematch); "" for none.
+	// The challenge bar leaves that one out.
+	Q_PROPERTY(QString rematchOfferId READ rematchOfferId NOTIFY rematchOfferIdChanged)
 
 public:
 	explicit LichessClient(QObject* parent = nullptr);
@@ -62,7 +66,9 @@ public:
 	// Lichess drops a challenge with a clock after 20 s unless a request keeps it alive. The others
 	// stay there for two weeks: no need to wait for them.
 	static bool needsKeepAlive(const RematchInfo& game) { return game.clockLimitSec > 0 || game.clockIncrementSec > 0; }
-	// color: accept an open challenge as that side ("" = whatever Lichess gives).
+	// color: accept an open challenge as that side ("" = whatever Lichess gives). A challenge to the
+	// player (incomingChallenges) stays listed until its game starts; if Lichess refuses it,
+	// challengeAcceptFailed says why (otherwise networkError).
 	Q_INVOKABLE void acceptChallenge(const QString& challengeId, const QString& color = {});
 	// "Join a game": a Lichess link or a game id. A player link (…?color=black, …/black) joins as
 	// that side. False if it is neither a link nor an id.
@@ -74,9 +80,11 @@ public:
 	// Tests: a fake server instead of lichess.org, and shorter waits: a stream is lost after
 	// silenceMs without even a keep-alive line (Lichess sends one every 7 s), the first reconnect
 	// comes after firstRetryMs (then twice as long each time, up to 15 s), a move without an answer
-	// gives up after moveTimeoutMs, and challenges not resent within settleMs of a reconnect are gone.
+	// gives up after moveTimeoutMs, challenges not resent within settleMs of a reconnect are gone, and
+	// an event stream Lichess refused (a 4xx but 401, e.g. 429) is tried again after refusedRetryMs.
 	void setBaseUrl(const QString& url) { _baseUrl = url; }
-	void setStreamTiming(int silenceMs, int firstRetryMs, int moveTimeoutMs, int settleMs = 3000);
+	void setStreamTiming(int silenceMs, int firstRetryMs, int moveTimeoutMs, int settleMs = 3000,
+	                     int refusedRetryMs = 60000);
 
 	// BL-10: the account's event stream (/api/stream/event), open and reconnecting until the token
 	// changes: incoming challenges, the start of a game we wait for, rematch offers, games started or
@@ -85,6 +93,7 @@ public:
 	void startEventStream();
 	bool eventStreamOpen() const { return _eventStream->isOpen(); }
 	QVariantList incomingChallenges() const { return _incomingChallenges; }
+	QString rematchOfferId() const { return _rematchOfferId; }
 	// Lichess shows the challenger the reason: generic, later, tooFast, tooSlow, timeControl, rated,
 	// casual, standard, variant, noBot, onlyBot.
 	Q_INVOKABLE void declineChallenge(const QString& challengeId, const QString& reason = QStringLiteral("generic"));
@@ -188,7 +197,9 @@ signals:
 	void takebackRequested();
 	void ongoingGamesChanged();
 	void incomingChallengesChanged();
-	void challengeReceived(QString challengeId); // BL-10: a new one (not one resent after a reconnect)
+	void challengeReceived(QString challengeId); // BL-10: a new one (not one resent after a reconnect, nor the rematch bar's)
+	void challengeAcceptFailed(QString challengeId, QString message); // BL-10: Lichess refused Accept
+	void rematchOfferIdChanged();
 	// LI-06: the running game's stream was lost (false; it reconnects on its own) or is back (true,
 	// once its gameFull has handed over what changed: the moves follow through the gate).
 	void gameConnectionChanged(bool connected);
@@ -218,6 +229,8 @@ private:
 	void addIncomingChallenge(const QJsonObject& challengeEvent);
 	void removeIncomingChallenge(const QString& challengeId);
 	void dropChallengesNotResent(); // after a reconnect: the ones Lichess didn't send again are gone
+	bool isIncomingChallenge(const QString& challengeId) const;
+	void setRematchOfferId(const QString& id);
 	void checkGameReady();
 	void stopProbe(); // abort the /api/board/game/stream probe of checkGameReady()
 	void onGameStartDetected(const QString& gameId);
@@ -241,6 +254,8 @@ private:
 	QSet<QString>  _challengesResent;           // since the event stream came back
 	QTimer         _challengesSettle;           // then drop the ones not resent
 	QTimer         _ongoingRefresh;             // gameStart / gameFinish elsewhere: one refresh for a burst
+	QTimer         _eventStreamRetry;           // Lichess refused the event stream (not a 401): try again later
+	QString        _acceptingId;                // acceptChallenge's POST in flight: its gameStart isn't "elsewhere"
 	QNetworkReply* _probeReply       = nullptr;
 	QNetworkReply* _openChallengeReply   = nullptr; // POST /api/challenge/open in flight
 	QNetworkReply* _acceptReply          = nullptr; // acceptChallenge's POST in flight (then the stream)

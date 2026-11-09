@@ -105,8 +105,7 @@ void LichessStream::start()
         }
         if (authExpired || (400 <= status && status < 500)) {
             qDebug() << "LichessClient:" << _name << "refused: HTTP" << status;
-            _retry.stop();
-            _lost = false;
+            close(); // reopen() won't ask again either; open() a new one to try later
             emit stopped(authExpired, status);
             return;
         }
