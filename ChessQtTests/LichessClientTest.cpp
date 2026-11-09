@@ -3,6 +3,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimer>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include <functional>
+#include <memory>
 #include <CppUnitTest.h>
 #include "LichessClient.h"
 #include "TestSupport.h"
@@ -712,6 +716,415 @@ namespace LichessTests
 			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5","status":"started"})");
 			Assert::AreEqual(1, (int)events.size(), L"after gameFull only Lichess's moves count");
 			Assert::AreEqual(QString("move e7e5"), events[0]);
+		}
+
+		// LI-06: a gameFull after a reconnect is the same game: no new start, only what changed.
+		static void recordResyncEvents(LichessClient& client, QStringList& events)
+		{
+			QObject::connect(&client, &LichessClient::gameStarted, [&](QString, bool, QString, QString) { events << "start"; });
+			QObject::connect(&client, &LichessClient::opponentMoveReceived, [&](QString moves) { events << "move " + moves; });
+			QObject::connect(&client, &LichessClient::moveListReplaced, [&](QString moves, bool refused) {
+				events << (refused ? "lost " : "replaced ") + moves;
+			});
+			QObject::connect(&client, &LichessClient::networkError, [&](QString message) { events << "error " + message; });
+		}
+
+		TEST_METHOD(GameStream_GameFullAgain_IsAResync_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			QStringList events;
+			recordResyncEvents(client, events);
+
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4 e7e5","status":"started"}})");
+			client.trackSentMove("g1f3");
+			events.clear();
+			// Back after a lost connection: our Nf3 arrived, and the opponent has answered Nc6.
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4 e7e5 g1f3 b8c6","status":"started"}})");
+			areEqual({ "move b8c6" }, events);
+
+			events.clear();
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4 e7e5 g1f3 b8c6","status":"started"}})");
+			Assert::IsTrue(events.isEmpty(), L"nothing changed meanwhile");
+		}
+
+		TEST_METHOD(GameStream_ResyncWithoutOurMove_TakesItBack_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			QStringList events;
+			recordResyncEvents(client, events);
+
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4 e7e5","status":"started"}})");
+			client.trackSentMove("g1f3");
+			events.clear();
+			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
+				"state":{"moves":"e2e4 e7e5","status":"started"}})");
+			areEqual({ "lost e2e4 e7e5", "error Your move didn't reach Lichess. Play it again." }, events);
+
+			// Played again, it arrives.
+			events.clear();
+			client.trackSentMove("g1f3");
+			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 g1f3","status":"started"})");
+			Assert::IsTrue(events.isEmpty(), L"the echo of our move");
+		}
+	};
+
+	// -----------------------------------------------------------------------
+	// LI-06: reconnecting, against a stand-in for lichess.org on 127.0.0.1 (real sockets, no Lichess).
+	// -----------------------------------------------------------------------
+
+	// Answers each HTTP request with onRequest(socket, method, path); the socket stays open until
+	// the handler closes it (a stream).
+	class FakeLichess
+	{
+	public:
+		std::function<void(QTcpSocket*, const QString& method, const QString& path)> onRequest;
+		QStringList requests; // "GET /api/board/game/stream/g1", ...
+
+		FakeLichess()
+		{
+			_server.listen(QHostAddress::LocalHost);
+			QObject::connect(&_server, &QTcpServer::newConnection, [this]() {
+				while (QTcpSocket* socket = _server.nextPendingConnection()) {
+					auto received = std::make_shared<QByteArray>();
+					QObject::connect(socket, &QTcpSocket::readyRead, [this, socket, received]() {
+						*received += socket->readAll();
+						if (socket->property("answered").toBool() || !received->contains("\r\n\r\n"))
+							return;
+						socket->setProperty("answered", true);
+						const QList<QByteArray> requestLine = received->left(received->indexOf("\r\n")).split(' ');
+						const QString method = QString::fromLatin1(requestLine.value(0));
+						const QString path = QString::fromLatin1(requestLine.value(1));
+						requests << method + " " + path;
+						if (onRequest)
+							onRequest(socket, method, path);
+					});
+				}
+			});
+		}
+
+		QString url() const { return QStringLiteral("http://127.0.0.1:%1").arg(_server.serverPort()); }
+		int count(const QString& request) const { return int(requests.count(request)); }
+
+		static void startStream(QTcpSocket* socket)
+		{
+			socket->write("HTTP/1.1 200 OK\r\nContent-Type: application/x-ndjson\r\nConnection: close\r\n\r\n");
+		}
+		static void line(QTcpSocket* socket, const QByteArray& json)
+		{
+			socket->write(json + "\n");
+			socket->flush();
+		}
+		static QByteArray gameFull(const char* moves)
+		{
+			return QByteArray(R"({"type":"gameFull","id":"g1","white":{"id":"me","name":"Me"},"black":{"id":"friend","name":"Friend"},"state":{"moves":")")
+				+ moves + R"(","status":"started"}})";
+		}
+
+	private:
+		QTcpServer _server;
+	};
+
+	TEST_CLASS(LichessReconnectTests)
+	{
+		static const inline QString Stream = QStringLiteral("GET /api/board/game/stream/g1");
+		static void areEqual(const QStringList& expected, const QStringList& actual) { LichessStaticTests::areEqual(expected, actual); }
+
+		// Runs the event loop until done() or timeoutMs.
+		static void waitUntil(const std::function<bool()>& done, int timeoutMs = 5000)
+		{
+			QEventLoop loop;
+			QTimer::singleShot(timeoutMs, &loop, &QEventLoop::quit);
+			QTimer poll;
+			poll.setInterval(20);
+			QObject::connect(&poll, &QTimer::timeout, [&]() { if (done()) loop.quit(); });
+			poll.start();
+			loop.exec();
+		}
+
+		static void record(LichessClient& client, QStringList& events)
+		{
+			QObject::connect(&client, &LichessClient::gameStarted, [&](QString, bool, QString, QString) { events << "start"; });
+			QObject::connect(&client, &LichessClient::opponentMoveReceived, [&](QString moves) { events << "move " + moves; });
+			QObject::connect(&client, &LichessClient::moveListReplaced, [&](QString moves, bool refused) {
+				events << (refused ? "lost " : "replaced ") + moves;
+			});
+			QObject::connect(&client, &LichessClient::gameConnectionChanged, [&](bool connected) {
+				events << (connected ? "back" : "lost connection");
+			});
+			QObject::connect(&client, &LichessClient::networkError, [&](QString message) { events << "error " + message; });
+		}
+
+		static void setUp(LichessClient& client, const FakeLichess& lichess, int silenceMs = 5000, int moveTimeoutMs = 5000)
+		{
+			client.setUsername("me");
+			client.setBaseUrl(lichess.url());
+			client.setStreamTiming(silenceMs, 100, moveTimeoutMs);
+		}
+
+	public:
+		// The connection drops during the game; meanwhile the opponent moves. The stream comes back on
+		// its own, and the move with it, without a new game.
+		TEST_METHOD(StreamCloses_Reconnects_AndCatchesUp)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				FakeLichess::startStream(socket);
+				if (lichess.count(Stream) == 1) {
+					FakeLichess::line(socket, FakeLichess::gameFull("e2e4"));
+					QTimer::singleShot(100, socket, [socket]() { socket->disconnectFromHost(); });
+				} else {
+					FakeLichess::line(socket, FakeLichess::gameFull("e2e4 e7e5"));
+				}
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+
+			client.streamGame("g1");
+			waitUntil([&] { return events.contains("move e7e5"); });
+
+			areEqual({ "start", "move e2e4", "lost connection", "move e7e5", "back" }, events); // the moves, then "back"
+			Assert::AreEqual(2, lichess.count(Stream));
+		}
+
+		// Nothing at all, not even Lichess's keep-alive line: the connection is dead although open.
+		TEST_METHOD(StreamGoesSilent_Reconnects)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull("e2e4"));
+			};
+			LichessClient client;
+			setUp(client, lichess, 300);
+			QStringList events;
+			record(client, events);
+
+			client.streamGame("g1");
+			waitUntil([&] { return events.contains("back"); });
+
+			areEqual({ "start", "move e2e4", "lost connection", "back" }, events);
+			Assert::AreEqual(2, lichess.count(Stream));
+		}
+
+		TEST_METHOD(KeepAliveLines_KeepTheStream)
+		{
+			FakeLichess lichess;
+			std::vector<std::unique_ptr<QTimer>> keepAlive;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull("e2e4"));
+				auto timer = std::make_unique<QTimer>();
+				QObject::connect(timer.get(), &QTimer::timeout, socket, [socket]() { FakeLichess::line(socket, ""); });
+				timer->start(100);
+				keepAlive.push_back(std::move(timer));
+			};
+			LichessClient client;
+			setUp(client, lichess, 1000); // ten keep-alive lines to each allowed silence: no timing luck needed
+			QStringList events;
+			record(client, events);
+
+			client.streamGame("g1");
+			waitUntil([] { return false; }, 3000);
+
+			areEqual({ "start", "move e2e4" }, events);
+			Assert::AreEqual(1, lichess.count(Stream));
+		}
+
+		// Our move's POST gets no answer (the connection closes): did Lichess play it? The stream is
+		// opened again, and Lichess hasn't got it: our board takes it back.
+		TEST_METHOD(MoveWithoutAnswer_NotOnLichess_IsTakenBack)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString& method, const QString&) {
+				if (method == "POST") {
+					socket->abort();
+					return;
+				}
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull("e2e4 e7e5"));
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+
+			client.streamGame("g1");
+			waitUntil([&] { return events.contains("move e2e4 e7e5"); });
+			client.postMove("g1", "g1f3");
+			waitUntil([&] { return events.size() >= 4; });
+
+			areEqual({ "start", "move e2e4 e7e5", "lost e2e4 e7e5", "error Your move didn't reach Lichess. Play it again." }, events);
+			Assert::AreEqual(2, lichess.count(Stream), L"one resync, not a lost connection");
+		}
+
+		// The POST times out, but Lichess did play the move, and the opponent has answered.
+		TEST_METHOD(MoveTimesOut_ButWasPlayed_GoesOn)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString& method, const QString&) {
+				if (method == "POST")
+					return; // never answers
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull(lichess.count(Stream) == 1 ? "e2e4 e7e5" : "e2e4 e7e5 g1f3 b8c6"));
+			};
+			LichessClient client;
+			setUp(client, lichess, 5000, 300);
+			QStringList events;
+			record(client, events);
+
+			client.streamGame("g1");
+			waitUntil([&] { return events.contains("move e2e4 e7e5"); });
+			client.postMove("g1", "g1f3");
+			waitUntil([&] { return events.contains("move b8c6"); });
+
+			areEqual({ "start", "move e2e4 e7e5", "move b8c6" }, events);
+		}
+
+		// The game ended: the server closes the stream, and that isn't a lost connection.
+		TEST_METHOD(GameEnded_NoReconnect)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull("f2f3 e7e5 g2g4"));
+				FakeLichess::line(socket, R"({"type":"gameState","moves":"f2f3 e7e5 g2g4 d8h4","status":"mate","winner":"black"})");
+				socket->disconnectFromHost();
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+			QObject::connect(&client, &LichessClient::gameEnded, [&](QString status, QString) { events << "end " + status; });
+
+			client.streamGame("g1");
+			waitUntil([] { return false; }, 800);
+
+			areEqual({ "start", "move f2f3 e7e5 g2g4", "move d8h4", "end mate" }, events);
+			Assert::AreEqual(1, lichess.count(Stream));
+		}
+
+		// The stream comes back while our move's POST is still on its way: Lichess hasn't played it
+		// yet, but may. It isn't taken back; the POST's answer and the echo follow.
+		TEST_METHOD(ReconnectBeforeOurPostIsAnswered_WaitsForIt)
+		{
+			FakeLichess lichess;
+			QTcpSocket* firstStream = nullptr;
+			QTcpSocket* post = nullptr;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString& method, const QString&) {
+				if (method == "POST") {
+					post = socket;                  // no answer yet ...
+					firstStream->disconnectFromHost(); // ... and the connection drops
+					return;
+				}
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull("e2e4 e7e5"));
+				if (lichess.count(Stream) == 1) {
+					firstStream = socket;
+					return;
+				}
+				QTimer::singleShot(200, socket, [&lichess, socket, &post]() { // then Lichess plays it
+					post->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\n\r\n{\"ok\":true}");
+					post->flush();
+					FakeLichess::line(socket, R"({"type":"gameState","moves":"e2e4 e7e5 g1f3","status":"started"})");
+				});
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+
+			client.streamGame("g1");
+			waitUntil([&] { return events.contains("move e2e4 e7e5"); });
+			client.postMove("g1", "g1f3");
+			waitUntil([] { return false; }, 1000);
+
+			areEqual({ "start", "move e2e4 e7e5", "lost connection", "back" }, events);
+		}
+
+		// Lichess itself says no (404: a game it doesn't stream any more): asking again won't help.
+		TEST_METHOD(ReconnectRefusedByLichess_StopsTrying)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				if (lichess.count(Stream) == 1) {
+					FakeLichess::startStream(socket);
+					FakeLichess::line(socket, FakeLichess::gameFull("e2e4"));
+					socket->disconnectFromHost();
+					return;
+				}
+				socket->write("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+				socket->disconnectFromHost();
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+			QObject::connect(&client, &LichessClient::gameStreamStopped, [&]() { events << "stopped"; });
+
+			client.streamGame("g1");
+			waitUntil([&] { return events.contains("stopped"); });
+			waitUntil([] { return false; }, 600); // no more attempts
+
+			areEqual({ "start", "move e2e4", "lost connection", "stopped", "error Lichess stopped sending this game (HTTP 404)" }, events);
+			Assert::AreEqual(2, lichess.count(Stream));
+		}
+
+		// A server error (Lichess restarting) is worth another try.
+		TEST_METHOD(ReconnectServerError_TriesAgain)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				const int n = lichess.count(Stream);
+				if (n == 2) {
+					socket->write("HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+					socket->disconnectFromHost();
+					return;
+				}
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull("e2e4"));
+				if (n == 1)
+					socket->disconnectFromHost();
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+
+			client.streamGame("g1");
+			waitUntil([&] { return events.contains("back"); });
+
+			areEqual({ "start", "move e2e4", "lost connection", "back" }, events);
+			Assert::AreEqual(3, lichess.count(Stream));
+		}
+
+		// Leaving the game stops the reconnects.
+		TEST_METHOD(StopStream_WhileReconnecting_StopsTrying)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull("e2e4"));
+				socket->disconnectFromHost();
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+
+			client.streamGame("g1");
+			waitUntil([&] { return events.contains("lost connection"); });
+			client.stopStream();
+			waitUntil([] { return false; }, 600);
+
+			Assert::AreEqual(1, lichess.count(Stream));
 		}
 	};
 

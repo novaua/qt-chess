@@ -311,6 +311,70 @@ namespace MoveGateTests
 			Assert::AreEqual(2, _idle);
 		}
 
+		// LI-06: a real-time Lichess game. The opponent's instant reply comes while our move still
+		// slides: shown at once, since our clock runs on Lichess meanwhile.
+		TEST_METHOD(OnlineWithoutHold_ReleasedWhileOurMoveSlides)
+		{
+			setTiming(250, 150, 400);
+			ready();
+			_gate.setHoldOnline(false);
+			_now = 1000;
+			_gate.playerMoveShown(); // our move: busy until 1400
+			_now = 1050;
+			_gate.push("e7e5", MoveGate::Source::Online);
+			Assert::AreEqual(size_t(1), _released.size());
+			Assert::AreEqual(QString("e7e5"), _released[0].move);
+		}
+
+		// Not held for the board, but still for the page: opening, turning, reviewing.
+		TEST_METHOD(OnlineWithoutHold_StillWaitsForThePage)
+		{
+			setTiming(250, 150, 400);
+			_gate.setHoldOnline(false);
+			_gate.push("e7e5", MoveGate::Source::Online);
+			Assert::IsTrue(_released.empty());
+			ready();
+			Assert::AreEqual(size_t(1), _released.size());
+		}
+
+		// Without the hold, only our own move is skipped: pieces sliding back after a takeback or a
+		// replaced list still hold the opponent's next move (one thing at a time).
+		TEST_METHOD(OnlineWithoutHold_StillWaitsForATakebackSlide)
+		{
+			setTiming(250, 150, 400);
+			ready();
+			_gate.setHoldOnline(false);
+			_now = 1000;
+			_gate.moveShown(); // the takeback: busy until 1400
+			_gate.push("e7e5", MoveGate::Source::Online);
+			Assert::IsTrue(_released.empty());
+			_now = 1400;
+			_gate.tick();
+			Assert::AreEqual(size_t(1), _released.size());
+		}
+
+		// The robot keeps its pace, and a game without a clock gets the hold back.
+		TEST_METHOD(OnlineWithoutHold_RobotAndHoldAgainUnchanged)
+		{
+			setTiming(250, 150, 400);
+			ready();
+			_gate.setHoldOnline(false);
+			_now = 1000;
+			_gate.playerMoveShown();
+			_gate.push("e7e5", MoveGate::Source::Robot);
+			Assert::IsTrue(_released.empty(), L"the robot still waits");
+			_gate.clear();
+
+			_gate.setHoldOnline(true);
+			_now = 2000;
+			_gate.playerMoveShown();
+			_gate.push("e7e5", MoveGate::Source::Online);
+			Assert::IsTrue(_released.empty(), L"held again for the slide and the pause");
+			_now = 2400;
+			_gate.tick();
+			Assert::AreEqual(size_t(1), _released.size());
+		}
+
 		// Reduce animations switched off after the idle edge (a longer slide for the same move):
 		// the gate is busy again and must emit the idle edge once more, or a consumer waiting for
 		// it (the result card) would never be woken.

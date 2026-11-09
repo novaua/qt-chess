@@ -189,12 +189,13 @@ void ChessConnector::cancelPremove()
 		clearPossibleMoves();
 }
 
-// Like Lichess: the premove is played as soon as the opponent's move is there, without the pause the
-// robot's and the opponent's moves wait for, only after its slide (one thing at a time, BL-14).
+// Like Lichess: the premove is played as soon as the opponent's move is there, without waiting for
+// its slide (on a clock that time counts, LI-06). Queued after the opponent's move's pieces sync
+// (posted to this object before it, so it runs first): its piece starts sliding before ours does.
 void ChessConnector::opponentMoveShown()
 {
 	if (_premoveFrom >= 0)
-		_premoveTimer.start(_gate->timing().slideMs);
+		QMetaObject::invokeMethod(this, &ChessConnector::playPremove, Qt::QueuedConnection);
 	else
 		refreshSelection();
 }
@@ -347,7 +348,7 @@ void ChessConnector::pawnPromote(int index, const QString& piece)
 void ChessConnector::onHumanMoveDone()
 {
 	EmitMoveCountUpdates();
-	_gate->moveShown(); // the player's move is on the board: the robot's answer waits for it
+	_gate->playerMoveShown(); // the player's move is on the board: the robot's answer waits for it
 	moveOnBoard();
 
 	if (!_onlineGameId.isEmpty() && _lichessClient) {
@@ -560,6 +561,25 @@ void ChessConnector::setPendingOffer(const QString& offer)
 	emit pendingOfferChanged();
 }
 
+void ChessConnector::setReconnecting(bool reconnecting)
+{
+	if (_reconnecting == reconnecting)
+		return;
+	_reconnecting = reconnecting;
+	emit reconnectingChanged();
+}
+
+// LI-06: LichessClient reconnects on its own. Our board keeps the game meanwhile: the player may
+// move (the move is posted; the resync tells whether it arrived), and the clock goes on, as on Lichess.
+void ChessConnector::onLichessConnectionChanged(bool connected)
+{
+	if (!isOnlineGame())
+		return;
+	setReconnecting(!connected);
+	if (connected)
+		emit reconnected();
+}
+
 void ChessConnector::setOpponentGone(bool gone, int claimWinInSeconds)
 {
 	if (!gone) claimWinInSeconds = -1;
@@ -760,6 +780,7 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	if (!_gameResult.isEmpty()) setResult({}, {});
 	setPendingOffer({});
 	setOpponentGone(false);
+	setReconnecting(false);
 	_engineAutoPlay = false;
 	_onlineGameId = gameId;
 	_drawOfferPly = -1;
@@ -857,6 +878,9 @@ void ChessConnector::onLichessOpponentGone(bool gone, int claimWinInSeconds)
 void ChessConnector::onLichessClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence)
 {
 	_clock->setLowTimeSides(_config.playerPlaysWhite, !_config.playerPlaysWhite);
+	// Real time: the opponent's reply isn't held for our move's slide and pause (up to 0.4 s of our
+	// clock on Lichess, LI-06). Days per move: no hurry, the board shows one thing at a time.
+	_gate->setHoldOnline(correspondence);
 	if (correspondence)
 		_clock->startCorrespondence(limitMs);
 	else
@@ -998,6 +1022,8 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 		connect(_lichessClient, &LichessClient::gameEnded,   this, &ChessConnector::onLichessGameEnded);
 		connect(_lichessClient, &LichessClient::opponentGone, this, &ChessConnector::onLichessOpponentGone);
 		connect(_lichessClient, &LichessClient::clockStarted, this, &ChessConnector::onLichessClockStarted);
+		connect(_lichessClient, &LichessClient::gameConnectionChanged, this, &ChessConnector::onLichessConnectionChanged);
+		connect(_lichessClient, &LichessClient::gameStreamStopped, this, [this]() { setReconnecting(false); });
 		connect(_lichessClient, &LichessClient::clockUpdated, _clock, &GameClock::setSnapshot);
 		// An offer that comes with the opponent's move is shown after the move.
 		connect(_lichessClient, &LichessClient::drawOfferReceived, this, [this]() {
@@ -1020,6 +1046,7 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 void ChessConnector::beginGame(bool online)
 {
 	_gate->clear(); // a held move belongs to the game being left
+	_gate->setHoldOnline(true);
 	cancelPremove();
 	_afterHeldMoves.clear();
 	_listAfterPromotion.reset();
@@ -1771,6 +1798,7 @@ void ChessConnector::endGame()
 	_resignAfterEngineMove = false;
 	setPendingOffer({});
 	setOpponentGone(false);
+	setReconnecting(false);
 	if (canAutoSave())
 		autoSaveGame();
 	_clock->stop();

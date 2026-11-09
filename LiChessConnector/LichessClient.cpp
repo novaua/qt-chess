@@ -8,14 +8,13 @@
 #include <QNetworkRequest>
 #include <QUrlQuery>
 #include <QRegularExpression>
+#include <algorithm>
 
 #ifdef WIN32
 #include <windows.h>
 #include <wincrypt.h>
 #pragma comment(lib, "Crypt32.lib")
 #endif
-
-static const QString kBaseUrl = QStringLiteral("https://lichess.org");
 
 static QString apiErrorMessage(const QByteArray& body, const QNetworkReply* reply); // below
 
@@ -27,6 +26,23 @@ LichessClient::LichessClient(QObject* parent)
             this, [this](QNetworkReply* reply, QAuthenticator*) { checkAuthExpired(reply, true); reply->abort(); });
     connect(&_nam, &QNetworkAccessManager::finished,
             this, [this](QNetworkReply* reply) { checkAuthExpired(reply, false); });
+
+    _reconnectTimer.setSingleShot(true);
+    connect(&_reconnectTimer, &QTimer::timeout, this, &LichessClient::openGameStream);
+    _streamWatchdog.setSingleShot(true);
+    _streamWatchdog.setInterval(20000);
+    connect(&_streamWatchdog, &QTimer::timeout, this, [this]() {
+        qDebug() << "LichessClient: nothing from the game stream for" << _streamWatchdog.interval() << "ms";
+        dropGameStream();
+        gameStreamLost();
+    });
+}
+
+void LichessClient::setStreamTiming(int silenceMs, int firstRetryMs, int moveTimeoutMs)
+{
+    _streamWatchdog.setInterval(silenceMs);
+    _firstRetryMs  = firstRetryMs;
+    _moveTimeoutMs = moveTimeoutMs;
 }
 
 // Any call made with our token that Lichess answers with 401: the token was revoked or expired.
@@ -250,7 +266,7 @@ QNetworkRequest LichessClient::makeRequest(const QString& path) const
 {
     qDebug() << "LichessClient: >>" << path
              << "| token:" << (_token.isEmpty() ? "MISSING" : QString("set(%1 chars)").arg(_token.size()));
-    QNetworkRequest req(QUrl(kBaseUrl + path));
+    QNetworkRequest req(QUrl(_baseUrl + path));
     if (!_token.isEmpty())
         req.setRawHeader("Authorization", ("Bearer " + _token).toUtf8());
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
@@ -260,7 +276,7 @@ QNetworkRequest LichessClient::makeRequest(const QString& path) const
 
 void LichessClient::validateToken(const QString& token)
 {
-    QNetworkRequest req(QUrl(kBaseUrl + "/api/account"));
+    QNetworkRequest req(QUrl(_baseUrl + "/api/account"));
     req.setRawHeader("Authorization", ("Bearer " + token).toUtf8());
     req.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
 
@@ -596,22 +612,54 @@ void LichessClient::streamGame(const QString& gameId)
     _lastOppDraw     = false;
     _lastOppTakeback = false;
     _gameFullSeen    = false;
+    openGameStream();
+}
 
+// Also a reconnect (LI-06): then the game is on already (_gameFullSeen), and its gameFull is a resync.
+void LichessClient::openGameStream()
+{
+    if (_currentGameId.isEmpty())
+        return;
     QNetworkRequest req = makeRequest(
-        QStringLiteral("/api/board/game/stream/") + gameId);
+        QStringLiteral("/api/board/game/stream/") + _currentGameId);
     req.setRawHeader("Accept", "application/x-ndjson");
 
     _streamReply = _nam.get(req);
+    auto* sr = _streamReply;
+    if (_gameFullSeen)
+        _streamWatchdog.start();
 
-    connect(_streamReply, &QNetworkReply::readyRead, this, [this]() {
-        handleStreamData(_streamReply);
+    // Every line, also Lichess's keep-alive (an empty line every 7 s), shows the connection is alive.
+    connect(sr, &QNetworkReply::readyRead, this, [this, sr]() {
+        if (sr != _streamReply)
+            return;
+        handleStreamData(sr);
+        if (sr == _streamReply && _gameFullSeen && !_gameOver)
+            _streamWatchdog.start();
     });
 
-    auto* sr = _streamReply;
     // Ended without a game: whoever waits for gameStarted (the Online page) must hear about it.
-    // Not when stopStream() aborted it (canceled) or after gameFull (the game was on).
+    // Not when stopStream() aborted it (canceled). After gameFull the game was on: the connection
+    // was lost, unless the game has ended.
     connect(sr, &QNetworkReply::finished, this, [this, sr]() {
-        if (sr != _streamReply || _gameFullSeen || sr->property("errorReported").toBool())
+        if (sr != _streamReply)
+            return; // stopped, or replaced by a resync
+        if (_gameFullSeen) {
+            // Lichess's own "no" (4xx: the sign-in expired, a game it doesn't stream any more) won't
+            // change by asking again. No answer at all, or a server error (5xx: Lichess restarting):
+            // try again.
+            const bool authExpired = sr->property("authExpiredReported").toBool();
+            const int status = sr->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            dropGameStream();
+            if (authExpired)
+                stopReconnecting(QStringLiteral("Lichess sign-in expired"));
+            else if (400 <= status && status < 500)
+                stopReconnecting(QStringLiteral("Lichess stopped sending this game (HTTP %1)").arg(status));
+            else
+                gameStreamLost();
+            return;
+        }
+        if (sr->property("errorReported").toBool())
             return; // the errorOccurred handler below has said it already
         if (sr->property("authExpiredReported").toBool())
             emit networkError(QStringLiteral("Lichess sign-in expired"));
@@ -626,11 +674,56 @@ void LichessClient::streamGame(const QString& gameId)
                          << "|" << sr->errorString();
                 // OperationCanceledError is expected when the server closes the stream
                 // normally (game over) or when we call stopStream() ourselves — not an error.
-                if (code != QNetworkReply::OperationCanceledError) {
+                // During the game the finished handler reconnects instead.
+                if (code != QNetworkReply::OperationCanceledError && !_gameFullSeen) {
                     sr->setProperty("errorReported", true); // once per stream (the finished handler)
                     emit networkError(sr->errorString());
                 }
             });
+}
+
+void LichessClient::dropGameStream()
+{
+    _streamWatchdog.stop();
+    if (!_streamReply)
+        return;
+    auto* sr = _streamReply;
+    _streamReply = nullptr; // before abort(): its handlers must ignore it
+    sr->abort();
+    sr->deleteLater();
+}
+
+// The game goes on at Lichess, and so do the clocks: try again soon, then less often.
+void LichessClient::gameStreamLost()
+{
+    if (_gameOver || _currentGameId.isEmpty())
+        return;
+    const int delay = (std::min)(_firstRetryMs << (std::min)(_reconnectAttempt, 4), 15000); // windows.h has a min macro
+    ++_reconnectAttempt;
+    qDebug() << "LichessClient: game stream lost; reconnecting in" << delay << "ms";
+    if (!_streamLost) {
+        _streamLost = true;
+        emit gameConnectionChanged(false);
+    }
+    _reconnectTimer.start(delay);
+}
+
+void LichessClient::stopReconnecting(const QString& message)
+{
+    qDebug() << "LichessClient: game stream not reconnected:" << message;
+    _reconnectTimer.stop();
+    _streamLost = false;
+    emit gameStreamStopped();
+    emit networkError(message);
+}
+
+void LichessClient::resyncGame()
+{
+    if (_currentGameId.isEmpty() || !_gameFullSeen || _gameOver || _streamLost)
+        return; // no game, or a reconnect is on its way anyway
+    qDebug() << "LichessClient: resync" << _currentGameId;
+    dropGameStream();
+    openGameStream();
 }
 
 void LichessClient::handleStreamData(QNetworkReply* reply)
@@ -654,6 +747,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
     const QString     type = obj.value(QStringLiteral("type")).toString();
 
     if (type == QLatin1String("gameFull")) {
+        const bool resync = _gameFullSeen; // LI-06: the stream is back (or resyncGame): the same game
         _gameFullSeen = true;
         const QJsonObject white = obj.value(QStringLiteral("white")).toObject();
         const QJsonObject black = obj.value(QStringLiteral("black")).toObject();
@@ -666,23 +760,36 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
         qDebug() << "LichessClient: playing as" << (isWhite ? "white" : "black")
                  << "| myColor=" << myColor << "| whiteId=" << whiteId << "| username=" << _username;
 
-        _lastGame = parseRematchInfo(obj, _username);
-        emit canRematchChanged();
+        const QStringList moves = state.value(QStringLiteral("moves")).toString()
+                                      .split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (resync) {
+            // The moves first, then "connected", then a lost move's message (it must stay on screen).
+            _reconnectAttempt = 0;
+            const bool lost = resyncMoves(moves);
+            if (_streamLost) {
+                _streamLost = false;
+                emit gameConnectionChanged(true);
+            }
+            if (lost)
+                emit networkError(QStringLiteral("Your move didn't reach Lichess. Play it again."));
+        } else {
+            _lastGame = parseRematchInfo(obj, _username);
+            emit canRematchChanged();
 
-        const QJsonObject opponent = isWhite ? black : white;
-        const QString opponentName      = opponent.value(QStringLiteral("name")).toString();
-        const QString opponentAvatarUrl = {}; // Lichess doesn't provide avatar in stream
+            const QJsonObject opponent = isWhite ? black : white;
+            const QString opponentName      = opponent.value(QStringLiteral("name")).toString();
+            const QString opponentAvatarUrl = {}; // Lichess doesn't provide avatar in stream
 
-        // Emit gameStarted first so the board is initialized before any moves are applied.
-        _lastMovesList = state.value(QStringLiteral("moves")).toString()
-                             .split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        _sentMoves.clear();
-        emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl);
-        startClock(obj);
+            // Emit gameStarted first so the board is initialized before any moves are applied.
+            _lastMovesList = moves;
+            _sentMoves.clear();
+            emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl);
+            startClock(obj);
 
-        // Resync our board state with moves that arrived before we joined.
-        if (!_lastMovesList.isEmpty())
-            emit opponentMoveReceived(_lastMovesList.join(QLatin1Char(' ')));
+            // Resync our board state with moves that arrived before we joined.
+            if (!_lastMovesList.isEmpty())
+                emit opponentMoveReceived(_lastMovesList.join(QLatin1Char(' ')));
+        }
 
         // Streaming a game that has already ended: Lichess sends only gameFull, then closes.
         const QString status = state.value(QStringLiteral("status")).toString();
@@ -690,6 +797,8 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
                 && status != QLatin1String("created");
         updateClock(state, ended);
         if (ended) {
+            _gameOver = true;
+            _streamWatchdog.stop();
             emit gameEnded(status, state.value(QStringLiteral("winner")).toString());
             return false;
         }
@@ -711,6 +820,8 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
         const bool ended = status != QLatin1String("started") && !status.isEmpty();
         updateClock(obj, ended);
         if (ended) {
+            _gameOver = true;
+            _streamWatchdog.stop();
             const QString winner = obj.value(QStringLiteral("winner")).toString();
             emit gameEnded(status, winner);
             return false;
@@ -779,6 +890,27 @@ void LichessClient::applyStreamMoves(const QStringList& moves)
         emit opponentMoveReceived(move);
 }
 
+// After a reconnect (or resyncGame): Lichess's moves against ours. Ours plus maybe the opponent's new
+// ones: as for a gameState. Without a move we sent: if its POST is still on its way, Lichess may
+// play it yet (its answer or the stream tells); otherwise it never got there: our board takes it
+// back, and the player plays it again (returns true).
+bool LichessClient::resyncMoves(const QStringList& moves)
+{
+    const QStringList ours = _lastMovesList + _sentMoves;
+    if (moves.mid(0, ours.size()) == ours) {
+        applyStreamMoves(moves);
+        return false;
+    }
+    const bool missing = !_sentMoves.isEmpty() && moves == _lastMovesList;
+    if (missing && std::any_of(_sentMoves.begin(), _sentMoves.end(),
+                               [this](const QString& move) { return _postsInFlight.contains(move); })) {
+        qDebug() << "LichessClient: resync before our move's POST has an answer: waiting for it";
+        return false;
+    }
+    replaceMoveList(moves, missing);
+    return missing;
+}
+
 void LichessClient::replaceMoveList(const QStringList& moves, bool moveRefused)
 {
     qDebug() << "LichessClient: move list replaced; ours:" << (_lastMovesList + _sentMoves).join(QLatin1Char(' '))
@@ -794,20 +926,31 @@ void LichessClient::postMove(const QString& gameId, const QString& uciMove)
     if (_offline)
         return; // screenshot mode: the scene's stream says what Lichess made of it
 
-    auto* reply = _nam.post(
-        makeRequest(QStringLiteral("/api/board/game/") + gameId
-                    + QStringLiteral("/move/") + uciMove),
-        QByteArray());
+    QNetworkRequest req = makeRequest(QStringLiteral("/api/board/game/") + gameId
+                                      + QStringLiteral("/move/") + uciMove);
+    req.setTransferTimeout(_moveTimeoutMs);
+    auto* reply = _nam.post(req, QByteArray());
+    _postsInFlight.append(uciMove);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, gameId, uciMove]() {
         reply->deleteLater();
+        _postsInFlight.removeOne(uciMove);
         if (reply->error() == QNetworkReply::NoError)
             return;
+        const int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const bool pending = gameId == _currentGameId && _sentMoves.contains(uciMove);
+        if (httpStatus < 400) {
+            // No answer (a timeout, the connection gone), or none that says no: Lichess may have
+            // played it or not. The stream anew tells (LI-06), and says so if it never got there.
+            qDebug() << "LichessClient: move" << uciMove << "got no clear answer: HTTP" << httpStatus << reply->errorString();
+            if (pending)
+                resyncGame();
+            return;
+        }
         emit networkError(QStringLiteral("Move failed: ") + reply->errorString());
         // Lichess answered that it didn't play it: our board takes it back (if the stream hasn't
-        // shown it meanwhile). Without an answer (a timeout) it may be played: the stream tells.
-        const int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        if (httpStatus >= 400 && gameId == _currentGameId && _sentMoves.contains(uciMove))
+        // shown it meanwhile).
+        if (pending)
             replaceMoveList(_lastMovesList, true);
     });
 }
@@ -1162,11 +1305,12 @@ void LichessClient::stopStream()
     _pollTimer.stop();
     stopProbe();
     stopEventStream();
-    if (_streamReply) {
-        _streamReply->abort();
-        _streamReply->deleteLater();
-        _streamReply = nullptr;
-    }
+    dropGameStream();
+    _postsInFlight.clear();
+    _reconnectTimer.stop();
+    _reconnectAttempt = 0;
+    _streamLost = false;
+    _gameOver = false;
     _currentGameId.clear();
     _lastMovesList.clear();
     _sentMoves.clear();

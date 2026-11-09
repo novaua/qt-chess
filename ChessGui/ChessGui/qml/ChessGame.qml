@@ -477,6 +477,15 @@ ApplicationWindow {
             }
         }
 
+        // LI-06: the Lichess game's stream was lost; LichessClient reconnects on its own.
+        InfoBar {
+            width: parent.width
+            visible: ChessConnector.Reconnecting && ChessConnector.GameResult === ""
+            closable: false
+            severity: "caution"
+            text: "Connection to Lichess lost. Reconnecting… Your clock keeps running on Lichess."
+        }
+
         // Lichess "opponentGone": counts down until Lichess allows claiming the win.
         InfoBar {
             id: opponentGoneBar
@@ -543,6 +552,7 @@ ApplicationWindow {
         function onNoMoreMovesNotify() { messageBar.show("No more moves") }
         function onPgnCopied()         { messageBar.show("PGN copied to the clipboard", "success") }
         function onMovesTakenBack(plies) { messageBar.show(plies === 1 ? "Move taken back" : plies + " moves taken back") }
+        function onReconnected()       { messageBar.show("Reconnected to Lichess", "success") }
         function onPgnExported(ok, path) {
             if (ok) messageBar.show("Saved " + path, "success")
             else    messageBar.show("Couldn't save " + path, "critical")

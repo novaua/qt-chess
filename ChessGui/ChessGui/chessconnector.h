@@ -80,6 +80,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(QString PendingOffer READ pendingOffer NOTIFY pendingOfferChanged) // Lichess opponent offers: "", "draw", "takeback", "rematch"
 		Q_PROPERTY(bool CanOfferDraw    READ canOfferDraw    NOTIFY canOfferDrawChanged) // Lichess: from ply 2, then 20 plies after our last offer
 		Q_PROPERTY(bool OpponentGone    READ opponentGone    NOTIFY opponentGoneChanged)
+		Q_PROPERTY(bool Reconnecting    READ reconnecting    NOTIFY reconnectingChanged) // LI-06: the Lichess game's connection is lost
 		Q_PROPERTY(int  ClaimWinSeconds READ claimWinSeconds NOTIFY opponentGoneChanged) // when it became gone; -1 = not said
 		Q_PROPERTY(QString ContinueDescription READ continueDescription NOTIFY canContinueChanged) // the autosaved game, e.g. "vs Bob"
 		Q_PROPERTY(GameClock* Clock READ clock CONSTANT) // the game's clocks; Clock.enabled false: none
@@ -129,6 +130,7 @@ public:
 	QString pendingOffer() const { return _pendingOffer; }
 	bool    canOfferDraw() const;
 	bool    opponentGone()    const { return _opponentGone; }
+	bool    reconnecting()    const { return _reconnecting; }
 	int     claimWinSeconds() const { return _claimWinSeconds; }
 	QString continueDescription() const;
 	QStringList capturedByDark()  const;
@@ -178,6 +180,8 @@ signals:
 	void pendingOfferChanged();
 	void canOfferDrawChanged();
 	void opponentGoneChanged();
+	void reconnectingChanged();
+	void reconnected(); // the Lichess game's connection is back, the board up to date
 
 	void castlingNotify();
 	void pawnPromotionNotify(int index, int side);
@@ -257,6 +261,7 @@ private slots:
 	void onLichessGameEnded(const QString& status, const QString& winner);
 	void onLichessOpponentGone(bool gone, int claimWinInSeconds);
 	void onLichessClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence);
+	void onLichessConnectionChanged(bool connected);
 	void onClockFlagged(bool white); // a local game: that side's time is up
 
 private:
@@ -270,6 +275,7 @@ private:
 	void setResult(const QString& result, const QString& text); // non-empty: the game is over
 	void setPendingOffer(const QString& offer);
 	void setOpponentGone(bool gone, int claimWinInSeconds = -1);
+	void setReconnecting(bool reconnecting);
 	void flagKing(bool white); // mark that side's king as the loser (resign / time)
 	void endGameWithLoser(bool white, const QString& result, const QString& text); // mate, resignation, time
 	void dropRobotAnswer();    // on its way or waiting in the gate: nothing waits for it any more
@@ -283,7 +289,7 @@ private:
 	bool isPlayerPiece(int square) const; // vs the robot or on Lichess: the player's own piece stands there
 	void setPremove(int from, int to);
 	void opponentMoveShown(); // the robot's or the Lichess opponent's move is on the board: a premove follows
-	void playPremove();       // the opponent's move has slid in: the premove, if it is legal now
+	void playPremove();       // right after the opponent's move: the premove, if it is legal now
 	void refreshSelection();  // the turn changed under a selected piece: its dots follow
 	void clearPossibleMoves();  // no piece selected, no move dots
 	std::shared_ptr<Chess::Game> shownGame() const; // the position on the board: a replay while reviewing
@@ -321,7 +327,7 @@ private:
 	bool _premoveDots = false;
 	int _premoveFrom = -1;
 	int _premoveTo = -1;
-	QTimer _premoveTimer; // the opponent's move slides in, then the premove is played
+	QTimer _premoveTimer; // back from a review: the jump to the live position slides, then the premove is played
 	BoardPieces* _pieces = nullptr;
 	bool _piecesSyncPosted = false;
 
@@ -362,6 +368,7 @@ private:
 	QString _pendingOffer;
 	int  _drawOfferPly = -1; // ply of our last Lichess draw offer; -1 = none in this game
 	bool _opponentGone = false;
+	bool _reconnecting = false;
 	int  _claimWinSeconds = -1;
 	AppConfig _config;
 	int _reviewIndex = -1;
