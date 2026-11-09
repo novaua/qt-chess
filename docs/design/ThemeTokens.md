@@ -196,3 +196,6 @@ It is registered through `qmldir` (`singleton Theme 1.0 Theme.qml`) and listed i
   cards go to a column left of the board (`GamePage.qml`, `area.side`) and the board takes the full
   height. The cards are then `stacked` (`PlayerCard`): the clock on its own row at the column's outer
   edge (`title` size, 48 high), the name row, the captured pieces wrapping (`CapturedStrip.wrapWidth`).
+- The window's InfoBars then go between the column's cards (`GamePage.barsArea`), 260 wide, buttons
+  under the text, so the board keeps its size; the column needs room for one bar (about 140 high).
+  Otherwise the game page starts below the bars (`GamePage.infoBarsHeight`).

@@ -88,7 +88,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
   - `ChessGame.qml` — the window: a `StackView` with one page (`WelcomePage` on first run,
     `ProfilePickerPage`, `HomePage`, `GamePage`; `route()` picks it from `UserManager` and
     `ChessConnector.InGame`), with `ProfilePage` or `SettingsPage` pushed over Home or the game, `OnlinePage` over Home; the
-    InfoBars (also the BL-10 challenge bar over every page: Accept / Open on lichess.org, Decline, Hide; a sound and the taskbar flash for a new one) and every dialog. Pages ask for dialogs through signals.
+    InfoBars (under the command bar; on the game page's player column between its cards, `GamePage.barsArea`, BL-13; also the BL-10 challenge bar over every page: Accept / Open on lichess.org, Decline, Hide; a sound and the taskbar flash for a new one) and every dialog. Pages ask for dialogs through signals.
   - `HomePage.qml` (account menu, Continue: the robot's autosaved game first, else the unfinished Lichess games on the Online page; action cards), `OnlinePage.qml` (pushed by "Play online": the challenges to the player with Accept and Decline… with Lichess's reasons (BL-10), the unfinished Lichess games as `BoardPreview` cards with Continue, a new challenge (a link, or to a named Lichess player, the only way to play Blitz), join by link; LI-04), `GamePage.qml` (command bar, board between
     two `PlayerCard`s with a `CapturedStrip` and "+N" (BL-13: in a wide window where that gives a bigger board, the cards go `stacked` in a column left of the board, `area.side`), the moves (`MovesPanel` + `MoveList`) beside
     the board or in a bottom sheet, `ResultCard` over the board)

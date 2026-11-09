@@ -4,6 +4,21 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — BL-13 step 2: the InfoBars between the column's cards (branch: infoBarsColumn_091126)
+
+### What was done
+- The owner saw "Check" shrink the full-height board for 4 s (#134's room for the bars). Now, with the player column, the window's InfoBars ("Check", saved, offers, a challenge, reconnecting, opponent gone, damaged profiles) go between the column's cards: `GamePage.barsArea` (the free space, page coordinates), `ChessGame.qml` places the bars there (a `Flickable`: they scroll when more than fit). The board keeps its size. Without the column the bars stay under the command bar and the page starts below them, as before.
+- The layout is chosen without the bars (`area.stackedBoard` from the full height; `topInset` only in the stacked layout), so a bar never switches it.
+- The column needs room for one bar between the cards (`area._barsRoom`, a challenge with buttons ≈ 140 px): at 1000 × 560 the bar was cut and its buttons scrolled out of sight, so such a low window keeps the cards above and below the board.
+- `InfoBar`: the buttons wrap (`Flow`, as wide as its buttons beside the text); the window's bars put them under the text while in the column (`actionsBelow: root._barsInColumn`). The moves panel's review bar is unchanged.
+- **Screenshots**: new scene `check` (the page opens in check), new sized `reconnecting`, `check` at 1400 × 900 and `game` at 1000 × 560. Light and dark: all others match; `challenge-ingame-1400x900` changed as intended (the bar in the column); **10 baselines** new or updated after a look. No QML warnings in the log.
+- QML, the scene list in `main.cpp` and the script: no C++ tests run.
+
+### Next
+- The owner's hand check: a draw offer, "Check" and a challenge during a game in a maximised window; resize while a bar shows.
+
+---
+
 ## 2026-11-09 — BL-13 step 1: the player column in wide windows (branch: wideGameLayout_091126)
 
 ### What was done

@@ -13,7 +13,9 @@ Rectangle {
     property string severity: "info"   // info, success, caution, critical
     property int    timeout:  0
     property bool   closable: true
-    property bool   actionsBelow: false // the buttons under the text (a long text with several buttons)
+    // The buttons under the text (a long text with several buttons, or a narrow bar: the game page's
+    // player column, BL-13); they wrap there when they don't fit in one row.
+    property bool   actionsBelow: false
     default property alias actions: actionRow.data
 
     function show(message, messageSeverity) {
@@ -64,10 +66,20 @@ Rectangle {
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
-            Row {
+            Flow {
                 id: actionRow
                 spacing: Theme.s2
                 visible: children.length > 0
+                // Beside the text: as wide as its visible buttons (a Flow given no width would never
+                // wrap, and one given its own implicit width keeps it). Below: the bar's width.
+                readonly property real rowWidth: {
+                    var w = 0, n = 0
+                    for (const c of children)
+                        if (c.visible) { w += c.implicitWidth; n++ }
+                    return w + Math.max(0, n - 1) * spacing
+                }
+                Layout.fillWidth: bar.actionsBelow
+                Layout.preferredWidth: bar.actionsBelow ? -1 : Math.ceil(rowWidth)
             }
         }
         IconButton {
