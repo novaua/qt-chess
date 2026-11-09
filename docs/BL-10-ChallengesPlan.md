@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-09 |
-| **Status** | Plan, with the owner's choices of 2026-11-09 |
+| **Status** | Coded (steps 1–4: #127–#130); manual tests left: [`BL-10-ManualTests.md`](BL-10-ManualTests.md) |
 | **Branch** | `bl10Plan_091126` (plan); each step on its own branch from `develop` |
 | **Task** | BL-10 in `TASKS.md`. Builds on LI-06 (#125: the game stream's reconnect), which must be merged before step 1 |
 
