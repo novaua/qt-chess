@@ -243,6 +243,7 @@ Page {
                                     }
                                     Button {
                                         id: declineButton
+                                        objectName: "declineButton"   // the online-challenges-decline scene
                                         text: "Decline…"
                                         enabled: !page._busy
                                         onClicked: declineMenu.open()

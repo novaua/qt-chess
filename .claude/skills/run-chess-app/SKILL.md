@@ -60,7 +60,8 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   the event stream's parser: the bar with Accept / Decline / Hide and "+1 more"), `challenge-unplayable`
   (a Bullet challenge: Open on lichess.org instead of Accept), `challenge-ingame` (a real-time Lichess
   game on the board, then a challenge: Decline only, "Finish your game first"), `online-challenges` (the
-  Online page's "Challenges to you": three, one of them Bullet), `all`. `premove-robot` (not in `all`: needs
+  Online page's "Challenges to you": three, one of them Bullet), `online-challenges-decline` (the same with
+  the first one's Decline… menu open: Lichess's reasons), `all`. `premove-robot` (not in `all`: needs
   Stockfish; no baseline, the robot's moves vary): 1. e4 vs the robot, Nf3 premoved and played after its answer. `robot` (not in `all`: needs Stockfish): a saved game vs the robot at
   level 5, continued, where the robot mates with Qh5# (the engine's answer is played on the GUI thread).
   `slides` (not in `all`): the BL-14 frame-trace scene — animations on (every other scene forces them

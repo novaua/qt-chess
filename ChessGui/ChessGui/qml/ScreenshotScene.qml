@@ -60,6 +60,8 @@ Item {
                 findItem(pages.currentItem, "challengeOpponent").text = "Friend"
                 findItem(pages.currentItem, "challengeClock").select(3)   // 5+3
             }
+            if (name === "online-challenges-decline")   // the first challenge's reasons
+                Qt.callLater(() => findItem(pages.currentItem, "declineButton").clicked())
             if (name === "online-challenge") {   // sent to Friend: no link, Lichess isn't asked
                 window._pendingChallengeId = "scene"
                 window._pendingOpponentName = "Friend"
@@ -185,7 +187,8 @@ Item {
             resultCardTimer.start()
         } else {
             // clock-continue: past the second the clock waits for the page, or the shot races with it.
-            readyTimer.interval = shot.scene === "clock-continue" ? 1500 : 0
+            // online-challenges-decline: the menu has opened.
+            readyTimer.interval = shot.scene === "clock-continue" ? 1500 : shot.scene === "online-challenges-decline" ? 500 : 0
             readyTimer.start()
         }
     }
