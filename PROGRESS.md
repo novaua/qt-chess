@@ -4,6 +4,22 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — BL-10 plan: Lichess challenges as notifications (branch: bl10Plan_091126)
+
+### What was done
+- Plan [`docs/BL-10-ChallengesPlan.md`](docs/BL-10-ChallengesPlan.md), with the owner's choices:
+  - **Accept during a game depends on the game**: a running real-time Lichess game shows Decline only ("Finish your game first"); in a robot, two-player or correspondence game, Accept leaves that game;
+  - **in the background**: a taskbar flash (`QWindow::alert`) and a sound, no Windows toast;
+  - **unplayable challenges** (`compat.board` false) shown with Open on lichess.org and Decline;
+  - **Your games** refreshed by `gameStart` / `gameFinish` on the same stream.
+- Lichess facts it relies on, checked in `lichess-org/api` `doc/specs`: one event stream per token (a new one closes the old), keep-alive every 7 s, all current challenges and games resent when it opens; `challenge` events carry `compat.board`; the decline reasons.
+- Design: LI-06's reconnect becomes a `LichessStream` class used by the game stream and an always-open event stream; `LichessClient.incomingChallenges`; `ChessConnector.acceptChallenge` (it may leave a game: one call, CLAUDE.md rule 1), `LichessClient.declineChallenge` (challenge setup, rule 2).
+
+### Next
+- Step 1: `LichessStream`, no behaviour change (#127, on top of LI-06, #125).
+
+---
+
 ## 2026-11-09 — LI-06: Lichess games that don't break or lag (branch: lichessReconnect_091126)
 
 ### What was done
