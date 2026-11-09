@@ -131,7 +131,9 @@ Then confirm the current branch with `git branch` and `git log --oneline -5` bef
 
 ## Branching Workflow
 
-- Start every task on a **new branch from the latest `origin/develop`** (`git fetch` first). Name it `<camelCaseTask>_<ddmmyy>`, e.g. `removeVcpkg_281026`.
+- Start every task on a **new branch from the latest `origin/develop`** (`git fetch` first). Name it `features/<camelCaseTask>_<DDMMYY>` for a feature or task, `bugs/<camelCaseTask>_<DDMMYY>` for a bug fix, e.g. `features/removeVcpkg_281026`, `bugs/infoBarsCover_101126`.
+  - `DDMMYY` is the day the branch is created: two digits each for day, month and year (10 Nov 2026 → `101126`). Take it from the local clock (`Get-Date -Format ddMMyy`), not from memory: a session can run past midnight.
+  - Branches before 2026-11-10 have no `features/` / `bugs/` prefix (e.g. `infoBarsColumn_091126`, PR #137); don't rename them.
 - Never continue a new task on the branch of a previous task.
 - When a feature/task is done (built, tested, committed), push the branch and open a GitHub PR into `develop` with the `gh` CLI (`gh pr create --base develop`) — no need to ask first. Report the PR link.
 - Exception: if the task depends on changes that are not merged into `develop` yet, stop and ask the user to either merge them first (then wait and branch from the updated `develop`) or explicitly approve branching from the unmerged branch.
