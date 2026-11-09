@@ -98,6 +98,17 @@ public:
         Assert::IsFalse(Has(game->GetPremoveTargets(e1), g1)); // the king has moved
     }
 
+    // A premoved pawn to the last rank becomes a queen (ChessConnector asks this).
+    TEST_METHOD(IsPromotion_PawnToLastRank)
+    {
+        auto game = Played({ "a2a4", "b7b5", "a4b5", "a7a6", "b5a6", "c8b7", "a6a7", "b7c6" });
+        Assert::IsTrue(game->IsPromotion(a7, b8));
+        Assert::IsTrue(game->IsPromotion(a7, a8));
+        Assert::IsFalse(game->IsPromotion(e2, e4));
+        Assert::IsFalse(game->IsPromotion(b1, a3));
+        Assert::IsFalse(game->IsPromotion(-1, a8));
+    }
+
     TEST_METHOD(EmptySquare_NoTargets)
     {
         auto game = Played({});

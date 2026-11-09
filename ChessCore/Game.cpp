@@ -387,7 +387,7 @@ namespace Chess
 			: std::vector<Move>();
 	}
 
-	std::vector<BoardPosition> Game::GetPremoveTargets(int index)
+	std::vector<BoardPosition> Game::GetPremoveTargets(int index) const
 	{
 		std::vector<BoardPosition> targets;
 		if (index < 0 || index >= BpMax)
@@ -483,6 +483,11 @@ namespace Chess
 		return targets;
 	}
 
+	bool Game::IsPromotion(int from, int to) const
+	{
+		return 0 <= from && from < BpMax && _boardAptr->At(from).Type == PAWN && (to / 8 == 0 || to / 8 == 7);
+	}
+
 	void Game::RegisterLogger(const LoggerCallback& loggerCallback)
 	{
 		_logger = loggerCallback;
@@ -496,7 +501,7 @@ namespace Chess
 		}
 	}
 
-	bool Game::CanCastleKingside(PieceColors c)
+	bool Game::CanCastleKingside(PieceColors c) const
 	{
 		BoardPosition kingPos = (c == PieceColors::Light) ? e1 : e8;
 		BoardPosition rookPos = (c == PieceColors::Light) ? h1 : h8;
@@ -511,7 +516,7 @@ namespace Chess
 		return true;
 	}
 
-	bool Game::CanCastleQueenside(PieceColors c)
+	bool Game::CanCastleQueenside(PieceColors c) const
 	{
 		BoardPosition kingPos = (c == PieceColors::Light) ? e1 : e8;
 		BoardPosition rookPos = (c == PieceColors::Light) ? a1 : a8;

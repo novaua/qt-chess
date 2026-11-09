@@ -36,7 +36,8 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int SelectedSquare READ selectedSquare NOTIFY PossibleMovesChanged) // the piece whose moves show, or -1
 		Q_PROPERTY(int MovableColor READ movableColor NOTIFY movableColorChanged) // whose pieces the player can move (or premove) now: 0 none, 1 White, 2 Black
 		// LI-05: a move picked during the robot's or the Lichess opponent's turn, played when it comes
-		// if it is legal then. Its two squares, or -1 (also while reviewing).
+		// if it is legal then. Its two squares, or -1. Hidden (-1) while reviewing: it is kept, and played
+		// once the board is back at the live position.
 		Q_PROPERTY(int PremoveFrom READ premoveFrom NOTIFY premoveChanged)
 		Q_PROPERTY(int PremoveTo   READ premoveTo   NOTIFY premoveChanged)
 		Q_PROPERTY(bool PremoveDots READ premoveDots NOTIFY PossibleMovesChanged) // the dots are where a premove may go
@@ -279,6 +280,7 @@ private:
 	void makeMove(int from, int to, Chess::PieceTypes promoteTo = Chess::EMPTY); // EMPTY: the player picks the piece
 	bool canPlayerMove() const; // the player may move a piece now (not the robot's turn, not reviewing, ...)
 	bool canPremove() const;    // the player may pick a premove now: the robot's or the Lichess opponent's turn
+	bool isPlayerPiece(int square) const; // vs the robot or on Lichess: the player's own piece stands there
 	void setPremove(int from, int to);
 	void opponentMoveShown(); // the robot's or the Lichess opponent's move is on the board: a premove follows
 	void playPremove();       // the opponent's move has slid in: the premove, if it is legal now

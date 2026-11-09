@@ -166,6 +166,12 @@ bool ChessConnector::canPremove() const
 	return _game->IsWhiteMove() != _config.playerPlaysWhite;
 }
 
+bool ChessConnector::isPlayerPiece(int square) const
+{
+	const auto own = _config.playerPlaysWhite ? Chess::PieceColors::Light : Chess::PieceColors::Dark;
+	return 0 <= square && square < 64 && _game->GetPieceAt(square).Color == own;
+}
+
 void ChessConnector::setPremove(int from, int to)
 {
 	if (_premoveFrom == from && _premoveTo == to)
@@ -197,7 +203,7 @@ void ChessConnector::playPremove()
 {
 	const int from = _premoveFrom;
 	const int to = _premoveTo;
-	if (from < 0)
+	if (from < 0 || reviewMode()) // reviewing: it waits for the live position (reviewLast)
 		return;
 	if (!canPlayerMove()) {
 		if (!canPremove()) // e.g. the opponent's move ended the game
@@ -213,9 +219,7 @@ void ChessConnector::playPremove()
 	}
 	clearPossibleMoves();
 	// Lichess's premove promotes to a queen: there is no time to ask.
-	const auto piece = _game->GetPieceAt(from);
-	const bool promotes = piece.Type == Chess::PAWN && (to / 8 == 0 || to / 8 == 7);
-	makeMove(from, to, promotes ? Chess::QUEEN : Chess::EMPTY);
+	makeMove(from, to, _game->IsPromotion(from, to) ? Chess::QUEEN : Chess::EMPTY);
 }
 
 void ChessConnector::refreshSelection()
@@ -238,6 +242,7 @@ void ChessConnector::clearPossibleMoves()
 
 // During the opponent's turn the clicks pick a premove instead: our piece shows where it may go
 // (a pending premove stays until another one is picked), a dot sets it, any other square cancels it.
+// A click on our own piece always selects it, also on a dot: a recapture premove is dragged there.
 void ChessConnector::figureSelected(int index)
 {
 	const bool premove = !canPlayerMove() && canPremove();
@@ -254,7 +259,7 @@ void ChessConnector::figureSelected(int index)
 	ClearBoard(_possibleMoves);
 	_selectedSquare = -1;
 	_premoveDots = false;
-	if (selected != -1 && premove)
+	if (selected != -1 && premove && !isPlayerPiece(index))
 	{
 		setPremove(selected, index);
 	}
@@ -264,8 +269,7 @@ void ChessConnector::figureSelected(int index)
 	}
 	else if (premove)
 	{
-		const auto own = _config.playerPlaysWhite ? Chess::PieceColors::Light : Chess::PieceColors::Dark;
-		if (_game->GetPieceAt(index).Color == own) {
+		if (isPlayerPiece(index)) {
 			for (auto to : _game->GetPremoveTargets(index))
 				_possibleMoves[to] = QString::number(index);
 			_selectedSquare = index;
@@ -296,8 +300,7 @@ bool ChessConnector::movePiece(int from, int to)
 	// anywhere else cancels the premove.
 	if (!canPlayerMove() && canPremove()) {
 		std::vector<Chess::BoardPosition> targets;
-		const auto own = _config.playerPlaysWhite ? Chess::PieceColors::Light : Chess::PieceColors::Dark;
-		if (0 <= from && from < 64 && _game->GetPieceAt(from).Color == own)
+		if (isPlayerPiece(from))
 			targets = _game->GetPremoveTargets(from);
 		const bool target = std::find(targets.begin(), targets.end(), to) != targets.end();
 		clearPossibleMoves();
@@ -723,6 +726,10 @@ int ChessConnector::materialBalance() const
 
 void ChessConnector::makeMove(int from, int to, Chess::PieceTypes promoteTo)
 {
+	// The player's own move (also in the moment the premove waits for the opponent's slide): a
+	// pending premove was meant for the position before it.
+	_premoveTimer.stop();
+	setPremove(-1, -1);
 	try
 	{
 		_game->DoMove(Move{ (BoardPosition)from, (BoardPosition)to, false, { promoteTo, PieceColors::Empty } });
@@ -1311,6 +1318,7 @@ void ChessConnector::playRobotMove(const QString& move)
 		_game->DoMove(Chess::Move::Parse(move.toStdString()));
 	}
 	catch (const std::exception& ex) {
+		cancelPremove(); // no move came to answer
 		onEngineMoveError(_engineRequest, QStringLiteral("the engine's move %1 can't be played: %2").arg(move, ex.what()),
 			QStringLiteral("fen: ") + QString::fromStdString(_game->MakeFen()));
 		return;
@@ -1714,8 +1722,10 @@ void ChessConnector::reviewLast() {
 	_reviewIndex = -1;
 	emitBoardState();
 	// The jump back to the live position animates the pieces: a held robot answer (the board wasn't
-	// settled while reviewing) waits for it.
+	// settled while reviewing) waits for it, and so does a premove kept during the review.
 	_gate->moveShown();
+	if (_premoveFrom >= 0)
+		_premoveTimer.start(_gate->timing().slideMs);
 	emit reviewStateChanged();
 }
 

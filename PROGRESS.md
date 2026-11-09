@@ -19,6 +19,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Scenes** (`main.cpp` feeds a Lichess game, no network): `premove` (Bf1-c4 waiting, the d2 pawn's premove dots), `premove-played` (Black's Nc6, then Bc4), `premove-dropped` (e4-e5 waiting, gone after Nc6), all in `all` with baselines. `premove-robot` (not in `all`, Stockfish): 1. e4, Nf3 premoved and played after the robot's answer; checked once, no baseline.
 - Release builds; ChessTests + ChessQtTests **298 pass**. Screenshots: 82 compared, 0 failed; 6 new premove baselines (light and dark).
 
+### Code review (the owner's `/code-review medium` of #124, same branch)
+9 findings: 7 fixed, 1 in part, 1 left for the owner.
+- **Fixed:**
+  - **A premove outlived a move made by hand**: in the moment it waits for the opponent's slide the player may already move. That move now clears it (`makeMove`), or it would have been played a move later in another position.
+  - **A click on our own piece that is a dot set a premove onto it** (e.g. Nb1 selected, then a click on the d2 pawn gave Nb1-d2). A click on our own piece now always selects it; a recapture premove is made by dragging.
+  - **The robot's move that can't be played** left the premove on the board: cancelled.
+  - **The review dropped the premove** although the property only hides it: it is now kept, and `reviewLast()` plays it (if it is our turn) once the board is back at the live position.
+  - **Esc left the game while premove dots showed**: it clears them first, like the right click.
+  - **The promotion rule** moved to ChessCore: `Game::IsPromotion(from, to)` (1 test).
+  - **The player's colour** in one helper, `isPlayerPiece()`. `GetPremoveTargets` and the castling checks are `const`.
+- **In part:** "`GetPremoveTargets` repeats the piece geometry of `MoveGeneration`". It's `const` now, but stays separate: its lines follow other rules (through one of theirs, onto our own pieces), which `GenerateBasicMoves` can't express without a flag through all its paths.
+- **Left for the owner:** "the premove waits `slideMs` and that costs clock time". The open question above.
+- Release builds; ChessTests + ChessQtTests **299 pass**; screenshots 88 compared, 0 failed; `premove-robot` checked again.
+
 ### Not checked yet (the owner, in a real window)
 - vs the robot: premove by click and by drag, change it, cancel it by right click, Esc and a click on an empty square; a premove that becomes illegal (e.g. the robot takes the piece) disappears; a recapture premove (onto our own piece the robot takes); a premove promotion becomes a queen; castling as a premove.
 - On Lichess: the same against a person, and that the premoved move reaches Lichess (the opponent sees it at once).

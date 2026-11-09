@@ -56,7 +56,8 @@ namespace Chess
 		// made one move. By the piece's shape, without checks: a line stops at our own piece (it may be
 		// taken, then we take back) and passes one of theirs (it may move away). Whether the move is
 		// legal is decided when it is played.
-		std::vector<BoardPosition> GetPremoveTargets(int index);
+		std::vector<BoardPosition> GetPremoveTargets(int index) const;
+		bool IsPromotion(int from, int to) const; // the piece there is a pawn and `to` is on the last rank
 
 		Piece GetPieceAt(int index) const;
 		const Board& GetCurrentBoard() const { return *_boardAptr; }
@@ -92,8 +93,8 @@ namespace Chess
 
 		~Game();
 	private:
-		bool CanCastleKingside(PieceColors c);
-		bool CanCastleQueenside(PieceColors c);
+		bool CanCastleKingside(PieceColors c) const;
+		bool CanCastleQueenside(PieceColors c) const;
 
 		void AssureMove(BoardPosition from, BoardPosition to);
 		bool CanMoveFrom(BoardPosition from);
