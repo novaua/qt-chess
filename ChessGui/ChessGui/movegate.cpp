@@ -47,8 +47,19 @@ void MoveGate::moveShown(bool byRobot)
 {
 	const qint64 now = _clock();
 	_shownAt = now;
+	_otherShownAt = now;
 	if (!byRobot)
 		_playerShownAt = now;
+	updateBusy();
+	_wasIdle = false;
+	tick();
+}
+
+void MoveGate::playerMoveShown()
+{
+	const qint64 now = _clock();
+	_shownAt = now;
+	_playerShownAt = now;
 	updateBusy();
 	_wasIdle = false;
 	tick();
@@ -57,6 +68,7 @@ void MoveGate::moveShown(bool byRobot)
 void MoveGate::updateBusy()
 {
 	_busyUntil = _shownAt + _timing.slideMs + _timing.pauseMs;
+	_otherBusyUntil = _otherShownAt + _timing.slideMs + _timing.pauseMs;
 	_robotEarliest = _playerShownAt + _timing.robotMinMs;
 }
 
@@ -87,8 +99,10 @@ void MoveGate::clear()
 {
 	_queue.clear();
 	_busyUntil = 0;
+	_otherBusyUntil = 0;
 	_robotEarliest = 0;
 	_shownAt = 0;
+	_otherShownAt = 0;
 	_playerShownAt = 0;
 	tick();
 }
@@ -102,13 +116,14 @@ qint64 MoveGate::allowedAt(Source source) const
 {
 	if (source == Source::Robot)
 		return std::max(_busyUntil, _robotEarliest);
-	return _holdOnline ? _busyUntil : 0;
+	return _holdOnline ? _busyUntil : _otherBusyUntil; // without the hold: not for our own move's slide
 }
 
 void MoveGate::releaseFront(qint64 now)
 {
 	// The board is busy from here on, even if the receiver doesn't call moveShown().
 	_busyUntil = std::max(_busyUntil, now + _timing.slideMs + _timing.pauseMs);
+	_otherBusyUntil = std::max(_otherBusyUntil, _busyUntil);
 	_wasIdle = false;
 	// More than two at once is a Lichess resync after a reconnect: show the position at once,
 	// as one batch, so the receiver applies it without a slide or a sound per move.

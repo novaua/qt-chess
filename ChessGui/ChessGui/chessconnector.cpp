@@ -190,12 +190,12 @@ void ChessConnector::cancelPremove()
 }
 
 // Like Lichess: the premove is played as soon as the opponent's move is there, without waiting for
-// its slide (on a clock that time counts, LI-06). A zero timer, so the opponent's move gets its own
-// pieces sync first (posted before it) and its piece starts sliding before ours does.
+// its slide (on a clock that time counts, LI-06). Queued after the opponent's move's pieces sync
+// (posted to this object before it, so it runs first): its piece starts sliding before ours does.
 void ChessConnector::opponentMoveShown()
 {
 	if (_premoveFrom >= 0)
-		_premoveTimer.start(0);
+		QMetaObject::invokeMethod(this, &ChessConnector::playPremove, Qt::QueuedConnection);
 	else
 		refreshSelection();
 }
@@ -348,7 +348,7 @@ void ChessConnector::pawnPromote(int index, const QString& piece)
 void ChessConnector::onHumanMoveDone()
 {
 	EmitMoveCountUpdates();
-	_gate->moveShown(); // the player's move is on the board: the robot's answer waits for it
+	_gate->playerMoveShown(); // the player's move is on the board: the robot's answer waits for it
 	moveOnBoard();
 
 	if (!_onlineGameId.isEmpty() && _lichessClient) {
@@ -1023,6 +1023,7 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 		connect(_lichessClient, &LichessClient::opponentGone, this, &ChessConnector::onLichessOpponentGone);
 		connect(_lichessClient, &LichessClient::clockStarted, this, &ChessConnector::onLichessClockStarted);
 		connect(_lichessClient, &LichessClient::gameConnectionChanged, this, &ChessConnector::onLichessConnectionChanged);
+		connect(_lichessClient, &LichessClient::gameStreamStopped, this, [this]() { setReconnecting(false); });
 		connect(_lichessClient, &LichessClient::clockUpdated, _clock, &GameClock::setSnapshot);
 		// An offer that comes with the opponent's move is shown after the move.
 		connect(_lichessClient, &LichessClient::drawOfferReceived, this, [this]() {
@@ -1748,10 +1749,10 @@ void ChessConnector::reviewLast() {
 	_reviewIndex = -1;
 	emitBoardState();
 	// The jump back to the live position animates the pieces: a held robot answer (the board wasn't
-	// settled while reviewing) waits for it. A premove kept during the review is played now.
+	// settled while reviewing) waits for it, and so does a premove kept during the review.
 	_gate->moveShown();
 	if (_premoveFrom >= 0)
-		_premoveTimer.start(0);
+		_premoveTimer.start(_gate->timing().slideMs);
 	emit reviewStateChanged();
 }
 

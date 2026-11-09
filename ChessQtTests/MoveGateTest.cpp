@@ -319,7 +319,7 @@ namespace MoveGateTests
 			ready();
 			_gate.setHoldOnline(false);
 			_now = 1000;
-			_gate.moveShown(false); // our move: busy until 1400
+			_gate.playerMoveShown(); // our move: busy until 1400
 			_now = 1050;
 			_gate.push("e7e5", MoveGate::Source::Online);
 			Assert::AreEqual(size_t(1), _released.size());
@@ -337,6 +337,22 @@ namespace MoveGateTests
 			Assert::AreEqual(size_t(1), _released.size());
 		}
 
+		// Without the hold, only our own move is skipped: pieces sliding back after a takeback or a
+		// replaced list still hold the opponent's next move (one thing at a time).
+		TEST_METHOD(OnlineWithoutHold_StillWaitsForATakebackSlide)
+		{
+			setTiming(250, 150, 400);
+			ready();
+			_gate.setHoldOnline(false);
+			_now = 1000;
+			_gate.moveShown(); // the takeback: busy until 1400
+			_gate.push("e7e5", MoveGate::Source::Online);
+			Assert::IsTrue(_released.empty());
+			_now = 1400;
+			_gate.tick();
+			Assert::AreEqual(size_t(1), _released.size());
+		}
+
 		// The robot keeps its pace, and a game without a clock gets the hold back.
 		TEST_METHOD(OnlineWithoutHold_RobotAndHoldAgainUnchanged)
 		{
@@ -344,14 +360,14 @@ namespace MoveGateTests
 			ready();
 			_gate.setHoldOnline(false);
 			_now = 1000;
-			_gate.moveShown(false);
+			_gate.playerMoveShown();
 			_gate.push("e7e5", MoveGate::Source::Robot);
 			Assert::IsTrue(_released.empty(), L"the robot still waits");
 			_gate.clear();
 
 			_gate.setHoldOnline(true);
 			_now = 2000;
-			_gate.moveShown(false);
+			_gate.playerMoveShown();
 			_gate.push("e7e5", MoveGate::Source::Online);
 			Assert::IsTrue(_released.empty(), L"held again for the slide and the pause");
 			_now = 2400;

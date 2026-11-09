@@ -890,9 +890,8 @@ namespace LichessTests
 			client.streamGame("g1");
 			waitUntil([&] { return events.contains("move e7e5"); });
 
-			areEqual({ "start", "move e2e4", "lost connection", "back", "move e7e5" }, events);
+			areEqual({ "start", "move e2e4", "lost connection", "move e7e5", "back" }, events); // the moves, then "back"
 			Assert::AreEqual(2, lichess.count(Stream));
-			Assert::IsTrue(client.gameConnected());
 		}
 
 		// Nothing at all, not even Lichess's keep-alive line: the connection is dead although open.
@@ -1010,6 +1009,100 @@ namespace LichessTests
 
 			areEqual({ "start", "move f2f3 e7e5 g2g4", "move d8h4", "end mate" }, events);
 			Assert::AreEqual(1, lichess.count(Stream));
+		}
+
+		// The stream comes back while our move's POST is still on its way: Lichess hasn't played it
+		// yet, but may. It isn't taken back; the POST's answer and the echo follow.
+		TEST_METHOD(ReconnectBeforeOurPostIsAnswered_WaitsForIt)
+		{
+			FakeLichess lichess;
+			QTcpSocket* firstStream = nullptr;
+			QTcpSocket* post = nullptr;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString& method, const QString&) {
+				if (method == "POST") {
+					post = socket;                  // no answer yet ...
+					firstStream->disconnectFromHost(); // ... and the connection drops
+					return;
+				}
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull("e2e4 e7e5"));
+				if (lichess.count(Stream) == 1) {
+					firstStream = socket;
+					return;
+				}
+				QTimer::singleShot(200, socket, [&lichess, socket, &post]() { // then Lichess plays it
+					post->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 11\r\n\r\n{\"ok\":true}");
+					post->flush();
+					FakeLichess::line(socket, R"({"type":"gameState","moves":"e2e4 e7e5 g1f3","status":"started"})");
+				});
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+
+			client.streamGame("g1");
+			waitUntil([&] { return events.contains("move e2e4 e7e5"); });
+			client.postMove("g1", "g1f3");
+			waitUntil([] { return false; }, 1000);
+
+			areEqual({ "start", "move e2e4 e7e5", "lost connection", "back" }, events);
+		}
+
+		// Lichess itself says no (404: a game it doesn't stream any more): asking again won't help.
+		TEST_METHOD(ReconnectRefusedByLichess_StopsTrying)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				if (lichess.count(Stream) == 1) {
+					FakeLichess::startStream(socket);
+					FakeLichess::line(socket, FakeLichess::gameFull("e2e4"));
+					socket->disconnectFromHost();
+					return;
+				}
+				socket->write("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+				socket->disconnectFromHost();
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+			QObject::connect(&client, &LichessClient::gameStreamStopped, [&]() { events << "stopped"; });
+
+			client.streamGame("g1");
+			waitUntil([&] { return events.contains("stopped"); });
+			waitUntil([] { return false; }, 600); // no more attempts
+
+			areEqual({ "start", "move e2e4", "lost connection", "stopped", "error Lichess stopped sending this game (HTTP 404)" }, events);
+			Assert::AreEqual(2, lichess.count(Stream));
+		}
+
+		// A server error (Lichess restarting) is worth another try.
+		TEST_METHOD(ReconnectServerError_TriesAgain)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				const int n = lichess.count(Stream);
+				if (n == 2) {
+					socket->write("HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+					socket->disconnectFromHost();
+					return;
+				}
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull("e2e4"));
+				if (n == 1)
+					socket->disconnectFromHost();
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+
+			client.streamGame("g1");
+			waitUntil([&] { return events.contains("back"); });
+
+			areEqual({ "start", "move e2e4", "lost connection", "back" }, events);
+			Assert::AreEqual(3, lichess.count(Stream));
 		}
 
 		// Leaving the game stops the reconnects.

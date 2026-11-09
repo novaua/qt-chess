@@ -20,6 +20,19 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **No 0.4 s hold in real-time Lichess games** (the owner's choice, only for games with a clock): `MoveGate::setHoldOnline(false)` from `onLichessClockStarted` for a real-time clock. The opponent's moves then wait only for the page (open a second, not turning, not reviewing), not for our move's slide and pause, so our Lichess clock doesn't run while the board holds their reply. Their piece may start sliding while ours still does, as on lichess.org. Correspondence, unlimited and robot games keep the hold; every new game starts with it (`beginGame`). 3 `MoveGateTest` tests.
 - **Screenshots**: the screen was locked (`LogonUI`): the dialog scenes and `clock-promotion` / `clock-continue` failed as known for a locked screen, and text renders slightly differently (premove-played/-dropped: 0.06 %, only the move-list text). All board scenes match. `reconnecting` has no baseline yet: take it on an unlocked screen (`Compare-Screenshots.ps1 -Update -Name reconnecting,reconnecting-dark`).
 
+### Code review (the owner's `/code-review medium` of #125, same branch)
+9 findings: 8 fixed, 1 in part.
+- **Fixed:**
+  - **A move still on its way was taken back as lost**: a reconnect within the POST's 10 s could find Lichess without our move yet; the board took it back, then the POST arrived and its echo was played as the opponent's move. Now the moves whose POST has no answer yet (`_postsInFlight`) aren't lost: the answer or the echo decides. Test `ReconnectBeforeOurPostIsAnswered_WaitsForIt`.
+  - **A 401 during a reconnect left "Reconnecting…" up for good**, and **a 4xx (a game Lichess no longer streams) was retried for ever, silently**. Lichess's own "no" (4xx) now stops the reconnects (`gameStreamStopped`, the bar goes, networkError says why); no answer or a 5xx (Lichess restarting) is still retried. Tests `ReconnectRefusedByLichess_StopsTrying`, `ReconnectServerError_TriesAgain`.
+  - **"Reconnected" came before the moves** it had brought: now the moves, then "connected", then a lost move's message (so that one stays on screen).
+  - **A move's POST with a non-error status below 400 counted as refused** (a 3xx): only Lichess's 4xx/5xx refuse it; anything else is resynced.
+  - **Without the hold, a takeback's slide no longer held the opponent's next move**: only the player's own move is skipped now (`MoveGate::playerMoveShown`); pieces sliding back still hold it. Test `OnlineWithoutHold_StillWaitsForATakebackSlide`.
+  - **The premove's order relied on a zero timer** running after the posted pieces sync: now a queued call to `playPremove`, posted after the sync to the same object (FIFO).
+  - **Back from a review, the premove jumped in with the slide to the live position**: that path waits for the slide again (no clock hurry there: the opponent's move that brings our turn is the immediate path).
+- **In part:** "two flags for one state (`LichessClient::_streamLost`, `ChessConnector::_reconnecting`)". `gameConnected()`, which only a test read, is gone. The connector keeps its own: it's the QML property, cleared with the game (`endGame`, a new game), while the client's is the connection's state.
+- ChessTests + ChessQtTests **315 pass** (three full runs); the 14 reconnect and gate tests 10 runs. The board scenes as before (screen still locked: 0.06 % text in `premove-played`/`-dropped`); `robot` and `premove-robot` pass `-Offscreen`.
+
 ### Not checked yet (the owner, with a real Lichess game)
 - Pull the network cable / turn Wi-Fi off for 30 s in a game: the bar after at most 20 s, back on its own once the network is, with the opponent's moves made meanwhile.
 - Sleep the laptop during a correspondence game, wake it: the game catches up.

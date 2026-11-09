@@ -327,7 +327,7 @@ private:
 	bool _premoveDots = false;
 	int _premoveFrom = -1;
 	int _premoveTo = -1;
-	QTimer _premoveTimer; // the opponent's move is shown (its pieces sync first), then the premove is played
+	QTimer _premoveTimer; // back from a review: the jump to the live position slides, then the premove is played
 	BoardPieces* _pieces = nullptr;
 	bool _piecesSyncPosted = false;
 

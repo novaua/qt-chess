@@ -32,7 +32,8 @@ public:
 	// the opponent's moves then don't wait for the board (only for the page, setStageReady).
 	void setHoldOnline(bool hold);
 	void setStageReady(bool ready);       // the page has settled and the board isn't turning
-	void moveShown(bool byRobot = false); // a move was played: the board is busy for slideMs + pauseMs
+	void moveShown(bool byRobot = false); // a move was played, or the pieces slide (a takeback): the board is busy for slideMs + pauseMs
+	void playerMoveShown();               // the player's own move: as moveShown(), but a real-time opponent's reply needn't wait for it
 	void push(const QString& uciMove, Source source);
 	void push(const QStringList& uciMoves, Source source); // together: more than two make one batch
 	void releaseAll();                    // let everything held through now (the board is about to show another position)
@@ -61,8 +62,10 @@ private:
 	QElapsedTimer _elapsed;
 	std::function<qint64()> _clock;
 	qint64 _busyUntil = 0;
+	qint64 _otherBusyUntil = 0; // as _busyUntil, without the player's own moves (setHoldOnline(false))
 	qint64 _robotEarliest = 0;
 	qint64 _shownAt = 0;       // when the last move was shown
+	qint64 _otherShownAt = 0;  // when the last move or slide that wasn't the player's own move was shown
 	qint64 _playerShownAt = 0; // when the player's last move was shown
 	bool _stageReady = false;
 	bool _holdOnline = true;

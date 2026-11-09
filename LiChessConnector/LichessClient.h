@@ -64,7 +64,6 @@ public:
 	// LI-06: open the running game's stream again now; its gameFull tells what Lichess has (a move of
 	// ours that got no answer). While the stream is lost it reconnects on its own.
 	void resyncGame();
-	bool gameConnected() const { return !_streamLost; }
 	// Tests: a fake server instead of lichess.org, and shorter waits: the stream is lost after
 	// silenceMs without even a keep-alive line (Lichess sends one every 7 s), the first reconnect
 	// comes after firstRetryMs (then twice as long each time, up to 15 s), a move without an answer
@@ -167,8 +166,11 @@ signals:
 	void takebackRequested();
 	void ongoingGamesChanged();
 	// LI-06: the running game's stream was lost (false; it reconnects on its own) or is back (true,
-	// after its gameFull has brought our board up to date).
+	// once its gameFull has handed over what changed: the moves follow through the gate).
 	void gameConnectionChanged(bool connected);
+	// LI-06: Lichess itself refused the stream (a 401, a game it no longer streams): no more
+	// reconnects. networkError says why.
+	void gameStreamStopped();
 
 private:
 	QNetworkRequest makeRequest(const QString& path) const;
@@ -184,7 +186,8 @@ private:
 	void openGameStream();         // GET the stream of _currentGameId
 	void dropGameStream();         // abort it without reporting anything
 	void gameStreamLost();         // mid-game: reconnect after a while
-	void resyncMoves(const QStringList& moves); // a gameFull after a reconnect
+	void stopReconnecting(const QString& message); // Lichess refused the stream: give up
+	bool resyncMoves(const QStringList& moves); // a gameFull after a reconnect; true: our move was lost
 	void applyStreamMoves(const QStringList& moves); // a gameState's moves against ours
 	void startClock(const QJsonObject& gameFull);
 	void updateClock(const QJsonObject& state, bool gameOver); // a gameFull's state, or a gameState
@@ -209,6 +212,7 @@ private:
 	QString               _waitForGameId;
 	QStringList           _lastMovesList;   // the moves the stream has shown
 	QStringList           _sentMoves;       // ours, sent but not in the stream yet (our board has them)
+	QStringList           _postsInFlight;   // ours whose POST has no answer yet (LI-06)
 	QNetworkReply* _streamReply      = nullptr;
 	QNetworkReply* _eventStreamReply = nullptr;
 	QNetworkReply* _probeReply       = nullptr;
