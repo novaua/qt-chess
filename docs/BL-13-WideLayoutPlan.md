@@ -177,7 +177,8 @@ Light and dark: 22 new shots. The existing 100 must not change.
    reconnecting bar in a real Lichess game, maximised.
 3. **Messages in the command bar** (§9, the owner's idea, 2026-11-10): the short messages ("Check",
    "Game saved", offers, the reconnecting status) as a pill over the command bar's middle, so they take
-   no room and the board never moves for them, in every layout. Branch `features/commandBarMessages_<DDMMYY>`.
+   no room and the board never moves for them, in every layout; and the recent messages behind a bell
+   button, for one missed (§9.9). Branch `features/commandBarMessages_<DDMMYY>`.
 4. Later, from the owner: other move-history views (§4.5).
 
 ## 7. Risks
@@ -246,7 +247,8 @@ today.** A pill never cuts its text and never covers a button.
 - **The free middle**: each page's command bar has one item that fills the free width (the game's title,
   the Settings / Profile / Online title, Home's filler). `CommandBar.messageArea` names it; the pill may
   use that item's whole width (the title gives way, below). Free width on the game page (5 action
-  buttons): about **360 px at 640** wide, **490 at 768**, **1120 at 1400**, **1640 at 1920**.
+  buttons and the bell of §9.9): about **315 px at 640** wide, **445 at 768**, **1075 at 1400**,
+  **1595 at 1920**.
 - **Centred on the board**: on the game page the pill is centred on the board's middle (`GamePage`
   reports its x; with the player column that is right of the window's centre), clamped into the free
   middle; on the other pages, on the free middle's centre.
@@ -254,7 +256,8 @@ today.** A pill never cuts its text and never covers a button.
   `InfoBar`; buttons in the pill are compact (32 px high). Typical widths: "Check" ≈ 110, "PGN copied to
   the clipboard" ≈ 250, an offer with two buttons ≈ 360–400.
 - **Doesn't fit** (`pill.implicitWidth > free middle`): the message goes to the bars instead (between the
-  column's cards, or under the command bar taking room, as today). E.g. a draw offer at 640 wide.
+  column's cards, or under the command bar taking room, as today). E.g. a draw offer below about 730
+  wide.
 - **The title gives way**: the pill sits on a backdrop in the command bar's colour, as wide as the pill
   plus a 24 px fade on each side, so the title under it is hidden while the message shows and comes back
   after. The pages need no change for it.
@@ -281,6 +284,9 @@ today.** A pill never cuts its text and never covers a button.
 - `CommandBar.qml`: `messageArea` (the item that fills the free width); each page sets it (`GamePage`,
   `HomePage`, `OnlinePage`, `ProfilePage`, `SettingsPage`).
 - `GamePage.qml`: `boardCenterX` (page coordinates).
+- The history (§9.9): a `ListModel` in `ChessGame.qml` that `notify()` and the offers append to;
+  `MessagesButton.qml` (the bell with its dot) at the right end of each page's command bar;
+  `MessagesFlyout.qml` (the list, a `Popup` under the bell).
 - `ChessGame.qml`: one pill layer over the pages (z above the bars). The `messageBar.show()` callers go
   through one `notify(text, severity)` that picks the pill or the bar; the offers, the reconnecting
   status and the opponent left get a pill version, and their bar version is used when the pill doesn't
@@ -298,13 +304,50 @@ today.** A pill never cuts its text and never covers a button.
 | `challenge-ingame` | default, 1400x900 | unchanged: the challenge stays a bar |
 | `saved` (new: the game saved) | 1400x900 | a confirmation centred on the board, right of the window's centre |
 | `home-message` (new: "Profile imported" on Home) | default | the pill on another page |
+| `messages` (new: the history open: a confirmation, a draw offer still open, a declined challenge, a lost and restored connection, an error) | default, 1400x900 | the bell's dot, the list, live and finished actions |
 
 Light and dark. `reconnecting` and `check` are re-baselined after a look; the rest stay unchanged.
 
-### 9.8 Open points for the owner
+### 9.8 The owner's choices
+
+Q5 yes, Q6 as recommended, Q7 as is (the owner, 2026-11-10).
 
 | | Question | Recommended |
 |---|---|---|
 | Q5 | Offers (draw, takeback, rematch) in the pill too, or only messages without buttons? | **In the pill** when they fit (≈ 400 px: every window ≥ 700 wide); else the bar |
 | Q6 | The title while a pill shows | **Hidden under the pill's backdrop**, and it comes back after; or the pill only in the space the title leaves (it would rarely fit at 640–768) |
 | Q7 | How long a message stays | **4 s** as today ("Check" too); an error stays until closed (a × on the pill) |
+
+### 9.9 Recent messages (the owner, 2026-11-10: "if I missed a notification")
+
+A message lasts 4 s, and the window may have been in the background or the player busy with the board.
+The recent messages are kept and can be looked at again.
+
+- **Where**: a **bell button** at the right end of every page's command bar (before the game's "More"
+  and Home's Settings; last on Settings, Profile and Online), so it is in the same place everywhere. It takes 40 px + 4 of the free middle
+  (§9.4).
+- **The dot**: an accent dot on the bell when a message the player didn't cause came since the list was
+  last opened: an offer, the opponent left, a lost or restored connection, "… declined the challenge",
+  an error. Messages about the player's own actions ("Game saved", "PGN copied", "Move taken back") are
+  kept but don't light it. Its tooltip and accessible name: "Recent messages (2 new)".
+- **The list**: a flyout under the bell (`Popup`, like the More menu), newest first, the **last 20**: the
+  severity icon, the text in full (wrapped: also the long errors), the time ("12:41"), and the page or
+  game it came from when that isn't the current one ("Lichess · vs Friend").
+- **Actions**: an offer still open keeps its Accept / Decline in the list (the same calls as the pill);
+  once answered or gone it shows what happened ("Draw offer · declined", "· expired"), without buttons.
+  The opponent left keeps Claim victory while it can be claimed. A challenge isn't listed (the Online page
+  lists them, BL-10).
+- **Lifetime**: this session only (not saved; the app's log has them all). A new game doesn't clear it.
+  "Clear" at the list's bottom empties it.
+- **Keyboard**: Tab reaches the bell; Enter or Space opens the list; arrow keys move through it; Esc
+  closes it. Shortcut **Ctrl+M** opens it from anywhere (F1's list of shortcuts says so).
+- **Screen readers**: the bell announces the new count; each row reads as "Friend offers a draw, 12:41,
+  open".
+- **"Check"**: not kept (Q9): it comes with every check, and the board, the sound and the move list
+  ("+") already tell it.
+
+| | Question | Recommended |
+|---|---|---|
+| Q8 | Where the history opens | **A bell button with a dot** in every command bar; or "Recent messages" in the More menu only (no width taken, but Home and Settings have no More menu) |
+| Q9 | Which messages are kept | **All but "Check"**, the last 20; the dot only for those the player didn't cause |
+| Q10 | Kept across restarts? | **No**, this session only |
