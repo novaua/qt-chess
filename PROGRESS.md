@@ -4,6 +4,17 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — The InfoBars no longer cover the opponent's card (branch: infoBarsRoom_091126)
+
+### What was done
+- The owner's choice on the note below: the game page makes room for the window's InfoBars (an offer, a challenge, the reconnecting bar, the opponent gone, a message). `GamePage.infoBarsHeight` (bound to the bar column's height in `ChessGame.qml`) moves the board and its cards down by the bars' height while any shows, 8 px under them. In a tall window the board uses its spare height first; in a wide window (height-bound) it shrinks while the bar shows. No animation: the bar itself appears at once. Home and the other pages are unchanged (their content is centred or scrolls).
+- Screenshots, light and dark: 100 compared, only `reconnecting` and `challenge-ingame` changed (the card now under the bar): looked at and accepted as new baselines. Also checked at `-Size 1400x900`. QML only: no C++ tests run.
+
+### Next
+- BL-13 plan (wide-screen layout); it decides where the bars go in the new layout.
+
+---
+
 ## 2026-11-09 — BL-10 follow-up: the screenshot checks on an unlocked screen (branch: bl10ScreenChecks_091126)
 
 ### What was done
