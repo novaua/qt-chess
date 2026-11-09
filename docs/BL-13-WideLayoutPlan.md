@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-09 |
-| **Status** | Plan; the owner's choices in §8 are open |
+| **Status** | Step 1 coded (branch `wideGameLayout_091126`); step 2 next. The owner chose the recommended answers to Q1–Q4 (2026-11-09) |
 | **Branch** | `bl13Plan_091126` (plan); each step on its own branch from `develop` |
 | **Task** | BL-13 in `TASKS.md`. Builds on #134 (the InfoBars make room on the game page) |
 
@@ -188,6 +188,8 @@ Light and dark: 22 new shots. The existing 100 must not change.
   column's bars scroll or fall back to B when they don't fit (decide in step 2).
 
 ## 8. The owner's choices
+
+All four as recommended (the owner, 2026-11-09): Q1 A, Q2 mirrored, Q3 the bigger board, Q4 centred.
 
 | | Question | Recommended |
 |---|---|---|

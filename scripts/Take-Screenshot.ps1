@@ -5,7 +5,7 @@
 .DESCRIPTION
     Runs ChessGui.exe in screenshot mode (--screenshot, see main.cpp) once per scene. Each run uses
     a fresh temporary profile (no users, settings or saves of yours are read or changed), opens the
-    scene, saves <OutDir>\<scene>[-black][-dark][-Name].png and exits. The app window is transparent,
+    scene, saves <OutDir>\<scene>[-black][-dark][-Name][-<size>].png and exits. The app window is transparent,
     has no taskbar button and ignores the mouse, so nothing appears on screen. Screenshots are at 100%
     scale (one pixel per QML pixel), whatever the monitor's scaling.
 
@@ -21,13 +21,19 @@
     Two-player game after Fool's mate, with the result card.
 
 .EXAMPLE
+    .\scripts\Take-Screenshot.ps1 -Scene 'game@1920x1080', 'drag@1400x900@black'
+    Scenes at their own window size (BL-13's player column): game-1920x1080.png, drag-black-1400x900.png.
+
+.EXAMPLE
     .\scripts\Take-Screenshot.ps1 -Scene all -Dark -Build
     Build Release first, then every scene in dark mode.
 #>
 [CmdletBinding()]
 param(
     # welcome, create-user, profiles, home, continue, continue-online, game, leave-online, review, result, ended, moves, select, drag, settings, about, restore, levels,
-    # profile, profile-local, profile-expired, import, online, online-empty, online-disconnected, computer, players, or all
+    # profile, profile-local, profile-expired, import, online, online-empty, online-disconnected, computer, players, captures, or all
+    # A scene can name its own window size and side: scene@WxH[@black], e.g. game@1920x1080 (all runs
+    # the list in $sizedScenes after the others).
     # (not in all: robot, premove-robot, slides, takeback)
     # (login, menu and board: the older names of profiles, home and game)
     [string[]]$Scene = @('home'),
@@ -60,9 +66,16 @@ $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue-online', 'game', 'leave-online', 'review', 'result', 'ended', 'moves', 'select', 'drag',
              'settings', 'about', 'restore', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'online-empty', 'online-disconnected', 'computer', 'players',
              'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge',
-             'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline'
-if ($Scene -contains 'all') { $Scene = $allScenes }
+             'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline',
+             'captures'
+# BL-13: the game page in wide windows (the player column left of the board), and two sizes that must
+# keep the cards above and below the board.
+$sizedScenes = 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'captures@1400x900', 'review@1400x900',
+               'ended@1400x900', 'result@1400x900', 'challenge-ingame@1400x900', 'drag@1400x900@black',
+               'game@1100x900', 'game@960x1040'
+if ($Scene -contains 'all') { $Scene = $allScenes + $sizedScenes }
 foreach ($s in $Scene) {
+    $s = ($s -split '@')[0]
     if ($s -notin ($allScenes + 'robot', 'premove-robot', 'login', 'menu', 'board', 'slides', 'takeback')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
 }
 
@@ -91,17 +104,28 @@ $exitMeaning = @{ 1 = 'grabbing or saving the window failed'; 2 = 'timed out wai
                   3 = 'QML failed to load'; 4 = 'unknown scene' }
 $failed = 0
 $done = 0
-foreach ($s in $Scene) {
-    $baseName = ($s, $(if ($Black) { 'black' }), $(if ($Dark -or $Offscreen) { 'dark' }), $(if ($HighContrast) { 'hc' }), $Name | Where-Object { $_ }) -join '-'
+foreach ($run in $Scene) {
+    $parts = @($run -split '@')   # scene[@WxH[@black]]
+    $s = $parts[0]
+    $runSize = if ($parts.Count -gt 1) { $parts[1] } else { $Size }
+    $runBlack = $Black -or ($parts -contains 'black')
+    # Built step by step: Windows PowerShell 5.1 dropped the size from a (... | Where-Object) list.
+    $nameParts = @($s)
+    if ($runBlack) { $nameParts += 'black' }
+    if ($Dark -or $Offscreen) { $nameParts += 'dark' }
+    if ($HighContrast) { $nameParts += 'hc' }
+    if ($Name) { $nameParts += $Name }
+    if ($parts.Count -gt 1) { $nameParts += $parts[1] }
+    $baseName = $nameParts -join '-'
     $file = Join-Path $OutDir "$baseName.png"
     Remove-Item $file -ErrorAction SilentlyContinue   # a failed scene leaves no old picture behind (Compare-Screenshots.ps1)
     $argList = @('--screenshot', "`"$file`"", '--scene', $s, '--delay', $Delay)
     if ($Offscreen) { $argList = @('-platform', 'offscreen') + $argList }
     if ($Moves) { $argList += '--moves', "`"$Moves`"" }
-    if ($Black) { $argList += '--black' }
+    if ($runBlack) { $argList += '--black' }
     if ($Dark)  { $argList += '--dark' }
     if ($HighContrast) { $argList += '--high-contrast' }
-    if ($Size)  { $argList += '--size', $Size }
+    if ($runSize) { $argList += '--size', $runSize }
 
     $p = Start-Process $exe -ArgumentList $argList -Wait -PassThru
     if ($p.ExitCode -eq 0) {

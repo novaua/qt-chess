@@ -96,6 +96,7 @@ QtObject {
     // Game page
     readonly property int playerCardHeight: 60
     readonly property int sidePanelWidth:   280   // move list beside the board (wide windows)
+    readonly property int playerColumnWidth: 260  // the player cards left of the board (BL-13)
     readonly property int sheetHandleHeight: 44   // the collapsed move sheet (narrow windows)
 
     // The squares' share of the board item; the rest is the edge for the coordinates outside.

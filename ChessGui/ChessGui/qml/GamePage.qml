@@ -310,81 +310,102 @@ Page {
         readonly property bool wide: page.width >= 960 || page.width > page.height * 1.15
         readonly property real gap: Theme.s2
         readonly property real panelW: wide ? Theme.sidePanelWidth + Theme.s4 : 0
+        readonly property real columnW: Theme.playerColumnWidth + Theme.s4
         // The board item: its squares take 95 % and the coordinates the edge around them (all of it
         // with the coordinates inside, Theme.boardSquares).
-        readonly property real boardSize: Math.max(200, Math.min(width - panelW,
-                                                height - 2 * (Theme.playerCardHeight + gap)))
+        readonly property real stackedBoard: Math.min(width - panelW, height - 2 * (Theme.playerCardHeight + gap))
+        readonly property real sideBoard: Math.min(width - panelW - columnW, height)
+        // BL-13: the player cards go to a column left of the board when that gives a clearly bigger
+        // board (a window much wider than high), and both cards fit beside its squares (a stacked card
+        // with a clock and two lines of captured pieces).
+        readonly property real _stackedCardMax: 2 * Theme.s3 + 48 + 40 + 2 * 18 + 4 * Theme.s2
+        readonly property bool side: wide && sideBoard >= stackedBoard + 24
+                                     && sideBoard * Theme.boardSquares >= 2 * _stackedCardMax + Theme.s4
+        readonly property real boardSize: Math.max(200, side ? sideBoard : stackedBoard)
         readonly property real squaresSize: boardSize * Theme.boardSquares
+        readonly property real inset: (boardSize - squaresSize) / 2   // the coordinates' edge
         onWideChanged: if (wide) page.sheetOpen = false   // the sheet is hidden then
 
-        Column {
-            id: boardColumn
-            x: (area.width - width - area.panelW) / 2
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: area.gap
+        // Stacked: card, board, card in a column, centred with the panel beside it. Side: the cards'
+        // column, the board and the panel in a row, the cards level with the squares' top and bottom.
+        readonly property real stackH: boardSize + 2 * (Theme.playerCardHeight + gap)
+        readonly property real stackY: Math.round((height - stackH) / 2)
+        readonly property real boardX: side ? (width - columnW - boardSize - panelW) / 2 + columnW
+                                            : (width - boardSize - panelW) / 2
+        readonly property real boardY: side ? Math.round((height - boardSize) / 2)
+                                            : stackY + Theme.playerCardHeight + gap
+        readonly property real cardX: Math.round(boardX + inset)   // stacked: centred, on a whole pixel
 
-            SideCard {
-                isPlayer: page._flipped
-                width: area.squaresSize
-                anchors.horizontalCenter: parent.horizontalCenter
+        SideCard {
+            isPlayer: page._flipped
+            stacked: area.side
+            clockFirst: true
+            x: area.side ? area.boardX - area.columnW : area.cardX
+            y: area.side ? area.boardY + area.inset : area.stackY
+            width: area.side ? Theme.playerColumnWidth : area.squaresSize
+        }
+
+        Item {
+            x: area.boardX
+            y: area.boardY
+            width: area.boardSize
+            height: area.boardSize
+
+            ChessBoard {
+                id: chessBoard
+                anchors.fill: parent
             }
 
-            Item {
-                width: area.boardSize
-                height: area.boardSize
-
-                ChessBoard {
-                    id: chessBoard
-                    anchors.fill: parent
-                }
-
-                // The robot is thinking: no clicks on the board.
-                MouseArea {
-                    anchors.fill: parent
-                    visible: ChessConnector.EngineThinking
-                    cursorShape: Qt.WaitCursor
-                }
-
-                // The result, over the dimmed board.
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: area.squaresSize
-                    height: width
-                    visible: resultCard.visible
-                    color: Theme.scrim
-                }
-                ResultCard {
-                    id: resultCard
-                    visible: page._resultShown && !page._resultCardClosed
-                    anchors.centerIn: parent
-                    width: Math.min(area.squaresSize - 2 * Theme.s5, 440)
-                    resultText: ChessConnector.ResultText
-                    canRematch: page.canRematch
-                    onRematchRequested: ChessConnector.rematch()
-                    onNewGameRequested: page.newGameRequested()
-                    onReviewRequested: {
-                        page._resultCardClosed = true
-                        page.sheetOpen = !area.wide
-                        ChessConnector.reviewFirst()
-                    }
-                    onCloseRequested: page._resultCardClosed = true
-                }
+            // The robot is thinking: no clicks on the board.
+            MouseArea {
+                anchors.fill: parent
+                visible: ChessConnector.EngineThinking
+                cursorShape: Qt.WaitCursor
             }
 
-            SideCard {
-                isPlayer: !page._flipped
+            // The result, over the dimmed board.
+            Rectangle {
+                anchors.centerIn: parent
                 width: area.squaresSize
-                anchors.horizontalCenter: parent.horizontalCenter
+                height: width
+                visible: resultCard.visible
+                color: Theme.scrim
+            }
+            ResultCard {
+                id: resultCard
+                visible: page._resultShown && !page._resultCardClosed
+                anchors.centerIn: parent
+                width: Math.min(area.squaresSize - 2 * Theme.s5, 440)
+                resultText: ChessConnector.ResultText
+                canRematch: page.canRematch
+                onRematchRequested: ChessConnector.rematch()
+                onNewGameRequested: page.newGameRequested()
+                onReviewRequested: {
+                    page._resultCardClosed = true
+                    page.sheetOpen = !area.wide
+                    ChessConnector.reviewFirst()
+                }
+                onCloseRequested: page._resultCardClosed = true
             }
         }
 
-        // Wide window: the moves beside the board, as tall as the cards and the board.
+        SideCard {
+            isPlayer: !page._flipped
+            stacked: area.side
+            x: area.side ? area.boardX - area.columnW : area.cardX
+            y: area.side ? area.boardY + area.inset + area.squaresSize - height
+                         : area.boardY + area.boardSize + area.gap
+            width: area.side ? Theme.playerColumnWidth : area.squaresSize
+        }
+
+        // Wide window: the moves beside the board, as tall as the cards and the board (stacked) or
+        // the squares (side).
         Rectangle {
             visible: area.wide
-            x: boardColumn.x + boardColumn.width + Theme.s4
-            y: boardColumn.y + (area.boardSize - area.squaresSize) / 2
+            x: area.boardX + area.boardSize + Theme.s4
+            y: area.side ? area.boardY + area.inset : area.stackY + area.inset
             width: Theme.sidePanelWidth
-            height: boardColumn.height - (area.boardSize - area.squaresSize)
+            height: area.side ? area.squaresSize : area.stackH - 2 * area.inset
             radius: Theme.radiusCard
             color: Theme.cardBg
             border.color: Theme.cardStroke

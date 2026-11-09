@@ -4,6 +4,23 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — BL-13 step 1: the player column in wide windows (branch: wideGameLayout_091126)
+
+### What was done
+- The owner chose the plan's recommended answers to Q1–Q4 (recorded in §8).
+- **`GamePage.qml`**: `area.side` computes the board for both layouts and puts the cards in a column left of the board when that board is ≥ 24 px bigger (and two stacked cards fit beside the squares). The `Column` became explicit `x`/`y` bindings, so the same card items move on a switch; the stacked layout is pixel-identical to before (the cards' x rounded, as the anchors did).
+- **`PlayerCard.stacked`** / `clockFirst`: in the column the clock gets its own row (`title` size), mirrored (top card: clock, name, pieces; bottom: pieces, name, clock). `Avatar`, `NameRow`, `Clock` are inline components shared by both layouts; the avatar's pulse runs only in the visible one.
+- **`CapturedStrip.wrapWidth`**: the groups go on to a next line where they don't fit (a group never split; "+N" on its own line if needed). 0 = one line, as before.
+- `Theme.playerColumnWidth` 260; ThemeTokens §11; CLAUDE.md.
+- **Screenshots**: `Take-Screenshot.ps1` takes `scene@WxH[@black]`; `all` ends with 11 sized scenes (`$sizedScenes`), and the new scene `captures` (Black down to a lone king: White's full strip wraps, "+29"). Light and dark: the 100 old ones match; **24 new baselines** accepted after a look (contact sheet). No QML warnings in the log.
+- QML and the scene list only (`main.cpp`): no C++ tests run.
+
+### Next
+- The owner's hand check in a real window: drag the window's edge across the switch, maximise, snap to half, Windows at 150 %.
+- Step 2: the InfoBars between the column's cards (Q1 = A).
+
+---
+
 ## 2026-11-09 — BL-13 plan: the game page on wide screens (branch: bl13Plan_091126)
 
 ### What was done
