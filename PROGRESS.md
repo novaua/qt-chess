@@ -4,6 +4,32 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-09 — LI-06: Lichess games that don't break or lag (branch: lichessReconnect_091126)
+
+### What was done
+- **Reconnect** (`LichessClient`): the game stream lost during a game (it closes or errors, or brings nothing for 20 s: Lichess sends an empty keep-alive line every 7 s, seen in the owner's log of 2026-10-29) is opened again after 1, 2, 4, 8, then every 15 s, until it's back or the game is left (`stopStream`). Not after the game's end, and not after a 401 ("Lichess sign-in expired"). `gameConnectionChanged(false/true)`.
+- **The gameFull that comes back is a resync** (`resyncMoves`): no new `gameStarted`, the clock isn't restarted. Lichess's list against ours (its moves plus ours not echoed yet): ours plus new ones → the opponent's moves as usual; without our sent move → it never arrived: taken back (as a refused move: the clock goes back) with "Your move didn't reach Lichess. Play it again."; any other difference → replaced (LI-03).
+- **A move without an answer**: the POST now gives up after 10 s (`setTransferTimeout`; there was no limit, so a stuck POST waited for ever). No HTTP status at all (timeout, connection gone) → `resyncGame()` reopens the stream, whose gameFull tells. No "Move failed" message for that any more: it was wrong when the move had arrived. Lichess's own refusal (HTTP 4xx) stays as before.
+- **`ChessConnector.Reconnecting`**: a caution bar "Connection to Lichess lost. Reconnecting… Your clock keeps running on Lichess."; "Reconnected to Lichess" when it's back. The player may move meanwhile: the move is posted, and the resync says whether it got there.
+- **Premove at once** (from #124's open question): after the opponent's move, not after its slide. A zero timer: the opponent's move gets its own pieces sync first, so its piece starts sliding before ours.
+- **Tests**:
+  - 2 stream-line tests: a gameFull again is a resync (no start, only the new move); a resync without our move takes it back.
+  - 7 against **`FakeLichess`**, a `QTcpServer` on 127.0.0.1 standing in for lichess.org (`setBaseUrl`, `setStreamTiming` for short waits), real sockets, no Lichess: the stream closes mid-game and the opponent moved meanwhile; the stream goes silent; keep-alive lines keep it; a move whose POST is cut off and Lichess hasn't got; a move whose POST times out but Lichess played; the game ends (no reconnect); leaving while reconnecting stops it.
+  - Release builds; ChessTests + ChessQtTests **308 pass**, three full runs; the 9 new tests 25 runs. One early failure in a 5-run loop, not seen again: the keep-alive test allowed only 300 ms of silence, now 1 s.
+- **Scene `reconnecting`** (in `all`): the bar over a Lichess game.
+- **Screenshots**: the screen was locked (`LogonUI`): the dialog scenes and `clock-promotion` / `clock-continue` failed as known for a locked screen, and text renders slightly differently (premove-played/-dropped: 0.06 %, only the move-list text). All board scenes match. `reconnecting` has no baseline yet: take it on an unlocked screen (`Compare-Screenshots.ps1 -Update -Name reconnecting,reconnecting-dark`).
+
+### Not checked yet (the owner, with a real Lichess game)
+- Pull the network cable / turn Wi-Fi off for 30 s in a game: the bar after at most 20 s, back on its own once the network is, with the opponent's moves made meanwhile.
+- Sleep the laptop during a correspondence game, wake it: the game catches up.
+- A move while offline: "Your move didn't reach Lichess" after the reconnect, or the game simply goes on if it got there.
+- Premoves feel as fast as on lichess.org.
+
+### Next
+- Open from LI-05/LI-06: the board holds the opponent's reply up to 0.4 s after our move (BL-14's slide + pause) while our Lichess clock runs; drop the pause for real-time Lichess games if the owner wants it.
+
+---
+
 ## 2026-11-09 — LI-05: premove (branch: premove_091126)
 
 ### What was done

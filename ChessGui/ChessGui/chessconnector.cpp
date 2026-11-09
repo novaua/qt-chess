@@ -189,12 +189,13 @@ void ChessConnector::cancelPremove()
 		clearPossibleMoves();
 }
 
-// Like Lichess: the premove is played as soon as the opponent's move is there, without the pause the
-// robot's and the opponent's moves wait for, only after its slide (one thing at a time, BL-14).
+// Like Lichess: the premove is played as soon as the opponent's move is there, without waiting for
+// its slide (on a clock that time counts, LI-06). A zero timer, so the opponent's move gets its own
+// pieces sync first (posted before it) and its piece starts sliding before ours does.
 void ChessConnector::opponentMoveShown()
 {
 	if (_premoveFrom >= 0)
-		_premoveTimer.start(_gate->timing().slideMs);
+		_premoveTimer.start(0);
 	else
 		refreshSelection();
 }
@@ -560,6 +561,25 @@ void ChessConnector::setPendingOffer(const QString& offer)
 	emit pendingOfferChanged();
 }
 
+void ChessConnector::setReconnecting(bool reconnecting)
+{
+	if (_reconnecting == reconnecting)
+		return;
+	_reconnecting = reconnecting;
+	emit reconnectingChanged();
+}
+
+// LI-06: LichessClient reconnects on its own. Our board keeps the game meanwhile: the player may
+// move (the move is posted; the resync tells whether it arrived), and the clock goes on, as on Lichess.
+void ChessConnector::onLichessConnectionChanged(bool connected)
+{
+	if (!isOnlineGame())
+		return;
+	setReconnecting(!connected);
+	if (connected)
+		emit reconnected();
+}
+
 void ChessConnector::setOpponentGone(bool gone, int claimWinInSeconds)
 {
 	if (!gone) claimWinInSeconds = -1;
@@ -760,6 +780,7 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	if (!_gameResult.isEmpty()) setResult({}, {});
 	setPendingOffer({});
 	setOpponentGone(false);
+	setReconnecting(false);
 	_engineAutoPlay = false;
 	_onlineGameId = gameId;
 	_drawOfferPly = -1;
@@ -998,6 +1019,7 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 		connect(_lichessClient, &LichessClient::gameEnded,   this, &ChessConnector::onLichessGameEnded);
 		connect(_lichessClient, &LichessClient::opponentGone, this, &ChessConnector::onLichessOpponentGone);
 		connect(_lichessClient, &LichessClient::clockStarted, this, &ChessConnector::onLichessClockStarted);
+		connect(_lichessClient, &LichessClient::gameConnectionChanged, this, &ChessConnector::onLichessConnectionChanged);
 		connect(_lichessClient, &LichessClient::clockUpdated, _clock, &GameClock::setSnapshot);
 		// An offer that comes with the opponent's move is shown after the move.
 		connect(_lichessClient, &LichessClient::drawOfferReceived, this, [this]() {
@@ -1722,10 +1744,10 @@ void ChessConnector::reviewLast() {
 	_reviewIndex = -1;
 	emitBoardState();
 	// The jump back to the live position animates the pieces: a held robot answer (the board wasn't
-	// settled while reviewing) waits for it, and so does a premove kept during the review.
+	// settled while reviewing) waits for it. A premove kept during the review is played now.
 	_gate->moveShown();
 	if (_premoveFrom >= 0)
-		_premoveTimer.start(_gate->timing().slideMs);
+		_premoveTimer.start(0);
 	emit reviewStateChanged();
 }
 
@@ -1771,6 +1793,7 @@ void ChessConnector::endGame()
 	_resignAfterEngineMove = false;
 	setPendingOffer({});
 	setOpponentGone(false);
+	setReconnecting(false);
 	if (canAutoSave())
 		autoSaveGame();
 	_clock->stop();

@@ -81,7 +81,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
 	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online", "takeback",
-	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped" }.contains(scene))
+	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -180,6 +180,20 @@ static void playPremoveScene(ChessConnector* connector, LichessClient* lichess, 
 	});
 }
 
+// Scene "reconnecting" (LI-06): a Lichess game whose connection is lost: the bar over the board. The
+// stream parser can't lose a connection it hasn't got, so the scene says it did.
+static void playReconnectingScene(ChessConnector* connector, LichessClient* lichess)
+{
+	lichess->setCurrentGameId(QStringLiteral("reconnect1"));
+	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"reconnect1",
+		"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},
+		"state":{"moves":"e2e4 e7e5 g1f3","status":"started"}})");
+	QObject::connect(connector, &ChessConnector::boardIdle, lichess, [=]() {
+		emit lichess->gameConnectionChanged(false);
+		emit connector->screenshotSceneReady();
+	}, Qt::SingleShotConnection);
+}
+
 int main(int argc, char* argv[])
 {
 	// Windows 11 look; follows the system light/dark theme and accent colour (Theme.qml can force one).
@@ -216,7 +230,7 @@ int main(int argc, char* argv[])
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
 		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge",
-		"premove", "premove-played", "premove-dropped", "premove-robot"
+		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -376,6 +390,9 @@ int main(int argc, char* argv[])
 	if (screenshotMode && scene.startsWith("premove") && scene != "premove-robot")
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
 			[=]() { playPremoveScene(connector, lichessClient, scene); }, Qt::QueuedConnection);
+	if (screenshotMode && scene == "reconnecting")
+		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
+			[=]() { playReconnectingScene(connector, lichessClient); }, Qt::QueuedConnection);
 	if (!engine.rootObjects().isEmpty())
 		FrameTrace::watch(qobject_cast<QQuickWindow*>(engine.rootObjects().first()));
 

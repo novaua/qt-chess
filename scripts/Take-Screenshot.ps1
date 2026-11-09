@@ -60,7 +60,7 @@ $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue-online', 'game', 'leave-online', 'review', 'result', 'ended', 'moves', 'select', 'drag',
              'settings', 'about', 'restore', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'online-empty', 'online-disconnected', 'computer', 'players',
              'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge',
-             'premove', 'premove-played', 'premove-dropped'
+             'premove', 'premove-played', 'premove-dropped', 'reconnecting'
 if ($Scene -contains 'all') { $Scene = $allScenes }
 foreach ($s in $Scene) {
     if ($s -notin ($allScenes + 'robot', 'premove-robot', 'login', 'menu', 'board', 'slides', 'takeback')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
