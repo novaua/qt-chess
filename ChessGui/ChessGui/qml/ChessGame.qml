@@ -6,7 +6,7 @@ import QtQuick.Dialogs
 import ChessPlusPlus
 
 // The window: one page at a time in a StackView (Welcome, the profile list, Home or the game, with
-// the Profile or Settings page pushed over Home or the game, and the Online page over Home), the
+// the Profile or Settings page pushed over Home or the game, and the Online page and the Continue list (BL-17) over Home), the
 // InfoBars under the command bar,
 // and every dialog. UserManager and ChessConnector.InGame decide the page (route()); pages ask for
 // dialogs through signals.
@@ -97,7 +97,8 @@ ApplicationWindow {
     }
 
     // The pages pushed over Home or the game, by objectName: Back or Esc pops them.
-    readonly property var _pushedPages: ({ profile: profilePage, settings: settingsPage, online: onlinePage })
+    readonly property var _pushedPages: ({ profile: profilePage, settings: settingsPage, online: onlinePage,
+                                           games: continuePage })
     readonly property bool _onPushedPage: _pushedPages[_page] !== undefined
     function _openPage(name) {
         if (_page !== name)
@@ -113,6 +114,13 @@ ApplicationWindow {
     function closeSettings() { _closePage("settings") }
     function openOnline()    { _openPage("online") }
     function closeOnline()   { _closePage("online") }
+
+    // BL-17: Home's Continue. The only unfinished game opens directly (ChessConnector decides);
+    // otherwise the list of them all.
+    function continueGames() {
+        if (!ChessConnector.continueOnlyGame())
+            _openPage("games")
+    }
     function resign() {
         if (AppSettings.confirmResign) resignConfirm.open()
         else                           ChessConnector.resignGame()
@@ -403,12 +411,20 @@ ApplicationWindow {
     }
 
     Component {
+        id: continuePage
+        ContinueGamesPage {
+            onBackRequested: root._closePage("games")
+        }
+    }
+
+    Component {
         id: homePage
         HomePage {
             onComputerGameRequested:  computerDialog.openNew()
             onTwoPlayerGameRequested: twoPlayerDialog.open()
             onOnlineGameRequested:    root.playOnline()
-            onOnlineGamesRequested:   root.openOnline()
+            onContinueRequested:      root.continueGames()
+            continueBusy:             ChessConnector.StartingOnlineGame
             onSettingsRequested:      root.openSettings()
             onProfileRequested:       root.openProfile()
             onSwitchUserRequested:    root.switchUser()
@@ -827,6 +843,9 @@ ApplicationWindow {
             if (ok) root.notify("Saved " + path, "success")
             else    root.notify("Couldn't save " + path, "critical")
         }
+        // BL-17: an unfinished Lichess game couldn't be rejoined (e.g. it ended meanwhile), from Home,
+        // the Continue list or the Online page.
+        function onGameStartFailed(message) { root.notify("Couldn't continue the game: " + message, "critical") }
     }
 
     // Lichess challenge setup: the dialogs and the pending challenge. The game itself starts and

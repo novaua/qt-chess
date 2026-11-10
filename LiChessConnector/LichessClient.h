@@ -110,7 +110,10 @@ public:
 	// LI-04: GET /api/account/playing (real-time and correspondence games); no-op without a token.
 	Q_INVOKABLE void refreshOngoingGames();
 	// Back into one of them: its stream starts with gameFull (all moves), then gameStarted as for any game.
+	// Until then rejoiningGameId() is the game's; a stream that ends first gives rejoinFailed (not
+	// networkError), and stopStream() drops the rejoin quietly.
 	Q_INVOKABLE void rejoinGame(const QString& gameId);
+	QString rejoiningGameId() const { return _rejoiningGameId; }
 	QVariantList ongoingGames() const { return _ongoingGames; }
 	bool ongoingGamesLoading() const { return _ongoingGamesLoading; }
 	QString ongoingGamesError() const { return _ongoingGamesError; }
@@ -183,6 +186,8 @@ signals:
 	void clockUpdated(qint64 whiteMs, qint64 blackMs, bool whiteToMove, bool running); // Lichess's times
 	void gameEnded(QString status, QString winner);
 	void networkError(QString message);
+	void rejoiningChanged();                          // rejoinGame() started, or ended (a game, a failure, stopStream)
+	void rejoinFailed(QString gameId, QString message); // rejoinGame()'s stream ended before its game started
 	void challengeCanceled();
 	void directChallengeSent(QString challengeId, QString opponentName); // we wait for the answer
 	void directChallengeLeft(QString opponentName); // it stays on Lichess: the game is in ongoingGames once accepted
@@ -218,6 +223,7 @@ private:
 	void stopDirectChallenge();
 	void stopWaitingForDirectChallenge(); // stop probing for the game; keeps the reply
 	void gameStreamEnded(QNetworkReply::NetworkError error, const QString& errorString, bool authExpired); // before gameFull
+	void setRejoiningGameId(const QString& gameId);
 	void gameStreamRefused(bool authExpired, int httpStatus); // mid-game: Lichess said no, no more reconnects
 	bool resyncMoves(const QStringList& moves); // a gameFull after a reconnect; true: our move was lost
 	void applyStreamMoves(const QStringList& moves); // a gameState's moves against ours
@@ -240,6 +246,7 @@ private:
 	QString               _token;
 	QString               _username;
 	QString               _currentGameId;
+	QString               _rejoiningGameId;   // rejoinGame(): until its gameStarted, a failure or stopStream()
 	bool                  _playingAsWhite  = true;
 	bool                  _lastOppDraw     = false;
 	bool                  _lastOppTakeback = false;

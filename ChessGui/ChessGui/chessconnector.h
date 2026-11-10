@@ -90,6 +90,12 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int  ClaimWinSeconds READ claimWinSeconds NOTIFY claimWinSecondsChanged)
 		Q_PROPERTY(bool CanClaimVictory READ canClaimVictory NOTIFY canClaimVictoryChanged)
 		Q_PROPERTY(QString ContinueDescription READ continueDescription NOTIFY canContinueChanged) // the autosaved game, e.g. "vs Bob"
+		// BL-17: the autosaved robot game for its card in the Continue list: { level, playerPlaysWhite,
+		// playerToMove, fen, lastMove (UCI) }; empty without one (CanContinue false).
+		Q_PROPERTY(QVariantMap ContinueGame READ continueGameInfo NOTIFY canContinueChanged)
+		// BL-17: an unfinished Lichess game is being rejoined (continueOnlineGame) until its game
+		// starts, it fails (gameStartFailed) or it is dropped (cancelOnlineStart, another profile).
+		Q_PROPERTY(bool StartingOnlineGame READ startingOnlineGame NOTIFY startingOnlineGameChanged)
 		Q_PROPERTY(GameClock* Clock READ clock CONSTANT) // the game's clocks; Clock.enabled false: none
 		// --screenshot mode: { scene, moves, black, dark, width, height }; empty in a normal run
 		Q_PROPERTY(QVariantMap ScreenshotScene READ screenshotScene CONSTANT)
@@ -142,6 +148,8 @@ public:
 	int     claimWinSeconds() const { return _claimWin->secondsLeft(); }
 	bool    canClaimVictory() const { return _claimWin->canClaim(); }
 	QString continueDescription() const;
+	QVariantMap continueGameInfo() const;
+	bool startingOnlineGame() const { return _lichessClient && !_lichessClient->rejoiningGameId().isEmpty(); }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 	int materialBalance() const;
@@ -166,6 +174,8 @@ signals:
 	void IsWhiteMoveChanged();
 	void IsOnPlayerModeChanged();
 	void canContinueChanged();
+	void startingOnlineGameChanged();
+	void gameStartFailed(QString message); // continueOnlineGame(): Lichess didn't give the game
 	void canLoadChanged();
 	void lastLevelChanged();
 
@@ -217,6 +227,14 @@ public slots:
 	Q_INVOKABLE void startComputerGame(int level, int side, int limitSec = 0, int incSec = 0); // side: 0 White, 1 Black, 2 Random
 	Q_INVOKABLE void startLocalGame(bool playerPlaysWhite, const QString& opponentUserId, int limitSec = 0, int incSec = 0); // "" = Guest
 	Q_INVOKABLE bool continueGame();
+	// BL-17: Home's Continue. The only unfinished game starts: the robot's autosave, or the one
+	// Lichess game (when it can be played here). False with none, two or more, or while the Lichess
+	// list is loading: the Continue list shows them then.
+	Q_INVOKABLE bool continueOnlyGame();
+	// Rejoin an unfinished Lichess game (the Continue list, the Online page): StartingOnlineGame, then
+	// the game page, or gameStartFailed. False without a linked account.
+	Q_INVOKABLE bool continueOnlineGame(const QString& gameId);
+	Q_INVOKABLE void cancelOnlineStart(); // drop a rejoin under way (Back from its page)
 	void setUseFen(bool v);
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
 	Q_INVOKABLE void setScreenshotClock(int whiteMs, int blackMs); // --screenshot: the times to show; the side to move runs
@@ -396,6 +414,11 @@ private:
 	std::vector<std::string> _sanCache; // SAN of shownHistory(), for the PGN
 	QDate _gameDate;                    // when the game started; invalid for a saved or continued game
 	QVariantMap  _screenshotScene;
+	bool hasAutoSave() const; // the file of a robot game; canContinue() also needs it readable
+	// continueGameInfo(), read from the autosave once (empty: unreadable); reset by canContinueChanged.
+	mutable std::optional<QVariantMap> _continueGameInfo;
+	QString _onlineStartUserId; // the profile that started continueOnlineGame(): another one drops it
+	void checkOnlineStart();    // the profile or its Lichess account changed: a rejoin of the other's is dropped
 };
 
 #endif // CHESSCONNECTOR_H

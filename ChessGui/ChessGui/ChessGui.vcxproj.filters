@@ -236,6 +236,21 @@
     <None Include="qml\OnlinePage.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\GameCard.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\OngoingGameCard.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\OngoingGamesRefresh.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\ContinueGamesPage.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\lichess.js">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\AppDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
