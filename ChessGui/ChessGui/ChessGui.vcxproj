@@ -457,6 +457,8 @@
     <None Include="qml\BoardPreview.qml" />
     <None Include="qml\OnlinePage.qml" />
     <None Include="qml\GameCard.qml" />
+    <None Include="qml\OngoingGameCard.qml" />
+    <None Include="qml\OngoingGamesRefresh.qml" />
     <None Include="qml\ContinueGamesPage.qml" />
     <None Include="qml\lichess.js" />
     <None Include="qml\MarkerColumn.qml" />

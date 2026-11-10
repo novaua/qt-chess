@@ -37,6 +37,8 @@
         <file>qml/BoardPreview.qml</file>
         <file>qml/OnlinePage.qml</file>
         <file>qml/GameCard.qml</file>
+        <file>qml/OngoingGameCard.qml</file>
+        <file>qml/OngoingGamesRefresh.qml</file>
         <file>qml/ContinueGamesPage.qml</file>
         <file>qml/lichess.js</file>
         <file>qml/LevelsHelpDialog.qml</file>

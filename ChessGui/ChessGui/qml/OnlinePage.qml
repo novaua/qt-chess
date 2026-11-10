@@ -16,7 +16,9 @@ Page {
     signal backRequested()
     signal profileRequested()   // link or reconnect the Lichess account there
 
-    property bool _busy: false   // a challenge, a join or a rejoin is under way
+    property bool _busy: false   // a challenge or a join is under way
+    // That, or a rejoin (ChessConnector.continueOnlineGame): no second start meanwhile.
+    readonly property bool _starting: _busy || ChessConnector.StartingOnlineGame
 
     readonly property string _opponent: opponentField.text.trim()   // empty: a challenge with a link
     readonly property bool _opponentValid: _opponent === "" || LichessClient.isUsername(_opponent)
@@ -51,23 +53,19 @@ Page {
         { text: "Standard chess only",         reason: "standard" }
     ]
 
-    // Not while one is running: a new token (main.cpp) has started one already.
-    function _refresh() {
-        if (UserManager.lichessConnected && !LichessClient.ongoingGamesLoading)
-            LichessClient.refreshOngoingGames()
-    }
-    // A join, rejoin or challenge that is starting is dropped, so no game starts unexpectedly. Not
-    // when a game did start: route() replaces this page by the game page then.
+    // A join or challenge that is starting is dropped, so no game starts unexpectedly. Not when a
+    // game did start: route() replaces this page by the game page then. A rejoin: ChessConnector.
     function _dropStarting() {
         if (_busy && !ChessConnector.InGame)
             LichessClient.stopStream()
         _busy = false
+        ChessConnector.cancelOnlineStart()
     }
     // Pushed, or shown again (back from the Profile page). Nothing started from here is under way
     // any more: a game replaces the page, a failure says so (networkError).
     StackView.onActivated: {
         _busy = false
-        _refresh()
+        gamesRefresh.refresh()   // not while one is running: a new token (main.cpp) has started one already
     }
     // Linked, reconnected or signed out (expired) while the page is open, e.g. the browser sign-in
     // ended after Back from the Profile page: what was starting belonged to the other account. The
@@ -78,13 +76,6 @@ Page {
     // Back while something is starting: drop it.
     StackView.onRemoved: _dropStarting()
 
-    // Continue (rejoin), or lichess.org for a game the Board API can't play here.
-    function _openGame(game) {
-        if (game.canPlayHere)
-            _start(() => LichessClient.rejoinGame(game.gameId))
-        else
-            Qt.openUrlExternally("https://lichess.org/" + game.gameId)
-    }
     function _start(action) {
         errorBar.visible = false
         page._busy = true
@@ -222,7 +213,7 @@ Page {
                                         text: challengeRow.modelData.canPlayHere ? "Accept" : "Open on lichess.org"
                                         icon.source: Theme.icon(challengeRow.modelData.canPlayHere ? "play" : "link")
                                         highlighted: challengeRow.modelData.canPlayHere
-                                        enabled: !page._busy
+                                        enabled: !page._starting
                                         onClicked: {
                                             if (!challengeRow.modelData.canPlayHere) {
                                                 Qt.openUrlExternally(challengeRow.modelData.url)
@@ -236,7 +227,7 @@ Page {
                                         id: declineButton
                                         objectName: "declineButton"   // the online-challenges-decline scene
                                         text: "Decline…"
-                                        enabled: !page._busy
+                                        enabled: !page._starting
                                         onClicked: declineMenu.open()
                                         Menu {
                                             id: declineMenu
@@ -343,7 +334,7 @@ Page {
                     text: page._named ? "Challenge " + page._opponent : "Create challenge"
                     icon.source: page._named ? "" : Theme.icon("link")
                     highlighted: true
-                    enabled: !page._busy && page._opponentValid && (!page._realTime || tcClock.ready)
+                    enabled: !page._starting && page._opponentValid && (!page._realTime || tcClock.ready)
                     Layout.topMargin: Theme.s1
                     onClicked: page._challenge()
                 }
@@ -369,7 +360,7 @@ Page {
                     Button {
                         id: joinButton
                         text: "Join"
-                        enabled: joinUrlField.text.trim() !== "" && !page._busy
+                        enabled: joinUrlField.text.trim() !== "" && !page._starting
                         onClicked: {
                             if (!enabled)
                                 return
@@ -411,38 +402,16 @@ Page {
 
                     Repeater {
                         model: page._games
-                        delegate: GameCard {
+                        delegate: OngoingGameCard {
                             required property var modelData
+                            game: modelData
+                            busy: page._starting
                             Layout.preferredWidth: gamesGrid.cardWidth
-                            fen: modelData.fen
-                            flipped: modelData.color === "black"
-                            lastMove: modelData.lastMove
-                            title: Lichess.gameTitle(modelData)
-                            playerToMove: modelData.isMyTurn
-                            details: Lichess.gameDetails(modelData)
-                            actionText: modelData.canPlayHere ? "Continue" : "Open on lichess.org"
-                            actionIcon: modelData.canPlayHere ? "play" : "link"
-                            actionTip: modelData.canPlayHere ? "" : "This kind of game can't be played in Chess++ yet"
-                            busy: page._busy
-                            onActivated: page._openGame(modelData)
                         }
                     }
                 }
 
-                RowLayout {
-                    spacing: Theme.s2
-                    Button {
-                        text: "Refresh"
-                        flat: true
-                        enabled: !LichessClient.ongoingGamesLoading
-                        onClicked: page._refresh()
-                    }
-                    BusyIndicator {
-                        visible: LichessClient.ongoingGamesLoading
-                        running: visible
-                        Layout.preferredWidth: 20; Layout.preferredHeight: 20
-                    }
-                }
+                OngoingGamesRefresh { id: gamesRefresh }   // the error is in the subtitle
             }
         }
     }

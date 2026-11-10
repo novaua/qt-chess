@@ -57,7 +57,7 @@ ChessConnector::ChessConnector(QObject* parent)
 	_claimWin = new ClaimWin(this);
 	// The autosave changed (saved, continued, another user): its card is read again. Connected
 	// first, so QML reads the new one.
-	connect(this, &ChessConnector::canContinueChanged, this, [this] { _continueGameInfo.clear(); });
+	connect(this, &ChessConnector::canContinueChanged, this, [this] { _continueGameInfo.reset(); });
 	connect(_claimWin, &ClaimWin::goneChanged, this, &ChessConnector::opponentGoneChanged);
 	connect(_claimWin, &ClaimWin::secondsLeftChanged, this, &ChessConnector::claimWinSecondsChanged);
 	connect(_claimWin, &ClaimWin::canClaimChanged, this, &ChessConnector::canClaimVictoryChanged);
@@ -671,12 +671,15 @@ QString ChessConnector::continueDescription() const
 	return vsRobotTitle(info.computerLevel > 0 ? info.computerLevel : _config.lastLevel);
 }
 
+// Read once per autosave; an unreadable one is empty, and canContinue() false: Home and the
+// Continue list agree that there is no robot game (BL-17 review).
 QVariantMap ChessConnector::continueGameInfo() const
 {
-	if (!canContinue())
+	if (!hasAutoSave())
 		return {};
-	if (!_continueGameInfo.isEmpty())
-		return _continueGameInfo;
+	if (_continueGameInfo)
+		return *_continueGameInfo;
+	_continueGameInfo = QVariantMap{};
 	auto game = std::make_shared<Chess::Game>();
 	try {
 		game->Load(autoSavePath().toStdString());
@@ -687,21 +690,54 @@ QVariantMap ChessConnector::continueGameInfo() const
 		return {};
 	}
 	const auto info = _userManager ? _userManager->autoSaveInfo() : UserManager::GameSaveInfo{};
-	const int level = info.computerLevel > 0 ? info.computerLevel : _config.lastLevel;
-	const auto squareName = [](int square) {
-		return QString(QChar('a' + square % 8)) + QChar('1' + square / 8);
+	const auto squareName = [](Chess::BoardPosition square) {
+		return QString::fromStdString(Chess::BoardPositionToString(square));
 	};
 	const auto& record = game->GetGameRecord();
-	_continueGameInfo = {
-		{ "title", vsRobotTitle(level) },
-		{ "level", level },
+	_continueGameInfo = QVariantMap{
+		{ "level", info.computerLevel > 0 ? info.computerLevel : _config.lastLevel },
 		{ "playerPlaysWhite", info.playerPlaysWhite },
 		{ "playerToMove", game->IsWhiteMove() == info.playerPlaysWhite },
 		{ "fen", QString::fromStdString(game->MakeFen()) },
-		{ "lastMove", record.empty() ? QString()
-		                             : squareName((int)record.back().From.Position) + squareName((int)record.back().To.Position) },
+		{ "lastMove", record.empty() ? QString() : squareName(record.back().From.Position) + squareName(record.back().To.Position) },
 	};
-	return _continueGameInfo;
+	return *_continueGameInfo;
+}
+
+bool ChessConnector::continueOnlyGame()
+{
+	const bool robot = canContinue();
+	const bool linked = _lichessClient && _userManager && _userManager->lichessConnected();
+	if (linked && _lichessClient->ongoingGamesLoading())
+		return false; // the list shows the robot's game at once, the Lichess ones when they come
+	const QVariantList online = linked ? _lichessClient->ongoingGames() : QVariantList{};
+	if (robot && online.isEmpty())
+		return continueGame();
+	if (!robot && online.size() == 1 && online.first().toMap().value(QStringLiteral("canPlayHere")).toBool())
+		return continueOnlineGame(online.first().toMap().value(QStringLiteral("gameId")).toString());
+	return false;
+}
+
+bool ChessConnector::continueOnlineGame(const QString& gameId)
+{
+	if (gameId.isEmpty() || !_lichessClient || !_userManager || !_userManager->lichessConnected())
+		return false;
+	_onlineStartUserId = _userManager->activeUserId();
+	_lichessClient->rejoinGame(gameId);
+	return true;
+}
+
+void ChessConnector::cancelOnlineStart()
+{
+	if (startingOnlineGame())
+		_lichessClient->stopStream(); // no game is on yet: nothing else is lost
+}
+
+void ChessConnector::checkOnlineStart()
+{
+	if (startingOnlineGame()
+		&& (!_userManager->isLoggedIn() || _userManager->activeUserId() != _onlineStartUserId || !_userManager->lichessConnected()))
+		cancelOnlineStart();
 }
 
 void ChessConnector::flagKing(bool white)
@@ -1064,6 +1100,9 @@ void ChessConnector::setUserManager(UserManager* um)
 	connect(_userManager, &UserManager::activeUserChanged, this, &ChessConnector::canContinueChanged);
 	connect(_userManager, &UserManager::activeUserChanged, this, &ChessConnector::canLoadChanged);
 	connect(_userManager, &UserManager::activeUserChanged, this, &ChessConnector::gameInfoChanged); // a renamed profile: the title
+	// A rejoin belongs to the profile and the Lichess account that started it.
+	connect(_userManager, &UserManager::activeUserChanged, this, &ChessConnector::checkOnlineStart);
+	connect(_userManager, &UserManager::lichessChanged, this, &ChessConnector::checkOnlineStart);
 }
 
 void ChessConnector::setLichessClient(LichessClient* lc)
@@ -1073,6 +1112,12 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 		connect(_lichessClient, &LichessClient::canRematchChanged,
 			this, &ChessConnector::canRematchChanged, Qt::UniqueConnection);
 		connect(_lichessClient, &LichessClient::gameStarted, this, &ChessConnector::onLichessGameStarted);
+		connect(_lichessClient, &LichessClient::rejoiningChanged, this, &ChessConnector::startingOnlineGameChanged);
+		// e.g. the game ended meanwhile: the list is out of date.
+		connect(_lichessClient, &LichessClient::rejoinFailed, this, [this](const QString&, const QString& message) {
+			emit gameStartFailed(message);
+			_lichessClient->refreshOngoingGames();
+		});
 		connect(_lichessClient, &LichessClient::gameEnded,   this, &ChessConnector::onLichessGameEnded);
 		connect(_lichessClient, &LichessClient::opponentGone, this, &ChessConnector::onLichessOpponentGone);
 		connect(_lichessClient, &LichessClient::clockStarted, this, &ChessConnector::onLichessClockStarted);
@@ -1960,9 +2005,14 @@ bool ChessConnector::continueGame()
 }
 
 // An autosave of a two-player or Lichess game (kept by older versions) is not offered.
-bool ChessConnector::canContinue() const
+bool ChessConnector::hasAutoSave() const
 {
 	return fileExists(autoSavePath()) && (!_userManager || _userManager->autoSaveInfo().isSinglePlayer);
+}
+
+bool ChessConnector::canContinue() const
+{
+	return hasAutoSave() && !continueGameInfo().isEmpty(); // readable too
 }
 
 bool ChessConnector::canAutoSave()

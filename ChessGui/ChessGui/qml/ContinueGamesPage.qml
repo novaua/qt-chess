@@ -2,73 +2,33 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import ChessPlusPlus
-import "lichess.js" as Lichess
 
 // Every unfinished game (BL-17), from Home's Continue when there are two or more: the robot's
 // autosaved game first (upper left), then the Lichess games, most urgent first (as on the Online
 // page). Pushed over Home; Back pops it. A game that starts replaces it by the game page
-// (ChessGame.qml route()).
+// (ChessGame.qml route()); a rejoin that fails says so over the command bar (gameStartFailed).
 Page {
     id: page
     objectName: "games"
 
     signal backRequested()
 
-    property bool _busy: false   // a Lichess game is being rejoined
-
+    readonly property bool _hasRobot: ChessConnector.CanContinue
     readonly property var _robot: ChessConnector.ContinueGame   // {} without one
-    readonly property bool _hasRobot: _robot.fen !== undefined
     readonly property var _games: UserManager.lichessConnected ? LichessClient.ongoingGames : []
     readonly property int _count: (_hasRobot ? 1 : 0) + _games.length
     readonly property int _myTurnCount: (_hasRobot && _robot.playerToMove ? 1 : 0) + _games.filter(g => g.isMyTurn).length
     readonly property var _levels: ChessConnector.Levels
 
-    function _refresh() {
-        if (UserManager.lichessConnected && !LichessClient.ongoingGamesLoading)
-            LichessClient.refreshOngoingGames()
-    }
-    // A rejoin that is starting is dropped, so no game starts unexpectedly. Not when a game did
-    // start: route() replaces this page by the game page then.
-    function _dropStarting() {
-        if (_busy && !ChessConnector.InGame)
-            LichessClient.stopStream()
-        _busy = false
-    }
     // Pushed, or shown again: a fresh list (an opponent may have moved or ended a game).
-    StackView.onActivated: {
-        _busy = false
-        _refresh()
-    }
-    StackView.onRemoved: _dropStarting()
-    // Signed out (expired) or linked anew while the page is open: the rejoin belonged to the other account.
-    readonly property bool _connected: UserManager.lichessConnected
-    on_ConnectedChanged: _dropStarting()
+    StackView.onActivated: refreshRow.refresh()
+    // Back while a rejoin is under way: dropped, so no game starts unexpectedly.
+    StackView.onRemoved: ChessConnector.cancelOnlineStart()
 
-    // Continue (rejoin), or lichess.org for a game the Board API can't play here.
-    function _openGame(game) {
-        if (!game.canPlayHere) {
-            Qt.openUrlExternally("https://lichess.org/" + game.gameId)
-            return
-        }
-        errorBar.visible = false
-        _busy = true
-        LichessClient.rejoinGame(game.gameId)
-    }
     function _robotDetails() {
         const level = _levels.find(l => l.level === _robot.level)
         return "Level " + _robot.level + (level ? " · " + level.name : "")
                + " · you play " + (_robot.playerPlaysWhite ? "White" : "Black")
-    }
-
-    Connections {
-        target: LichessClient
-        function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) { page._busy = false }
-        function onNetworkError(message) {
-            if (!page._busy)
-                return
-            page._busy = false
-            errorBar.show("Couldn't continue the game: " + message, "critical")
-        }
     }
 
     background: Rectangle { color: Theme.windowBg }
@@ -134,61 +94,28 @@ Page {
                     playerToMove: page._hasRobot && page._robot.playerToMove
                     waitingText: "Robot's turn"
                     details: page._hasRobot ? page._robotDetails() : ""
-                    busy: page._busy
+                    busy: ChessConnector.StartingOnlineGame
                     onActivated: ChessConnector.continueGame()
                 }
 
                 Repeater {
                     model: page._games
-                    delegate: GameCard {
+                    delegate: OngoingGameCard {
                         required property var modelData
+                        game: modelData
+                        lichessLabel: true
                         Layout.preferredWidth: grid.cardWidth
-                        fen: modelData.fen
-                        flipped: modelData.color === "black"
-                        lastMove: modelData.lastMove
-                        title: Lichess.gameTitle(modelData)
-                        playerToMove: modelData.isMyTurn
-                        details: "Lichess · " + Lichess.gameDetails(modelData)
-                        actionText: modelData.canPlayHere ? "Continue" : "Open on lichess.org"
-                        actionIcon: modelData.canPlayHere ? "play" : "link"
-                        actionTip: modelData.canPlayHere ? "" : "This kind of game can't be played in Chess++ yet"
-                        busy: page._busy
-                        onActivated: page._openGame(modelData)
                     }
                 }
             }
 
             // The Lichess games come from lichess.org: refresh them, or say why they're missing.
-            RowLayout {
+            OngoingGamesRefresh {
+                id: refreshRow
                 visible: UserManager.lichessConnected
-                spacing: Theme.s2
-                Button {
-                    text: "Refresh"
-                    flat: true
-                    enabled: !LichessClient.ongoingGamesLoading
-                    onClicked: page._refresh()
-                }
-                BusyIndicator {
-                    visible: LichessClient.ongoingGamesLoading
-                    running: visible
-                    Layout.preferredWidth: 20; Layout.preferredHeight: 20
-                }
-                Label {
-                    visible: LichessClient.ongoingGamesError !== ""
-                    text: "Couldn't load your Lichess games: " + LichessClient.ongoingGamesError
-                    color: Theme.critical
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
+                showError: true
+                Layout.fillWidth: true
             }
         }
-    }
-
-    // Over the content, under the header: seen wherever the page is scrolled to.
-    InfoBar {
-        id: errorBar
-        anchors { top: parent.top; topMargin: Theme.s2; horizontalCenter: parent.horizontalCenter }
-        width: content.width
-        z: 1
     }
 }

@@ -115,20 +115,11 @@ ApplicationWindow {
     function openOnline()    { _openPage("online") }
     function closeOnline()   { _closePage("online") }
 
-    // BL-17: Home's Continue. The only unfinished game opens directly (the robot's, or one Lichess
-    // game that can be played here); two or more: the list of them all.
-    property bool _rejoining: false   // Continue rejoins the one Lichess game: Lichess's answer is awaited
+    // BL-17: Home's Continue. The only unfinished game opens directly (ChessConnector decides);
+    // otherwise the list of them all.
     function continueGames() {
-        const robot = ChessConnector.CanContinue
-        const online = UserManager.lichessConnected ? LichessClient.ongoingGames : []
-        if (robot && online.length === 0) {
-            ChessConnector.continueGame()
-        } else if (!robot && online.length === 1 && online[0].canPlayHere) {
-            _rejoining = true
-            LichessClient.rejoinGame(online[0].gameId)
-        } else {
+        if (!ChessConnector.continueOnlyGame())
             _openPage("games")
-        }
     }
     function resign() {
         if (AppSettings.confirmResign) resignConfirm.open()
@@ -433,7 +424,7 @@ ApplicationWindow {
             onTwoPlayerGameRequested: twoPlayerDialog.open()
             onOnlineGameRequested:    root.playOnline()
             onContinueRequested:      root.continueGames()
-            continueBusy:             root._rejoining
+            continueBusy:             ChessConnector.StartingOnlineGame
             onSettingsRequested:      root.openSettings()
             onProfileRequested:       root.openProfile()
             onSwitchUserRequested:    root.switchUser()
@@ -852,6 +843,9 @@ ApplicationWindow {
             if (ok) root.notify("Saved " + path, "success")
             else    root.notify("Couldn't save " + path, "critical")
         }
+        // BL-17: an unfinished Lichess game couldn't be rejoined (e.g. it ended meanwhile), from Home,
+        // the Continue list or the Online page.
+        function onGameStartFailed(message) { root.notify("Couldn't continue the game: " + message, "critical") }
     }
 
     // Lichess challenge setup: the dialogs and the pending challenge. The game itself starts and
@@ -895,7 +889,6 @@ ApplicationWindow {
 
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
             _acceptingChallenge = false
-            _rejoining = false
             clearPendingChallenge()
         }
 
@@ -915,11 +908,7 @@ ApplicationWindow {
         }
 
         function onNetworkError(message) {
-            if (_rejoining) {               // Home's Continue: e.g. the game ended meanwhile
-                _rejoining = false
-                root.notify("Couldn't continue the game: " + message, "critical")
-                LichessClient.refreshOngoingGames()
-            } else if (challengeDialog.visible && _pendingRematch) {
+            if (challengeDialog.visible && _pendingRematch) {
                 clearPendingChallenge()
                 root.notify("Rematch failed: " + message, "critical")
             } else if (challengeDialog.visible) {

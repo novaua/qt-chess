@@ -213,7 +213,16 @@ void LichessClient::rejoinGame(const QString& gameId)
     if (gameId.isEmpty())
         return;
     qDebug() << "LichessClient: rejoin" << gameId;
-    streamGame(gameId);
+    streamGame(gameId); // stops whatever ran, an earlier rejoin too
+    setRejoiningGameId(gameId);
+}
+
+void LichessClient::setRejoiningGameId(const QString& gameId)
+{
+    if (_rejoiningGameId == gameId)
+        return;
+    _rejoiningGameId = gameId;
+    emit rejoiningChanged();
 }
 
 // static
@@ -826,12 +835,19 @@ void LichessClient::streamGame(const QString& gameId)
 // when stopStream() aborted it (canceled).
 void LichessClient::gameStreamEnded(QNetworkReply::NetworkError error, const QString& errorString, bool authExpired)
 {
-    if (authExpired)
-        emit networkError(QStringLiteral("Lichess sign-in expired"));
-    else if (error == QNetworkReply::NoError)
-        emit networkError(QStringLiteral("Lichess closed the game before it started"));
-    else if (error != QNetworkReply::OperationCanceledError)
-        emit networkError(errorString);
+    if (error == QNetworkReply::OperationCanceledError && !authExpired)
+        return;
+    const QString message = authExpired ? QStringLiteral("Lichess sign-in expired")
+                          : error == QNetworkReply::NoError ? QStringLiteral("Lichess closed the game before it started")
+                          : errorString;
+    // A rejoin's failure is its own: not taken for another request's error (BL-17 review).
+    const QString rejoining = _rejoiningGameId;
+    if (!rejoining.isEmpty()) {
+        setRejoiningGameId({});
+        emit rejoinFailed(rejoining, message);
+        return;
+    }
+    emit networkError(message);
 }
 
 // Mid-game, Lichess's own "no" (4xx: the sign-in expired, a game it doesn't stream any more) won't
@@ -897,6 +913,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
             // Emit gameStarted first so the board is initialized before any moves are applied.
             _lastMovesList = moves;
             _sentMoves.clear();
+            setRejoiningGameId({}); // a rejoin has its game
             emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl);
             startClock(obj);
 
@@ -1398,6 +1415,7 @@ RematchInfo LichessClient::parseRematchInfo(const QJsonObject& gameFull, const Q
 
 void LichessClient::stopStream()
 {
+    setRejoiningGameId({}); // dropped, not failed: no rejoinFailed
     _watchingForRematch = false;
     setRematchOfferId({});
     stopDirectChallenge();

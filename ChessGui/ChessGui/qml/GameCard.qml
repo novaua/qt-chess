@@ -16,6 +16,7 @@ Rectangle {
     property bool   playerToMove: false // "Your turn", else `waitingText`
     property string waitingText: "Waiting"
     property string details
+    property bool   playable: true      // Continue plays it here (highlighted on the player's turn); else the action opens it elsewhere
     property string actionText: "Continue"
     property string actionIcon: "play"
     property string actionTip: ""       // e.g. why it opens lichess.org
@@ -75,7 +76,7 @@ Rectangle {
         Button {
             text: card.actionText
             icon.source: Theme.icon(card.actionIcon)
-            highlighted: card.actionIcon === "play" && card.playerToMove
+            highlighted: card.playable && card.playerToMove
             enabled: !card.busy
             Layout.fillWidth: true
             ToolTip.visible: hovered && card.actionTip !== ""

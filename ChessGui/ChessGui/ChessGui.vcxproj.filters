@@ -239,6 +239,12 @@
     <None Include="qml\GameCard.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\OngoingGameCard.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\OngoingGamesRefresh.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\ContinueGamesPage.qml">
       <Filter>Source Files\Qml</Filter>
     </None>

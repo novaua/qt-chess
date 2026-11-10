@@ -875,6 +875,74 @@ namespace LichessTests
 			Assert::AreEqual(1, lichess.count(Stream));
 		}
 
+		// BL-17 review: a rejoin is under way until its game starts.
+		TEST_METHOD(Rejoin_GameStarts_RejoiningEnds)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull("e2e4"));
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+			QObject::connect(&client, &LichessClient::rejoinFailed, [&](QString id, QString) { events << "rejoin failed " + id; });
+
+			client.rejoinGame("g1");
+			Assert::AreEqual(QStringLiteral("g1"), client.rejoiningGameId());
+			waitUntil([&] { return events.contains("start"); });
+
+			Assert::IsTrue(client.rejoiningGameId().isEmpty());
+			areEqual({ "start", "move e2e4" }, events);
+		}
+
+		// A game Lichess won't stream (e.g. it ended meanwhile): rejoinFailed, not networkError, so no
+		// other request's error is taken for it, nor it for theirs.
+		TEST_METHOD(Rejoin_Refused_RejoinFailedNotNetworkError)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				FakeLichess::answer(socket, 404, "Not Found");
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+			QObject::connect(&client, &LichessClient::rejoinFailed, [&](QString id, QString) { events << "rejoin failed " + id; });
+
+			client.rejoinGame("g1");
+			waitUntil([&] { return !events.isEmpty(); });
+
+			areEqual({ "rejoin failed g1" }, events);
+			Assert::IsTrue(client.rejoiningGameId().isEmpty());
+		}
+
+		// Dropped (another profile, Back): quietly, no failure.
+		TEST_METHOD(Rejoin_StopStream_DroppedQuietly)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString&) {
+				FakeLichess::startStream(socket);   // and nothing more: the game hasn't come yet
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+			int changes = 0;
+			QObject::connect(&client, &LichessClient::rejoinFailed, [&](QString id, QString) { events << "rejoin failed " + id; });
+			QObject::connect(&client, &LichessClient::rejoiningChanged, [&] { ++changes; });
+
+			client.rejoinGame("g1");
+			waitUntil([&] { return lichess.count(Stream) == 1; });
+			client.stopStream();
+			waitUntil([] { return false; }, 300);
+
+			Assert::IsTrue(client.rejoiningGameId().isEmpty());
+			Assert::AreEqual(2, changes);
+			areEqual({}, events);
+		}
+
 		// Our move's POST gets no answer (the connection closes): did Lichess play it? The stream is
 		// opened again, and Lichess hasn't got it: our board takes it back.
 		TEST_METHOD(MoveWithoutAnswer_NotOnLichess_IsTakenBack)
