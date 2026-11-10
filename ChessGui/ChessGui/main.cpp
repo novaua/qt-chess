@@ -83,7 +83,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
 	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online",
 	                  "continue-list", "continue-list-online", "takeback",
-	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting",
+	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting", "rejoin",
 	                  "challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
 	                  "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
 	                  "opponent-left-error" }.contains(scene))
@@ -183,6 +183,18 @@ static void playPremoveScene(ChessConnector* connector, LichessClient* lichess, 
 		else if (*step == 2 && scene != "premove")
 			emit connector->screenshotSceneReady();
 	});
+}
+
+// Scene "rejoin" (BL-18): an unfinished Lichess game joined with its moves (as Continue does), grabbed
+// as soon as the game page is up, without waiting for the board to settle (no --delay either): it
+// must show the game's position already, not the start position.
+static void playRejoinScene(ChessConnector* connector, LichessClient* lichess)
+{
+	lichess->setCurrentGameId(QStringLiteral("rejoin01"));
+	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"rejoin01",
+		"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},
+		"state":{"moves":"e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6","status":"started"}})");
+	QTimer::singleShot(0, connector, [=]() { emit connector->screenshotSceneReady(); }); // after the posted pieces sync
 }
 
 // Scene "reconnecting" (LI-06): a Lichess game whose connection is lost: the bar over the board. The
@@ -312,7 +324,7 @@ int main(int argc, char* argv[])
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
 		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge",
-		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting",
+		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "saved", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
 		"opponent-left-error"
@@ -401,7 +413,8 @@ int main(int argc, char* argv[])
 		seedScreenshotProfiles(userManager, sceneMap);
 		connector->setScreenshotScene(sceneMap);
 
-		const int delay = qMax(0, parser.value(delayOption).toInt());
+		// "rejoin" (BL-18) is the first frames: grabbed at once.
+		const int delay = scene == "rejoin" ? 0 : qMax(0, parser.value(delayOption).toInt());
 		QObject::connect(connector, &ChessConnector::screenshotSceneReady, &app, [&engine, screenshotPath, delay]() {
 			QTimer::singleShot(delay, &engine, [&engine, screenshotPath]() {
 				const auto roots = engine.rootObjects();
@@ -490,6 +503,9 @@ int main(int argc, char* argv[])
 	if (screenshotMode && scene == "reconnecting")
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
 			[=]() { playReconnectingScene(connector, lichessClient); }, Qt::QueuedConnection);
+	if (screenshotMode && scene == "rejoin")
+		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
+			[=]() { playRejoinScene(connector, lichessClient); }, Qt::QueuedConnection);
 	if (!engine.rootObjects().isEmpty())
 		FrameTrace::watch(qobject_cast<QQuickWindow*>(engine.rootObjects().first()));
 
