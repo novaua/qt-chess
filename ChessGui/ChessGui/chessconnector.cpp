@@ -850,7 +850,7 @@ void ChessConnector::makeMove(int from, int to, Chess::PieceTypes promoteTo)
 	onHumanMoveDone();
 }
 
-void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
+void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite, const QStringList& moves)
 {
 	_clock->stop();
 	stopEngineThread();
@@ -875,6 +875,7 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 
 	resetMoveHistoryCache();
 	_game->Restart();
+	playJoinedMoves(moves);
 	EmitMoveCountUpdates();
 	emit newGameStarted(false);
 
@@ -888,8 +889,32 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite)
 	}
 }
 
+// BL-18
+// A rejoined game comes with its moves: they are on the board before setGameMode() opens the game
+// page, so its first frame shows the game's position.
+void ChessConnector::playJoinedMoves(const QStringList& uciMoves)
+{
+	if (uciMoves.isEmpty())
+		return;
+	{
+		_resuming = true; // no "Check" for them: the page tells a check in the position it opens on
+		const auto resumed = qScopeGuard([this] { _resuming = false; });
+		for (const auto& move : uciMoves) {
+			try {
+				_game->DoMove(Chess::Move::Parse(move.toStdString()));
+			}
+			catch (const std::exception& ex) {
+				qWarning() << "Joined game's move" << move << "can't be played:" << ex.what();
+				break;
+			}
+		}
+	}
+	_piecesAnew = true; // the position at once, no slides (also when the game page is already open)
+	buildFullHistoryCache();
+}
+
 void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsWhite,
-	const QString& opponentName, const QString& opponentAvatar)
+	const QString& opponentName, const QString& opponentAvatar, const QStringList& moves)
 {
 	// A Lichess game replaces a robot game (BL-10: a challenge accepted during it): kept for
 	// Continue, as when leaving it for Home.
@@ -897,7 +922,7 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 		autoSaveGame();
 		emit canContinueChanged();
 	}
-	startOnlineGame(gameId, playingAsWhite);
+	startOnlineGame(gameId, playingAsWhite, moves);
 	if (_avatarProvider)
 		_avatarProvider->setOpponentFromUser(opponentAvatar.isEmpty() ? QStringLiteral("unicorn") : opponentAvatar);
 	setGameMode(QStringLiteral("online"),

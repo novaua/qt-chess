@@ -910,16 +910,14 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
             const QString opponentName      = opponent.value(QStringLiteral("name")).toString();
             const QString opponentAvatarUrl = {}; // Lichess doesn't provide avatar in stream
 
-            // Emit gameStarted first so the board is initialized before any moves are applied.
+            // The moves played before we joined (a rejoin) come with the start (BL-18): the board
+            // shows the game's position from its first frame, not the start position and then a
+            // resync of every move.
             _lastMovesList = moves;
             _sentMoves.clear();
             setRejoiningGameId({}); // a rejoin has its game
-            emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl);
+            emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl, moves);
             startClock(obj);
-
-            // Resync our board state with moves that arrived before we joined.
-            if (!_lastMovesList.isEmpty())
-                emit opponentMoveReceived(_lastMovesList.join(QLatin1Char(' ')));
         }
 
         // Streaming a game that has already ended: Lichess sends only gameFull, then closes.

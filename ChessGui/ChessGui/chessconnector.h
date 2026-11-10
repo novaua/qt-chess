@@ -293,7 +293,7 @@ private slots:
 	void onEngineMoveFound(int request, const QString& move);
 	void onEngineMoveError(int request, const QString& message, const QString& details);
 	void onLichessGameStarted(const QString& gameId, bool playingAsWhite, const QString& opponentName,
-		const QString& opponentAvatar);
+		const QString& opponentAvatar, const QStringList& moves);
 	void onLichessGameEnded(const QString& status, const QString& winner);
 	void onLichessOpponentGone(bool gone, int claimWinInSeconds);
 	void onLichessClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence);
@@ -303,7 +303,8 @@ private slots:
 private:
 	void startNewGame();
 	void startNewGameWithComputer(int level);
-	void startOnlineGame(const QString& gameId, bool playingAsWhite);
+	void startOnlineGame(const QString& gameId, bool playingAsWhite, const QStringList& moves);
+	void playJoinedMoves(const QStringList& uciMoves); // BL-18: a joined game's moves so far, before its page opens
 	void setPlayerPlaysWhite(bool v);
 	// opponentUserId: the opponent's profile in a two-player game ("" = Guest, or not a local game).
 	void setGameMode(const QString& mode, const QString& opponentName, const QString& opponentUserId = {});

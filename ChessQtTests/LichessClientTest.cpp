@@ -455,7 +455,9 @@ namespace LichessTests
 		struct ClockEvents {
 			QStringList events;
 			explicit ClockEvents(LichessClient& client) {
-				QObject::connect(&client, &LichessClient::gameStarted, [this] { events << "started"; });
+				QObject::connect(&client, &LichessClient::gameStarted, [this](QString, bool, QString, QString, QStringList moves) {
+					events << ("started " + moves.join(' ')).trimmed();
+				});
 				QObject::connect(&client, &LichessClient::clockStarted, [this](qint64 limit, qint64 inc, bool days) {
 					events << QString("clock %1 %2 %3").arg(limit).arg(inc).arg(days ? "days" : "real");
 				});
@@ -480,7 +482,7 @@ namespace LichessTests
 			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
 				"clock":{"initial":600000,"increment":5000},
 				"state":{"moves":"e2e4 e7e5 g1f3","wtime":590000,"btime":575000,"status":"started"}})");
-			areEqual({ "started", "clock 600000 5000 real", "move e2e4 e7e5 g1f3", "times 590000 575000 b running" }, clock.events);
+			areEqual({ "started e2e4 e7e5 g1f3", "clock 600000 5000 real", "times 590000 575000 b running" }, clock.events);
 		}
 
 		// Lichess starts the clocks once both sides have moved.
@@ -550,7 +552,7 @@ namespace LichessTests
 			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
 				"clock":{"initial":600000,"increment":0},
 				"state":{"moves":"e2e4 e7e5","wtime":400000,"btime":300000,"status":"resign","winner":"black"}})");
-			areEqual({ "started", "clock 600000 0 real", "move e2e4 e7e5", "times 400000 300000 w stopped", "end resign" }, clock.events);
+			areEqual({ "started e2e4 e7e5", "clock 600000 0 real", "times 400000 300000 w stopped", "end resign" }, clock.events);
 		}
 
 		// BotJsonView.scala: wtime and btime are the time left for the move, and it runs from the start.
@@ -573,23 +575,23 @@ namespace LichessTests
 			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
 				"state":{"moves":"e2e4 e7e5","wtime":2147483647,"btime":2147483647,"status":"started"}})");
 			client.handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 g1f3","wtime":2147483647,"btime":2147483647,"status":"started"})");
-			areEqual({ "started", "move e2e4 e7e5", "move g1f3" }, clock.events);
+			areEqual({ "started e2e4 e7e5", "move g1f3" }, clock.events);
 		}
 
-		TEST_METHOD(GameStream_GameFull_ResyncsAllMovesInOneSignal_Test)
+		// BL-18: a joined game's moves come with its start, so the board shows its position at once
+		// (not the start position, then every move again as the opponent's).
+		TEST_METHOD(GameStream_GameFull_MovesComeWithTheStart_Test)
 		{
 			LichessClient client;
 			client.setUsername("me");
 			QStringList events;
-			QObject::connect(&client, &LichessClient::gameStarted, [&](QString, bool, QString, QString) { events << "start"; });
+			QObject::connect(&client, &LichessClient::gameStarted, [&](QString, bool, QString, QString, QStringList moves) { events << ("start " + moves.join(' ')).trimmed(); });
 			QObject::connect(&client, &LichessClient::opponentMoveReceived, [&](QString moves) { events << "move " + moves; });
 
 			client.handleGameStreamLine(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},
 				"state":{"moves":"e2e4 e7e5 g1f3","status":"started"}})");
 
-			Assert::AreEqual(2, (int)events.size());
-			Assert::AreEqual(QString("start"), events[0], L"the board is set up before the moves");
-			Assert::AreEqual(QString("move e2e4 e7e5 g1f3"), events[1]);
+			LichessStaticTests::areEqual({ "start e2e4 e7e5 g1f3" }, events);
 		}
 
 		TEST_METHOD(GameStream_GameState_OnlyNewMoves_Test)
@@ -722,7 +724,7 @@ namespace LichessTests
 		// LI-06: a gameFull after a reconnect is the same game: no new start, only what changed.
 		static void recordResyncEvents(LichessClient& client, QStringList& events)
 		{
-			QObject::connect(&client, &LichessClient::gameStarted, [&](QString, bool, QString, QString) { events << "start"; });
+			QObject::connect(&client, &LichessClient::gameStarted, [&](QString, bool, QString, QString, QStringList moves) { events << ("start " + moves.join(' ')).trimmed(); });
 			QObject::connect(&client, &LichessClient::opponentMoveReceived, [&](QString moves) { events << "move " + moves; });
 			QObject::connect(&client, &LichessClient::moveListReplaced, [&](QString moves, bool refused) {
 				events << (refused ? "lost " : "replaced ") + moves;
@@ -786,7 +788,7 @@ namespace LichessTests
 
 		static void record(LichessClient& client, QStringList& events)
 		{
-			QObject::connect(&client, &LichessClient::gameStarted, [&](QString, bool, QString, QString) { events << "start"; });
+			QObject::connect(&client, &LichessClient::gameStarted, [&](QString, bool, QString, QString, QStringList moves) { events << ("start " + moves.join(' ')).trimmed(); });
 			QObject::connect(&client, &LichessClient::opponentMoveReceived, [&](QString moves) { events << "move " + moves; });
 			QObject::connect(&client, &LichessClient::moveListReplaced, [&](QString moves, bool refused) {
 				events << (refused ? "lost " : "replaced ") + moves;
@@ -827,7 +829,7 @@ namespace LichessTests
 			client.streamGame("g1");
 			waitUntil([&] { return events.contains("move e7e5"); });
 
-			areEqual({ "start", "move e2e4", "lost connection", "move e7e5", "back" }, events); // the moves, then "back"
+			areEqual({ "start e2e4", "lost connection", "move e7e5", "back" }, events); // the moves, then "back"
 			Assert::AreEqual(2, lichess.count(Stream));
 		}
 
@@ -847,7 +849,7 @@ namespace LichessTests
 			client.streamGame("g1");
 			waitUntil([&] { return events.contains("back"); });
 
-			areEqual({ "start", "move e2e4", "lost connection", "back" }, events);
+			areEqual({ "start e2e4", "lost connection", "back" }, events);
 			Assert::AreEqual(2, lichess.count(Stream));
 		}
 
@@ -871,7 +873,7 @@ namespace LichessTests
 			client.streamGame("g1");
 			waitUntil([] { return false; }, 3000);
 
-			areEqual({ "start", "move e2e4" }, events);
+			areEqual({ "start e2e4" }, events);
 			Assert::AreEqual(1, lichess.count(Stream));
 		}
 
@@ -891,10 +893,10 @@ namespace LichessTests
 
 			client.rejoinGame("g1");
 			Assert::AreEqual(QStringLiteral("g1"), client.rejoiningGameId());
-			waitUntil([&] { return events.contains("start"); });
+			waitUntil([&] { return events.contains("start e2e4"); });
 
 			Assert::IsTrue(client.rejoiningGameId().isEmpty());
-			areEqual({ "start", "move e2e4" }, events);
+			areEqual({ "start e2e4" }, events);
 		}
 
 		// A game Lichess won't stream (e.g. it ended meanwhile): rejoinFailed, not networkError, so no
@@ -962,11 +964,11 @@ namespace LichessTests
 			record(client, events);
 
 			client.streamGame("g1");
-			waitUntil([&] { return events.contains("move e2e4 e7e5"); });
+			waitUntil([&] { return events.contains("start e2e4 e7e5"); });
 			client.postMove("g1", "g1f3");
 			waitUntil([&] { return events.size() >= 4; });
 
-			areEqual({ "start", "move e2e4 e7e5", "lost e2e4 e7e5", "error Your move didn't reach Lichess. Play it again." }, events);
+			areEqual({ "start e2e4 e7e5", "lost e2e4 e7e5", "error Your move didn't reach Lichess. Play it again." }, events);
 			Assert::AreEqual(2, lichess.count(Stream), L"one resync, not a lost connection");
 		}
 
@@ -986,11 +988,11 @@ namespace LichessTests
 			record(client, events);
 
 			client.streamGame("g1");
-			waitUntil([&] { return events.contains("move e2e4 e7e5"); });
+			waitUntil([&] { return events.contains("start e2e4 e7e5"); });
 			client.postMove("g1", "g1f3");
 			waitUntil([&] { return events.contains("move b8c6"); });
 
-			areEqual({ "start", "move e2e4 e7e5", "move b8c6" }, events);
+			areEqual({ "start e2e4 e7e5", "move b8c6" }, events);
 		}
 
 		// The game ended: the server closes the stream, and that isn't a lost connection.
@@ -1012,7 +1014,7 @@ namespace LichessTests
 			client.streamGame("g1");
 			waitUntil([] { return false; }, 800);
 
-			areEqual({ "start", "move f2f3 e7e5 g2g4", "move d8h4", "end mate" }, events);
+			areEqual({ "start f2f3 e7e5 g2g4", "move d8h4", "end mate" }, events);
 			Assert::AreEqual(1, lichess.count(Stream));
 		}
 
@@ -1047,11 +1049,11 @@ namespace LichessTests
 			record(client, events);
 
 			client.streamGame("g1");
-			waitUntil([&] { return events.contains("move e2e4 e7e5"); });
+			waitUntil([&] { return events.contains("start e2e4 e7e5"); });
 			client.postMove("g1", "g1f3");
 			waitUntil([] { return false; }, 1000);
 
-			areEqual({ "start", "move e2e4 e7e5", "lost connection", "back" }, events);
+			areEqual({ "start e2e4 e7e5", "lost connection", "back" }, events);
 		}
 
 		// Lichess itself says no (404: a game it doesn't stream any more): asking again won't help.
@@ -1078,7 +1080,7 @@ namespace LichessTests
 			waitUntil([&] { return events.contains("stopped"); });
 			waitUntil([] { return false; }, 600); // no more attempts
 
-			areEqual({ "start", "move e2e4", "lost connection", "stopped", "error Lichess stopped sending this game (HTTP 404)" }, events);
+			areEqual({ "start e2e4", "lost connection", "stopped", "error Lichess stopped sending this game (HTTP 404)" }, events);
 			Assert::AreEqual(2, lichess.count(Stream));
 		}
 
@@ -1106,7 +1108,7 @@ namespace LichessTests
 			client.streamGame("g1");
 			waitUntil([&] { return events.contains("back"); });
 
-			areEqual({ "start", "move e2e4", "lost connection", "back" }, events);
+			areEqual({ "start e2e4", "lost connection", "back" }, events);
 			Assert::AreEqual(3, lichess.count(Stream));
 		}
 
