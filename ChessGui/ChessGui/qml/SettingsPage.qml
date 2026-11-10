@@ -369,6 +369,7 @@ Page {
                             ["Ctrl+Z", "Take back a move"],
                             ["Ctrl+S", "Save the game"],
                             ["F1", "Computer levels"],
+                            ["Ctrl+M", "Recent messages"],
                             ["Ctrl+,", "Settings"],
                             ["Alt+S", "Type in moves (two-player game)"],
                             ["Enter  Esc", "In a dialog: the main button, or Cancel"],

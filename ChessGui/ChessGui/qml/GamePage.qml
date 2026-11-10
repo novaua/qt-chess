@@ -17,6 +17,8 @@ Page {
     // covers the opponent's card. With the player column (BL-13), the bars go between its cards
     // (barsArea) and the board keeps its size.
     property real infoBarsHeight: 0
+    property int unseenMessages: 0   // the dot on More (BL-13 step 3)
+    signal recentMessagesRequested(Item anchor)
     // The board's middle, in the page's coordinates: the command bar's messages centre on it.
     readonly property real boardCenterX: contentItem.x + area.x + area.boardX + area.boardSize / 2
     // The free space between the column's cards, in the page's coordinates; empty without the column.
@@ -222,8 +224,18 @@ Page {
         }
         IconButton {
             id: moreButton
-            icon.source: Theme.icon("more"); tip: "More"
+            icon.source: Theme.icon("more")
+            tip: page.unseenMessages > 0 ? "More (" + page.unseenMessages + " new messages)" : "More"
+            Accessible.name: tip
             onClicked: moreMenu.popup(moreButton, moreButton.width - moreMenu.width, moreButton.height)
+
+            // New messages the player didn't cause (ChessGame.qml's recent messages).
+            Rectangle {
+                visible: page.unseenMessages > 0
+                width: 8; height: 8; radius: 4
+                color: Theme.accent
+                anchors { top: parent.top; right: parent.right; topMargin: 8; rightMargin: 8 }
+            }
 
             Menu {
                 id: moreMenu
@@ -244,6 +256,11 @@ Page {
                     text: "Computer levels"
                     icon.source: Theme.icon("robot")
                     onTriggered: page.levelsHelpRequested()
+                }
+                MenuItem {
+                    text: page.unseenMessages > 0 ? "Recent messages (" + page.unseenMessages + " new)" : "Recent messages"
+                    icon.source: Theme.icon("info")
+                    onTriggered: page.recentMessagesRequested(moreButton)
                 }
                 MenuSeparator {}
                 MenuItem {

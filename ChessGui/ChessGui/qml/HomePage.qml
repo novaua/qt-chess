@@ -16,6 +16,8 @@ Page {
     signal settingsRequested()
     signal profileRequested()
     signal switchUserRequested()
+    signal recentMessagesRequested(Item anchor)
+    property int unseenMessages: 0   // the dot on the account button (BL-13 step 3)
 
     readonly property var _levels: ChessConnector.Levels
 
@@ -58,7 +60,7 @@ Page {
         ToolButton {
             id: accountButton
             text: UserManager.activeUserName
-            Accessible.name: "Account: " + text
+            Accessible.name: "Account: " + text + (page.unseenMessages > 0 ? ", " + page.unseenMessages + " new messages" : "")
             // Own content: the style tints the icon and draws the text in icon.color, and the
             // avatar must keep its colours.
             contentItem: Row {
@@ -88,6 +90,14 @@ Page {
             ToolTip.delay: 400
             onClicked: accountMenu.popup(accountButton, 0, accountButton.height)
 
+            // New messages the player didn't cause (ChessGame.qml's recent messages).
+            Rectangle {
+                visible: page.unseenMessages > 0
+                width: 8; height: 8; radius: 4
+                color: Theme.accent
+                anchors { top: parent.top; right: parent.right; topMargin: 8; rightMargin: 8 }
+            }
+
             Menu {
                 id: accountMenu
                 MenuItem {
@@ -99,6 +109,12 @@ Page {
                     text: "Switch user"
                     icon.source: Theme.icon("sign-out")
                     onTriggered: page.switchUserRequested()
+                }
+                MenuSeparator {}
+                MenuItem {
+                    text: page.unseenMessages > 0 ? "Recent messages (" + page.unseenMessages + " new)" : "Recent messages"
+                    icon.source: Theme.icon("info")
+                    onTriggered: page.recentMessagesRequested(accountButton)
                 }
             }
         }

@@ -4,6 +4,27 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-10 — BL-13 step 3: messages over the command bar, recent messages (branch: features/commandBarMessages_101126)
+
+### What was done (plan §9, the owner's Q5–Q10)
+- **Over the command bar** (`CommandBarMessage`, now declarative: `active`, buttons as children, `closable`, `fits`): besides the short messages, the **offers** ("Friend offers a draw" with Accept / Decline; takeback, rematch), the **lost connection** ("Reconnecting to Lichess…", the full text as its tooltip) and the **opponent left** ("Opponent left · claim victory in 12 s", Claim victory). One at a time: the game's state (offer > opponent left > connection) before a short message; what doesn't fit (e.g. an offer at 640 wide) or waits behind goes to the InfoBars as before (one offer bar now for the three kinds). An **error stays until closed** (×); a newer message meanwhile goes to the InfoBar for its 4 s. `ChessGame.notify(text, severity, external)` replaces `messageBar.show()` (21 callers).
+- **Recent messages** (`MessagesFlyout`): the last 20 of the session, newest first, all but "Check": full text, the time, the game it came from when not the one on screen; an open offer keeps Accept / Decline there, then shows "accepted" / "declined" / "withdrawn"; the opponent left keeps Claim victory. "Recent messages" in the game's **More** menu and Home's **account menu**, **Ctrl+M** everywhere (in Settings' shortcut list); an accent **dot** on More / the account button for new ones the player didn't cause (an offer, the opponent left, the connection, a decline, an error). A panel in the window, not a `Popup` (see below); Esc or a click outside closes it.
+- **Screenshots**: new scenes `draw-offer` (default, 1400×900, 640×560: the InfoBar), `saved`, `home-message`, `messages` (the list open); `reconnecting` re-baselined (the pill). **20 baselines** new or changed, light and dark, after a look.
+- **The dialog and timer scenes**: the first full run, at night, drew no popups and stalled QML timers (the screen was locked; `develop`'s build failed the same way). Run again with the screen on: all 150 scenes match, after 4 more baselines: `about` (light, dark: the Ctrl+M row in the shortcut list) and `draw-offer` at 640×560 (light, dark: the same picture, its text smoothed in grey instead of ClearType; the night's baseline was the odd one).
+- The list was a `Popup` first; in that state it neither drew nor let the window's frames go on, so it is a plain panel now (it works either way, and needs no popup window).
+- QML, the scenes in `main.cpp` and the script: no C++ tests run.
+
+### Fixed after the owner's test with a real Lichess game (the opponent left)
+- **Claim victory was offered when Lichess refuses it.** Lichess takes the claim only on the opponent's turn (lila `Pov.mightClaimWin = forceResignable && !isMyTurn`; else "This is not the time to claim victory"), but sends `claimWinInSeconds: 0` either way. On the player's turn the message now says "Opponent left · your move, then claim victory" and has no button (also in the InfoBar and the recent messages); during the countdown, no button either, so the message is narrower and fits.
+- **The board changed size**: the countdown's message with its (disabled) button didn't fit the command bar, so it went to the InfoBar; and the refused claim's error went to the InfoBar because the state held the command bar. Now a short message takes the state's place for its time (an error until closed) and the state waits there, not in the InfoBar; a newer message behind an error goes only to the recent messages (with the dot). Only what doesn't fit at all (a narrow window) still uses the InfoBar.
+- **The opponent-left message can be closed** (×, over the command bar and in the InfoBar): hidden until the claim becomes possible or the opponent comes back or leaves again; the recent messages keep Claim victory.
+- Scenes `opponent-left` (+ 1400×900), `opponent-left-claim` (+ 1400×900, 640×560), `opponent-left-turn`, `opponent-left-error`: 14 new baselines, light and dark; all 150 others match.
+
+### Next
+- The owner's hand check: a draw offer, the lost connection and a challenge in a real Lichess game; Ctrl+M and the dot.
+
+---
+
 ## 2026-11-10 — BL-13: short messages over the command bar (branch: infoBarsColumn_091126, PR #137)
 
 ### What was done
