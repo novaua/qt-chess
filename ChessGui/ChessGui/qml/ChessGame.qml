@@ -6,7 +6,7 @@ import QtQuick.Dialogs
 import ChessPlusPlus
 
 // The window: one page at a time in a StackView (Welcome, the profile list, Home or the game, with
-// the Profile or Settings page pushed over Home or the game, and the Online page over Home), the
+// the Profile or Settings page pushed over Home or the game, and the Online page and the Continue list (BL-17) over Home), the
 // InfoBars under the command bar,
 // and every dialog. UserManager and ChessConnector.InGame decide the page (route()); pages ask for
 // dialogs through signals.
@@ -97,7 +97,8 @@ ApplicationWindow {
     }
 
     // The pages pushed over Home or the game, by objectName: Back or Esc pops them.
-    readonly property var _pushedPages: ({ profile: profilePage, settings: settingsPage, online: onlinePage })
+    readonly property var _pushedPages: ({ profile: profilePage, settings: settingsPage, online: onlinePage,
+                                           games: continuePage })
     readonly property bool _onPushedPage: _pushedPages[_page] !== undefined
     function _openPage(name) {
         if (_page !== name)
@@ -113,6 +114,22 @@ ApplicationWindow {
     function closeSettings() { _closePage("settings") }
     function openOnline()    { _openPage("online") }
     function closeOnline()   { _closePage("online") }
+
+    // BL-17: Home's Continue. The only unfinished game opens directly (the robot's, or one Lichess
+    // game that can be played here); two or more: the list of them all.
+    property bool _rejoining: false   // Continue rejoins the one Lichess game: Lichess's answer is awaited
+    function continueGames() {
+        const robot = ChessConnector.CanContinue
+        const online = UserManager.lichessConnected ? LichessClient.ongoingGames : []
+        if (robot && online.length === 0) {
+            ChessConnector.continueGame()
+        } else if (!robot && online.length === 1 && online[0].canPlayHere) {
+            _rejoining = true
+            LichessClient.rejoinGame(online[0].gameId)
+        } else {
+            _openPage("games")
+        }
+    }
     function resign() {
         if (AppSettings.confirmResign) resignConfirm.open()
         else                           ChessConnector.resignGame()
@@ -403,12 +420,20 @@ ApplicationWindow {
     }
 
     Component {
+        id: continuePage
+        ContinueGamesPage {
+            onBackRequested: root._closePage("games")
+        }
+    }
+
+    Component {
         id: homePage
         HomePage {
             onComputerGameRequested:  computerDialog.openNew()
             onTwoPlayerGameRequested: twoPlayerDialog.open()
             onOnlineGameRequested:    root.playOnline()
-            onOnlineGamesRequested:   root.openOnline()
+            onContinueRequested:      root.continueGames()
+            continueBusy:             root._rejoining
             onSettingsRequested:      root.openSettings()
             onProfileRequested:       root.openProfile()
             onSwitchUserRequested:    root.switchUser()
@@ -870,6 +895,7 @@ ApplicationWindow {
 
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
             _acceptingChallenge = false
+            _rejoining = false
             clearPendingChallenge()
         }
 
@@ -889,7 +915,11 @@ ApplicationWindow {
         }
 
         function onNetworkError(message) {
-            if (challengeDialog.visible && _pendingRematch) {
+            if (_rejoining) {               // Home's Continue: e.g. the game ended meanwhile
+                _rejoining = false
+                root.notify("Couldn't continue the game: " + message, "critical")
+                LichessClient.refreshOngoingGames()
+            } else if (challengeDialog.visible && _pendingRematch) {
                 clearPendingChallenge()
                 root.notify("Rematch failed: " + message, "critical")
             } else if (challengeDialog.visible) {

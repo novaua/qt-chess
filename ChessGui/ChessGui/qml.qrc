@@ -36,6 +36,9 @@
         <file>qml/ImportConflictDialog.qml</file>
         <file>qml/BoardPreview.qml</file>
         <file>qml/OnlinePage.qml</file>
+        <file>qml/GameCard.qml</file>
+        <file>qml/ContinueGamesPage.qml</file>
+        <file>qml/lichess.js</file>
         <file>qml/LevelsHelpDialog.qml</file>
         <file>qml/PlayerCard.qml</file>
         <file>qml/CapturedStrip.qml</file>

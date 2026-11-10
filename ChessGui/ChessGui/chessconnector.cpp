@@ -55,6 +55,9 @@ ChessConnector::ChessConnector(QObject* parent)
 	connect(_gate, &MoveGate::idle, this, &ChessConnector::boardIdle);
 	_clock = new GameClock(this);
 	_claimWin = new ClaimWin(this);
+	// The autosave changed (saved, continued, another user): its card is read again. Connected
+	// first, so QML reads the new one.
+	connect(this, &ChessConnector::canContinueChanged, this, [this] { _continueGameInfo.clear(); });
 	connect(_claimWin, &ClaimWin::goneChanged, this, &ChessConnector::opponentGoneChanged);
 	connect(_claimWin, &ClaimWin::secondsLeftChanged, this, &ChessConnector::claimWinSecondsChanged);
 	connect(_claimWin, &ClaimWin::canClaimChanged, this, &ChessConnector::canClaimVictoryChanged);
@@ -666,6 +669,39 @@ QString ChessConnector::continueDescription() const
 		return {};
 	const auto info = _userManager->autoSaveInfo();
 	return vsRobotTitle(info.computerLevel > 0 ? info.computerLevel : _config.lastLevel);
+}
+
+QVariantMap ChessConnector::continueGameInfo() const
+{
+	if (!canContinue())
+		return {};
+	if (!_continueGameInfo.isEmpty())
+		return _continueGameInfo;
+	auto game = std::make_shared<Chess::Game>();
+	try {
+		game->Load(autoSavePath().toStdString());
+		game->ResumeFromLoad();
+	}
+	catch (const std::exception& e) {
+		qWarning() << "continueGameInfo: can't read the autosave:" << e.what();
+		return {};
+	}
+	const auto info = _userManager ? _userManager->autoSaveInfo() : UserManager::GameSaveInfo{};
+	const int level = info.computerLevel > 0 ? info.computerLevel : _config.lastLevel;
+	const auto squareName = [](int square) {
+		return QString(QChar('a' + square % 8)) + QChar('1' + square / 8);
+	};
+	const auto& record = game->GetGameRecord();
+	_continueGameInfo = {
+		{ "title", vsRobotTitle(level) },
+		{ "level", level },
+		{ "playerPlaysWhite", info.playerPlaysWhite },
+		{ "playerToMove", game->IsWhiteMove() == info.playerPlaysWhite },
+		{ "fen", QString::fromStdString(game->MakeFen()) },
+		{ "lastMove", record.empty() ? QString()
+		                             : squareName((int)record.back().From.Position) + squareName((int)record.back().To.Position) },
+	};
+	return _continueGameInfo;
 }
 
 void ChessConnector::flagKing(bool white)

@@ -59,7 +59,8 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 		return;
 	}
 	// The Online page's "Your games" and Home's Continue (LI-04): fixed rows, no network.
-	if (scene == "online" || scene == "continue" || scene == "continue-online") {
+	if (scene == "online" || scene == "continue" || scene == "continue-online" || scene == "continue-list"
+	    || scene == "continue-list-online") {
 		sceneMap["ongoingGames"] = LichessClient::parseOngoingGames(QJsonDocument::fromJson(R"({ "nowPlaying": [
 			{ "gameId": "aEPqtBMc", "color": "white", "isMyTurn": true, "secondsLeft": 540,
 			  "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "lastMove": "b8c6",
@@ -80,7 +81,8 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 		] })").object());
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
-	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online", "takeback",
+	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online",
+	                  "continue-list", "continue-list-online", "takeback",
 	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting",
 	                  "challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
 	                  "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
@@ -305,7 +307,8 @@ int main(int argc, char* argv[])
 	// light/dark colour scheme, so the Fluent controls would get the wrong palette.
 	// "login", "menu" and "board" are the older names of "profiles", "home" and "game".
 	static const QStringList screenshotScenes = {
-		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "game", "leave-online", "settings", "about", "restore", "levels",
+		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "continue-list", "continue-list-online",
+		"continue-list-robot", "game", "leave-online", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
 		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge",

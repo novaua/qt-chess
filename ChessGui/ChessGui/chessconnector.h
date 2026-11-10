@@ -90,6 +90,9 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int  ClaimWinSeconds READ claimWinSeconds NOTIFY claimWinSecondsChanged)
 		Q_PROPERTY(bool CanClaimVictory READ canClaimVictory NOTIFY canClaimVictoryChanged)
 		Q_PROPERTY(QString ContinueDescription READ continueDescription NOTIFY canContinueChanged) // the autosaved game, e.g. "vs Bob"
+		// BL-17: the autosaved robot game for its card in the Continue list: { title, level,
+		// playerPlaysWhite, playerToMove, fen, lastMove (UCI) }; empty without one.
+		Q_PROPERTY(QVariantMap ContinueGame READ continueGameInfo NOTIFY canContinueChanged)
 		Q_PROPERTY(GameClock* Clock READ clock CONSTANT) // the game's clocks; Clock.enabled false: none
 		// --screenshot mode: { scene, moves, black, dark, width, height }; empty in a normal run
 		Q_PROPERTY(QVariantMap ScreenshotScene READ screenshotScene CONSTANT)
@@ -142,6 +145,7 @@ public:
 	int     claimWinSeconds() const { return _claimWin->secondsLeft(); }
 	bool    canClaimVictory() const { return _claimWin->canClaim(); }
 	QString continueDescription() const;
+	QVariantMap continueGameInfo() const;
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 	int materialBalance() const;
@@ -396,6 +400,7 @@ private:
 	std::vector<std::string> _sanCache; // SAN of shownHistory(), for the PGN
 	QDate _gameDate;                    // when the game started; invalid for a saved or continued game
 	QVariantMap  _screenshotScene;
+	mutable QVariantMap _continueGameInfo; // continueGameInfo(), read from the autosave once; cleared by canContinueChanged
 };
 
 #endif // CHESSCONNECTOR_H

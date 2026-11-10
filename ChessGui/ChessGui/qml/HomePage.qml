@@ -12,28 +12,29 @@ Page {
     signal computerGameRequested()
     signal twoPlayerGameRequested()
     signal onlineGameRequested()
-    signal onlineGamesRequested()   // Continue without a robot game: the Online page, at "Your games"
+    signal continueRequested()      // BL-17: the one unfinished game, or the list of them all (ChessGame.continueGames)
     signal settingsRequested()
     signal profileRequested()
     signal switchUserRequested()
     signal recentMessagesRequested(Item anchor)
     property int unseenMessages: 0   // the dot on the account button (BL-13 step 3)
+    property bool continueBusy: false // Continue is rejoining the one Lichess game
 
     readonly property var _levels: ChessConnector.Levels
 
-    // LI-04: the unfinished Lichess games. Continue resumes the robot game first (Continue is its only
-    // way back); otherwise it opens these on the Online page.
+    // BL-17: every unfinished game, the robot's autosaved one and the Lichess ones (LI-04). Continue
+    // opens the only one directly, else the list of them all.
     readonly property var _onlineGames: UserManager.lichessConnected ? LichessClient.ongoingGames : []
     readonly property int _myTurnCount: _onlineGames.filter(g => g.isMyTurn).length
+    readonly property int _pendingCount: (ChessConnector.CanContinue ? 1 : 0) + _onlineGames.length
     readonly property string _continueText: {
         const n = _onlineGames.length
         const games = n + (n === 1 ? " Lichess game" : " Lichess games")
+        const turn = _myTurnCount === 0 ? "waiting for " + (n === 1 ? "your opponent" : "your opponents")
+                   : n === 1 ? "your turn" : "your turn in " + _myTurnCount
         if (ChessConnector.CanContinue)
-            return ChessConnector.ContinueDescription + (n > 0 ? " · " + games + " in Play online" : "")
-        if (n === 0)
-            return ""
-        return games + " · " + (_myTurnCount === 0 ? "waiting for " + (n === 1 ? "your opponent" : "your opponents")
-                               : n === 1 ? "your turn" : "your turn in " + _myTurnCount)
+            return ChessConnector.ContinueDescription + (n > 0 ? " · " + games + (_myTurnCount > 0 ? ", " + turn : "") : "")
+        return n === 0 ? "" : games + " · " + turn
     }
 
     // A fresh list each time Home shows (back from a game, Settings, the profile): an opponent may
@@ -148,17 +149,15 @@ Page {
             }
 
             HomeCard {
-                visible: ChessConnector.CanContinue || page._onlineGames.length > 0
-                text: ChessConnector.CanContinue ? "Continue game"
-                    : page._onlineGames.length === 1 ? "Continue online game" : "Continue online games"
+                visible: page._pendingCount > 0
+                enabled: !page.continueBusy
+                text: page._pendingCount > 1 ? "Continue a game"
+                    : ChessConnector.CanContinue ? "Continue game" : "Continue online game"
                 description: page._continueText
                 icon.source: Theme.icon("play")
                 Layout.fillWidth: true
                 Layout.bottomMargin: Theme.s2
-                onClicked: {
-                    if (ChessConnector.CanContinue) ChessConnector.continueGame()
-                    else                            page.onlineGamesRequested()
-                }
+                onClicked: page.continueRequested()
             }
 
             GridLayout {

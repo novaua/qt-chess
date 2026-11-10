@@ -105,6 +105,9 @@ DISTFILES += \
     qml/LevelsHelpDialog.qml \
     qml/BoardPreview.qml \
     qml/OnlinePage.qml \
+    qml/GameCard.qml \
+    qml/ContinueGamesPage.qml \
+    qml/lichess.js \
     qml/MarkerColumn.qml \
     qml/MarkerRow.qml \
     qml/MoveList.qml \

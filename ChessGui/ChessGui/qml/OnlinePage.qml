@@ -2,9 +2,11 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import ChessPlusPlus
+import "lichess.js" as Lichess
 
 // The ways to play on Lichess (LI-04, docs/LI-04-RejoinPlan.md): the challenges to the player
-// (BL-10), the player's unfinished games (Continue rejoins one), a new challenge, joining by link. Pushed over Home by "Play online"; Back
+// (BL-10), a new challenge, joining by link, and last the player's unfinished games (Continue rejoins
+// one; BL-17: also in Home's Continue list). Pushed over Home by "Play online"; Back
 // pops it. A game that starts replaces it by the game page (ChessGame.qml route()); the challenge
 // waiting for the friend is ChessGame.qml's ChallengeDialog, over this page.
 Page {
@@ -30,7 +32,7 @@ Page {
 
     // BL-10: one line under the challenger's name.
     function _challengeDetails(c) {
-        const parts = [c.timeControlText, _speedName(c.speed), c.rated ? "Rated" : "Casual", c.sideText]
+        const parts = [c.timeControlText, Lichess.speedName(c.speed), c.rated ? "Rated" : "Casual", c.sideText]
         if (c.variant !== "standard")
             parts.push(c.variant)
         if (c.rematchOf !== "")
@@ -76,19 +78,6 @@ Page {
     // Back while something is starting: drop it.
     StackView.onRemoved: _dropStarting()
 
-    function _speedName(speed) {
-        return ({ ultraBullet: "UltraBullet", bullet: "Bullet", blitz: "Blitz", rapid: "Rapid",
-                  classical: "Classical", correspondence: "Correspondence" })[speed] ?? speed
-    }
-    // The card's board shows our side; this line the rest.
-    function _gameDetails(game) {
-        var parts = [_speedName(game.speed)]
-        if (game.variant !== "standard")
-            parts.push(game.variant)
-        if (game.timeLeftText !== "")
-            parts.push(game.timeLeftText + " left")
-        return parts.join(" · ")
-    }
     // Continue (rejoin), or lichess.org for a game the Board API can't play here.
     function _openGame(game) {
         if (game.canPlayHere)
@@ -269,121 +258,6 @@ Page {
                 }
             }
 
-            // ── Your games: the unfinished ones, most urgent first ──
-            SectionCard {
-                id: gamesCard
-                visible: UserManager.lichessConnected
-                title: "Your games"
-                subtitle: LichessClient.ongoingGamesError !== "" ? "Couldn't load your games: " + LichessClient.ongoingGamesError
-                        : page._games.length === 0 ? (LichessClient.ongoingGamesLoading ? "Loading…"
-                              : "No unfinished games. A game you leave before it ends waits here, and so does a correspondence game.")
-                        : page._games.length + (page._games.length === 1 ? " game" : " games")
-                          + (page._myTurnCount > 0 ? " · your turn in " + page._myTurnCount : "")
-                Layout.fillWidth: true
-
-                // One card per game, like Lichess's "current games": the position from our side,
-                // then who, whose turn and Continue. A click on the board continues too.
-                GridLayout {
-                    id: gamesGrid
-                    // From the card's inside, not from the layout's own width, which isn't known yet
-                    // when the cards ask.
-                    readonly property real innerWidth: gamesCard.contentWidth
-                    readonly property real cardWidth: (innerWidth - (columns - 1) * columnSpacing) / columns
-                    visible: page._games.length > 0
-                    columns: innerWidth >= 440 ? 2 : 1
-                    columnSpacing: Theme.s3
-                    rowSpacing: Theme.s3
-                    Layout.fillWidth: true
-
-                    Repeater {
-                        model: page._games
-                        delegate: Rectangle {
-                            id: gameCard
-                            required property var modelData
-                            Layout.preferredWidth: gamesGrid.cardWidth
-                            implicitHeight: cardColumn.implicitHeight + 2 * Theme.s3
-                            radius: Theme.radiusCard
-                            color: Theme.layerBg
-                            border.color: Theme.cardStroke
-                            Accessible.role: Accessible.ListItem
-                            Accessible.name: modelData.opponentName + ", " + page._gameDetails(modelData)
-                                             + ", you play " + (modelData.color === "white" ? "White" : "Black")
-                                             + (modelData.isMyTurn ? ", your turn" : ", waiting")
-
-                            ColumnLayout {
-                                id: cardColumn
-                                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.s3 }
-                                spacing: Theme.s2
-
-                                BoardPreview {
-                                    fen: gameCard.modelData.fen
-                                    flipped: gameCard.modelData.color === "black"
-                                    lastMove: gameCard.modelData.lastMove
-                                    Layout.preferredWidth: gamesGrid.cardWidth - 2 * Theme.s3
-                                    Layout.preferredHeight: gamesGrid.cardWidth - 2 * Theme.s3
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        enabled: !page._busy
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: page._openGame(gameCard.modelData)
-                                    }
-                                }
-                                RowLayout {
-                                    spacing: Theme.s2
-                                    Layout.fillWidth: true
-                                    Label {
-                                        text: gameCard.modelData.opponentName
-                                              + (gameCard.modelData.opponentRating > 0 ? " (" + gameCard.modelData.opponentRating + ")" : "")
-                                        font: Theme.bodyStrong
-                                        elide: Text.ElideRight
-                                        Layout.fillWidth: true
-                                    }
-                                    Label {
-                                        text: gameCard.modelData.isMyTurn ? "Your turn" : "Waiting"
-                                        font: gameCard.modelData.isMyTurn ? Theme.bodyStrong : Theme.caption
-                                        color: gameCard.modelData.isMyTurn ? Theme.accent : Theme.textSecondary
-                                    }
-                                }
-                                Label {
-                                    text: page._gameDetails(gameCard.modelData)
-                                    font: Theme.caption
-                                    color: Theme.textSecondary
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
-                                }
-                                Button {
-                                    text: gameCard.modelData.canPlayHere ? "Continue" : "Open on lichess.org"
-                                    icon.source: Theme.icon(gameCard.modelData.canPlayHere ? "play" : "link")
-                                    highlighted: gameCard.modelData.canPlayHere && gameCard.modelData.isMyTurn
-                                    enabled: !page._busy
-                                    Layout.fillWidth: true
-                                    ToolTip.visible: hovered && !gameCard.modelData.canPlayHere
-                                    ToolTip.text: "This kind of game can't be played in Chess++ yet"
-                                    ToolTip.delay: 400
-                                    onClicked: page._openGame(gameCard.modelData)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                RowLayout {
-                    spacing: Theme.s2
-                    Button {
-                        text: "Refresh"
-                        flat: true
-                        enabled: !LichessClient.ongoingGamesLoading
-                        onClicked: page._refresh()
-                    }
-                    BusyIndicator {
-                        visible: LichessClient.ongoingGamesLoading
-                        running: visible
-                        Layout.preferredWidth: 20; Layout.preferredHeight: 20
-                    }
-                }
-            }
-
             // ── New game: a challenge with a link for the friend, or to a named player ──
             SectionCard {
                 visible: UserManager.lichessConnected
@@ -505,6 +379,68 @@ Page {
                             else
                                 errorBar.show("That isn't a Lichess link or game ID", "critical")
                         }
+                    }
+                }
+            }
+
+            // ── Your games: the unfinished ones, last (BL-17: the player came for a new game; Home's
+            // Continue lists them too) ──
+            SectionCard {
+                id: gamesCard
+                visible: UserManager.lichessConnected
+                title: "Your games"
+                subtitle: LichessClient.ongoingGamesError !== "" ? "Couldn't load your games: " + LichessClient.ongoingGamesError
+                        : page._games.length === 0 ? (LichessClient.ongoingGamesLoading ? "Loading…"
+                              : "No unfinished games. A game you leave before it ends waits here, and so does a correspondence game.")
+                        : page._games.length + (page._games.length === 1 ? " game" : " games")
+                          + (page._myTurnCount > 0 ? " · your turn in " + page._myTurnCount : "")
+                Layout.fillWidth: true
+
+                // One card per game (GameCard), most urgent first.
+                GridLayout {
+                    id: gamesGrid
+                    // From the card's inside, not from the layout's own width, which isn't known yet
+                    // when the cards ask.
+                    readonly property real innerWidth: gamesCard.contentWidth
+                    readonly property real cardWidth: (innerWidth - (columns - 1) * columnSpacing) / columns
+                    visible: page._games.length > 0
+                    columns: innerWidth >= 440 ? 2 : 1
+                    columnSpacing: Theme.s3
+                    rowSpacing: Theme.s3
+                    Layout.fillWidth: true
+
+                    Repeater {
+                        model: page._games
+                        delegate: GameCard {
+                            required property var modelData
+                            Layout.preferredWidth: gamesGrid.cardWidth
+                            fen: modelData.fen
+                            flipped: modelData.color === "black"
+                            lastMove: modelData.lastMove
+                            title: Lichess.gameTitle(modelData)
+                            playerToMove: modelData.isMyTurn
+                            details: Lichess.gameDetails(modelData)
+                            actionText: modelData.canPlayHere ? "Continue" : "Open on lichess.org"
+                            actionIcon: modelData.canPlayHere ? "play" : "link"
+                            actionTip: modelData.canPlayHere ? "" : "This kind of game can't be played in Chess++ yet"
+                            busy: page._busy
+                            onActivated: page._openGame(modelData)
+                        }
+                    }
+                }
+
+                RowLayout {
+                    spacing: Theme.s2
+                    Button {
+                        text: "Refresh"
+                        flat: true
+                        enabled: !LichessClient.ongoingGamesLoading
+                        onClicked: page._refresh()
+                    }
+                    BusyIndicator {
+                        visible: LichessClient.ongoingGamesLoading
+                        running: visible
+                        Layout.preferredWidth: 20; Layout.preferredHeight: 20
                     }
                 }
             }

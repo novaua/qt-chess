@@ -63,7 +63,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
-$allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue-online', 'game', 'leave-online', 'review', 'result', 'ended', 'moves', 'select', 'drag',
+$allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue-online', 'continue-list', 'continue-list-online',
+             'continue-list-robot', 'game', 'leave-online', 'review', 'result', 'ended', 'moves', 'select', 'drag',
              'settings', 'about', 'restore', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'online-empty', 'online-disconnected', 'computer', 'players',
              'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge',
              'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline',
@@ -73,7 +74,7 @@ $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue
 # keep the cards above and below the board.
 $sizedScenes = 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'captures@1400x900', 'review@1400x900',
                'ended@1400x900', 'result@1400x900', 'challenge-ingame@1400x900', 'drag@1400x900@black',
-               'reconnecting@1400x900', 'check@1400x900', 'check@960x1040', 'draw-offer@1400x900', 'draw-offer@640x560', 'saved@1400x900', 'messages@1400x900', 'opponent-left@1400x900', 'opponent-left-claim@1400x900', 'opponent-left-claim@640x560', 'opponent-left-turn@640x560', 'saved@640x560', 'messages@640x560', 'game@1100x900', 'game@960x1040', 'game@1000x560'
+               'reconnecting@1400x900', 'check@1400x900', 'check@960x1040', 'draw-offer@1400x900', 'draw-offer@640x560', 'saved@1400x900', 'messages@1400x900', 'opponent-left@1400x900', 'opponent-left-claim@1400x900', 'opponent-left-claim@640x560', 'opponent-left-turn@640x560', 'saved@640x560', 'messages@640x560', 'continue-list@1400x900', 'continue-list@640x560', 'game@1100x900', 'game@960x1040', 'game@1000x560'
 if ($Scene -contains 'all') { $Scene = $allScenes + $sizedScenes }
 foreach ($s in $Scene) {
     $s = ($s -split '@')[0]
