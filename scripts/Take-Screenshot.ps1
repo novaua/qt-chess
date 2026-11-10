@@ -121,7 +121,9 @@ foreach ($run in $Scene) {
     $baseName = $nameParts -join '-'
     $file = Join-Path $OutDir "$baseName.png"
     Remove-Item $file -ErrorAction SilentlyContinue   # a failed scene leaves no old picture behind (Compare-Screenshots.ps1)
-    $argList = @('--screenshot', "`"$file`"", '--scene', $s, '--delay', $Delay)
+    # "rejoin" (BL-18) is the game page's first frame: no delay, unless one was asked for.
+    $sceneDelay = if ($s -eq 'rejoin' -and -not $PSBoundParameters.ContainsKey('Delay')) { 0 } else { $Delay }
+    $argList = @('--screenshot', "`"$file`"", '--scene', $s, '--delay', $sceneDelay)
     if ($Offscreen) { $argList = @('-platform', 'offscreen') + $argList }
     if ($Moves) { $argList += '--moves', "`"$Moves`"" }
     if ($runBlack) { $argList += '--black' }

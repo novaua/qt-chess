@@ -185,16 +185,22 @@ static void playPremoveScene(ChessConnector* connector, LichessClient* lichess, 
 	});
 }
 
-// Scene "rejoin" (BL-18): an unfinished Lichess game joined with its moves (as Continue does), grabbed
-// as soon as the game page is up, without waiting for the board to settle (no --delay either): it
-// must show the game's position already, not the start position.
-static void playRejoinScene(ChessConnector* connector, LichessClient* lichess)
+// Scene "rejoin" (BL-18): an unfinished Lichess game joined with its moves (as Continue does). Ready
+// with the first frame drawn after the join, the game page's first (Take-Screenshot.ps1 grabs this
+// scene without a delay): it must show the game's position already, not the start position.
+static void playRejoinScene(ChessConnector* connector, LichessClient* lichess, QQuickWindow* window)
 {
 	lichess->setCurrentGameId(QStringLiteral("rejoin01"));
 	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"rejoin01",
 		"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},
 		"state":{"moves":"e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6","status":"started"}})");
-	QTimer::singleShot(0, connector, [=]() { emit connector->screenshotSceneReady(); }); // after the posted pieces sync
+	if (!window) {
+		emit connector->screenshotSceneReady();
+		return;
+	}
+	QObject::connect(window, &QQuickWindow::frameSwapped, connector,
+		[=]() { emit connector->screenshotSceneReady(); }, Qt::SingleShotConnection);
+	window->update();
 }
 
 // Scene "reconnecting" (LI-06): a Lichess game whose connection is lost: the bar over the board. The
@@ -413,8 +419,7 @@ int main(int argc, char* argv[])
 		seedScreenshotProfiles(userManager, sceneMap);
 		connector->setScreenshotScene(sceneMap);
 
-		// "rejoin" (BL-18) is the first frames: grabbed at once.
-		const int delay = scene == "rejoin" ? 0 : qMax(0, parser.value(delayOption).toInt());
+		const int delay = qMax(0, parser.value(delayOption).toInt());
 		QObject::connect(connector, &ChessConnector::screenshotSceneReady, &app, [&engine, screenshotPath, delay]() {
 			QTimer::singleShot(delay, &engine, [&engine, screenshotPath]() {
 				const auto roots = engine.rootObjects();
@@ -505,7 +510,10 @@ int main(int argc, char* argv[])
 			[=]() { playReconnectingScene(connector, lichessClient); }, Qt::QueuedConnection);
 	if (screenshotMode && scene == "rejoin")
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
-			[=]() { playRejoinScene(connector, lichessClient); }, Qt::QueuedConnection);
+			[=, &engine]() {
+				const auto roots = engine.rootObjects();
+				playRejoinScene(connector, lichessClient, roots.isEmpty() ? nullptr : qobject_cast<QQuickWindow*>(roots.first()));
+			}, Qt::QueuedConnection);
 	if (!engine.rootObjects().isEmpty())
 		FrameTrace::watch(qobject_cast<QQuickWindow*>(engine.rootObjects().first()));
 

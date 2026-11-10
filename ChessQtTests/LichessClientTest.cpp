@@ -966,7 +966,7 @@ namespace LichessTests
 			client.streamGame("g1");
 			waitUntil([&] { return events.contains("start e2e4 e7e5"); });
 			client.postMove("g1", "g1f3");
-			waitUntil([&] { return events.size() >= 4; });
+			waitUntil([&] { return events.size() >= 3; }); // the start (with its moves), the lost move, the error
 
 			areEqual({ "start e2e4 e7e5", "lost e2e4 e7e5", "error Your move didn't reach Lichess. Play it again." }, events);
 			Assert::AreEqual(2, lichess.count(Stream), L"one resync, not a lost connection");

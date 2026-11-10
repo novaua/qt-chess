@@ -303,8 +303,9 @@ private slots:
 private:
 	void startNewGame();
 	void startNewGameWithComputer(int level);
-	void startOnlineGame(const QString& gameId, bool playingAsWhite, const QStringList& moves);
-	void playJoinedMoves(const QStringList& uciMoves); // BL-18: a joined game's moves so far, before its page opens
+	// joinedMoves (BL-18): the moves of a game joined in progress, on the board before its page opens.
+	// False when one of them can't be played here.
+	bool startOnlineGame(const QString& gameId, bool playingAsWhite, const QStringList& joinedMoves);
 	void setPlayerPlaysWhite(bool v);
 	// opponentUserId: the opponent's profile in a two-player game ("" = Guest, or not a local game).
 	void setGameMode(const QString& mode, const QString& opponentName, const QString& opponentUserId = {});
@@ -340,7 +341,9 @@ private:
 	void onLichessOpponentMoves(const QString& uciMoves); // one move, or the whole game on a resync
 	void onLichessMoveListReplaced(const QString& uciMoves, bool moveRefused); // a takeback, a refused move, a disagreement
 	void playOnlineMoves(const QStringList& uciMoves); // the gate released them: play them
-	int  playMoves(const QStringList& uciMoves);       // on the game, then history and counters; how many were played
+	// On the game, then history and counters; how many were played. announce: a check (or mate) by the
+	// last one is told; false: none is (moves already played elsewhere).
+	int  playMoves(const QStringList& uciMoves, bool announce = true);
 	void afterHeldMoves(std::function<void()> action); // now, or once the opponent's held moves are shown
 	void showHeldMoves(); // entering the review of a game on a clock: play the held moves now
 	void emitBoardState(); // after _reviewIndex changed

@@ -85,7 +85,8 @@ ChessConnector::ChessConnector(QObject* parent)
 			}
 			else if (event.GetType() == EtCheckMate)
 			{
-				emit checkMateNotify();
+				if (!_resuming) // a joined game that ended in mate: its page shows the result
+					emit checkMateNotify();
 				if (_player) return;
 				const bool whiteMated = _game->IsWhiteMove(); // the side to move is mated
 				endGameWithLoser(whiteMated, whiteMated ? MateResultBlack : MateResultWhite,
@@ -850,7 +851,7 @@ void ChessConnector::makeMove(int from, int to, Chess::PieceTypes promoteTo)
 	onHumanMoveDone();
 }
 
-void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite, const QStringList& moves)
+bool ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite, const QStringList& joinedMoves)
 {
 	_clock->stop();
 	stopEngineThread();
@@ -875,8 +876,18 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite,
 
 	resetMoveHistoryCache();
 	_game->Restart();
-	playJoinedMoves(moves);
-	EmitMoveCountUpdates();
+	bool allPlayed = true;
+	if (joinedMoves.isEmpty()) {
+		EmitMoveCountUpdates();
+	} else {
+		// BL-18: the position at once, without slides (also on a game page that is already open), sounds
+		// or "Check": the page tells a check in the position it opens on (newGameStarted).
+		_piecesAnew = true;
+		allPlayed = playMoves(joinedMoves, false) == joinedMoves.size();
+		// The board is busy for a moment, then idle: the page asks about a check or a result then,
+		// also when it was open already.
+		_gate->moveShown();
+	}
 	emit newGameStarted(false);
 
 	if (_lichessClient) {
@@ -887,30 +898,7 @@ void ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite,
 			this, &ChessConnector::onLichessMoveListReplaced,
 			Qt::UniqueConnection);
 	}
-}
-
-// BL-18
-// A rejoined game comes with its moves: they are on the board before setGameMode() opens the game
-// page, so its first frame shows the game's position.
-void ChessConnector::playJoinedMoves(const QStringList& uciMoves)
-{
-	if (uciMoves.isEmpty())
-		return;
-	{
-		_resuming = true; // no "Check" for them: the page tells a check in the position it opens on
-		const auto resumed = qScopeGuard([this] { _resuming = false; });
-		for (const auto& move : uciMoves) {
-			try {
-				_game->DoMove(Chess::Move::Parse(move.toStdString()));
-			}
-			catch (const std::exception& ex) {
-				qWarning() << "Joined game's move" << move << "can't be played:" << ex.what();
-				break;
-			}
-		}
-	}
-	_piecesAnew = true; // the position at once, no slides (also when the game page is already open)
-	buildFullHistoryCache();
+	return allPlayed;
 }
 
 void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsWhite,
@@ -922,11 +910,27 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 		autoSaveGame();
 		emit canContinueChanged();
 	}
-	startOnlineGame(gameId, playingAsWhite, moves);
+	const QString opponent = opponentName.isEmpty() ? QStringLiteral("Anonymous") : opponentName;
+	// BL-18: a game joined in progress (two moves or more: a rejoin) is on the board before setGameMode()
+	// opens its page, so the first frame shows its position. Zero or one move: a new game, whose
+	// opponent may have moved already: that move comes as the opponent's, through the gate (it slides,
+	// with its sound, and plays a premove).
+	const bool joined = moves.size() > 1;
+	// Already this game's mode and opponent while its moves are played: a mate among them is recorded
+	// and told as this game's (setGameMode() below announces it).
+	_gameMode = QStringLiteral("online");
+	_opponentName = opponent;
+	_opponentUserId.clear();
+	if (!startOnlineGame(gameId, playingAsWhite, joined ? moves : QStringList{})) {
+		emit gameStartFailed(QStringLiteral("Lichess sent a move Chess++ can't play"));
+		endGame(); // stops the stream; back where the player was (Home), not a board out of step with Lichess
+		return;
+	}
 	if (_avatarProvider)
 		_avatarProvider->setOpponentFromUser(opponentAvatar.isEmpty() ? QStringLiteral("unicorn") : opponentAvatar);
-	setGameMode(QStringLiteral("online"),
-		opponentName.isEmpty() ? QStringLiteral("Anonymous") : opponentName);
+	setGameMode(QStringLiteral("online"), opponent);
+	if (!joined && !moves.isEmpty())
+		onLichessOpponentMoves(moves.join(QLatin1Char(' ')));
 }
 
 void ChessConnector::onLichessGameEnded(const QString& status, const QString& winner)
@@ -1027,7 +1031,8 @@ void ChessConnector::endGameWithLoser(bool white, const QString& result, const Q
 	flagKing(white);
 	recordResult(white ? -1 : 1);
 	setResult(result, text);
-	emit checkMateResult(white ? QStringLiteral("Black Won") : QStringLiteral("White Won"));
+	if (!_resuming)
+		emit checkMateResult(white ? QStringLiteral("Black Won") : QStringLiteral("White Won"));
 }
 
 // Lichess's rule: the side out of time loses, unless the other side can't mate. Lichess ends its own
@@ -1334,11 +1339,11 @@ void ChessConnector::applyMoves(const QString& movesStr)
 // Plays the moves on the game, up to the first one that can't be played, then updates the move
 // list and the counters once. Only a check in the final position is announced. Returns how many
 // were played.
-int ChessConnector::playMoves(const QStringList& uciMoves)
+int ChessConnector::playMoves(const QStringList& uciMoves, bool announce)
 {
 	int played = 0;
 	for (const auto& move : uciMoves) {
-		_resuming = played < uciMoves.size() - 1;
+		_resuming = !announce || played < uciMoves.size() - 1;
 		try {
 			_game->DoMove(Chess::Move::Parse(move.toStdString()));
 		}
