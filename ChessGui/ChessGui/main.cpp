@@ -82,7 +82,8 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
 	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online", "takeback",
 	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting",
-	                  "challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline" }.contains(scene))
+	                  "challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
+	                  "draw-offer", "messages" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -195,6 +196,22 @@ static void playReconnectingScene(ChessConnector* connector, LichessClient* lich
 	}, Qt::SingleShotConnection);
 }
 
+// Scenes "draw-offer" and "messages" (BL-13 step 3): a Lichess game whose opponent offers a draw: the
+// offer over the command bar (in the InfoBar when it doesn't fit, e.g. 640 wide). "messages" then opens
+// the recent messages (ScreenshotScene.qml adds earlier ones).
+static void playDrawOfferScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
+{
+	lichess->setCurrentGameId(QStringLiteral("draw1"));
+	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"draw1",
+		"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},
+		"state":{"moves":"e2e4 e7e5 g1f3","status":"started"}})");
+	QObject::connect(connector, &ChessConnector::boardIdle, lichess, [=]() {
+		emit lichess->drawOfferReceived();
+		// messages: a second more for the list, which opens after the offer and fades in.
+		QTimer::singleShot(scene == "messages" ? 1000 : 0, connector, [=]() { emit connector->screenshotSceneReady(); });
+	}, Qt::SingleShotConnection);
+}
+
 // Scenes "challenge", "challenge-unplayable" and "challenge-ingame" (BL-10): challenges to Tester
 // (TesterChess on Lichess), fed to the event stream's parser (no network).
 static void seedChallenges(LichessClient* lichess, const QString& scene)
@@ -271,7 +288,8 @@ int main(int argc, char* argv[])
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
 		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge",
 		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting",
-		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check"
+		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
+		"draw-offer", "messages", "saved", "home-message"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -437,6 +455,9 @@ int main(int argc, char* argv[])
 	if (screenshotMode && scene == "challenge-ingame")
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
 			[=]() { playChallengeInGameScene(connector, lichessClient); }, Qt::QueuedConnection);
+	if (screenshotMode && (scene == "draw-offer" || scene == "messages"))
+		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
+			[=]() { playDrawOfferScene(connector, lichessClient, scene); }, Qt::QueuedConnection);
 	if (screenshotMode && scene == "reconnecting")
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
 			[=]() { playReconnectingScene(connector, lichessClient); }, Qt::QueuedConnection);

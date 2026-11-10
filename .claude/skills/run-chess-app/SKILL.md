@@ -62,7 +62,7 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   game on the board, then a challenge: Decline only, "Finish your game first"), `online-challenges` (the
   Online page's "Challenges to you": three, one of them Bullet), `online-challenges-decline` (the same with
   the first one's Decline… menu open: Lichess's reasons), `captures` (BL-13: Black down to a lone king,
-  White lost six: a full captured strip and "+29"), `check` (the page opens in check: "Check" over the command bar),
+  White lost six: a full captured strip and "+29"), `check` (the page opens in check: "Check" over the command bar), `draw-offer` (a Lichess game, the opponent offers a draw: Accept / Decline over the command bar; at 640x560 it doesn't fit: the InfoBar), `saved` ("Game saved" centred on the board), `home-message` ("Profile imported" over Home's command bar), `messages` (the recent messages open: an open draw offer, an error, the connection, a decline),
   `all`.
 - **Sized scenes** (BL-13): `scene@WxH[@black]` (quoted: `-Scene 'game@1400x900'`) runs a scene at its own window size, saved as
   `<scene>[-black][-dark]-<WxH>.png`. `all` ends with the list in `$sizedScenes`

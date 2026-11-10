@@ -67,12 +67,12 @@ $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue
              'settings', 'about', 'restore', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'online-empty', 'online-disconnected', 'computer', 'players',
              'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge',
              'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline',
-             'captures', 'check'
+             'captures', 'check', 'draw-offer', 'saved', 'home-message', 'messages'
 # BL-13: the game page in wide windows (the player column left of the board), and sizes that must
 # keep the cards above and below the board.
 $sizedScenes = 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'captures@1400x900', 'review@1400x900',
                'ended@1400x900', 'result@1400x900', 'challenge-ingame@1400x900', 'drag@1400x900@black',
-               'reconnecting@1400x900', 'check@1400x900', 'check@960x1040', 'game@1100x900', 'game@960x1040', 'game@1000x560'
+               'reconnecting@1400x900', 'check@1400x900', 'check@960x1040', 'draw-offer@1400x900', 'draw-offer@640x560', 'saved@1400x900', 'messages@1400x900', 'game@1100x900', 'game@960x1040', 'game@1000x560'
 if ($Scene -contains 'all') { $Scene = $allScenes + $sizedScenes }
 foreach ($s in $Scene) {
     $s = ($s -split '@')[0]

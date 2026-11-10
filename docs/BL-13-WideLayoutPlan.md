@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-09 |
-| **Status** | Steps 1 (#136) and 2 (branch `infoBarsColumn_091126`) coded; later: more move-history views. The owner chose the recommended answers to Q1–Q4 (2026-11-09) |
+| **Status** | Steps 1 (#136), 2 (#137) and 3 (branch `features/commandBarMessages_101126`) coded; later: more move-history views. The owner chose the recommended answers to Q1–Q4 (2026-11-09) |
 | **Branch** | `bl13Plan_091126` (plan); each step on its own branch from `develop` |
 | **Task** | BL-13 in `TASKS.md`. Builds on #134 (the InfoBars make room on the game page) |
 

@@ -39,7 +39,7 @@ Item {
         // A second profile to play against: same names and avatars every time.
         var gameScene = ["game", "leave-online", "continue", "review", "result", "ended", "moves", "select", "drag", "slides",
                          "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate",
-                         "captures", "check"].includes(name)
+                         "captures", "check", "saved"].includes(name)
         if ((gameScene || name.startsWith("players")) && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -108,6 +108,7 @@ Item {
                                           + "d7c6 g1e2 e5d3 c2d3 e8f7 d3d4 f8a3 b2a3 f7e7 d1c2 h7h6 c2c6 f6f5 c6h6 e7d7 e2f4 d7e7 a2c2 e7d8 c2c6 d8d7 a3a4 d7e7 f4g6 e7e8 e1f2 e8d8 g6e7 d8d7 e7f5 d7d8",
                                   // The page opens in check: "Check" a second later (in the column, wide).
                                   check: "e2e4 f7f6 d1h5",
+                                  saved: "e2e4 e7e5",
                                   stalemate: "e2e3 a7a5 d1h5 a8a6 h5a5 h7h5 h2h4 a6h6 a5c7 f7f6 c7d7 e8f7 d7b7 d8d3 "
                                            + "b7b8 d3h7 b8c8 f7g6" })[name] ?? ""
             // White's and Black's time: time stands still in this mode, so a scene sets what it shows.
@@ -143,6 +144,8 @@ Item {
                 pages.currentItem._resultCardClosed = true   // Rematch / New game in the moves panel
             if (name === "leave-online")
                 dialogs.leaveOnline.open()   // the dialog only: an online game needs Lichess
+            if (name === "saved")
+                ChessConnector.saveGame()   // "Game saved" over the command bar, centred on the board
             if (name === "select")
                 ChessConnector.figureSelected(6)   // the g1 knight: tinted square, dots on its moves
             if (name === "drag") {
@@ -168,13 +171,33 @@ Item {
             }
         }
 
+        if (name === "home-message")
+            window.notify("Profile imported", "success")   // over Home's command bar
+        if (name === "messages") {
+            // Earlier messages (oldest first), then main.cpp's draw offer; the list opens once it is there.
+            window._addRecent("Game saved", "success", false, "message", "")
+            window._addRecent("Speedy declined the challenge", "caution", true, "message", "")
+            window._addRecent("Connection to Lichess lost", "caution", true, "message", "")
+            window._addRecent("Reconnected to Lichess", "success", true, "message", "")
+            window._addRecent("Couldn't save C:\\Users\\Tester\\Documents\\Chess\\game.pgn", "critical", true, "message", "")
+            messagesOpener.enabled = true
+        }
         if (["takeback", "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting",
-             "challenge-ingame"].includes(name)) {
+             "challenge-ingame", "draw-offer", "messages"].includes(name)) {
             ChessConnector.screenshotSceneSetUp()   // main.cpp feeds the Lichess game and says when the board is ready
             return
         }
         if (ChessConnector.EngineThinking) _waitsForEngine = true   // the robot's move comes later
         else                               startReadyTimer()
+    }
+
+    Connections {
+        id: messagesOpener
+        enabled: false
+        target: ChessConnector
+        function onPendingOfferChanged() {
+            if (ChessConnector.PendingOffer === "draw") Qt.callLater(() => scene.window.openRecentMessages(null))
+        }
     }
 
     function findItem(item, objectName) {

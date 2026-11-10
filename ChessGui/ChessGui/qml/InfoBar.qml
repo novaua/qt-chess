@@ -17,6 +17,10 @@ Rectangle {
     // player column, BL-13); they wrap there when they don't fit in one row.
     property bool   actionsBelow: false
     default property alias actions: actionRow.data
+    // The × hides the bar; a bar whose `visible` is bound sets this false and answers closed() instead.
+    property bool   hideOnClose: true
+
+    signal closed()
 
     function show(message, messageSeverity) {
         text = message
@@ -87,7 +91,10 @@ Rectangle {
             visible: bar.closable
             icon.source: Theme.icon("close")
             tip: "Close"
-            onClicked: bar.visible = false
+            onClicked: {
+                bar.closed()
+                if (bar.hideOnClose) bar.visible = false
+            }
         }
     }
 }
