@@ -83,7 +83,8 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online", "takeback",
 	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting",
 	                  "challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
-	                  "draw-offer", "messages" }.contains(scene))
+	                  "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
+	                  "opponent-left-error" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -212,6 +213,27 @@ static void playDrawOfferScene(ChessConnector* connector, LichessClient* lichess
 	}, Qt::SingleShotConnection);
 }
 
+// Scenes "opponent-left", "opponent-left-claim", "opponent-left-turn" and "opponent-left-error": the Lichess
+// opponent left the game. The countdown; the win can be claimed (the opponent's turn); the player's turn
+// (Lichess takes the claim only on the opponent's turn: a move first); a refused claim's error, which
+// takes the command bar's place until it is closed.
+static void playOpponentLeftScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
+{
+	lichess->setCurrentGameId(QStringLiteral("gone1"));
+	const QByteArray moves = scene == "opponent-left-turn" ? "e2e4 e7e5" : "e2e4 e7e5 g1f3";
+	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"gone1",
+		"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},
+		"state":{"moves":")" + moves + R"(","status":"started"}})");
+	QObject::connect(connector, &ChessConnector::boardIdle, lichess, [=]() {
+		lichess->handleGameStreamLine(scene == "opponent-left"
+			? R"({"type":"opponentGone","gone":true,"claimWinInSeconds":12})"
+			: R"({"type":"opponentGone","gone":true,"claimWinInSeconds":0})");
+		if (scene == "opponent-left-error")
+			emit lichess->networkError(QStringLiteral("Claim victory failed: This is not the time to claim victory"));
+		emit connector->screenshotSceneReady();
+	}, Qt::SingleShotConnection);
+}
+
 // Scenes "challenge", "challenge-unplayable" and "challenge-ingame" (BL-10): challenges to Tester
 // (TesterChess on Lichess), fed to the event stream's parser (no network).
 static void seedChallenges(LichessClient* lichess, const QString& scene)
@@ -289,7 +311,8 @@ int main(int argc, char* argv[])
 		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge",
 		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
-		"draw-offer", "messages", "saved", "home-message"
+		"draw-offer", "messages", "saved", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
+		"opponent-left-error"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -458,6 +481,9 @@ int main(int argc, char* argv[])
 	if (screenshotMode && (scene == "draw-offer" || scene == "messages"))
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
 			[=]() { playDrawOfferScene(connector, lichessClient, scene); }, Qt::QueuedConnection);
+	if (screenshotMode && scene.startsWith("opponent-left"))
+		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
+			[=]() { playOpponentLeftScene(connector, lichessClient, scene); }, Qt::QueuedConnection);
 	if (screenshotMode && scene == "reconnecting")
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
 			[=]() { playReconnectingScene(connector, lichessClient); }, Qt::QueuedConnection);

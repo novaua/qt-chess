@@ -14,6 +14,12 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - The list was a `Popup` first; in that state it neither drew nor let the window's frames go on, so it is a plain panel now (it works either way, and needs no popup window).
 - QML, the scenes in `main.cpp` and the script: no C++ tests run.
 
+### Fixed after the owner's test with a real Lichess game (the opponent left)
+- **Claim victory was offered when Lichess refuses it.** Lichess takes the claim only on the opponent's turn (lila `Pov.mightClaimWin = forceResignable && !isMyTurn`; else "This is not the time to claim victory"), but sends `claimWinInSeconds: 0` either way. On the player's turn the message now says "Opponent left · your move, then claim victory" and has no button (also in the InfoBar and the recent messages); during the countdown, no button either, so the message is narrower and fits.
+- **The board changed size**: the countdown's message with its (disabled) button didn't fit the command bar, so it went to the InfoBar; and the refused claim's error went to the InfoBar because the state held the command bar. Now a short message takes the state's place for its time (an error until closed) and the state waits there, not in the InfoBar; a newer message behind an error goes only to the recent messages (with the dot). Only what doesn't fit at all (a narrow window) still uses the InfoBar.
+- **The opponent-left message can be closed** (×, over the command bar and in the InfoBar): hidden until the claim becomes possible or the opponent comes back or leaves again; the recent messages keep Claim victory.
+- Scenes `opponent-left` (+ 1400×900), `opponent-left-claim` (+ 1400×900, 640×560), `opponent-left-turn`, `opponent-left-error`: 14 new baselines, light and dark; all 150 others match.
+
 ### Next
 - The owner's hand check: a draw offer, the lost connection and a challenge in a real Lichess game; Ctrl+M and the dot.
 

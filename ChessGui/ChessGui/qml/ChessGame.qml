@@ -444,8 +444,9 @@ ApplicationWindow {
     // They take no room, so the board never moves for them: centred on the board on the game page, kept
     // inside the command bar's free middle (CommandBar.messageArea). Two of them, one shown at a time:
     // the game's state (an offer, the opponent left, the lost connection) before a short message ("Check",
-    // "Game saved", an error). What doesn't fit there, or waits behind the other, shows in the InfoBars
-    // below as before; so do pages without a command bar.
+    // "Game saved", an error); a short message takes the place for its time (an error until it is closed),
+    // then the state comes back. Only what doesn't fit there shows in the InfoBars below (a narrow window,
+    // pages without a command bar).
     readonly property var _header: stack.currentItem ? stack.currentItem.header ?? null : null
     readonly property bool _hasMessageArea: _header !== null && (_header.messageArea ?? null) !== null
 
@@ -454,7 +455,7 @@ ApplicationWindow {
     readonly property string _offer: ChessConnector.PendingOffer   // "", "draw", "takeback", "rematch"
     readonly property bool _gone: ChessConnector.OpponentGone
     readonly property bool _reconnecting: ChessConnector.Reconnecting && ChessConnector.GameResult === ""
-    readonly property string _statusKind: _offer !== "" ? "offer" : _gone ? "gone" : _reconnecting ? "connection" : ""
+    readonly property string _statusKind: _offer !== "" ? "offer" : _gone && !_goneDismissed ? "gone" : _reconnecting ? "connection" : ""
     readonly property string _offerText: _offer === "draw"     ? ChessConnector.OpponentName + " offers a draw"
                                        : _offer === "takeback" ? ChessConnector.OpponentName + " asks to take back a move"
                                        : _offer === "rematch"  ? ChessConnector.OpponentName + " offers a rematch" : ""
@@ -463,36 +464,40 @@ ApplicationWindow {
     Timer {
         interval: 1000
         repeat: true
-        running: root._gone && root._claimSeconds > 0
+        running: root._gone && root._claimSeconds > 0 && !root._screenshotMode   // stable pictures
         onTriggered: root._claimSeconds--
     }
-    function _statusShows(kind) { return statusMessage.showing && root._statusKind === kind }
+    // Lichess takes the claim only on the opponent's turn (lila's Pov.mightClaimWin; else "This is not
+    // the time to claim victory"): on the player's turn, a move first.
+    readonly property bool _playerToMove: (ChessConnector.IsWhiteMove === 1) === ChessConnector.PlayerPlaysWhite
+    readonly property bool _canClaim: _gone && _claimSeconds <= 0 && !_playerToMove
+    // Closed with its ×: hidden until the claim becomes possible or the opponent comes back (the recent
+    // messages keep Claim victory).
+    property bool _goneDismissed: false
+    on_CanClaimChanged: if (_canClaim) _goneDismissed = false
+    // Over the command bar, or waiting there behind a short message: not in the InfoBars.
+    function _statusShows(kind) { return statusMessage.fits && root._statusKind === kind }
 
     // A short message: the newest replaces the one shown, except that an error stays until it is closed
-    // (a newer message then goes to the InfoBar for its 4 s: _messageAside).
+    // (a newer message meanwhile goes only to the recent messages, with the dot).
     property var _message: null        // { text, severity }
-    property var _messageAside: null
     Timer { id: messageTimer; interval: 4000; onTriggered: root._message = null }
-    Timer { id: asideTimer;   interval: 4000; onTriggered: root._messageAside = null }
     function notify(text, severity, external) {
         severity = severity ?? "info"
+        const behindError = _message !== null && _message.severity === "critical" && severity !== "critical"
         if (text !== "Check")   // the board, the sound and the move list ("+") tell it already
-            root._addRecent(text, severity, external || severity === "critical", "message", "")
-        if (_message && _message.severity === "critical" && severity !== "critical") {
-            _messageAside = { text: text, severity: severity }
-            asideTimer.restart()
+            root._addRecent(text, severity, external || severity === "critical" || behindError, "message", "")
+        if (behindError)
             return
-        }
         _message = { text: text, severity: severity }
         if (severity === "critical") messageTimer.stop()
         else                         messageTimer.restart()
     }
     function _closeMessage(m) {
         if (m === _message) { _message = null; messageTimer.stop() }
-        if (m === _messageAside) _messageAside = null
     }
-    // The InfoBar's one: a message that doesn't fit the command bar, or the one waiting behind.
-    readonly property var _barMessage: _message !== null && !shortMessage.showing ? _message : _messageAside
+    // The InfoBar's one: a message that doesn't fit the command bar.
+    readonly property var _barMessage: _message !== null && !shortMessage.showing ? _message : null
 
     component BarMessage: CommandBarMessage {
         room: root._hasMessageArea ? root._header.messageWidth : 0
@@ -508,12 +513,15 @@ ApplicationWindow {
 
     BarMessage {
         id: statusMessage
-        active: root._statusKind !== ""
+        active: root._statusKind !== "" && !shortMessage.showing   // a short message has the place for its time
         severity: root._statusKind === "offer" ? "info" : "caution"
         text: root._statusKind === "offer" ? root._offerText
             : root._statusKind === "gone" ? (root._claimSeconds > 0 ? "Opponent left · claim victory in " + root._claimSeconds + " s"
-                                                                    : "Opponent left the game")
+                                           : root._playerToMove ? "Opponent left · your move, then claim victory"
+                                           : "Opponent left the game")
             : "Reconnecting to Lichess…"
+        closable: root._statusKind === "gone"
+        onCloseRequested: root._goneDismissed = true
         tooltip: root._statusKind === "connection" ? "The connection to Lichess was lost. Your clock keeps running on Lichess." : ""
         Button {
             visible: root._statusKind === "offer"
@@ -526,16 +534,15 @@ ApplicationWindow {
             onClicked: root.respondOffer(false)
         }
         Button {
-            visible: root._statusKind === "gone"
+            visible: root._statusKind === "gone" && root._canClaim
             text: "Claim victory"; highlighted: true
-            enabled: root._claimSeconds <= 0
             onClicked: ChessConnector.claimVictory()
         }
     }
 
     BarMessage {
         id: shortMessage
-        active: root._message !== null && !statusMessage.showing
+        active: root._message !== null
         text: root._message ? root._message.text : ""
         severity: root._message ? root._message.severity : "info"
         closable: severity === "critical"
@@ -586,6 +593,7 @@ ApplicationWindow {
         }
         function onOpponentGoneChanged() {
             root._claimSeconds = ChessConnector.ClaimWinSeconds
+            root._goneDismissed = false
             if (ChessConnector.OpponentGone && !root._goneRid)
                 root._goneRid = root._addRecent("Your opponent left the game", "caution", true, "gone", "")
             else if (!ChessConnector.OpponentGone && root._goneRid) {
@@ -618,7 +626,7 @@ ApplicationWindow {
         id: recentFlyout
         anchors.fill: parent
         model: recentMessages
-        claimSeconds: root._claimSeconds
+        canClaim: root._canClaim
         onOfferAnswered: (accept) => root.respondOffer(accept)
         onClearRequested: { recentMessages.clear(); root.unseenMessages = 0 }
     }
@@ -742,16 +750,18 @@ ApplicationWindow {
             // Lichess "opponentGone": counts down until Lichess allows claiming the win.
             InfoBar {
                 width: parent.width
-                visible: root._gone && !root._statusShows("gone")
+                visible: root._gone && !root._goneDismissed && !root._statusShows("gone")
                 actionsBelow: root._barsInColumn
-                closable: false
+                hideOnClose: false
+                onClosed: root._goneDismissed = true
                 severity: "caution"
                 text: root._claimSeconds > 0 ? "Your opponent left the game. You can claim victory in " + root._claimSeconds + " s."
-                                             : "Your opponent left the game."
+                    : root._playerToMove ? "Your opponent left the game. Make your move, then you can claim victory."
+                    : "Your opponent left the game."
                 Button {
+                    visible: root._canClaim
                     text: "Claim victory"
                     highlighted: true
-                    enabled: root._claimSeconds <= 0
                     onClicked: ChessConnector.claimVictory()
                 }
             }

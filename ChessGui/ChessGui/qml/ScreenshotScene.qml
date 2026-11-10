@@ -183,7 +183,8 @@ Item {
             messagesOpener.enabled = true
         }
         if (["takeback", "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting",
-             "challenge-ingame", "draw-offer", "messages"].includes(name)) {
+             "challenge-ingame", "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
+             "opponent-left-error"].includes(name)) {
             ChessConnector.screenshotSceneSetUp()   // main.cpp feeds the Lichess game and says when the board is ready
             return
         }

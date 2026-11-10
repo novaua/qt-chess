@@ -13,7 +13,7 @@ Item {
     id: flyout
 
     property var model
-    property int claimSeconds: -1   // the opponent left: <= 0, the win can be claimed
+    property bool canClaim: false   // the opponent left and Lichess takes the claim now
     property real panelX: 0         // where the panel opens, in this item's (the window's) coordinates
     property real panelY: 0
     readonly property real panelWidth: 380
@@ -147,7 +147,7 @@ Item {
                                 Layout.fillWidth: true
                             }
                             Row {
-                                visible: row.offerOpen || row.goneOpen
+                                visible: row.offerOpen || (row.goneOpen && flyout.canClaim)
                                 spacing: Theme.s2
                                 Layout.topMargin: Theme.s1
                                 Button {
@@ -161,9 +161,8 @@ Item {
                                     onClicked: flyout.offerAnswered(false)
                                 }
                                 Button {
-                                    visible: row.goneOpen
+                                    visible: row.goneOpen && flyout.canClaim
                                     text: "Claim victory"; highlighted: true
-                                    enabled: flyout.claimSeconds <= 0
                                     onClicked: ChessConnector.claimVictory()
                                 }
                             }
