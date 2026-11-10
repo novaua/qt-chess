@@ -90,13 +90,7 @@ Page {
             ToolTip.delay: 400
             onClicked: accountMenu.popup(accountButton, 0, accountButton.height)
 
-            // New messages the player didn't cause (ChessGame.qml's recent messages).
-            Rectangle {
-                visible: page.unseenMessages > 0
-                width: 8; height: 8; radius: 4
-                color: Theme.accent
-                anchors { top: parent.top; right: parent.right; topMargin: 8; rightMargin: 8 }
-            }
+            NewMessagesDot { count: page.unseenMessages }
 
             Menu {
                 id: accountMenu
@@ -111,9 +105,8 @@ Page {
                     onTriggered: page.switchUserRequested()
                 }
                 MenuSeparator {}
-                MenuItem {
-                    text: page.unseenMessages > 0 ? "Recent messages (" + page.unseenMessages + " new)" : "Recent messages"
-                    icon.source: Theme.icon("info")
+                RecentMessagesMenuItem {
+                    count: page.unseenMessages
                     onTriggered: page.recentMessagesRequested(accountButton)
                 }
             }

@@ -25,7 +25,7 @@ Rectangle {
 
     signal avatarClicked()
 
-    implicitHeight: stacked ? stackedContent.implicitHeight + 2 * Theme.s3 : Theme.playerCardHeight
+    implicitHeight: stacked ? stackedLoader.implicitHeight + 2 * Theme.s3 : Theme.playerCardHeight
     radius: Theme.radiusCard
     color: Theme.cardBg
     border.color: Theme.cardStroke
@@ -136,9 +136,8 @@ Rectangle {
         }
     }
 
+    // In a Loader, which takes the column's width (and the clock's 48 px height).
     component StackedClock: Clock {
-        Layout.fillWidth: true
-        Layout.preferredHeight: 48
         font: Theme.title
     }
     component StackedPieces: CapturedStrip {
@@ -146,68 +145,96 @@ Rectangle {
         advantage: card.advantage
         pieceSize: 18
         wrapWidth: width
-        Layout.fillWidth: true
     }
 
+    // Only the layout in use is built (its avatar, clock and captured pieces), and in the stacked one
+    // only the clock and pieces slots that `clockFirst` uses.
+
     // ── In a row above or below the board ──
-    RowLayout {
-        visible: !card.stacked
+    Loader {
+        active: !card.stacked
         anchors {
             fill: parent
             leftMargin: Theme.s3; rightMargin: Theme.s3
         }
-        spacing: Theme.s3
-
-        Avatar {
-            Layout.preferredWidth: 40
-            Layout.preferredHeight: 40
-        }
-
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 2
-
-            NameRow { Layout.fillWidth: true }
-
-            CapturedStrip {
-                pieces: card.pieces
-                advantage: card.advantage
-                pieceSize: 18
-                Layout.preferredHeight: 18
-            }
-        }
-
-        // The name gives way on a narrow card.
-        Clock {
-            id: rowClock
-            Layout.preferredHeight: 40
-            Layout.minimumWidth: rowClock.neededWidth
-            Layout.preferredWidth: Layout.minimumWidth
-        }
-    }
-
-    // ── Stacked in the player column (BL-13): clock, name, pieces; mirrored for the bottom card ──
-    ColumnLayout {
-        id: stackedContent
-        visible: card.stacked
-        anchors {
-            left: parent.left; right: parent.right; top: parent.top
-            margins: Theme.s3
-        }
-        spacing: Theme.s2
-
-        StackedClock  { visible: card.clockFirst && card.clockText !== "" }
-        StackedPieces { visible: !card.clockFirst }
-        RowLayout {
-            Layout.fillWidth: true
+        sourceComponent: RowLayout {
             spacing: Theme.s3
+
             Avatar {
                 Layout.preferredWidth: 40
                 Layout.preferredHeight: 40
             }
-            NameRow { Layout.fillWidth: true }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 2
+
+                NameRow { Layout.fillWidth: true }
+
+                CapturedStrip {
+                    pieces: card.pieces
+                    advantage: card.advantage
+                    pieceSize: 18
+                    Layout.preferredHeight: 18
+                }
+            }
+
+            // The name gives way on a narrow card.
+            Clock {
+                id: rowClock
+                Layout.preferredHeight: 40
+                Layout.minimumWidth: rowClock.neededWidth
+                Layout.preferredWidth: Layout.minimumWidth
+            }
         }
-        StackedPieces { visible: card.clockFirst }
-        StackedClock  { visible: !card.clockFirst && card.clockText !== "" }
+    }
+
+    // ── Stacked in the player column (BL-13): clock, name, pieces; mirrored for the bottom card ──
+    Loader {
+        id: stackedLoader
+        active: card.stacked
+        anchors {
+            left: parent.left; right: parent.right; top: parent.top
+            margins: Theme.s3
+        }
+        sourceComponent: ColumnLayout {
+            spacing: Theme.s2
+
+            Loader {
+                active: card.clockFirst && card.clockText !== ""
+                visible: active
+                Layout.fillWidth: true
+                Layout.preferredHeight: 48
+                sourceComponent: StackedClock {}
+            }
+            Loader {
+                active: !card.clockFirst
+                visible: active
+                Layout.fillWidth: true
+                sourceComponent: StackedPieces {}
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.s3
+                Avatar {
+                    Layout.preferredWidth: 40
+                    Layout.preferredHeight: 40
+                }
+                NameRow { Layout.fillWidth: true }
+            }
+            Loader {
+                active: card.clockFirst
+                visible: active
+                Layout.fillWidth: true
+                sourceComponent: StackedPieces {}
+            }
+            Loader {
+                active: !card.clockFirst && card.clockText !== ""
+                visible: active
+                Layout.fillWidth: true
+                Layout.preferredHeight: 48
+                sourceComponent: StackedClock {}
+            }
+        }
     }
 }

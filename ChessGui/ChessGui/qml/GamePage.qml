@@ -229,13 +229,7 @@ Page {
             Accessible.name: tip
             onClicked: moreMenu.popup(moreButton, moreButton.width - moreMenu.width, moreButton.height)
 
-            // New messages the player didn't cause (ChessGame.qml's recent messages).
-            Rectangle {
-                visible: page.unseenMessages > 0
-                width: 8; height: 8; radius: 4
-                color: Theme.accent
-                anchors { top: parent.top; right: parent.right; topMargin: 8; rightMargin: 8 }
-            }
+            NewMessagesDot { count: page.unseenMessages }
 
             Menu {
                 id: moreMenu
@@ -257,9 +251,8 @@ Page {
                     icon.source: Theme.icon("robot")
                     onTriggered: page.levelsHelpRequested()
                 }
-                MenuItem {
-                    text: page.unseenMessages > 0 ? "Recent messages (" + page.unseenMessages + " new)" : "Recent messages"
-                    icon.source: Theme.icon("info")
+                RecentMessagesMenuItem {
+                    count: page.unseenMessages
                     onTriggered: page.recentMessagesRequested(moreButton)
                 }
                 MenuSeparator {}

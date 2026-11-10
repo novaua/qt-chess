@@ -22,6 +22,7 @@ SOURCES += main.cpp \
     frametrace.cpp \
     movelistmodel.cpp \
     movegate.cpp \
+    claimwin.cpp \
     gameclock.cpp \
     applog.cpp \
     ChessEnginePlayer.cpp \
@@ -67,6 +68,7 @@ HEADERS += \
     frametrace.h \
     movelistmodel.h \
     movegate.h \
+    claimwin.h \
     gameclock.h \
     applog.h \
     ChessEnginePlayer.h \
@@ -98,6 +100,8 @@ DISTFILES += \
     qml/InfoBar.qml \
     qml/CommandBarMessage.qml \
     qml/MessagesFlyout.qml \
+    qml/NewMessagesDot.qml \
+    qml/RecentMessagesMenuItem.qml \
     qml/LevelsHelpDialog.qml \
     qml/BoardPreview.qml \
     qml/OnlinePage.qml \

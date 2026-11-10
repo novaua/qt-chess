@@ -9,6 +9,8 @@
         <file>qml/InfoBar.qml</file>
         <file>qml/CommandBarMessage.qml</file>
         <file>qml/MessagesFlyout.qml</file>
+        <file>qml/NewMessagesDot.qml</file>
+        <file>qml/RecentMessagesMenuItem.qml</file>
         <file>qml/HomeCard.qml</file>
         <file>qml/FocusRing.qml</file>
         <file>qml/ConfirmDialog.qml</file>

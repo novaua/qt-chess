@@ -16,7 +16,7 @@ Item {
     property bool canClaim: false   // the opponent left and Lichess takes the claim now
     property real panelX: 0         // where the panel opens, in this item's (the window's) coordinates
     property real panelY: 0
-    readonly property real panelWidth: 380
+    readonly property real panelWidth: Math.min(380, width - 2 * Theme.s2)
 
     signal offerAnswered(bool accept)
     signal clearRequested()
@@ -44,10 +44,15 @@ Item {
         onClicked: flyout.close()
     }
 
+    // Inside the window: the list gets the height left under panelY (at least a few rows), and the
+    // panel moves up when even that doesn't fit.
+    readonly property real _chromeHeight: titleLabel.implicitHeight + Theme.s3 + Theme.s2   // the title and its margins
+                                          + 1 + footer.implicitHeight + 2 * Theme.s2        // the divider, the footer
+    readonly property real _listMax: Math.max(120, Math.min(420, height - panelY - Theme.s2 - _chromeHeight))
     Rectangle {
         id: panel
-        x: flyout.panelX
-        y: flyout.panelY
+        x: Math.max(Theme.s2, Math.min(flyout.panelX, flyout.width - width - Theme.s2))
+        y: Math.max(Theme.s2, Math.min(flyout.panelY, flyout.height - height - Theme.s2))
         width: flyout.panelWidth
         height: content.implicitHeight
         radius: Theme.radiusCard
@@ -64,6 +69,7 @@ Item {
             spacing: 0
 
             Label {
+                id: titleLabel
                 text: "Recent messages"
                 font: Theme.bodyStrong
                 Layout.margins: Theme.s3
@@ -87,7 +93,7 @@ Item {
                 keyNavigationEnabled: true
                 boundsBehavior: Flickable.StopAtBounds
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(contentHeight, 420)
+                Layout.preferredHeight: Math.min(contentHeight, flyout._listMax)
                 ScrollBar.vertical: ScrollBar {}
                 Accessible.role: Accessible.List
                 Accessible.name: "Recent messages"
@@ -177,6 +183,7 @@ Item {
                 color: Theme.divider
             }
             RowLayout {
+                id: footer
                 Layout.margins: Theme.s2
                 Label {
                     text: "This session only"

@@ -268,7 +268,10 @@ ApplicationWindow {
         challengeDialog.close()
     }
 
-    Component.onCompleted: route()
+    Component.onCompleted: {
+        _messagesUser = UserManager.isLoggedIn ? UserManager.activeUserId : ""
+        route()
+    }
 
     // ── --screenshot mode (see main.cpp): ScreenshotScene.qml sets up the scene, then C++ grabs the
     // window. Loaded only when a scene is asked for.
@@ -436,7 +439,7 @@ ApplicationWindow {
 
     Connections {
         target: UserManager
-        function onActiveUserChanged() { root.route() }
+        function onActiveUserChanged() { root.route(); root._userChanged() }
         function onUsersChanged()      { root.route() }   // the first profile imported, the last one deleted
     }
 
@@ -456,27 +459,29 @@ ApplicationWindow {
     readonly property bool _gone: ChessConnector.OpponentGone
     readonly property bool _reconnecting: ChessConnector.Reconnecting && ChessConnector.GameResult === ""
     readonly property string _statusKind: _offer !== "" ? "offer" : _gone && !_goneDismissed ? "gone" : _reconnecting ? "connection" : ""
-    readonly property string _offerText: _offer === "draw"     ? ChessConnector.OpponentName + " offers a draw"
-                                       : _offer === "takeback" ? ChessConnector.OpponentName + " asks to take back a move"
-                                       : _offer === "rematch"  ? ChessConnector.OpponentName + " offers a rematch" : ""
-    // The opponent left: Lichess allows claiming the win after a countdown (<= 0: now).
-    property int _claimSeconds: -1
-    Timer {
-        interval: 1000
-        repeat: true
-        running: root._gone && root._claimSeconds > 0 && !root._screenshotMode   // stable pictures
-        onTriggered: root._claimSeconds--
+    function _offerTextFor(offer) {
+        return offer === "draw"     ? ChessConnector.OpponentName + " offers a draw"
+             : offer === "takeback" ? ChessConnector.OpponentName + " asks to take back a move"
+             : offer === "rematch"  ? ChessConnector.OpponentName + " offers a rematch" : ""
     }
-    // Lichess takes the claim only on the opponent's turn (lila's Pov.mightClaimWin; else "This is not
-    // the time to claim victory"): on the player's turn, a move first.
-    readonly property bool _playerToMove: (ChessConnector.IsWhiteMove === 1) === ChessConnector.PlayerPlaysWhite
-    readonly property bool _canClaim: _gone && _claimSeconds <= 0 && !_playerToMove
-    // Closed with its ×: hidden until the claim becomes possible or the opponent comes back (the recent
-    // messages keep Claim victory).
+    readonly property string _offerText: _offerTextFor(_offer)
+    // The opponent left: the seconds until Lichess allows the claim (<= 0: now), and whether it takes
+    // it now (only on the opponent's turn: on the player's, a move first). ChessConnector counts down.
+    readonly property int _claimSeconds: ChessConnector.ClaimWinSeconds
+    readonly property bool _canClaim: ChessConnector.CanClaimVictory
+    readonly property string _goneText: _claimSeconds > 0 ? "Opponent left · claim victory in " + _claimSeconds + " s"
+                                      : _canClaim ? "Opponent left the game" : "Opponent left · your move, then claim victory"
+    // Closed with its ×: hidden until the claim becomes possible or the opponent comes back or leaves
+    // again (the recent messages keep Claim victory).
     property bool _goneDismissed: false
     on_CanClaimChanged: if (_canClaim) _goneDismissed = false
     // Over the command bar, or waiting there behind a short message: not in the InfoBars.
     function _statusShows(kind) { return statusMessage.fits && root._statusKind === kind }
+    // The state waits for the player's answer (an offer, Claim victory): a short message never hides it
+    // for longer than its 4 s (an error too: it stays in the recent messages), "Check" not at all (the
+    // board and the sound tell it), and a message shown when it comes gives way at once.
+    readonly property bool _answerable: _statusKind === "offer" || (_statusKind === "gone" && _canClaim)
+    on_AnswerableChanged: if (_answerable) _closeMessage(_message)
 
     // A short message: the newest replaces the one shown, except that an error stays until it is closed
     // (a newer message meanwhile goes only to the recent messages, with the dot).
@@ -487,11 +492,11 @@ ApplicationWindow {
         const behindError = _message !== null && _message.severity === "critical" && severity !== "critical"
         if (text !== "Check")   // the board, the sound and the move list ("+") tell it already
             root._addRecent(text, severity, external || severity === "critical" || behindError, "message", "")
-        if (behindError)
+        if (behindError || (text === "Check" && _answerable))
             return
         _message = { text: text, severity: severity }
-        if (severity === "critical") messageTimer.stop()
-        else                         messageTimer.restart()
+        if (severity === "critical" && !_answerable) messageTimer.stop()
+        else                                         messageTimer.restart()
     }
     function _closeMessage(m) {
         if (m === _message) { _message = null; messageTimer.stop() }
@@ -516,9 +521,7 @@ ApplicationWindow {
         active: root._statusKind !== "" && !shortMessage.showing   // a short message has the place for its time
         severity: root._statusKind === "offer" ? "info" : "caution"
         text: root._statusKind === "offer" ? root._offerText
-            : root._statusKind === "gone" ? (root._claimSeconds > 0 ? "Opponent left · claim victory in " + root._claimSeconds + " s"
-                                           : root._playerToMove ? "Opponent left · your move, then claim victory"
-                                           : "Opponent left the game")
+            : root._statusKind === "gone" ? root._goneText
             : "Reconnecting to Lichess…"
         closable: root._statusKind === "gone"
         onCloseRequested: root._goneDismissed = true
@@ -557,6 +560,20 @@ ApplicationWindow {
     ListModel { id: recentMessages }
     property int _recentId: 0
     property int unseenMessages: 0
+    // They are the profile's: another one (or the profile list) starts without them.
+    property string _messagesUser: ""
+    function _userChanged() {
+        const user = UserManager.isLoggedIn ? UserManager.activeUserId : ""
+        if (user === _messagesUser)
+            return
+        _messagesUser = user
+        recentFlyout.close()
+        recentMessages.clear()
+        unseenMessages = 0
+        _offerRid = 0
+        _goneRid = 0
+        _closeMessage(_message)
+    }
     function _addRecent(text, severity, external, kind, offer) {
         var rid = ++_recentId
         recentMessages.insert(0, { rid: rid, text: text, severity: severity, kind: kind, offer: offer,
@@ -584,15 +601,17 @@ ApplicationWindow {
     }
     Connections {
         target: ChessConnector
+        // ChessConnector's own values: a binding on them (root._offer) may not be updated yet here.
         function onPendingOfferChanged() {
+            const offer = ChessConnector.PendingOffer
             if (root._offerRid) root._setRecentStatus(root._offerRid, root._offerAnswer || "withdrawn")
             root._offerRid = 0
             root._offerAnswer = ""
-            if (root._offer !== "")
-                root._offerRid = root._addRecent(root._offerText, "info", true, "offer", root._offer)
+            if (offer !== "")
+                root._offerRid = root._addRecent(root._offerTextFor(offer), "info", true, "offer", offer)
         }
+        // Only when the opponent leaves or comes back (not for a new countdown).
         function onOpponentGoneChanged() {
-            root._claimSeconds = ChessConnector.ClaimWinSeconds
             root._goneDismissed = false
             if (ChessConnector.OpponentGone && !root._goneRid)
                 root._goneRid = root._addRecent("Your opponent left the game", "caution", true, "gone", "")
@@ -602,7 +621,7 @@ ApplicationWindow {
             }
         }
         function onReconnectingChanged() {
-            if (root._reconnecting)
+            if (ChessConnector.Reconnecting && ChessConnector.GameResult === "")
                 root._addRecent("Connection to Lichess lost", "caution", true, "message", "")
         }
     }
@@ -756,8 +775,8 @@ ApplicationWindow {
                 onClosed: root._goneDismissed = true
                 severity: "caution"
                 text: root._claimSeconds > 0 ? "Your opponent left the game. You can claim victory in " + root._claimSeconds + " s."
-                    : root._playerToMove ? "Your opponent left the game. Make your move, then you can claim victory."
-                    : "Your opponent left the game."
+                    : root._canClaim ? "Your opponent left the game."
+                    : "Your opponent left the game. Make your move, then you can claim victory."
                 Button {
                     visible: root._canClaim
                     text: "Claim victory"

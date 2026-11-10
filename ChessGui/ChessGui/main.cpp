@@ -216,7 +216,7 @@ static void playDrawOfferScene(ChessConnector* connector, LichessClient* lichess
 // Scenes "opponent-left", "opponent-left-claim", "opponent-left-turn" and "opponent-left-error": the Lichess
 // opponent left the game. The countdown; the win can be claimed (the opponent's turn); the player's turn
 // (Lichess takes the claim only on the opponent's turn: a move first); a refused claim's error, which
-// takes the command bar's place until it is closed.
+// takes the command bar's place for its 4 s (the claim waits for an answer: it comes back then).
 static void playOpponentLeftScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
 {
 	lichess->setCurrentGameId(QStringLiteral("gone1"));
