@@ -4,6 +4,36 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-10 — BL-13: short messages over the command bar (branch: infoBarsColumn_091126, PR #137)
+
+### What was done
+- The owner, checking #137: "Check" still changed the board's size in a tall window (half the screen), where the cards are above and below the board. The owner's idea (plan step 3, PR #140): short messages over the command bar. Done here for the message bar only; the rest of step 3 (offers and the reconnecting status in the command bar, recent messages in the More menu) stays as planned.
+- **`CommandBarMessage.qml`** (new): "Check", "Game saved", "PGN copied", … as a pill over the command bar's free middle: no room taken, nothing on the page moves. Centred on the board on the game page (right of the window's centre with the player column), kept inside the free middle; where it would cross the title's text, the title is hidden up to it (no cut word). A message that doesn't fit (e.g. "Couldn't save <long path>" at 768 wide), or a page without a command bar (Welcome, the profile picker), shows as the InfoBar under the command bar as before (`messageBarFallback`). The decision follows the window's size while it shows.
+- **`CommandBar.messageArea`**: the item filling the free middle (the title, Home's filler); set on the game, Home, Online, Profile and Settings pages. `GamePage.boardCenterX`.
+- Checked with a temporary long message at 768, 960 and 1400 wide: the bar, over the command bar with the title hidden, over the command bar with the title kept.
+- **Screenshots**: `check` re-baselined (default, 1400×900) and new `check@960x1040`, light and dark: "Check" in the command bar, the board as in `game`. All other scenes match (the profile scenes' 0.04 % is their "since <today's date>").
+- QML only: no C++ tests run.
+
+### Next
+- The owner's choices for the rest of step 3 (Q8 "Recent messages" in the More menu, Q9 all but "Check", the last 20, Q10 this session only) go into the plan (#140).
+
+---
+
+## 2026-11-09 — BL-13 step 2: the InfoBars between the column's cards (branch: infoBarsColumn_091126)
+
+### What was done
+- The owner saw "Check" shrink the full-height board for 4 s (#134's room for the bars). Now, with the player column, the window's InfoBars ("Check", saved, offers, a challenge, reconnecting, opponent gone, damaged profiles) go between the column's cards: `GamePage.barsArea` (the free space, page coordinates), `ChessGame.qml` places the bars there (a `Flickable`: they scroll when more than fit). The board keeps its size. Without the column the bars stay under the command bar and the page starts below them, as before.
+- The layout is chosen without the bars (`area.stackedBoard` from the full height; `topInset` only in the stacked layout), so a bar never switches it.
+- The column needs room for one bar between the cards (`area._barsRoom`, a challenge with buttons ≈ 140 px): at 1000 × 560 the bar was cut and its buttons scrolled out of sight, so such a low window keeps the cards above and below the board.
+- `InfoBar`: the buttons wrap (`Flow`, as wide as its buttons beside the text); the window's bars put them under the text while in the column (`actionsBelow: root._barsInColumn`). The moves panel's review bar is unchanged.
+- **Screenshots**: new scene `check` (the page opens in check), new sized `reconnecting`, `check` at 1400 × 900 and `game` at 1000 × 560. Light and dark: all others match; `challenge-ingame-1400x900` changed as intended (the bar in the column); **10 baselines** new or updated after a look. No QML warnings in the log.
+- QML, the scene list in `main.cpp` and the script: no C++ tests run.
+
+### Next
+- The owner's hand check: a draw offer, "Check" and a challenge during a game in a maximised window; resize while a bar shows.
+
+---
+
 ## 2026-11-09 — BL-13 step 1: the player column in wide windows (branch: wideGameLayout_091126)
 
 ### What was done

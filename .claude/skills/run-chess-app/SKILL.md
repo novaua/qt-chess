@@ -62,12 +62,14 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   game on the board, then a challenge: Decline only, "Finish your game first"), `online-challenges` (the
   Online page's "Challenges to you": three, one of them Bullet), `online-challenges-decline` (the same with
   the first one's Decline… menu open: Lichess's reasons), `captures` (BL-13: Black down to a lone king,
-  White lost six: a full captured strip and "+29"), `all`.
+  White lost six: a full captured strip and "+29"), `check` (the page opens in check: "Check" over the command bar),
+  `all`.
 - **Sized scenes** (BL-13): `scene@WxH[@black]` (quoted: `-Scene 'game@1400x900'`) runs a scene at its own window size, saved as
   `<scene>[-black][-dark]-<WxH>.png`. `all` ends with the list in `$sizedScenes`
   (`Take-Screenshot.ps1`): the player column at `1920x1080` and `1400x900` (`game`, `clock-online`,
-  `captures`, `review`, `ended`, `result`, `challenge-ingame`, `drag@black`), and `game` at `1100x900`
-  and `960x1040`, which must keep the cards above and below the board. `premove-robot` (not in `all`: needs
+  `captures`, `review`, `ended`, `result`, `challenge-ingame`, `drag@black`, `reconnecting`, `check`:
+  the bars between the column's cards), and `game` at `1100x900`, `960x1040` and `1000x560` (no room
+  for a bar between the cards), which must keep the cards above and below the board. `premove-robot` (not in `all`: needs
   Stockfish; no baseline, the robot's moves vary): 1. e4 vs the robot, Nf3 premoved and played after its answer. `robot` (not in `all`: needs Stockfish): a saved game vs the robot at
   level 5, continued, where the robot mates with Qh5# (the engine's answer is played on the GUI thread).
   `slides` (not in `all`): the BL-14 frame-trace scene — animations on (every other scene forces them

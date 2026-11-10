@@ -54,6 +54,7 @@ Page {
     }
 
     header: CommandBar {
+        messageArea: barFill   // the window's short messages show over it
         ToolButton {
             id: accountButton
             text: UserManager.activeUserName
@@ -102,7 +103,7 @@ Page {
             }
         }
 
-        Item { Layout.fillWidth: true }
+        Item { id: barFill; Layout.fillWidth: true }
 
         IconButton {
             icon.source: Theme.icon("settings")

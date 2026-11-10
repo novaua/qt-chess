@@ -12,9 +12,20 @@ Page {
     objectName: "game"
 
     property bool rematchPending: false   // a Lichess rematch challenge waits for the opponent
-    // The window's InfoBars under the command bar (an offer, a challenge, a lost connection): the
-    // board and the cards start below them, so no bar covers the opponent's card.
+    // The window's InfoBars under the command bar (an offer, a challenge, a lost connection, "Check"):
+    // with the cards above and below the board, the board and the cards start below them, so no bar
+    // covers the opponent's card. With the player column (BL-13), the bars go between its cards
+    // (barsArea) and the board keeps its size.
     property real infoBarsHeight: 0
+    // The board's middle, in the page's coordinates: the command bar's messages centre on it.
+    readonly property real boardCenterX: contentItem.x + area.x + area.boardX + area.boardSize / 2
+    // The free space between the column's cards, in the page's coordinates; empty without the column.
+    readonly property rect barsArea: area.side
+        ? Qt.rect(contentItem.x + area.x + area.boardX - area.columnW,
+                  contentItem.y + area.y + topCard.y + topCard.height + Theme.s4,
+                  Theme.playerColumnWidth,
+                  Math.max(0, bottomCard.y - topCard.y - topCard.height - 2 * Theme.s4))
+        : Qt.rect(0, 0, 0, 0)
 
     signal homeRequested()
     signal newGameRequested()      // the result card: a new game of the same kind
@@ -152,6 +163,7 @@ Page {
     background: Rectangle { color: Theme.windowBg }
 
     header: CommandBar {
+        messageArea: barFill   // the window's short messages show over it
         IconButton {
             icon.source: Theme.icon("home")
             tip: "Home (Esc)"
@@ -165,6 +177,7 @@ Page {
             text: ChessConnector.GameTitle
             font: Theme.bodyStrong
             elide: Text.ElideRight
+            id: barFill
             Layout.fillWidth: true
             Layout.leftMargin: Theme.s2
         }
@@ -302,7 +315,6 @@ Page {
         anchors {
             fill: parent
             margins: Theme.s4
-            topMargin: Theme.s4 + page.infoBarsHeight
             bottomMargin: wide ? Theme.s4 : Theme.sheetHandleHeight + Theme.s2
         }
 
@@ -313,15 +325,22 @@ Page {
         readonly property real columnW: Theme.playerColumnWidth + Theme.s4
         // The board item: its squares take 95 % and the coordinates the edge around them (all of it
         // with the coordinates inside, Theme.boardSquares).
+        // The layout is chosen without the InfoBars, so a bar never switches it.
         readonly property real stackedBoard: Math.min(width - panelW, height - 2 * (Theme.playerCardHeight + gap))
         readonly property real sideBoard: Math.min(width - panelW - columnW, height)
         // BL-13: the player cards go to a column left of the board when that gives a clearly bigger
         // board (a window much wider than high), and both cards fit beside its squares (a stacked card
-        // with a clock and two lines of captured pieces).
+        // with a clock and two lines of captured pieces) with room between them for an InfoBar (a
+        // challenge with its buttons: about 140 high; more bars scroll there).
         readonly property real _stackedCardMax: 2 * Theme.s3 + 48 + 40 + 2 * 18 + 4 * Theme.s2
+        readonly property real _barsRoom: 140 + 2 * Theme.s4
         readonly property bool side: wide && sideBoard >= stackedBoard + 24
-                                     && sideBoard * Theme.boardSquares >= 2 * _stackedCardMax + Theme.s4
-        readonly property real boardSize: Math.max(200, side ? sideBoard : stackedBoard)
+                                     && sideBoard * Theme.boardSquares >= 2 * _stackedCardMax + _barsRoom
+        // Stacked: the content starts below the bars (topInset); side: the bars are in the column.
+        readonly property real topInset: side ? 0 : page.infoBarsHeight
+        readonly property real freeH: height - topInset
+        readonly property real boardSize: Math.max(200, side ? sideBoard
+                                                             : Math.min(width - panelW, freeH - 2 * (Theme.playerCardHeight + gap)))
         readonly property real squaresSize: boardSize * Theme.boardSquares
         readonly property real inset: (boardSize - squaresSize) / 2   // the coordinates' edge
         onWideChanged: if (wide) page.sheetOpen = false   // the sheet is hidden then
@@ -329,7 +348,7 @@ Page {
         // Stacked: card, board, card in a column, centred with the panel beside it. Side: the cards'
         // column, the board and the panel in a row, the cards level with the squares' top and bottom.
         readonly property real stackH: boardSize + 2 * (Theme.playerCardHeight + gap)
-        readonly property real stackY: Math.round((height - stackH) / 2)
+        readonly property real stackY: topInset + Math.round((freeH - stackH) / 2)
         readonly property real boardX: side ? (width - columnW - boardSize - panelW) / 2 + columnW
                                             : (width - boardSize - panelW) / 2
         readonly property real boardY: side ? Math.round((height - boardSize) / 2)
@@ -337,6 +356,7 @@ Page {
         readonly property real cardX: Math.round(boardX + inset)   // stacked: centred, on a whole pixel
 
         SideCard {
+            id: topCard
             isPlayer: page._flipped
             stacked: area.side
             clockFirst: true
@@ -390,6 +410,7 @@ Page {
         }
 
         SideCard {
+            id: bottomCard
             isPlayer: !page._flipped
             stacked: area.side
             x: area.side ? area.boardX - area.columnW : area.cardX

@@ -436,161 +436,200 @@ ApplicationWindow {
         function onUsersChanged()      { root.route() }   // the first profile imported, the last one deleted
     }
 
+    // ── Short messages ("Check", "Game saved"): over the command bar's free middle ──
+    // They take no room, so the board never moves for them (BL-13 step 3). Centred on the board on the
+    // game page, kept inside the free middle (CommandBar.messageArea); one that doesn't fit, or a page
+    // without a command bar, shows as the InfoBar below instead (messageBarFallback).
+    readonly property var _header: stack.currentItem ? stack.currentItem.header ?? null : null
+    readonly property bool _hasMessageArea: _header !== null && (_header.messageArea ?? null) !== null
+    CommandBarMessage {
+        id: messageBar
+        fallback: messageBarFallback
+        room: root._hasMessageArea ? root._header.messageWidth : 0
+        titleWidth: root._hasMessageArea ? root._header.messageTextWidth : 0
+        // On the game page over the board's middle (right of the window's centre with the player column).
+        centerX: root._onGamePage ? stack.currentItem.boardCenterX - root._header.x - root._header.messageX : room / 2
+        x: root._hasMessageArea ? stack.currentItem.x + root._header.x + root._header.messageX : 0
+        y: root._hasMessageArea ? stack.currentItem.y + root._header.y : 0
+        width: room
+        height: Theme.commandBarHeight - 1   // the bar's bottom divider stays visible
+        z: 11
+    }
+
     // ── InfoBars: messages and Lichess offers, under the command bar ────────
-    // The game page makes room for them (GamePage.infoBarsHeight); the other pages centre or scroll their content.
-    Column {
-        id: infoBars
-        anchors {
-            top: parent.top; topMargin: Theme.commandBarHeight + Theme.s2
-            horizontalCenter: parent.horizontalCenter
-        }
-        width: Math.min(parent.width - 2 * Theme.s4, 520)
-        spacing: Theme.s1
+    // The game page makes room for them (GamePage.infoBarsHeight); the other pages centre or scroll their
+    // content. With the game page's player column (BL-13), they go between its cards (GamePage.barsArea),
+    // and scroll there when they don't fit.
+    readonly property rect _barsArea: _onGamePage ? stack.currentItem.barsArea : Qt.rect(0, 0, 0, 0)
+    readonly property bool _barsInColumn: _barsArea.width > 0
+    Flickable {
+        id: barsFlick
+        x: root._barsInColumn ? stack.currentItem.x + root._barsArea.x : Math.round((parent.width - width) / 2)
+        y: root._barsInColumn ? stack.currentItem.y + root._barsArea.y : Theme.commandBarHeight + Theme.s2
+        width: root._barsInColumn ? root._barsArea.width : Math.min(parent.width - 2 * Theme.s4, 520)
+        height: root._barsInColumn ? Math.min(contentHeight, root._barsArea.height) : contentHeight
+        contentHeight: infoBars.height
+        interactive: contentHeight > height
+        clip: interactive
+        boundsBehavior: Flickable.StopAtBounds
+        ScrollBar.vertical: ScrollBar { policy: barsFlick.interactive ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }
         z: 10
 
-        InfoBar {
-            id: messageBar
+        Column {
+            id: infoBars
             width: parent.width
-            timeout: 4000
-        }
+            spacing: Theme.s1
 
-        // BL-10: a Lichess challenge to the player, over any page.
-        InfoBar {
-            id: challengeBar
-            objectName: "challengeBar"
-            width: parent.width
-            visible: root._challenge !== null && UserManager.isLoggedIn && root._page !== "online"   // the page lists them all
-            closable: false
-            actionsBelow: true
-            text: root._challenge ? root.challengeText(root._challenge) : ""
-            // During a running real-time Lichess game: Decline only (the text says why).
-            Button {
-                visible: root._challenge !== null && root._challenge.canPlayHere && ChessConnector.CanAcceptChallenge
-                text: "Accept"
-                highlighted: true
-                enabled: !root._acceptingChallenge
-                onClicked: root.acceptChallenge(root._challenge.id)
+            // A short message that doesn't fit over the command bar, or a page without one (messageBar).
+            InfoBar {
+                id: messageBarFallback
+                width: parent.width
+                timeout: 4000
             }
-            Button {
-                visible: root._challenge !== null && !root._challenge.canPlayHere
-                text: "Open on lichess.org"
-                onClicked: Qt.openUrlExternally(root._challenge.url)
-            }
-            Button {
-                text: "Decline"
-                onClicked: LichessClient.declineChallenge(root._challenge.id)
-            }
-            Button {
-                text: "Hide"
-                flat: true
-                onClicked: root.hideChallenge(root._challenge.id)
-            }
-        }
 
-        // users.json didn't parse at start: nothing was loaded, and nothing is lost yet.
-        InfoBar {
-            width: parent.width
-            visible: UserManager.dataDamaged
-            closable: false
-            severity: "critical"
-            text: UserManager.canRestoreBackup
-                  ? "Your profiles couldn't be read. Restore them from the latest backup?"
-                  : "Your profiles couldn't be read and there is no backup. A new profile starts over; the damaged file is kept in the data folder."
-            Button {
-                visible: UserManager.canRestoreBackup
-                text: "Restore"
-                highlighted: true
-                onClicked: {
-                    if (UserManager.restoreFromBackup()) messageBar.show("Profiles restored", "success")
-                    else                                 messageBar.show("The backups couldn't be read either", "critical")
+            // BL-10: a Lichess challenge to the player, over any page.
+            InfoBar {
+                id: challengeBar
+                objectName: "challengeBar"
+                width: parent.width
+                visible: root._challenge !== null && UserManager.isLoggedIn && root._page !== "online"   // the page lists them all
+                closable: false
+                actionsBelow: true
+                text: root._challenge ? root.challengeText(root._challenge) : ""
+                // During a running real-time Lichess game: Decline only (the text says why).
+                Button {
+                    visible: root._challenge !== null && root._challenge.canPlayHere && ChessConnector.CanAcceptChallenge
+                    text: "Accept"
+                    highlighted: true
+                    enabled: !root._acceptingChallenge
+                    onClicked: root.acceptChallenge(root._challenge.id)
+                }
+                Button {
+                    visible: root._challenge !== null && !root._challenge.canPlayHere
+                    text: "Open on lichess.org"
+                    onClicked: Qt.openUrlExternally(root._challenge.url)
+                }
+                Button {
+                    text: "Decline"
+                    onClicked: LichessClient.declineChallenge(root._challenge.id)
+                }
+                Button {
+                    text: "Hide"
+                    flat: true
+                    onClicked: root.hideChallenge(root._challenge.id)
+                }
+            }
+
+            // users.json didn't parse at start: nothing was loaded, and nothing is lost yet.
+            InfoBar {
+                width: parent.width
+                visible: UserManager.dataDamaged
+            actionsBelow: root._barsInColumn
+                closable: false
+                severity: "critical"
+                text: UserManager.canRestoreBackup
+                      ? "Your profiles couldn't be read. Restore them from the latest backup?"
+                      : "Your profiles couldn't be read and there is no backup. A new profile starts over; the damaged file is kept in the data folder."
+                Button {
+                    visible: UserManager.canRestoreBackup
+                    text: "Restore"
+                    highlighted: true
+                    onClicked: {
+                        if (UserManager.restoreFromBackup()) messageBar.show("Profiles restored", "success")
+                        else                                 messageBar.show("The backups couldn't be read either", "critical")
+                    }
+                }
+            }
+
+            InfoBar {
+                width: parent.width
+                visible: ChessConnector.PendingOffer === "draw"
+            actionsBelow: root._barsInColumn
+                closable: false
+                text: "Your opponent offers a draw"
+                Button {
+                    text: "Accept"; highlighted: true
+                    onClicked: ChessConnector.respondDraw(true)
+                }
+                Button {
+                    text: "Decline"
+                    onClicked: ChessConnector.respondDraw(false)
+                }
+            }
+
+            InfoBar {
+                width: parent.width
+                visible: ChessConnector.PendingOffer === "takeback"
+            actionsBelow: root._barsInColumn
+                closable: false
+                text: "Your opponent asks to take back a move"
+                Button {
+                    text: "Accept"; highlighted: true
+                    onClicked: ChessConnector.respondTakeback(true)
+                }
+                Button {
+                    text: "Decline"
+                    onClicked: ChessConnector.respondTakeback(false)
+                }
+            }
+
+            InfoBar {
+                width: parent.width
+                visible: ChessConnector.PendingOffer === "rematch"
+            actionsBelow: root._barsInColumn
+                closable: false
+                text: ChessConnector.OpponentName + " offers a rematch"
+                Button {
+                    text: "Accept"; highlighted: true
+                    onClicked: ChessConnector.respondRematch(true)
+                }
+                Button {
+                    text: "Decline"
+                    onClicked: ChessConnector.respondRematch(false)
+                }
+            }
+
+            // LI-06: the Lichess game's stream was lost; LichessClient reconnects on its own.
+            InfoBar {
+                width: parent.width
+                visible: ChessConnector.Reconnecting && ChessConnector.GameResult === ""
+                closable: false
+                severity: "caution"
+                text: "Connection to Lichess lost. Reconnecting… Your clock keeps running on Lichess."
+            }
+
+            // Lichess "opponentGone": counts down until Lichess allows claiming the win.
+            InfoBar {
+                id: opponentGoneBar
+                property int secondsLeft: -1   // <= 0: the win can be claimed now
+
+                width: parent.width
+                visible: ChessConnector.OpponentGone
+            actionsBelow: root._barsInColumn
+                closable: false
+                severity: "caution"
+                text: secondsLeft > 0 ? "Your opponent left the game. You can claim victory in " + secondsLeft + " s."
+                                      : "Your opponent left the game."
+
+                Connections {
+                    target: ChessConnector
+                    function onOpponentGoneChanged() { opponentGoneBar.secondsLeft = ChessConnector.ClaimWinSeconds }
+                }
+                Timer {
+                    interval: 1000
+                    repeat: true
+                    running: opponentGoneBar.visible && opponentGoneBar.secondsLeft > 0
+                    onTriggered: opponentGoneBar.secondsLeft--
+                }
+                Button {
+                    text: "Claim victory"
+                    highlighted: true
+                    enabled: opponentGoneBar.secondsLeft <= 0
+                    onClicked: ChessConnector.claimVictory()
                 }
             }
         }
-
-        InfoBar {
-            width: parent.width
-            visible: ChessConnector.PendingOffer === "draw"
-            closable: false
-            text: "Your opponent offers a draw"
-            Button {
-                text: "Accept"; highlighted: true
-                onClicked: ChessConnector.respondDraw(true)
-            }
-            Button {
-                text: "Decline"
-                onClicked: ChessConnector.respondDraw(false)
-            }
-        }
-
-        InfoBar {
-            width: parent.width
-            visible: ChessConnector.PendingOffer === "takeback"
-            closable: false
-            text: "Your opponent asks to take back a move"
-            Button {
-                text: "Accept"; highlighted: true
-                onClicked: ChessConnector.respondTakeback(true)
-            }
-            Button {
-                text: "Decline"
-                onClicked: ChessConnector.respondTakeback(false)
-            }
-        }
-
-        InfoBar {
-            width: parent.width
-            visible: ChessConnector.PendingOffer === "rematch"
-            closable: false
-            text: ChessConnector.OpponentName + " offers a rematch"
-            Button {
-                text: "Accept"; highlighted: true
-                onClicked: ChessConnector.respondRematch(true)
-            }
-            Button {
-                text: "Decline"
-                onClicked: ChessConnector.respondRematch(false)
-            }
-        }
-
-        // LI-06: the Lichess game's stream was lost; LichessClient reconnects on its own.
-        InfoBar {
-            width: parent.width
-            visible: ChessConnector.Reconnecting && ChessConnector.GameResult === ""
-            closable: false
-            severity: "caution"
-            text: "Connection to Lichess lost. Reconnecting… Your clock keeps running on Lichess."
-        }
-
-        // Lichess "opponentGone": counts down until Lichess allows claiming the win.
-        InfoBar {
-            id: opponentGoneBar
-            property int secondsLeft: -1   // <= 0: the win can be claimed now
-
-            width: parent.width
-            visible: ChessConnector.OpponentGone
-            closable: false
-            severity: "caution"
-            text: secondsLeft > 0 ? "Your opponent left the game. You can claim victory in " + secondsLeft + " s."
-                                  : "Your opponent left the game."
-
-            Connections {
-                target: ChessConnector
-                function onOpponentGoneChanged() { opponentGoneBar.secondsLeft = ChessConnector.ClaimWinSeconds }
-            }
-            Timer {
-                interval: 1000
-                repeat: true
-                running: opponentGoneBar.visible && opponentGoneBar.secondsLeft > 0
-                onTriggered: opponentGoneBar.secondsLeft--
-            }
-            Button {
-                text: "Claim victory"
-                highlighted: true
-                enabled: opponentGoneBar.secondsLeft <= 0
-                onClicked: ChessConnector.claimVictory()
-            }
-        }
-    }
+    }   // Flickable
 
     Connections {
         target: ChessConnector

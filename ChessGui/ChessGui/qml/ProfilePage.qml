@@ -46,6 +46,7 @@ Page {
     background: Rectangle { color: Theme.windowBg }
 
     header: CommandBar {
+        messageArea: barFill   // the window's short messages show over it
         IconButton {
             icon.source: Theme.icon("back")
             tip: "Back (Esc)"
@@ -54,6 +55,7 @@ Page {
         Label {
             text: "Profile"
             font: Theme.bodyStrong
+            id: barFill
             Layout.fillWidth: true
         }
     }

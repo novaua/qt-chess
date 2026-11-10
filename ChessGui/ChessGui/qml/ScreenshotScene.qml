@@ -39,7 +39,7 @@ Item {
         // A second profile to play against: same names and avatars every time.
         var gameScene = ["game", "leave-online", "continue", "review", "result", "ended", "moves", "select", "drag", "slides",
                          "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate",
-                         "captures"].includes(name)
+                         "captures", "check"].includes(name)
         if ((gameScene || name.startsWith("players")) && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -106,6 +106,8 @@ Item {
                                   // pieces wrap in the player column, "+N" on both strips' lines.
                                   captures: "h2h3 b7b5 b1c3 f7f6 c3b5 e7e5 b5a7 b8c6 a7c8 d8c8 f2f4 g8e7 f4e5 a8a2 a1a2 h8g8 e5f6 g7f6 e2e3 c8b7 g2g3 g8g3 d2d3 g3g2 f1g2 c6e5 g2b7 e7d5 b7d5 c7c6 d5c6 "
                                           + "d7c6 g1e2 e5d3 c2d3 e8f7 d3d4 f8a3 b2a3 f7e7 d1c2 h7h6 c2c6 f6f5 c6h6 e7d7 e2f4 d7e7 a2c2 e7d8 c2c6 d8d7 a3a4 d7e7 f4g6 e7e8 e1f2 e8d8 g6e7 d8d7 e7f5 d7d8",
+                                  // The page opens in check: "Check" a second later (in the column, wide).
+                                  check: "e2e4 f7f6 d1h5",
                                   stalemate: "e2e3 a7a5 d1h5 a8a6 h5a5 h7h5 h2h4 a6h6 a5c7 f7f6 c7d7 e8f7 d7b7 d8d3 "
                                            + "b7b8 d3h7 b8c8 f7g6" })[name] ?? ""
             // White's and Black's time: time stands still in this mode, so a scene sets what it shows.
@@ -192,8 +194,8 @@ Item {
             resultCardTimer.start()
         } else {
             // clock-continue: past the second the clock waits for the page, or the shot races with it.
-            // online-challenges-decline: the menu has opened.
-            readyTimer.interval = shot.scene === "clock-continue" ? 1500 : shot.scene === "online-challenges-decline" ? 500 : 0
+            // check: "Check" shows once the page has been open a second. online-challenges-decline: the menu has opened.
+            readyTimer.interval = shot.scene === "clock-continue" || shot.scene === "check" ? 1500 : shot.scene === "online-challenges-decline" ? 500 : 0
             readyTimer.start()
         }
     }

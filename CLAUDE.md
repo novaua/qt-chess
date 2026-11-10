@@ -88,7 +88,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
   - `ChessGame.qml` — the window: a `StackView` with one page (`WelcomePage` on first run,
     `ProfilePickerPage`, `HomePage`, `GamePage`; `route()` picks it from `UserManager` and
     `ChessConnector.InGame`), with `ProfilePage` or `SettingsPage` pushed over Home or the game, `OnlinePage` over Home; the
-    InfoBars (also the BL-10 challenge bar over every page: Accept / Open on lichess.org, Decline, Hide; a sound and the taskbar flash for a new one) and every dialog. Pages ask for dialogs through signals.
+    InfoBars (under the command bar; on the game page's player column between its cards, `GamePage.barsArea`, BL-13; also the BL-10 challenge bar over every page: Accept / Open on lichess.org, Decline, Hide; a sound and the taskbar flash for a new one) and every dialog. Pages ask for dialogs through signals.
   - `HomePage.qml` (account menu, Continue: the robot's autosaved game first, else the unfinished Lichess games on the Online page; action cards), `OnlinePage.qml` (pushed by "Play online": the challenges to the player with Accept and Decline… with Lichess's reasons (BL-10), the unfinished Lichess games as `BoardPreview` cards with Continue, a new challenge (a link, or to a named Lichess player, the only way to play Blitz), join by link; LI-04), `GamePage.qml` (command bar, board between
     two `PlayerCard`s with a `CapturedStrip` and "+N" (BL-13: in a wide window where that gives a bigger board, the cards go `stacked` in a column left of the board, `area.side`), the moves (`MovesPanel` + `MoveList`) beside
     the board or in a bottom sheet, `ResultCard` over the board)
@@ -96,7 +96,7 @@ Spawns and communicates with external UCI engines via `QProcess`. Main API: `Ini
   - `ChessFigures.qml` — the pieces, one item per row of `ChessConnector.Pieces` on its square; it slides when the square changes, a captured one fades out; a `DragHandler` per piece of the side to move, or of the player during the opponent's turn (a premove) (drop → `ChessConnector.movePiece`)
   - `ChessBoxes.qml` — the squares and their highlights (last move, premove, check, flagged king, selected piece); `NavigationLayer.qml` — the legal-move dots (premove targets in red)
   - Shared: `Theme.qml` and `AppSettings.qml` (singletons; `AppSettings` is the QtCore `Settings` with the
-    app's own options), `SettingRow`, `AppDialog`, `ConfirmDialog`, `CommandBar`, `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`, `SectionCard`, `AvatarPicker`, `TimeControlPicker` (the clock tiles of the setup dialogs and the challenge card), `FocusRing` (keyboard focus outline for custom-drawn items)
+    app's own options), `SettingRow`, `AppDialog`, `ConfirmDialog`, `CommandBar` (`messageArea`: the item over which short messages show), `CommandBarMessage` ("Check", "Game saved": over the command bar, taking no room; one that doesn't fit falls back to the InfoBar, BL-13), `InfoBar`, `IconButton`, `HomeCard`, `ChoiceRow`, `SectionCard`, `AvatarPicker`, `TimeControlPicker` (the clock tiles of the setup dialogs and the challenge card), `FocusRing` (keyboard focus outline for custom-drawn items)
   - Tooling: `ScreenshotScene` (the `--screenshot` scenes; loaded only in that mode, keep debug/test helpers there, not in the pages)
   - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog`, `ChallengeDialog` (a Lichess challenge waiting for the friend or a named player), `LeaveOnlineDialog` (Leave / Resign / Stay when leaving or closing during a running Lichess game); profiles: `CreateUserDialog`, `ImportConflictDialog`, `RestoreBackupDialog`
 - `UserManager` keeps `users.json` (atomic `QSaveFile` writes, `backups/users-1..3.json`), statistics
@@ -131,7 +131,9 @@ Then confirm the current branch with `git branch` and `git log --oneline -5` bef
 
 ## Branching Workflow
 
-- Start every task on a **new branch from the latest `origin/develop`** (`git fetch` first). Name it `<camelCaseTask>_<ddmmyy>`, e.g. `removeVcpkg_281026`.
+- Start every task on a **new branch from the latest `origin/develop`** (`git fetch` first). Name it `features/<camelCaseTask>_<DDMMYY>` for a feature or task, `bugs/<camelCaseTask>_<DDMMYY>` for a bug fix, `docs/<camelCaseTask>_<DDMMYY>` for a change to docs only (a plan, `TASKS.md`, the README), e.g. `features/removeVcpkg_281026`, `bugs/infoBarsCover_101126`, `docs/bl13Plan_091126`.
+  - `DDMMYY` is the day the branch is created: two digits each for day, month and year (10 Nov 2026 → `101126`). Take it from the local clock (`Get-Date -Format ddMMyy`), not from memory: a session can run past midnight.
+  - Branches before 2026-11-10 have no `features/` / `bugs/` prefix (e.g. `infoBarsColumn_091126`, PR #137); don't rename them.
 - Never continue a new task on the branch of a previous task.
 - When a feature/task is done (built, tested, committed), push the branch and open a GitHub PR into `develop` with the `gh` CLI (`gh pr create --base develop`) — no need to ask first. Report the PR link.
 - Exception: if the task depends on changes that are not merged into `develop` yet, stop and ask the user to either merge them first (then wait and branch from the updated `develop`) or explicitly approve branching from the unmerged branch.

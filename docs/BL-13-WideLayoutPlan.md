@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-09 |
-| **Status** | Step 1 coded (branch `wideGameLayout_091126`); step 2 next. The owner chose the recommended answers to Q1–Q4 (2026-11-09) |
+| **Status** | Steps 1 (#136) and 2 (branch `infoBarsColumn_091126`) coded; later: more move-history views. The owner chose the recommended answers to Q1–Q4 (2026-11-09) |
 | **Branch** | `bl13Plan_091126` (plan); each step on its own branch from `develop` |
 | **Task** | BL-13 in `TASKS.md`. Builds on #134 (the InfoBars make room on the game page) |
 
@@ -183,9 +183,11 @@ Light and dark: 22 new shots. The existing 100 must not change.
   the same and only its size changes, as when resizing today.
 - **Tiny column cards at 200 % scaling**: logical sizes don't change with scaling; the rule of §4.1
   uses logical pixels, so a 4K monitor at 200 % behaves like 1920 × 1080.
-- **The InfoBars' width in the column (A)**: a long challenge text wraps to 4–5 lines at 260 px. It
-  still fits between the cards at 1400 × 900; at 1280 × 720 (≈ 270 px free) two bars may not, so the
-  column's bars scroll or fall back to B when they don't fit (decide in step 2).
+- **The InfoBars' width in the column (A)**: a long challenge text wraps to 4–5 lines at 260 px.
+  Decided in step 2: the column is used only when there is room for one such bar between the cards
+  (about 140 px, `area._barsRoom`; e.g. 1000 × 560 keeps the cards above and below the board), and
+  more bars than fit scroll there. The layout is chosen without the bars, so a bar never switches it.
+  In the column the bars' buttons go under the text and wrap (`InfoBar.actionsBelow`, a `Flow`).
 
 ## 8. The owner's choices
 
