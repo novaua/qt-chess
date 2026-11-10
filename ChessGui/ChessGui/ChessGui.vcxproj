@@ -437,6 +437,7 @@
     <None Include="qml\CreateUserDialog.qml" />
     <None Include="qml\IconButton.qml" />
     <None Include="qml\CommandBar.qml" />
+    <None Include="qml\CommandBarMessage.qml" />
     <None Include="qml\InfoBar.qml" />
     <None Include="qml\HomeCard.qml" />
     <None Include="qml\FocusRing.qml" />

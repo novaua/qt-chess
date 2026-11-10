@@ -17,6 +17,8 @@ Page {
     // covers the opponent's card. With the player column (BL-13), the bars go between its cards
     // (barsArea) and the board keeps its size.
     property real infoBarsHeight: 0
+    // The board's middle, in the page's coordinates: the command bar's messages centre on it.
+    readonly property real boardCenterX: contentItem.x + area.x + area.boardX + area.boardSize / 2
     // The free space between the column's cards, in the page's coordinates; empty without the column.
     readonly property rect barsArea: area.side
         ? Qt.rect(contentItem.x + area.x + area.boardX - area.columnW,
@@ -161,6 +163,7 @@ Page {
     background: Rectangle { color: Theme.windowBg }
 
     header: CommandBar {
+        messageArea: barFill   // the window's short messages show over it
         IconButton {
             icon.source: Theme.icon("home")
             tip: "Home (Esc)"
@@ -174,6 +177,7 @@ Page {
             text: ChessConnector.GameTitle
             font: Theme.bodyStrong
             elide: Text.ElideRight
+            id: barFill
             Layout.fillWidth: true
             Layout.leftMargin: Theme.s2
         }

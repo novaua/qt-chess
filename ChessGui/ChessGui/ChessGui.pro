@@ -96,6 +96,7 @@ DISTFILES += \
     qml/HomePage.qml \
     qml/IconButton.qml \
     qml/InfoBar.qml \
+    qml/CommandBarMessage.qml \
     qml/LevelsHelpDialog.qml \
     qml/BoardPreview.qml \
     qml/OnlinePage.qml \

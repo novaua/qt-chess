@@ -436,6 +436,26 @@ ApplicationWindow {
         function onUsersChanged()      { root.route() }   // the first profile imported, the last one deleted
     }
 
+    // ── Short messages ("Check", "Game saved"): over the command bar's free middle ──
+    // They take no room, so the board never moves for them (BL-13 step 3). Centred on the board on the
+    // game page, kept inside the free middle (CommandBar.messageArea); one that doesn't fit, or a page
+    // without a command bar, shows as the InfoBar below instead (messageBarFallback).
+    readonly property var _header: stack.currentItem ? stack.currentItem.header ?? null : null
+    readonly property bool _hasMessageArea: _header !== null && (_header.messageArea ?? null) !== null
+    CommandBarMessage {
+        id: messageBar
+        fallback: messageBarFallback
+        room: root._hasMessageArea ? root._header.messageWidth : 0
+        titleWidth: root._hasMessageArea ? root._header.messageTextWidth : 0
+        // On the game page over the board's middle (right of the window's centre with the player column).
+        centerX: root._onGamePage ? stack.currentItem.boardCenterX - root._header.x - root._header.messageX : room / 2
+        x: root._hasMessageArea ? stack.currentItem.x + root._header.x + root._header.messageX : 0
+        y: root._hasMessageArea ? stack.currentItem.y + root._header.y : 0
+        width: room
+        height: Theme.commandBarHeight - 1   // the bar's bottom divider stays visible
+        z: 11
+    }
+
     // ── InfoBars: messages and Lichess offers, under the command bar ────────
     // The game page makes room for them (GamePage.infoBarsHeight); the other pages centre or scroll their
     // content. With the game page's player column (BL-13), they go between its cards (GamePage.barsArea),
@@ -460,8 +480,9 @@ ApplicationWindow {
             width: parent.width
             spacing: Theme.s1
 
+            // A short message that doesn't fit over the command bar, or a page without one (messageBar).
             InfoBar {
-                id: messageBar
+                id: messageBarFallback
                 width: parent.width
                 timeout: 4000
             }

@@ -72,7 +72,7 @@ $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue
 # keep the cards above and below the board.
 $sizedScenes = 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'captures@1400x900', 'review@1400x900',
                'ended@1400x900', 'result@1400x900', 'challenge-ingame@1400x900', 'drag@1400x900@black',
-               'reconnecting@1400x900', 'check@1400x900', 'game@1100x900', 'game@960x1040', 'game@1000x560'
+               'reconnecting@1400x900', 'check@1400x900', 'check@960x1040', 'game@1100x900', 'game@960x1040', 'game@1000x560'
 if ($Scene -contains 'all') { $Scene = $allScenes + $sizedScenes }
 foreach ($s in $Scene) {
     $s = ($s -split '@')[0]

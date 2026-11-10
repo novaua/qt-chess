@@ -4,6 +4,21 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-10 — BL-13: short messages over the command bar (branch: infoBarsColumn_091126, PR #137)
+
+### What was done
+- The owner, checking #137: "Check" still changed the board's size in a tall window (half the screen), where the cards are above and below the board. The owner's idea (plan step 3, PR #140): short messages over the command bar. Done here for the message bar only; the rest of step 3 (offers and the reconnecting status in the command bar, recent messages in the More menu) stays as planned.
+- **`CommandBarMessage.qml`** (new): "Check", "Game saved", "PGN copied", … as a pill over the command bar's free middle: no room taken, nothing on the page moves. Centred on the board on the game page (right of the window's centre with the player column), kept inside the free middle; where it would cross the title's text, the title is hidden up to it (no cut word). A message that doesn't fit (e.g. "Couldn't save <long path>" at 768 wide), or a page without a command bar (Welcome, the profile picker), shows as the InfoBar under the command bar as before (`messageBarFallback`). The decision follows the window's size while it shows.
+- **`CommandBar.messageArea`**: the item filling the free middle (the title, Home's filler); set on the game, Home, Online, Profile and Settings pages. `GamePage.boardCenterX`.
+- Checked with a temporary long message at 768, 960 and 1400 wide: the bar, over the command bar with the title hidden, over the command bar with the title kept.
+- **Screenshots**: `check` re-baselined (default, 1400×900) and new `check@960x1040`, light and dark: "Check" in the command bar, the board as in `game`. All other scenes match (the profile scenes' 0.04 % is their "since <today's date>").
+- QML only: no C++ tests run.
+
+### Next
+- The owner's choices for the rest of step 3 (Q8 "Recent messages" in the More menu, Q9 all but "Check", the last 20, Q10 this session only) go into the plan (#140).
+
+---
+
 ## 2026-11-09 — BL-13 step 2: the InfoBars between the column's cards (branch: infoBarsColumn_091126)
 
 ### What was done
