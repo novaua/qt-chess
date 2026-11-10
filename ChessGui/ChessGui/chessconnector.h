@@ -19,6 +19,7 @@
 #include "movelistmodel.h"
 #include "movegate.h"
 #include "gameclock.h"
+#include "claimwin.h"
 #include "engineworker.h"
 #include "AppConfig.h"
 #include "AvatarProvider.h"
@@ -84,7 +85,10 @@ class ChessConnector : public QObject
 		// BL-10: a challenge can be accepted now: not during a running real-time Lichess game (the
 		// player finishes it first); a robot, two-player or correspondence game is left for it.
 		Q_PROPERTY(bool CanAcceptChallenge READ canAcceptChallenge NOTIFY canAcceptChallengeChanged)
-		Q_PROPERTY(int  ClaimWinSeconds READ claimWinSeconds NOTIFY opponentGoneChanged) // when it became gone; -1 = not said
+		// The opponent left: the seconds until Lichess allows claiming the win, counting down; -1 = not said.
+		// CanClaimVictory: now, and on the opponent's turn, the only time Lichess takes the claim (ClaimWin).
+		Q_PROPERTY(int  ClaimWinSeconds READ claimWinSeconds NOTIFY claimWinSecondsChanged)
+		Q_PROPERTY(bool CanClaimVictory READ canClaimVictory NOTIFY canClaimVictoryChanged)
 		Q_PROPERTY(QString ContinueDescription READ continueDescription NOTIFY canContinueChanged) // the autosaved game, e.g. "vs Bob"
 		Q_PROPERTY(GameClock* Clock READ clock CONSTANT) // the game's clocks; Clock.enabled false: none
 		// --screenshot mode: { scene, moves, black, dark, width, height }; empty in a normal run
@@ -132,10 +136,11 @@ public:
 	QString resultText() const { return _resultText; }
 	QString pendingOffer() const { return _pendingOffer; }
 	bool    canOfferDraw() const;
-	bool    opponentGone()    const { return _opponentGone; }
+	bool    opponentGone()    const { return _claimWin->gone(); }
 	bool    reconnecting()    const { return _reconnecting; }
 	bool    canAcceptChallenge() const { return !(isOnlineGame() && _gameResult.isEmpty() && _onlineRealTime); }
-	int     claimWinSeconds() const { return _claimWinSeconds; }
+	int     claimWinSeconds() const { return _claimWin->secondsLeft(); }
+	bool    canClaimVictory() const { return _claimWin->canClaim(); }
 	QString continueDescription() const;
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
@@ -184,6 +189,8 @@ signals:
 	void pendingOfferChanged();
 	void canOfferDrawChanged();
 	void opponentGoneChanged();
+	void claimWinSecondsChanged();
+	void canClaimVictoryChanged();
 	void reconnectingChanged();
 	void canAcceptChallengeChanged();
 	void reconnected(); // the Lichess game's connection is back, the board up to date
@@ -286,6 +293,7 @@ private:
 	void setResult(const QString& result, const QString& text); // non-empty: the game is over
 	void setPendingOffer(const QString& offer);
 	void setOpponentGone(bool gone, int claimWinInSeconds = -1);
+	void updateClaimTurn(); // tells _claimWin whose turn it is
 	void setReconnecting(bool reconnecting);
 	void flagKing(bool white); // mark that side's king as the loser (resign / time)
 	void endGameWithLoser(bool white, const QString& result, const QString& text); // mate, resignation, time
@@ -378,10 +386,9 @@ private:
 	QString _opponentUserId;
 	QString _pendingOffer;
 	int  _drawOfferPly = -1; // ply of our last Lichess draw offer; -1 = none in this game
-	bool _opponentGone = false;
+	ClaimWin* _claimWin = nullptr; // the opponent left: the countdown and when the win can be claimed
 	bool _reconnecting = false;
 	bool _onlineRealTime = false; // the Lichess game on the board has a real-time clock
-	int  _claimWinSeconds = -1;
 	AppConfig _config;
 	int _reviewIndex = -1;
 

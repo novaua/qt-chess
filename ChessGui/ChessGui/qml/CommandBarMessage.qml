@@ -25,9 +25,17 @@ Item {
     signal closeRequested()
 
     // Measured from the pill's content, so it is known before it shows; bindings settle before a frame
-    // is drawn, so the pill and the window's InfoBar never both show.
-    readonly property bool fits: room >= pill.width + 2 * Theme.s2
+    // is drawn, so the pill and the window's InfoBar never both show. Without buttons the text may be
+    // cut short (all of it on hover and in the recent messages), so a short message fits all but the
+    // narrowest bar and the board never moves for it; with buttons (an offer) it must fit whole.
+    readonly property real _chromeWidth: 2 * Theme.s3 + icon.width + Theme.s2
+                                         + (_hasActions ? Theme.s3 + actionRow.width : 0)
+                                         + (closable ? 2 * Theme.s1 + closeButton.width - Theme.s3 : 0)   // the × in place of the right padding
+    readonly property real _labelRoom: room - 2 * Theme.s2 - _chromeWidth
+    readonly property real _labelMin: _hasActions ? label.implicitWidth : Math.min(label.implicitWidth, 120)
+    readonly property bool fits: _labelRoom >= _labelMin
     readonly property bool showing: active && fits
+    readonly property string _hoverText: tooltip !== "" ? tooltip : label.truncated ? text : ""
 
     opacity: showing ? 1 : 0
     visible: opacity > 0
@@ -51,9 +59,7 @@ Item {
         id: pill
         x: Math.round(Math.max(Theme.s2, Math.min(msg.centerX - width / 2, msg.room - width - Theme.s2)))
         anchors.verticalCenter: parent.verticalCenter
-        width: 2 * Theme.s3 + icon.width + Theme.s2 + label.implicitWidth
-               + (msg._hasActions ? Theme.s3 + actionRow.width : 0)
-               + (msg.closable ? 2 * Theme.s1 + closeButton.width - Theme.s3 : 0)   // the × in place of the right padding
+        width: msg._chromeWidth + label.width
         height: msg._hasActions ? 40 : 36
         radius: Theme.radiusCard
         color: ({ success: Theme.successBg, caution: Theme.cautionBg, critical: Theme.criticalBg })[msg.severity]
@@ -64,18 +70,14 @@ Item {
         MouseArea {
             anchors.fill: parent
             enabled: msg.clickToClose
-            hoverEnabled: msg.tooltip !== ""
             onClicked: msg.closeRequested()
-            ToolTip.visible: msg.tooltip !== "" && containsMouse
-            ToolTip.text: msg.tooltip
-            ToolTip.delay: 400
         }
         HoverHandler {
             id: hover
-            enabled: msg.tooltip !== "" && !msg.clickToClose
+            enabled: msg._hoverText !== ""
         }
         ToolTip.visible: hover.hovered
-        ToolTip.text: msg.tooltip
+        ToolTip.text: msg._hoverText
         ToolTip.delay: 400
 
         IconImage {
@@ -90,12 +92,14 @@ Item {
         Label {
             id: label
             x: icon.x + icon.width + Theme.s2
+            width: Math.max(0, Math.min(implicitWidth, msg._labelRoom))
             anchors.verticalCenter: parent.verticalCenter
             text: msg.text
+            elide: Text.ElideRight
         }
         Row {
             id: actionRow
-            x: label.x + label.implicitWidth + Theme.s3
+            x: label.x + label.width + Theme.s3
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.s2
         }

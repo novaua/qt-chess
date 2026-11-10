@@ -54,6 +54,10 @@ ChessConnector::ChessConnector(QObject* parent)
 	connect(_gate, &MoveGate::releaseBatch, this, &ChessConnector::playOnlineMoves);
 	connect(_gate, &MoveGate::idle, this, &ChessConnector::boardIdle);
 	_clock = new GameClock(this);
+	_claimWin = new ClaimWin(this);
+	connect(_claimWin, &ClaimWin::goneChanged, this, &ChessConnector::opponentGoneChanged);
+	connect(_claimWin, &ClaimWin::secondsLeftChanged, this, &ChessConnector::claimWinSecondsChanged);
+	connect(_claimWin, &ClaimWin::canClaimChanged, this, &ChessConnector::canClaimVictoryChanged);
 	connect(_clock, &GameClock::flagged, this, &ChessConnector::onClockFlagged);
 	_leaveAfterResign.setSingleShot(true);
 	connect(&_leaveAfterResign, &QTimer::timeout, this, &ChessConnector::endGame);
@@ -440,6 +444,7 @@ void ChessConnector::EmitMoveCountUpdates(bool emitHistoryChanged)
 	FrameTraceScope trace("after-move signals");
 	emit moveCountChanged();
 	emit IsWhiteMoveChanged();
+	updateClaimTurn();
 	emit lastMoveChanged();
 	if (emitHistoryChanged)
 		emit moveHistoryChanged();
@@ -584,11 +589,13 @@ void ChessConnector::onLichessConnectionChanged(bool connected)
 
 void ChessConnector::setOpponentGone(bool gone, int claimWinInSeconds)
 {
-	if (!gone) claimWinInSeconds = -1;
-	if (_opponentGone == gone && _claimWinSeconds == claimWinInSeconds) return;
-	_opponentGone = gone;
-	_claimWinSeconds = claimWinInSeconds;
-	emit opponentGoneChanged();
+	updateClaimTurn();
+	_claimWin->setGone(gone, claimWinInSeconds);
+}
+
+void ChessConnector::updateClaimTurn()
+{
+	_claimWin->setOpponentToMove(_game->IsWhiteMove() != _config.playerPlaysWhite);
 }
 
 void ChessConnector::setGameMode(const QString& mode, const QString& opponentName, const QString& opponentUserId)
@@ -977,7 +984,7 @@ void ChessConnector::offerDraw()
 
 void ChessConnector::claimVictory()
 {
-	if (!_onlineGameId.isEmpty() && _lichessClient)
+	if (canClaimVictory() && !_onlineGameId.isEmpty() && _lichessClient)
 		_lichessClient->claimVictory(_onlineGameId);
 }
 
@@ -1245,6 +1252,7 @@ void ChessConnector::setScreenshotScene(const QVariantMap& scene)
 {
 	_screenshotScene = scene;
 	_clock->setClock([] { return qint64(0); }); // time stands still: the same scene gives the same picture
+	_claimWin->freeze();
 }
 
 void ChessConnector::setScreenshotClock(int whiteMs, int blackMs)
@@ -1267,6 +1275,7 @@ void ChessConnector::setPlayerPlaysWhite(bool v)
 	_config.playerPlaysWhite = v;
 	_config.save();
 	emit playerPlaysWhiteChanged();
+	updateClaimTurn();
 }
 
 void ChessConnector::startEngineThread(Chess::EngineLevel level)

@@ -358,6 +358,7 @@
     <ClCompile Include="frametrace.cpp" />
     <ClCompile Include="movelistmodel.cpp" />
     <ClCompile Include="movegate.cpp" />
+    <ClCompile Include="claimwin.cpp" />
     <ClCompile Include="gameclock.cpp" />
     <ClCompile Include="applog.cpp" />
     <ClCompile Include="engineworker.cpp" />
@@ -376,6 +377,7 @@
     <QtMoc Include="boardpieces.h" />
     <QtMoc Include="movelistmodel.h" />
     <QtMoc Include="movegate.h" />
+    <QtMoc Include="claimwin.h" />
     <QtMoc Include="gameclock.h" />
     <ClInclude Include="applog.h" />
     <QtMoc Include="engineworker.h" />
@@ -439,6 +441,8 @@
     <None Include="qml\CommandBar.qml" />
     <None Include="qml\CommandBarMessage.qml" />
     <None Include="qml\MessagesFlyout.qml" />
+    <None Include="qml\NewMessagesDot.qml" />
+    <None Include="qml\RecentMessagesMenuItem.qml" />
     <None Include="qml\InfoBar.qml" />
     <None Include="qml\HomeCard.qml" />
     <None Include="qml\FocusRing.qml" />

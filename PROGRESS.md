@@ -4,6 +4,26 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-10 — BL-13: code review fixes (branch: bugs/bl13Review_101126)
+
+The owner's `/code-review medium` of the BL-13 PRs (#136, #137, #141): 10 findings, all fixed.
+- **An offer or Claim victory could be hidden with no way to answer it** (only the recent messages): a short message held the command bar, and an error until it was closed. Now a state that waits for an answer is hidden at most 4 s by a short message (an error too: it stays in the recent messages, with the dot), not at all by "Check" (the board and the sound tell it), and when an offer comes or the claim becomes possible, a message shown gives way at once.
+- **Closing "Opponent left" with × didn't last**: each new countdown from Lichess brought it back (`opponentGoneChanged` came for the seconds too). Now only when the opponent leaves or comes back.
+- **The recent messages' handlers read bindings that may not have updated yet** (`_offer`, `_reconnecting`, in the same signal): they read `ChessConnector` now.
+- **The recent messages and the dot stayed for the next profile** (file paths, game titles): cleared when the profile changes (not on a rename).
+- **In a narrow window a short message moved the board** (it didn't fit the command bar: the InfoBar, which the stacked layout makes room for): a message without buttons is cut short to fit now (all of it on hover and in the recent messages); only one with buttons (an offer, Claim victory) still needs the InfoBar there.
+- **The recent messages could run off a small window**: kept inside it (the list gets the height left; the panel moves up when needed).
+- **The claim rules were worked out in QML** (a countdown timer and "the opponent's turn", copied): `ClaimWin` (`claimwin.h/cpp`, 6 tests) counts down and knows the turn; `ChessConnector.ClaimWinSeconds` counts down, `CanClaimVictory` is new, and `claimVictory()` posts only when it's true.
+- **`PlayerCard` built both layouts**: Loaders build only the one in use (one avatar, clock and captured strip per card, not three).
+- One tooltip path in `CommandBarMessage` (the click area's never ran); `NewMessagesDot` and `RecentMessagesMenuItem`, shared by the game page and Home.
+- **Screenshots** (screen on): all 164 existing scenes match, light and dark (the cards' Loaders, the cut text and the `ClaimWin` claim change no picture); new sized scenes `opponent-left-turn@640x560` (the text cut short over the command bar), `saved@640x560`, `messages@640x560`: 6 new baselines after a look.
+- ChessQtTests 219 pass (6 new).
+
+### Next
+- The owner's hand check of #141 still stands (a draw offer, the lost connection, a challenge, the opponent left in a real Lichess game; Ctrl+M and the dot), now also: an error while an offer is open, and × on "Opponent left" during the countdown.
+
+---
+
 ## 2026-11-10 — BL-13 step 3: messages over the command bar, recent messages (branch: features/commandBarMessages_101126)
 
 ### What was done (plan §9, the owner's Q5–Q10)
