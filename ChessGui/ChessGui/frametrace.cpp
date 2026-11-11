@@ -61,3 +61,50 @@ FrameTraceScope::~FrameTraceScope()
 		qCDebug(chessFrames).noquote() << "[Frame trace]" << _what
 			<< QString::number(_timer.nsecsElapsed() / 1e6, 'f', 1) << "ms";
 }
+
+Q_LOGGING_CATEGORY(chessTiming, "chess.timing", QtInfoMsg)
+
+void GameStartTiming::begin(const QString& action)
+{
+	_action = action;
+	_steps.clear();
+	_lastMs = 0;
+	++_generation;
+	_total.start();
+}
+
+void GameStartTiming::step(const char* what)
+{
+	if (!running())
+		return;
+	const qint64 now = _total.elapsed();
+	_steps << QStringLiteral("%1 %2").arg(QLatin1String(what)).arg(now - _lastMs);
+	_lastMs = now;
+}
+
+void GameStartTiming::shown(QQuickWindow* window)
+{
+	if (!running())
+		return;
+	step("page");
+	if (!window) {
+		finish();
+		return;
+	}
+	// frameSwapped comes from the render thread: handled on the GUI thread (window's), queued.
+	const int generation = _generation;
+	QObject::connect(window, &QQuickWindow::frameSwapped, window, [this, generation]() {
+		if (generation == _generation && running()) {
+			step("first frame");
+			finish();
+		}
+	}, static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::SingleShotConnection));
+	window->update();
+}
+
+void GameStartTiming::finish()
+{
+	qCInfo(chessTiming).noquote() << QStringLiteral("[Timing] %1: %2 ms to the first frame (%3)")
+		.arg(_action).arg(_total.elapsed()).arg(_steps.join(QStringLiteral(", ")));
+	_total.invalidate();
+}

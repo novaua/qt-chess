@@ -79,6 +79,14 @@ Item {
             ChessConnector.endGame()                  // ... and that answer is dropped
             ChessConnector.continueGame()
         }
+        if (name === "timing") {
+            // BL-11 measurement, not a screenshot (not in all; run with -KeepLog and read the
+            // [Timing] lines): game starts as clicks in a running app make them, 1.5 s apart, from
+            // Home: vs Robot, leave, Continue, leave, two players, leave, vs Robot as Black (the
+            // engine starts thinking at once) and leave while it thinks (the engine's stop).
+            timingSteps.start()
+            return
+        }
         if (name === "premove-robot") {
             // LI-05 check, needs Stockfish: 1. e4 against the robot (level 1), and Ng1-f3 premoved
             // while it thinks. Its answer comes, then Nf3 is played (by the shot, a second later, the
@@ -258,6 +266,30 @@ Item {
     }
 
     // Scene "premove-robot": wait for the robot's answer and the premove after it.
+    Timer {
+        id: timingSteps
+        interval: 1500
+        repeat: true
+        property int step: 0
+        onTriggered: {
+            const bob = UserManager.users.find(u => u.name === "Bob")
+            switch (step++) {
+            case 0: ChessConnector.startComputerGame(3, 0); break
+            case 1: ChessConnector.applyMoves("e2e4 e7e5"); ChessConnector.endGame(); break   // autosaved
+            case 2: ChessConnector.continueGame(); break
+            case 3: ChessConnector.endGame(); break
+            case 4: ChessConnector.startLocalGame(true, bob ? bob.id : ""); break
+            case 5: ChessConnector.endGame(); break
+            case 6: ChessConnector.startComputerGame(5, 1); break   // the robot (White) thinks at once ...
+            case 7: ChessConnector.endGame(); break                  // ... and is stopped
+            default:
+                stop()
+                readyTimer.interval = 0
+                readyTimer.start()
+            }
+        }
+    }
+
     Timer {
         id: premoveRobotTimer
         interval: 50

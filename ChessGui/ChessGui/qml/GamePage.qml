@@ -59,6 +59,7 @@ Page {
         _movesWhenOpened = ChessConnector.MoveCount
         _syncMoveTiming()
         openTimer.start()
+        ChessConnector.gameShown(page.Window.window)   // BL-11: the start's timing line, at the next frame
     }
     Component.onDestruction: ChessConnector.setBoardSettled(false)
 
@@ -126,6 +127,7 @@ Page {
             // is the one the page "opens" on, and a check in it is told when the board is idle.
             page._movesWhenOpened = ChessConnector.MoveCount
             page._checkAsked = false
+            ChessConnector.gameShown(page.Window.window)
         }
         function onPlayerPlaysWhiteChanged() { page._facePlayer() }
         function onReviewStateChanged() {

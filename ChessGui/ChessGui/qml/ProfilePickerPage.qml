@@ -24,6 +24,7 @@ Page {
         Image {
             anchors.fill: parent
             source: "qrc:/app/pics/ChessBackground.jpg"
+            sourceSize: Qt.size(1920, 1080)   // as on Home (BL-11): one cached decode for the three pages
             fillMode: Image.PreserveAspectCrop
             opacity: Theme.homeBackdropOpacity
         }

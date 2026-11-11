@@ -177,16 +177,20 @@ Item {
                 opacity: chessPiecesItm.dragged ? 0.35 : 1   // the dragged piece's place (ChessBoard draws it)
             }
 
-            // Red flag on the king that resigned / lost on time
-            Text {
-                visible: chessPiecesItm.square === ChessConnector.FlaggedKing
+            // Red flag on the king that resigned / lost on time. Made only there (BL-11): the glyph isn't in
+            // the UI font, and the font fallback search took about 6 ms for each of the 64 piece items
+            // when the game page was created (360 ms of its 0.5 s).
+            Loader {
+                active: chessPiecesItm.square === ChessConnector.FlaggedKing
                 anchors { top: parent.top; right: parent.right; margins: parent.width * 0.04 }
-                text: "⚑"
-                color: Theme.flaggedKing
-                style: Text.Outline
-                styleColor: Theme.textOnColor
-                font.pixelSize: parent.height * 0.36
-                font.bold: true
+                sourceComponent: Text {
+                    text: "⚑"
+                    color: Theme.flaggedKing
+                    style: Text.Outline
+                    styleColor: Theme.textOnColor
+                    font.pixelSize: chessPiecesItm.height * 0.36
+                    font.bold: true
+                }
             }
         }
     }
