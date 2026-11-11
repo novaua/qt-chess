@@ -188,9 +188,12 @@ Item {
             ChessConnector.continueOnlineGame("aEPqtBMc")
         if (name === "challenge-accepting")
             window.acceptChallenge("chal0001")
-        // BL-16: "Starting the game…" over Home, as while a game page is built (no game here).
-        if (name === "starting")
+        // BL-16: "Starting the game…" as while a game page is built (no game here), over the setup
+        // dialog that started it (in the app the dialog is closing then): the notice must be on top.
+        if (name === "starting") {
+            dialogs.computer.openNew()
             window._startingGame = true
+        }
 
         if (name === "home-message")
             window.notify("Profile imported", "success")   // over Home's command bar

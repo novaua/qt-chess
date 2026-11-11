@@ -409,14 +409,17 @@ ApplicationWindow {
     // It fades in late, by an Animator (on the render thread, like the ring's turn: both go on while the
     // GUI thread builds the page): a start of 150 ms barely shows it, a slow one (a Debug build, a slow
     // PC or a phone) has it after about 0.3 s. Not a motion: also with Reduce animations.
+    // Over the popups too (the Overlay layer): a setup dialog that started the game is still closing
+    // (its fade waits for the GUI thread as well), and would cover it.
     MouseArea {
         id: startNotice
         objectName: "startNotice"
+        parent: Overlay.overlay
         anchors.fill: parent
         visible: root._startingGame
         hoverEnabled: true
         acceptedButtons: Qt.AllButtons
-        z: 20
+        z: 1000
         onVisibleChanged: if (visible) noticeFade.restart(); else noticeFade.stop()
 
         Item {
