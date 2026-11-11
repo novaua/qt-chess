@@ -13,7 +13,7 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ### Found and fixed
 1. **The flag on a resigned or flagged king** (`ChessFigures.qml`): a `Text` "⚑" in each of the 64 piece items, hidden but created. The glyph isn't in the UI font, and the font fallback search took about 6 ms per item: **361 ms of the first game page's 514 ms** (once per session; later pages had it cached). Now a `Loader`, made only on the flagged king's square: the same look.
-2. **Home's photo** (`ChessBackground.jpg`, 3840 × 2160): decoded at full size each time Home appeared (33 MB, too big to stay in the image cache): **64 ms of every return to Home**. Now decoded at 1920 × 1080 (`sourceSize`), also on Welcome and the profile picker (one cached decode for the three).
+2. **Home's photo** (`ChessBackground.jpg`, 3840 × 2160): decoded at full size each time Home appeared (33 MB, too big to stay in the image cache): **64 ms of every return to Home**. Now one image in the window behind the pages (`ChessGame.qml`), shown under Welcome, the profile picker and Home (their backgrounds are transparent): decoded once, at full quality and any scaling; the pictures are the same to the pixel.
 
 ### Numbers (Release, this PC, the `timing` scene, two runs each)
 | | before | after |
@@ -21,12 +21,14 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 | The session's first game start, to its first frame | 507–645 ms (page 466–604) | 177–218 ms (page 141–172) |
 | Later game starts | 131–171 ms | 131–176 ms |
 | Leaving a game (GUI thread busy) | 86–264 ms | 47–95 ms |
-| Engine stop while it thinks (GUI thread waits) | 42–74 ms | 37–38 ms |
+| Engine stop while it thinks (GUI thread waits) | 42–74 ms | 37–49 ms |
+| Engine stop while its first answer is starting (GUI thread waits) | — | **755–829 ms** (see below) |
 
 A scene at app start (cold, the window's first frames too): two players 670 → 366 ms, vs Robot 775 → 438 ms, a Lichess rejoin 691 → 240 ms.
 
 ### Left (for BL-16 and later)
-- **The "up to 3 s" the owner saw isn't reproduced here**: no step took more than about 0.6 s, and the engine's stop at most 74 ms (`stopEngineThread()` may wait up to 3 s by design, if the engine thread is stuck in a UCI wait). The timing line is in every log now: the owner's next slow start shows where its time went.
+- **The likely "up to 3 s"**: leaving a robot game right after the player's move, while the robot's first answer is starting, the GUI thread waits **755–829 ms** in `stopEngineThread()` (`_engineThread->wait(3000)`: the engine thread is in its UCI start, not in its event loop). The window is frozen meanwhile, also when a new game starts (it stops the old engine first). Its limit is 3 s; a slower PC or a Debug build comes closer to it. For BL-16: stop the engine off the GUI thread (let the old thread finish on its own, detached, as when it doesn't stop in time), so a click never waits for it. The timing line and `[Timing] engine stop` are in every log now.
+- **The code review of #147** (10 findings, all fixed): a start that fails or is dropped (a refused Accept, a failed rejoin, Back, a declined rematch, `endGame()`) cancels its timing, and one older than a minute no longer counts; a rematch is timed; Continue's engine start is its own step; on a game page that was open already the page isn't a step (it was recorded before the setup); "first frame" is the first frame synchronized after the page is up (not one already being drawn), and a window that never draws ends the timing after 5 s; `GamePage` reports once it is in the window; the photo (above); the `timing` scene plays only the player's move before leaving (the scripted reply could race the robot's own).
 - **A game page still takes 110–170 ms to create** (warm). Of its 81 ms of QML: the board's square-size binding (`ChessBoard.qml:14`, 25 ms: the board's width and height settle in four steps, each moving every piece) and the 64 piece `Image`s (14 ms). Worth it only with BL-16's busy state.
 - **Not done**: the scene graph checks (`QSG_VISUALIZE`): idle boards and per-move repaints; the move, drag, takeback and review profile.
 

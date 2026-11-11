@@ -1,6 +1,7 @@
 #pragma once
 #include <QElapsedTimer>
 #include <QLoggingCategory>
+#include <QObject>
 #include <QStringList>
 
 class QQuickWindow;
@@ -47,17 +48,25 @@ Q_DECLARE_LOGGING_CATEGORY(chessTiming)
 class GameStartTiming
 {
 public:
-	void begin(const QString& action); // starts over: a new action
-	void step(const char* what);       // the step just done, since the previous one
-	void shown(QQuickWindow* window);  // the game page is up: logged at its next frame
-	bool running() const { return _total.isValid(); }
+	void begin(const QString& action);  // starts over: a new action (an earlier one is dropped)
+	void step(const char* what);        // the step just done, since the previous one
+	// The game page is up: created (a "page" step) or a new game on it (none); the line is written at
+	// the first frame the window starts after this, or dropped after 5 s without one (minimized).
+	void shown(QQuickWindow* window, bool pageCreated);
+	void cancel();                       // the start failed or was dropped: no line
+	// Not after a minute: a start that never showed its game (a wait that ended elsewhere) is over.
+	bool running() const { return _total.isValid() && _total.elapsed() < 60000; }
 
 private:
 	void finish();
+	void disconnectWindow();
 
 	QString _action;
 	QElapsedTimer _total;
 	qint64 _lastMs = 0;
 	QStringList _steps;
-	int _generation = 0; // a frame of an earlier action doesn't finish this one
+	int _generation = 0; // a frame or timeout of an earlier action doesn't finish this one
+	bool _synced = false; // the window synchronized the scene since shown(): its next swap shows the page
+	QMetaObject::Connection _syncConnection;
+	QMetaObject::Connection _swapConnection;
 };

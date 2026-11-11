@@ -732,6 +732,7 @@ bool ChessConnector::continueOnlineGame(const QString& gameId)
 
 void ChessConnector::cancelOnlineStart()
 {
+	_startTiming.cancel();
 	if (startingOnlineGame())
 		_lichessClient->stopStream(); // no game is on yet: nothing else is lost
 }
@@ -1123,8 +1124,10 @@ void ChessConnector::respondRematch(bool accept)
 	setPendingOffer({});
 	if (!_lichessClient)
 		return;
-	if (accept)
+	if (accept) {
+		_startTiming.begin(QStringLiteral("rematch on Lichess"));
 		_lichessClient->acceptRematch(); // the game starts through LichessClient::gameStarted
+	}
 	else
 		_lichessClient->declineRematch();
 }
@@ -1149,8 +1152,13 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 			this, &ChessConnector::canRematchChanged, Qt::UniqueConnection);
 		connect(_lichessClient, &LichessClient::gameStarted, this, &ChessConnector::onLichessGameStarted);
 		connect(_lichessClient, &LichessClient::rejoiningChanged, this, &ChessConnector::startingOnlineGameChanged);
+		// A refused Accept, or a Lichess game that never came (a challenge canceled, an error): not timed.
+		connect(_lichessClient, &LichessClient::challengeAcceptFailed, this, [this] { _startTiming.cancel(); });
+		connect(_lichessClient, &LichessClient::challengeCanceled, this, [this] { _startTiming.cancel(); });
+		connect(_lichessClient, &LichessClient::challengeDeclined, this, [this] { _startTiming.cancel(); });
 		// e.g. the game ended meanwhile: the list is out of date.
 		connect(_lichessClient, &LichessClient::rejoinFailed, this, [this](const QString&, const QString& message) {
+			_startTiming.cancel();
 			emit gameStartFailed(message);
 			_lichessClient->refreshOngoingGames();
 		});
@@ -1205,6 +1213,7 @@ bool ChessConnector::acceptChallenge(const QString& challengeId)
 
 void ChessConnector::rematch()
 {
+	_startTiming.begin(QStringLiteral("rematch"));
 	// Lichess has no rematch endpoint: send a new challenge with the same settings.
 	// The game starts through LichessClient::gameStarted → startOnlineGame().
 	if (_lastGameOnline) {
@@ -1321,10 +1330,10 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_startTiming.step("setup");
 	_engineAutoPlay = true;
 	startEngineThread(Chess::EngineLevel(level));
-	_startTiming.step("start engine");
 	if (!_config.playerPlaysWhite) {
 		askEngineMove();
 	}
+	_startTiming.step("start engine");
 }
 
 QVariantList ChessConnector::levels() const
@@ -1648,9 +1657,9 @@ void ChessConnector::setBoardSettled(bool settled)
 }
 
 // Continue: the clock waits for the page. Not for the board to settle: a review doesn't stop it.
-void ChessConnector::gameShown(QObject* window)
+void ChessConnector::gameShown(QObject* window, bool pageCreated)
 {
-	_startTiming.shown(qobject_cast<QQuickWindow*>(window));
+	_startTiming.shown(qobject_cast<QQuickWindow*>(window), pageCreated);
 }
 
 void ChessConnector::pageOpened()
@@ -1956,6 +1965,7 @@ void ChessConnector::resignAndLeave()
 
 void ChessConnector::endGame()
 {
+	_startTiming.cancel(); // e.g. a Lichess game that couldn't be played here, left before its first frame
 	_leaveAfterResign.stop(); // also when the game is left another way (Home again, switch user)
 	cancelPremove();
 	resetMoveHistoryCache();
@@ -2059,6 +2069,7 @@ bool ChessConnector::continueGame()
 	if (_game->IsWhiteMove() != _config.playerPlaysWhite && !_promotionPending) {
 		askEngineMove();
 	}
+	_startTiming.step("start engine");
 	setGameMode(QStringLiteral("computer"), opponentNameOf(info));
 	return true;
 }

@@ -265,7 +265,7 @@ Item {
         onTriggered: ChessConnector.screenshotSceneReady()
     }
 
-    // Scene "premove-robot": wait for the robot's answer and the premove after it.
+    // Scene "timing" (BL-11): one step every 1.5 s, as clicks in a running app.
     Timer {
         id: timingSteps
         interval: 1500
@@ -275,7 +275,9 @@ Item {
             const bob = UserManager.users.find(u => u.name === "Bob")
             switch (step++) {
             case 0: ChessConnector.startComputerGame(3, 0); break
-            case 1: ChessConnector.applyMoves("e2e4 e7e5"); ChessConnector.endGame(); break   // autosaved
+            // The player's 1. e4, and leaving before the robot answers (its answer is dropped): the
+            // same autosave every run, the robot to move when it is continued.
+            case 1: ChessConnector.movePiece(12, 28); ChessConnector.endGame(); break
             case 2: ChessConnector.continueGame(); break
             case 3: ChessConnector.endGame(); break
             case 4: ChessConnector.startLocalGame(true, bob ? bob.id : ""); break
@@ -290,6 +292,7 @@ Item {
         }
     }
 
+    // Scene "premove-robot": wait for the robot's answer and the premove after it.
     Timer {
         id: premoveRobotTimer
         interval: 50

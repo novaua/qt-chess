@@ -44,19 +44,8 @@ Page {
             LichessClient.refreshOngoingGames()
     }
 
-    background: Rectangle {
-        color: Theme.windowBg
-
-        // The glass-pieces photo, faint, on Home only. Decoded at half its 3840 × 2160 (BL-11): the full
-        // size (33 MB) doesn't stay in the image cache, so each return to Home decoded it again (64 ms).
-        Image {
-            anchors.fill: parent
-            source: "qrc:/app/pics/ChessBackground.jpg"
-            sourceSize: Qt.size(1920, 1080)
-            fillMode: Image.PreserveAspectCrop
-            opacity: Theme.homeBackdropOpacity
-        }
-    }
+    // Transparent: the window's photo shows through (ChessGame.qml, BL-11).
+    background: Item {}
 
     header: CommandBar {
         messageArea: barFill   // the window's short messages show over it

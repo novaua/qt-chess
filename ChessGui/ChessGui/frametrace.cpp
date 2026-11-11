@@ -66,6 +66,7 @@ Q_LOGGING_CATEGORY(chessTiming, "chess.timing", QtInfoMsg)
 
 void GameStartTiming::begin(const QString& action)
 {
+	disconnectWindow();
 	_action = action;
 	_steps.clear();
 	_lastMs = 0;
@@ -82,29 +83,52 @@ void GameStartTiming::step(const char* what)
 	_lastMs = now;
 }
 
-void GameStartTiming::shown(QQuickWindow* window)
+void GameStartTiming::shown(QQuickWindow* window, bool pageCreated)
 {
-	if (!running())
-		return;
-	step("page");
-	if (!window) {
-		finish();
-		return;
-	}
-	// frameSwapped comes from the render thread: handled on the GUI thread (window's), queued.
+	if (!running() || !window)
+		return; // no window yet: the page reports again (or the timeout of a later start ends it)
+	if (pageCreated)
+		step("page");
+	disconnectWindow();
+	// Both come from the render thread and are handled on the GUI thread (the window's), queued, in
+	// the order they were sent. A frame the render thread was drawing before the page existed had its
+	// synchronization before shown(): its swap is skipped, and the next frame is the page's.
+	_synced = false;
 	const int generation = _generation;
-	QObject::connect(window, &QQuickWindow::frameSwapped, window, [this, generation]() {
-		if (generation == _generation && running()) {
+	_syncConnection = QObject::connect(window, &QQuickWindow::afterSynchronizing, window, [this, generation]() {
+		if (generation == _generation)
+			_synced = true;
+	}, Qt::QueuedConnection);
+	_swapConnection = QObject::connect(window, &QQuickWindow::frameSwapped, window, [this, generation]() {
+		if (generation == _generation && _synced && running()) {
 			step("first frame");
 			finish();
 		}
-	}, static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::SingleShotConnection));
+	}, Qt::QueuedConnection);
+	// A window that doesn't render (minimized) never swaps: no line, and nothing left running.
+	QTimer::singleShot(5000, window, [this, generation]() {
+		if (generation == _generation && running())
+			cancel();
+	});
 	window->update();
+}
+
+void GameStartTiming::cancel()
+{
+	disconnectWindow();
+	_total.invalidate();
+	++_generation;
+}
+
+void GameStartTiming::disconnectWindow()
+{
+	QObject::disconnect(_syncConnection);
+	QObject::disconnect(_swapConnection);
 }
 
 void GameStartTiming::finish()
 {
 	qCInfo(chessTiming).noquote() << QStringLiteral("[Timing] %1: %2 ms to the first frame (%3)")
 		.arg(_action).arg(_total.elapsed()).arg(_steps.join(QStringLiteral(", ")));
-	_total.invalidate();
+	cancel();
 }
