@@ -19,15 +19,8 @@ Page {
     readonly property int _cardWidth:  128
     readonly property int _cardHeight: 156
 
-    background: Rectangle {
-        color: Theme.windowBg
-        Image {
-            anchors.fill: parent
-            source: "qrc:/app/pics/ChessBackground.jpg"
-            fillMode: Image.PreserveAspectCrop
-            opacity: Theme.homeBackdropOpacity
-        }
-    }
+    // Transparent: the window's photo shows through (ChessGame.qml, BL-11).
+    background: Item {}
 
     Flickable {
         id: flick

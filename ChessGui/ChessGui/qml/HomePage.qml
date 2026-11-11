@@ -44,17 +44,8 @@ Page {
             LichessClient.refreshOngoingGames()
     }
 
-    background: Rectangle {
-        color: Theme.windowBg
-
-        // The glass-pieces photo, faint, on Home only.
-        Image {
-            anchors.fill: parent
-            source: "qrc:/app/pics/ChessBackground.jpg"
-            fillMode: Image.PreserveAspectCrop
-            opacity: Theme.homeBackdropOpacity
-        }
-    }
+    // Transparent: the window's photo shows through (ChessGame.qml, BL-11).
+    background: Item {}
 
     header: CommandBar {
         messageArea: barFill   // the window's short messages show over it

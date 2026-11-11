@@ -34,7 +34,7 @@ param(
     # profile, profile-local, profile-expired, import, online, online-empty, online-disconnected, computer, players, captures, or all
     # A scene can name its own window size and side: scene@WxH[@black], e.g. game@1920x1080 (all runs
     # the list in $sizedScenes after the others).
-    # (not in all: robot, premove-robot, slides, takeback)
+    # (not in all: robot, premove-robot, slides, takeback, timing)
     # (login, menu and board: the older names of profiles, home and game)
     [string[]]$Scene = @('home'),
     # game scene: UCI moves to play first, e.g. "e2e4 e7e5"
@@ -58,7 +58,10 @@ param(
     [switch]$Build,
     # -platform offscreen: works on a locked screen (where a real window renders no frames and
     # animations freeze), but is always dark: the Fluent style can't switch its palette there.
-    [switch]$Offscreen
+    [switch]$Offscreen,
+    # Keep each scene's app log (<picture>.png.log) also when it succeeds: the [Timing] and [Frame trace]
+    # lines (BL-11).
+    [switch]$KeepLog
 )
 
 $ErrorActionPreference = 'Stop'
@@ -78,7 +81,7 @@ $sizedScenes = 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'cap
 if ($Scene -contains 'all') { $Scene = $allScenes + $sizedScenes }
 foreach ($s in $Scene) {
     $s = ($s -split '@')[0]
-    if ($s -notin ($allScenes + 'robot', 'premove-robot', 'login', 'menu', 'board', 'slides', 'takeback')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
+    if ($s -notin ($allScenes + 'robot', 'premove-robot', 'login', 'menu', 'board', 'slides', 'takeback', 'timing')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
 }
 
 if ($Build) {
@@ -133,7 +136,7 @@ foreach ($run in $Scene) {
 
     $p = Start-Process $exe -ArgumentList $argList -Wait -PassThru
     if ($p.ExitCode -eq 0) {
-        Remove-Item "$file.log" -ErrorAction SilentlyContinue
+        if (-not $KeepLog) { Remove-Item "$file.log" -ErrorAction SilentlyContinue }
         Write-Host "OK    $file"
     } else {
         $failed++

@@ -53,12 +53,20 @@ Page {
     function flipBoard() { chessBoard.angle = chessBoard.angle === 0 ? 180 : 0 }
     function _facePlayer() { chessBoard.angle = ChessConnector.PlayerPlaysWhite ? 0 : 180 }
 
+    // BL-11: tells the start's timing that the game is up (created: the page itself is a step). Before
+    // the page is in the window (no Window.window yet), once it is.
+    function _reportShown(created) {
+        if (page.Window.window) ChessConnector.gameShown(page.Window.window, created)
+        else                    Qt.callLater(() => ChessConnector.gameShown(page.Window.window, created))
+    }
+
     Component.onCompleted: {
         _facePlayer()
         _resultShown = gameOver
         _movesWhenOpened = ChessConnector.MoveCount
         _syncMoveTiming()
         openTimer.start()
+        page._reportShown(true)   // BL-11: the start's timing line, at the next frame
     }
     Component.onDestruction: ChessConnector.setBoardSettled(false)
 
@@ -126,6 +134,7 @@ Page {
             // is the one the page "opens" on, and a check in it is told when the board is idle.
             page._movesWhenOpened = ChessConnector.MoveCount
             page._checkAsked = false
+            page._reportShown(false)
         }
         function onPlayerPlaysWhiteChanged() { page._facePlayer() }
         function onReviewStateChanged() {

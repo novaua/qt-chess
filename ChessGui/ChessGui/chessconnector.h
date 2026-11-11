@@ -19,6 +19,7 @@
 #include "movelistmodel.h"
 #include "movegate.h"
 #include "gameclock.h"
+#include "frametrace.h"
 #include "claimwin.h"
 #include "engineworker.h"
 #include "AppConfig.h"
@@ -241,6 +242,9 @@ public slots:
 	// The game page has settled (open for a second, the board not turning): a held move may show.
 	Q_INVOKABLE void setBoardSettled(bool settled);
 	Q_INVOKABLE void pageOpened(); // the game page has been open for a second: a continued game's clock starts
+	// BL-11: the game page is up (pageCreated), or a new game started on it: the start's timing line
+	// is written at the window's next frame (GameStartTiming).
+	Q_INVOKABLE void gameShown(QObject* window, bool pageCreated);
 	// Theme.slow, or 0 with Reduce animations: how long a piece slides.
 	Q_INVOKABLE void setMoveTiming(int slideMs);
 	// The gate: the page has settled, it shows the live position, and no move waits to be shown.
@@ -384,6 +388,7 @@ private:
 	EngineWorker* _engineWorker = nullptr;
 	MoveGate* _gate = nullptr; // holds the robot's and the Lichess opponent's moves until the board is idle (BL-14)
 	GameClock* _clock = nullptr;
+	GameStartTiming _startTiming; // BL-11: from the action that starts a game to its first frame
 	int _clockLimitSec = 0; // the local game's time control, kept for a rematch
 	int _clockIncSec = 0;
 	bool _piecesAnew = false;  // the next Pieces sync shows the position anew, without slides (a resync)

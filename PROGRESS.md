@@ -4,6 +4,36 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-11 — BL-11: profiling, the top two fixes (branch: features/profiling_111126)
+
+### Measuring
+- **A timing line in the app log, always** (category `chess.timing`, `GameStartTiming` in `frametrace.h`): from the action that starts a game (Start vs Robot / two players, Continue, a Lichess rejoin, an accepted challenge) to the game page's first frame, with its steps, e.g. `[Timing] vs Robot (level 3): 177 ms to the first frame (save 14, stop engine 0, setup 2, start engine 0, page 141, first frame 20)`. `ChessConnector` marks the steps, `GamePage` reports itself (`gameShown`). Also `[Timing] engine stop: the GUI thread waited N ms` when `stopEngineThread()` waits over 20 ms. (BL-16 asked for this line.)
+- **Scene `timing`** (not in `all`): from Home, 1.5 s apart, as clicks in a running app: vs Robot, leave, Continue, leave, two players, leave, vs Robot as Black and leave while the engine thinks. `Take-Screenshot.ps1 -KeepLog` keeps a scene's log also when it succeeds; with `QT_LOGGING_RULES="chess.frames.debug=true"` the log has `FrameTrace`'s "GUI thread busy" lines too.
+- **QML profile**: `qmlprofiler` on a Release build with QML debugging switched on for the run only (not committed: it lets the app open a debug port), summed per file and line.
+
+### Found and fixed
+1. **The flag on a resigned or flagged king** (`ChessFigures.qml`): a `Text` "⚑" in each of the 64 piece items, hidden but created. The glyph isn't in the UI font, and the font fallback search took about 6 ms per item: **361 ms of the first game page's 514 ms** (once per session; later pages had it cached). Now a `Loader`, made only on the flagged king's square: the same look.
+2. **Home's photo** (`ChessBackground.jpg`, 3840 × 2160): decoded at full size each time Home appeared (33 MB, too big to stay in the image cache): **64 ms of every return to Home**. Now one image in the window behind the pages (`ChessGame.qml`), shown under Welcome, the profile picker and Home (their backgrounds are transparent): decoded once, at full quality and any scaling; the pictures are the same to the pixel.
+
+### Numbers (Release, this PC, the `timing` scene, two runs each)
+| | before | after |
+|---|---|---|
+| The session's first game start, to its first frame | 507–645 ms (page 466–604) | 177–218 ms (page 141–172) |
+| Later game starts | 131–171 ms | 131–176 ms |
+| Leaving a game (GUI thread busy) | 86–264 ms | 47–95 ms |
+| Engine stop while it thinks (GUI thread waits) | 42–74 ms | 37–49 ms |
+| Engine stop while its first answer is starting (GUI thread waits) | — | **755–829 ms** (see below) |
+
+A scene at app start (cold, the window's first frames too): two players 670 → 366 ms, vs Robot 775 → 438 ms, a Lichess rejoin 691 → 240 ms.
+
+### Left (for BL-16 and later)
+- **The likely "up to 3 s"**: leaving a robot game right after the player's move, while the robot's first answer is starting, the GUI thread waits **755–829 ms** in `stopEngineThread()` (`_engineThread->wait(3000)`: the engine thread is in its UCI start, not in its event loop). The window is frozen meanwhile, also when a new game starts (it stops the old engine first). Its limit is 3 s; a slower PC or a Debug build comes closer to it. For BL-16: stop the engine off the GUI thread (let the old thread finish on its own, detached, as when it doesn't stop in time), so a click never waits for it. The timing line and `[Timing] engine stop` are in every log now.
+- **The code review of #147** (10 findings, all fixed): a start that fails or is dropped (a refused Accept, a failed rejoin, Back, a declined rematch, `endGame()`) cancels its timing, and one older than a minute no longer counts; a rematch is timed; Continue's engine start is its own step; on a game page that was open already the page isn't a step (it was recorded before the setup); "first frame" is the first frame synchronized after the page is up (not one already being drawn), and a window that never draws ends the timing after 5 s; `GamePage` reports once it is in the window; the photo (above); the `timing` scene plays only the player's move before leaving (the scripted reply could race the robot's own).
+- **A game page still takes 110–170 ms to create** (warm). Of its 81 ms of QML: the board's square-size binding (`ChessBoard.qml:14`, 25 ms: the board's width and height settle in four steps, each moving every piece) and the 64 piece `Image`s (14 ms). Worth it only with BL-16's busy state.
+- **Not done**: the scene graph checks (`QSG_VISUALIZE`): idle boards and per-move repaints; the move, drag, takeback and review profile.
+
+---
+
 ## 2026-11-10 — BL-18: continuing a Lichess game showed the start position first (branch: bugs/continueBoardFlash_101126)
 
 ### What was done

@@ -13,6 +13,7 @@
 #include <QFile>
 #include <QGuiApplication>
 #include <QHash>
+#include <QQuickWindow>
 #include <QRandomGenerator>
 #include <QRegularExpression>
 #include <QSaveFile>
@@ -724,12 +725,14 @@ bool ChessConnector::continueOnlineGame(const QString& gameId)
 	if (gameId.isEmpty() || !_lichessClient || !_userManager || !_userManager->lichessConnected())
 		return false;
 	_onlineStartUserId = _userManager->activeUserId();
+	_startTiming.begin(QStringLiteral("continue on Lichess"));
 	_lichessClient->rejoinGame(gameId);
 	return true;
 }
 
 void ChessConnector::cancelOnlineStart()
 {
+	_startTiming.cancel();
 	if (startingOnlineGame())
 		_lichessClient->stopStream(); // no game is on yet: nothing else is lost
 }
@@ -916,6 +919,9 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 	// opponent may have moved already: that move comes as the opponent's, through the gate (it slides,
 	// with its sound, and plays a premove).
 	const bool joined = moves.size() > 1;
+	if (!_startTiming.running()) // started on Lichess's side: a challenge accepted there, a rematch
+		_startTiming.begin(QStringLiteral("Lichess game"));
+	_startTiming.step("Lichess"); // the answer's wait: the network
 	// Already this game's mode and opponent while its moves are played: a mate among them is recorded
 	// and told as this game's (setGameMode() below announces it).
 	_gameMode = QStringLiteral("online");
@@ -928,6 +934,7 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 	}
 	if (_avatarProvider)
 		_avatarProvider->setOpponentFromUser(opponentAvatar.isEmpty() ? QStringLiteral("unicorn") : opponentAvatar);
+	_startTiming.step("setup");
 	setGameMode(QStringLiteral("online"), opponent);
 	if (!joined && !moves.isEmpty())
 		onLichessOpponentMoves(moves.join(QLatin1Char(' ')));
@@ -1117,8 +1124,10 @@ void ChessConnector::respondRematch(bool accept)
 	setPendingOffer({});
 	if (!_lichessClient)
 		return;
-	if (accept)
+	if (accept) {
+		_startTiming.begin(QStringLiteral("rematch on Lichess"));
 		_lichessClient->acceptRematch(); // the game starts through LichessClient::gameStarted
+	}
 	else
 		_lichessClient->declineRematch();
 }
@@ -1143,8 +1152,13 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 			this, &ChessConnector::canRematchChanged, Qt::UniqueConnection);
 		connect(_lichessClient, &LichessClient::gameStarted, this, &ChessConnector::onLichessGameStarted);
 		connect(_lichessClient, &LichessClient::rejoiningChanged, this, &ChessConnector::startingOnlineGameChanged);
+		// A refused Accept, or a Lichess game that never came (a challenge canceled, an error): not timed.
+		connect(_lichessClient, &LichessClient::challengeAcceptFailed, this, [this] { _startTiming.cancel(); });
+		connect(_lichessClient, &LichessClient::challengeCanceled, this, [this] { _startTiming.cancel(); });
+		connect(_lichessClient, &LichessClient::challengeDeclined, this, [this] { _startTiming.cancel(); });
 		// e.g. the game ended meanwhile: the list is out of date.
 		connect(_lichessClient, &LichessClient::rejoinFailed, this, [this](const QString&, const QString& message) {
+			_startTiming.cancel();
 			emit gameStartFailed(message);
 			_lichessClient->refreshOngoingGames();
 		});
@@ -1192,12 +1206,14 @@ bool ChessConnector::acceptChallenge(const QString& challengeId)
 {
 	if (!_lichessClient || !canAcceptChallenge())
 		return false;
+	_startTiming.begin(QStringLiteral("accept a Lichess challenge"));
 	_lichessClient->acceptChallenge(challengeId); // the challenger chose the sides
 	return true;
 }
 
 void ChessConnector::rematch()
 {
+	_startTiming.begin(QStringLiteral("rematch"));
 	// Lichess has no rematch endpoint: send a new challenge with the same settings.
 	// The game starts through LichessClient::gameStarted → startOnlineGame().
 	if (_lastGameOnline) {
@@ -1215,6 +1231,7 @@ void ChessConnector::rematch()
 
 void ChessConnector::startComputerGame(int level, int side, int limitSec, int incSec)
 {
+	_startTiming.begin(QStringLiteral("vs Robot (level %1)").arg(level));
 	_clockLimitSec = limitSec;
 	_clockIncSec = incSec;
 	setPlayerPlaysWhite(side == 2 ? QRandomGenerator::global()->bounded(2) == 0 : side == 0);
@@ -1226,6 +1243,7 @@ void ChessConnector::startComputerGame(int level, int side, int limitSec, int in
 
 void ChessConnector::startLocalGame(bool playerPlaysWhite, const QString& opponentUserId, int limitSec, int incSec)
 {
+	_startTiming.begin(QStringLiteral("two players"));
 	_clockLimitSec = limitSec;
 	_clockIncSec = incSec;
 	QString name = QStringLiteral("Guest");
@@ -1256,7 +1274,9 @@ void ChessConnector::startNewGame()
 	beginGame(false);
 	resetMoveHistoryCache();
 	deleteAutoSave();
+	_startTiming.step("save");
 	stopEngineThread();
+	_startTiming.step("stop engine");
 	_promotionPending = false;
 	_player = nullptr;
 	_reviewIndex = -1;
@@ -1267,6 +1287,7 @@ void ChessConnector::startNewGame()
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
 	emit newGameStarted(false);
+	_startTiming.step("setup");
 
 	qDebug() << "Cpp Game restarted!";
 }
@@ -1293,7 +1314,9 @@ void ChessConnector::startNewGameWithComputer(int level)
 	}
 	_config.save();
 	deleteAutoSave();
+	_startTiming.step("save");
 	stopEngineThread();
+	_startTiming.step("stop engine");
 	_promotionPending = false;
 	_player = nullptr;
 	_reviewIndex = -1;
@@ -1304,11 +1327,13 @@ void ChessConnector::startNewGameWithComputer(int level)
 	EmitMoveCountUpdates();
 	emit canContinueChanged();
 	emit newGameStarted(true);
+	_startTiming.step("setup");
 	_engineAutoPlay = true;
 	startEngineThread(Chess::EngineLevel(level));
 	if (!_config.playerPlaysWhite) {
 		askEngineMove();
 	}
+	_startTiming.step("start engine");
 }
 
 QVariantList ChessConnector::levels() const
@@ -1423,11 +1448,16 @@ void ChessConnector::stopEngineThread()
 	// has not started yet gives up. Never touch QProcess here: it belongs to the engine thread.
 	_engineWorker->killEngine();
 	_engineThread->quit();
+	QElapsedTimer stopping;
+	stopping.start();
 
 	// Give the thread time to leave a UCI wait. Never call QThread::terminate() (TerminateThread):
 	// the thread can die inside the heap or the log lock and leave it held. If it doesn't stop,
 	// leave it (detached) — destroying a running QThread aborts the process (BL-15).
-	if (_engineThread->wait(3000)) {
+	const bool stopped = _engineThread->wait(3000);
+	if (stopping.elapsed() > 20) // BL-11: the GUI thread waits here
+		qCInfo(chessTiming).noquote() << QStringLiteral("[Timing] engine stop: the GUI thread waited %1 ms").arg(stopping.elapsed());
+	if (stopped) {
 		// _engineWorker was deleted on the engine thread via the finished->deleteLater connection.
 		delete _engineThread;
 	}
@@ -1627,6 +1657,11 @@ void ChessConnector::setBoardSettled(bool settled)
 }
 
 // Continue: the clock waits for the page. Not for the board to settle: a review doesn't stop it.
+void ChessConnector::gameShown(QObject* window, bool pageCreated)
+{
+	_startTiming.shown(qobject_cast<QQuickWindow*>(window), pageCreated);
+}
+
 void ChessConnector::pageOpened()
 {
 	if (!_gameOver)
@@ -1930,6 +1965,7 @@ void ChessConnector::resignAndLeave()
 
 void ChessConnector::endGame()
 {
+	_startTiming.cancel(); // e.g. a Lichess game that couldn't be played here, left before its first frame
 	_leaveAfterResign.stop(); // also when the game is left another way (Home again, switch user)
 	cancelPremove();
 	resetMoveHistoryCache();
@@ -1982,6 +2018,7 @@ bool ChessConnector::continueGame()
 {
 	if (!canContinue())
 		return false;
+	_startTiming.begin(QStringLiteral("continue vs Robot"));
 	resetMoveHistoryCache();
 	const auto info = _userManager ? _userManager->autoSaveInfo() : UserManager::GameSaveInfo{};
 	_wasVsComputer = true;
@@ -2001,6 +2038,7 @@ bool ChessConnector::continueGame()
 		_avatarProvider->restore(info.playerAvatarName, info.opponentAvatarName, true);
 
 	stopEngineThread();
+	_startTiming.step("stop engine");
 	_promotionPending = false;
 	_game->Load(autoSavePath().toStdString());
 	{
@@ -2022,6 +2060,7 @@ bool ChessConnector::continueGame()
 
 	deleteAutoSave();
 	buildFullHistoryCache();
+	_startTiming.step("load");
 	emit canContinueChanged();
 	EmitMoveCountUpdates();
 
@@ -2030,6 +2069,7 @@ bool ChessConnector::continueGame()
 	if (_game->IsWhiteMove() != _config.playerPlaysWhite && !_promotionPending) {
 		askEngineMove();
 	}
+	_startTiming.step("start engine");
 	setGameMode(QStringLiteral("computer"), opponentNameOf(info));
 	return true;
 }

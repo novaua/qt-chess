@@ -72,6 +72,7 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   for a bar between the cards), which must keep the cards above and below the board. `premove-robot` (not in `all`: needs
   Stockfish; no baseline, the robot's moves vary): 1. e4 vs the robot, Nf3 premoved and played after its answer. `robot` (not in `all`: needs Stockfish): a saved game vs the robot at
   level 5, continued, where the robot mates with Qh5# (the engine's answer is played on the GUI thread).
+  `timing` (not in `all`, BL-11): from Home, 1.5 s apart, vs Robot, leave, Continue, leave, two players, leave, vs Robot as Black left while the engine thinks; run with `-KeepLog` (keeps `<picture>.png.log` also on success) and read its `[Timing]` lines (and, with `$env:QT_LOGGING_RULES='chess.frames.debug=true'`, "GUI thread busy"). Its picture is not a baseline.
   `slides` (not in `all`): the BL-14 frame-trace scene — animations on (every other scene forces them
   off), selects the g1 knight and plays Nf3, Nf6, Bc4, Nc6 0.4–1 s apart, so a run with
   `$env:QT_LOGGING_RULES='chess.frames.debug=true'` and `-Delay 5200` gets `[Frame trace]` lines in the

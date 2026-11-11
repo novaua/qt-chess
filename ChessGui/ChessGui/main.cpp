@@ -333,7 +333,7 @@ int main(int argc, char* argv[])
 		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "saved", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-		"opponent-left-error"
+		"opponent-left-error", "timing"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();

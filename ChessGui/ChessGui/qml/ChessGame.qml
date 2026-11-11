@@ -329,6 +329,18 @@ ApplicationWindow {
                          | Qt.WindowDoesNotAcceptFocus
                        : Qt.Window
 
+    // The glass-pieces photo, faint, behind Welcome, the profile picker and Home (their backgrounds are
+    // transparent). One item for the three (BL-11): it stays decoded, so a return to Home doesn't decode
+    // its 3840 × 2160 again (64 ms each time when it was the page's own: too big for the image cache).
+    Image {
+        anchors.fill: parent
+        source: "qrc:/app/pics/ChessBackground.jpg"
+        fillMode: Image.PreserveAspectCrop
+        opacity: ["welcome", "login", "home"].includes(root._page) ? Theme.homeBackdropOpacity : 0
+        visible: opacity > 0
+        Behavior on opacity { enabled: !Theme.reduceMotion; NumberAnimation { duration: Theme.normal } }
+    }
+
     // ── Pages ────────────────────────────────────────────────────────────
     StackView {
         id: stack

@@ -20,15 +20,8 @@ Page {
         function onLichessLinkFailed(error) { page._error = error }
     }
 
-    background: Rectangle {
-        color: Theme.windowBg
-        Image {
-            anchors.fill: parent
-            source: "qrc:/app/pics/ChessBackground.jpg"
-            fillMode: Image.PreserveAspectCrop
-            opacity: Theme.homeBackdropOpacity
-        }
-    }
+    // Transparent: the window's photo shows through (ChessGame.qml, BL-11).
+    background: Item {}
 
     ColumnLayout {
         anchors.centerIn: parent
