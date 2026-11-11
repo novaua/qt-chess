@@ -28,7 +28,7 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Over the dialogs too** (the owner: not shown for Play vs computer): a setup dialog that starts the game is a popup, drawn on the Overlay layer above the pages, and its closing fade waits for the GUI thread like everything else, so it covered the notice. The notice is on `Overlay.overlay` now, above the popups.
 - **"Waiting for opponent…" under the notice** (the owner, with a Lichess challenge): when the opponent accepted, the notice came first, then QML closed the challenge dialog, whose fade froze while the page was built, so the dialog stayed on the screen under the notice. `AppDialog.closeAtOnce()` closes a dialog without its fade (no `rejected()`); `route()` calls it for the challenge dialog and the accept confirmation when the notice starts, and so does `onGameStarted`.
 - Scene `starting` (in `all`): the notice over the vs-computer dialog.
-- **Not checked yet in a real window**: the screen was locked at the last run (2026-11-12, 00:30: popups didn't draw, also with the change undone). Offscreen (dark), the dialogs still open and the notice is over them. Owed: `Take-Screenshot.ps1 -Scene all` (and `-Dark`) with the screen on, then `Compare-Screenshots.ps1`.
+- **Screenshots** (screen on, 2026-11-12): all 190 scenes, light and dark, match; only `about` differs (0.09 %: its build date).
 
 ### Open
 - The game page itself still takes 110–180 ms in Release (1.5 s in Debug) to build: the board's square-size binding (`ChessBoard.qml:14`, 25 ms) and the 64 piece `Image`s (14 ms) (BL-11) are the first places to look.
