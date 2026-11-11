@@ -114,6 +114,10 @@ ApplicationWindow {
                 && (!_screenshotMode || ChessConnector.ScreenshotScene.scene === "timing")) {
             if (!_startingGame) {
                 _startingGame = true
+                // A dialog still open at the start (the challenge waiting for the opponent, the
+                // accept confirmation) goes at once: its fade would stay on the screen under the notice.
+                for (const d of [challengeDialog, acceptChallengeConfirm])
+                    d.closeAtOnce()
                 ChessConnector.waitForStartFrame(root)
             }
             return
@@ -998,6 +1002,7 @@ ApplicationWindow {
 
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
             _acceptingChallengeId = ""
+            challengeDialog.closeAtOnce()   // BL-16: not a fade under "Starting the game…"
             clearPendingChallenge()
         }
 
