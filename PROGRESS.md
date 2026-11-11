@@ -4,6 +4,30 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-11 — BL-16: respond at once when a game starts (branch: features/gameStartFeedback_111126)
+
+### What was done
+- **The engine stops without the window waiting for it** (`ChessConnector::stopEngineThread`): the robot's thread is told to stop (the process killed through its handle, the worker disconnected, `quit()`), then left to finish on its own among `_stoppingEngines`; `finished` deletes the worker on its thread and the thread here. Only the app's exit waits for them (`waitForStoppedEngines`, 3 s for all, then left behind as before). This was BL-11's "up to 3 s": a stop while the engine was inside its UCI start (the `ChessEnginePlayer` constructor, which the kill can't reach) kept the GUI thread in `wait(3000)`. The log says `[Timing] engine stop: the old engine finished N ms later (not waited for)`.
+- **A busy state where an action waits for Lichess** (the local starts don't wait any more: see the numbers): `BusyButton` (a ring in the icon's place, the text says what is going on, no second click) and `BusyRing` (a spinning `BusyIndicator`, or a still clock with Reduce animations and in the scenes). On: a Lichess game's Continue (the Continue list, the Online page: only the card being started, `ChessConnector.StartingGameId`, new), Home's Continue card ("Connecting to Lichess…", the ring in the icon's place), the challenge bar's and the Online page's Accept ("Accepting…", the one being accepted: `_acceptingChallengeId`, `_busyAction`), Join ("Joining…"), Create challenge / Challenge *name* ("Creating the challenge…" / "Sending the challenge…").
+- **Scenes** (in `all`): `continue-starting` (Home's Continue card), `continue-list-starting` (Friend's card "Starting…"), `challenge-accepting` (the bar's "Accepting…"). Lichess is a local `QTcpServer` that takes the request and never answers (`useSilentLichess`, `main.cpp`). The `timing` scene also opens and closes Settings and the Online page (`[Timing] Settings: N ms to open`).
+
+### Numbers (Release, this PC, the `timing` scene)
+| | before (BL-11's fixes) | after |
+|---|---|---|
+| Leaving a robot game while its first answer is starting (GUI thread waits) | 755–829 ms | **0** (the old engine finishes 413–461 ms later, alone; once 5.5 s on a cold first run) |
+| Leaving while the robot thinks (GUI thread waits) | 37–49 ms | **0** (finished 23–53 ms later) |
+| vs Robot, the session's first game, to the first frame | 177–218 ms | 167–223 ms |
+| Continue vs Robot | 152–155 ms | 151–181 ms |
+| Two players | 121–126 ms | 124–172 ms |
+| Opening Settings / the Online page (GUI thread) | — | 36–48 ms / 17–19 ms |
+
+### Open
+- **The local starts take 125–225 ms** to their first frame, a little over the ~100 ms the task asked for: there is no busy state for them (a ring that shows for 150 ms only flickers); the pressed button or card stays on screen until the game page is up. Making the page itself faster is the next step if that still feels slow: the board's square-size binding (`ChessBoard.qml:14`, 25 ms) and the 64 piece `Image`s (14 ms) (BL-11).
+- The "save" step of a start (12–27 ms: `config.json` and the autosave) could move after the first frame.
+- The owner's check in a real window: leave a robot game at once after a move and start another (no freeze); Continue a Lichess game, Accept a challenge and Join by link (the ring and the words, then the game).
+
+---
+
 ## 2026-11-11 — BL-11: profiling, the top two fixes (branch: features/profiling_111126)
 
 ### Measuring

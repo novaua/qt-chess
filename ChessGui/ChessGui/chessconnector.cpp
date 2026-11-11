@@ -8,7 +8,9 @@
 #include <algorithm>
 #include <QClipboard>
 #include <QDate>
+#include <QDeadlineTimer>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QDebug>
 #include <QFile>
 #include <QGuiApplication>
@@ -1444,33 +1446,48 @@ void ChessConnector::stopEngineThread()
 	++_engineRequest; // an answer still on its way belongs to the old game: drop it
 	ENGINE_TRACE("stop thread: was thinking" << _engineThinking << ", next answer must be" << _engineRequest + 1);
 
+	// The old engine's answers no longer reach this game (the request number drops one already queued).
+	disconnect(_engineWorker, nullptr, this, nullptr);
+
+	// Don't wait for the thread (BL-16): inside the engine's UCI start it can't be stopped, and the
+	// window froze up to a second here (BL-11). It finishes on its own: the worker is deleted on it
+	// (finished → deleteLater), then the thread here. Never QThread::terminate() (TerminateThread):
+	// the thread can die inside the heap or the log lock and leave it held (BL-15).
+	QThread* thread = _engineThread;
+	QElapsedTimer stopping;
+	stopping.start();
+	connect(thread, &QThread::finished, this, [stopping] {
+		if (stopping.elapsed() > 20)
+			qCInfo(chessTiming).noquote() << QStringLiteral("[Timing] engine stop: the old engine finished %1 ms later (not waited for)").arg(stopping.elapsed());
+	});
+	connect(thread, &QThread::finished, thread, &QObject::deleteLater); // before quit(): it may finish at once
+	_stoppingEngines.removeAll(nullptr); // the ones deleted since
+	_stoppingEngines.append(thread);
+
 	// Stop the search: the process is terminated through its own handle (BL-15); a request that
 	// has not started yet gives up. Never touch QProcess here: it belongs to the engine thread.
 	_engineWorker->killEngine();
-	_engineThread->quit();
-	QElapsedTimer stopping;
-	stopping.start();
-
-	// Give the thread time to leave a UCI wait. Never call QThread::terminate() (TerminateThread):
-	// the thread can die inside the heap or the log lock and leave it held. If it doesn't stop,
-	// leave it (detached) — destroying a running QThread aborts the process (BL-15).
-	const bool stopped = _engineThread->wait(3000);
-	if (stopping.elapsed() > 20) // BL-11: the GUI thread waits here
-		qCInfo(chessTiming).noquote() << QStringLiteral("[Timing] engine stop: the GUI thread waited %1 ms").arg(stopping.elapsed());
-	if (stopped) {
-		// _engineWorker was deleted on the engine thread via the finished->deleteLater connection.
-		delete _engineThread;
-	}
-	else {
-		qWarning() << "Engine thread did not stop within 3 s; leaving it behind";
-		_engineThread->setParent(nullptr); // the connector must not delete it either
-	}
+	thread->quit();
 	_engineThread = nullptr;
 	_engineWorker = nullptr;
 
 	_engineThinking = false;
 	_engineAutoPlay = false;
 	emit engineThinkingChanged();
+}
+
+// The app's exit: a running QThread must not be destroyed (it aborts the process), so give the
+// stopped engines up to 3 s together; one that is still running then is left behind (detached).
+void ChessConnector::waitForStoppedEngines()
+{
+	const QDeadlineTimer deadline(3000);
+	for (const QPointer<QThread>& thread : std::as_const(_stoppingEngines)) {
+		if (!thread || thread->wait(deadline))
+			continue;
+		qWarning() << "Engine thread did not stop within 3 s; leaving it behind";
+		thread->setParent(nullptr); // the connector must not delete it
+	}
+	_stoppingEngines.clear();
 }
 
 // The robot's turn. The engine thread gets a copy of the moves and only looks for a move;
@@ -2133,6 +2150,7 @@ ChessConnector::~ChessConnector()
 		autoSaveGame();
 
 	stopEngineThread();
+	waitForStoppedEngines();
 	qDebug() << "Game Exited.";
 }
 

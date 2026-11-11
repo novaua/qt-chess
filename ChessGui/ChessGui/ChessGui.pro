@@ -105,6 +105,8 @@ DISTFILES += \
     qml/LevelsHelpDialog.qml \
     qml/BoardPreview.qml \
     qml/OnlinePage.qml \
+    qml/BusyButton.qml \
+    qml/BusyRing.qml \
     qml/GameCard.qml \
     qml/OngoingGameCard.qml \
     qml/OngoingGamesRefresh.qml \

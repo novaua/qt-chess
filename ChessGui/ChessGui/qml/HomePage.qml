@@ -142,9 +142,10 @@ Page {
             HomeCard {
                 visible: page._pendingCount > 0
                 enabled: !page.continueBusy
+                busy: page.continueBusy
                 text: page._pendingCount > 1 ? "Continue a game"
                     : ChessConnector.CanContinue ? "Continue game" : "Continue online game"
-                description: page._continueText
+                description: page.continueBusy ? "Connecting to Lichess…" : page._continueText
                 icon.source: Theme.icon("play")
                 Layout.fillWidth: true
                 Layout.bottomMargin: Theme.s2

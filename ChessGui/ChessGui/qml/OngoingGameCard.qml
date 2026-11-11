@@ -22,6 +22,7 @@ GameCard {
     actionIcon: playable ? "play" : "link"
     actionTip: playable ? "" : "This kind of game can't be played in Chess++ yet"
     busy: ChessConnector.StartingOnlineGame
+    starting: ChessConnector.StartingGameId === game.gameId
 
     onActivated: {
         if (playable)
