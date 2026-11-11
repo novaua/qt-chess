@@ -223,6 +223,7 @@ signals:
 	void movesTakenBack(int plies); // a Lichess takeback was accepted (by either side)
 
 	void screenshotSceneReady(); // QML has set up the --screenshot scene: grab the window
+	void startFrameShown(); // waitForStartFrame(): the notice is on the screen
 	void screenshotSceneSetUp(); // the takeback scene: QML is done, C++ plays the rest (main.cpp)
 	void boardIdle();            // the page has settled and no move waits to be shown (BL-14)
 
@@ -250,6 +251,10 @@ public slots:
 	// BL-11: the game page is up (pageCreated), or a new game started on it: the start's timing line
 	// is written at the window's next frame (GameStartTiming).
 	Q_INVOKABLE void gameShown(QObject* window, bool pageCreated);
+	// BL-16: route() shows "Starting the game…" before it builds the game page, which keeps the GUI
+	// thread (150 ms here in Release, 1.5 s in a Debug build, more on a slow PC or a phone): once a frame
+	// drawn after this call is on the screen, startFrameShown() (after 500 ms anyway: a hidden window).
+	Q_INVOKABLE void waitForStartFrame(QObject* window);
 	// Theme.slow, or 0 with Reduce animations: how long a piece slides.
 	Q_INVOKABLE void setMoveTiming(int slideMs);
 	// The gate: the page has settled, it shows the live position, and no move waits to be shown.
@@ -398,6 +403,7 @@ private:
 	MoveGate* _gate = nullptr; // holds the robot's and the Lichess opponent's moves until the board is idle (BL-14)
 	GameClock* _clock = nullptr;
 	GameStartTiming _startTiming; // BL-11: from the action that starts a game to its first frame
+	int _startFrameWait = 0; // waitForStartFrame(): a frame or timeout of an earlier wait doesn't count
 	int _clockLimitSec = 0; // the local game's time control, kept for a rematch
 	int _clockIncSec = 0;
 	bool _piecesAnew = false;  // the next Pieces sync shows the position anew, without slides (a resync)

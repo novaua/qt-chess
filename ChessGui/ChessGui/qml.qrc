@@ -126,6 +126,7 @@
         <file alias="person.svg">pics/icons/person.svg</file>
         <file alias="play.svg">pics/icons/play.svg</file>
         <file alias="blank.svg">pics/icons/blank.svg</file>
+        <file alias="spinner.svg">pics/icons/spinner.svg</file>
         <file alias="prev.svg">pics/icons/prev.svg</file>
         <file alias="rematch.svg">pics/icons/rematch.svg</file>
         <file alias="robot.svg">pics/icons/robot.svg</file>

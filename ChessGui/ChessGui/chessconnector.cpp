@@ -1679,6 +1679,31 @@ void ChessConnector::gameShown(QObject* window, bool pageCreated)
 	_startTiming.shown(qobject_cast<QQuickWindow*>(window), pageCreated);
 }
 
+// As GameStartTiming::shown: both signals come from the render thread, queued here in the order they
+// were sent; a frame whose synchronization came before this call (drawn without the notice) is skipped.
+void ChessConnector::waitForStartFrame(QObject* windowObject)
+{
+	const int wait = ++_startFrameWait;
+	struct Connections { QMetaObject::Connection sync, swap; bool synced = false; };
+	auto state = std::make_shared<Connections>();
+	auto done = [this, wait, state]() {
+		QObject::disconnect(state->sync);
+		QObject::disconnect(state->swap);
+		if (wait != _startFrameWait)
+			return; // a newer wait, or this one is over
+		++_startFrameWait;
+		_startTiming.step("notice");
+		emit startFrameShown();
+	};
+	auto* window = qobject_cast<QQuickWindow*>(windowObject);
+	if (window) {
+		state->sync = connect(window, &QQuickWindow::afterSynchronizing, this, [state]() { state->synced = true; }, Qt::QueuedConnection);
+		state->swap = connect(window, &QQuickWindow::frameSwapped, this, [state, done]() { if (state->synced) done(); }, Qt::QueuedConnection);
+		window->update();
+	}
+	QTimer::singleShot(window ? 500 : 0, this, done);
+}
+
 void ChessConnector::pageOpened()
 {
 	if (!_gameOver)

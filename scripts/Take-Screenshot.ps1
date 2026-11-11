@@ -72,7 +72,7 @@ $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue
              'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge',
              'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline',
              'captures', 'check', 'draw-offer', 'saved', 'home-message', 'messages', 'opponent-left', 'opponent-left-claim', 'opponent-left-turn',
-             'opponent-left-error', 'rejoin', 'continue-starting', 'continue-list-starting', 'challenge-accepting'
+             'opponent-left-error', 'rejoin', 'continue-starting', 'continue-list-starting', 'challenge-accepting', 'starting'
 # BL-13: the game page in wide windows (the player column left of the board), and sizes that must
 # keep the cards above and below the board.
 $sizedScenes = 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'captures@1400x900', 'review@1400x900',
