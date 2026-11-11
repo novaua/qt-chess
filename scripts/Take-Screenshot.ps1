@@ -69,7 +69,7 @@ $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue
              'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge',
              'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline',
              'captures', 'check', 'draw-offer', 'saved', 'home-message', 'messages', 'opponent-left', 'opponent-left-claim', 'opponent-left-turn',
-             'opponent-left-error'
+             'opponent-left-error', 'rejoin'
 # BL-13: the game page in wide windows (the player column left of the board), and sizes that must
 # keep the cards above and below the board.
 $sizedScenes = 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'captures@1400x900', 'review@1400x900',
@@ -121,7 +121,9 @@ foreach ($run in $Scene) {
     $baseName = $nameParts -join '-'
     $file = Join-Path $OutDir "$baseName.png"
     Remove-Item $file -ErrorAction SilentlyContinue   # a failed scene leaves no old picture behind (Compare-Screenshots.ps1)
-    $argList = @('--screenshot', "`"$file`"", '--scene', $s, '--delay', $Delay)
+    # "rejoin" (BL-18) is the game page's first frame: no delay, unless one was asked for.
+    $sceneDelay = if ($s -eq 'rejoin' -and -not $PSBoundParameters.ContainsKey('Delay')) { 0 } else { $Delay }
+    $argList = @('--screenshot', "`"$file`"", '--scene', $s, '--delay', $sceneDelay)
     if ($Offscreen) { $argList = @('-platform', 'offscreen') + $argList }
     if ($Moves) { $argList += '--moves', "`"$Moves`"" }
     if ($runBlack) { $argList += '--black' }

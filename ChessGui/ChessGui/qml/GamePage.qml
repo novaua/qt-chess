@@ -122,6 +122,10 @@ Page {
         function onNewGameStarted() {
             page._facePlayer()
             page.sheetOpen = false
+            // A new game on the open page (BL-18: e.g. a Lichess game joined in progress): its position
+            // is the one the page "opens" on, and a check in it is told when the board is idle.
+            page._movesWhenOpened = ChessConnector.MoveCount
+            page._checkAsked = false
         }
         function onPlayerPlaysWhiteChanged() { page._facePlayer() }
         function onReviewStateChanged() {

@@ -176,8 +176,10 @@ signals:
 	void accountFetched(QString username, QVariantMap ratings);
 	void authExpired(); // Lichess answered 401 to a call made with our token
 	void challengeCreated(QString gameId, QString joinUrl);
-	void gameStarted(QString gameId, bool playingAsWhite, QString opponentName, QString opponentAvatarUrl);
-	void opponentMoveReceived(QString uciMove);
+	// moves: the game's moves so far (UCI), e.g. of a game rejoined; empty for a new game. They are
+	// the start's, not sent again with opponentMoveReceived (BL-18).
+	void gameStarted(QString gameId, bool playingAsWhite, QString opponentName, QString opponentAvatarUrl, QStringList moves);
+	void opponentMoveReceived(QString uciMove); // the opponent's new move(s) after the start
 	// The game's moves changed other than by new moves: an accepted takeback (a shorter list), a
 	// move of ours that Lichess refused, or a list that disagrees with ours. All the moves, as Lichess has them.
 	void moveListReplaced(QString uciMoves, bool moveRefused); // moveRefused: Lichess refused our move

@@ -185,7 +185,7 @@ Item {
             window._addRecent("Couldn't save C:\\Users\\Tester\\Documents\\Chess\\game.pgn", "critical", true, "message", "")
             messagesOpener.enabled = true
         }
-        if (["takeback", "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting",
+        if (["takeback", "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting", "rejoin",
              "challenge-ingame", "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
              "opponent-left-error"].includes(name)) {
             ChessConnector.screenshotSceneSetUp()   // main.cpp feeds the Lichess game and says when the board is ready
