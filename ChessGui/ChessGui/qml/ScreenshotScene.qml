@@ -278,14 +278,20 @@ Item {
         onTriggered: ChessConnector.screenshotSceneReady()
     }
 
-    // Scene "timing": how long opening a page keeps the GUI thread (its creation and the push), in the
-    // log like ChessConnector's game starts. "+ N ms to the next pass" is until the event loop runs again.
+    // Scene "timing": how long opening a page takes to its first frame (its creation and push, then
+    // what is left for the frame: deferred items, polish, the scene graph's sync), in the log like
+    // ChessConnector's game starts. The frame: the one synchronized after the push, as for a game.
     function timePage(name, open) {
         const t0 = Date.now()
         open()
         const created = Date.now() - t0
-        Qt.callLater(() => console.info("[Timing] " + name + ": " + created + " ms to open, + "
-                                        + (Date.now() - t0 - created) + " ms to the next pass"))
+        const shown = function() {
+            ChessConnector.startFrameShown.disconnect(shown)
+            console.info("[Timing] " + name + ": " + (Date.now() - t0) + " ms to the first frame (open "
+                         + created + ")")
+        }
+        ChessConnector.startFrameShown.connect(shown)
+        ChessConnector.waitForStartFrame(window)
     }
 
     // Scene "timing" (BL-11): one step every 1.5 s, as clicks in a running app.

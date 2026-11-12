@@ -40,8 +40,8 @@ ApplicationWindow {
     // ── BL-10: Lichess challenges to the player ─────────────────────────
     // The bar shows the oldest one not hidden. The finished game's rematch offer has its own bar.
     property var  _hiddenChallenges: ({})   // id → true: "Hide" until the next challenge arrives
-    property string _acceptingChallengeId: "" // Lichess's answer to its Accept is awaited
-    readonly property bool _acceptingChallenge: _acceptingChallengeId !== ""
+    // Lichess's answer to an Accept is awaited (the bar's or the Online page's: one state, BL-16)
+    readonly property bool _acceptingChallenge: ChessConnector.AcceptingChallengeId !== ""
     readonly property var _challengesShown: LichessClient.incomingChallenges.filter(c =>
         !_hiddenChallenges[c.id] && c.id !== LichessClient.rematchOfferId)
     readonly property var _challenge: _challengesShown.length > 0 ? _challengesShown[0] : null
@@ -66,7 +66,7 @@ ApplicationWindow {
             acceptChallengeConfirm.open()
             return
         }
-        _acceptingChallengeId = ChessConnector.acceptChallenge(id) ? id : ""
+        ChessConnector.acceptChallenge(id)
     }
 
     function hideChallenge(id) {
@@ -114,11 +114,13 @@ ApplicationWindow {
                 && (!_screenshotMode || ChessConnector.ScreenshotScene.scene === "timing")) {
             if (!_startingGame) {
                 _startingGame = true
+                // First: whatever happens below, the frame comes and the page is built (an error after
+                // _startingGame once left the notice up and no page: the game "hung").
+                ChessConnector.waitForStartFrame(root)
                 // A dialog still open at the start (the challenge waiting for the opponent, the
                 // accept confirmation) goes at once: its fade would stay on the screen under the notice.
                 for (const d of [challengeDialog, acceptChallengeConfirm])
                     d.closeAtOnce()
-                ChessConnector.waitForStartFrame(root)
             }
             return
         }
@@ -825,7 +827,7 @@ ApplicationWindow {
                 BusyButton {
                     visible: root._challenge !== null && root._challenge.canPlayHere && ChessConnector.CanAcceptChallenge
                     idleText: "Accept"
-                    busy: root._challenge !== null && root._acceptingChallengeId === root._challenge.id
+                    busy: root._challenge !== null && ChessConnector.AcceptingChallengeId === root._challenge.id
                     busyText: "Accepting…"
                     highlighted: true
                     enabled: !root._acceptingChallenge
@@ -1001,7 +1003,6 @@ ApplicationWindow {
         function onChallengeCanceled() { clearPendingChallenge() }
 
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
-            _acceptingChallengeId = ""
             challengeDialog.closeAtOnce()   // BL-16: not a fade under "Starting the game…"
             clearPendingChallenge()
         }
@@ -1016,7 +1017,6 @@ ApplicationWindow {
 
         // e.g. the challenger canceled meanwhile. The Online page shows its own error.
         function onChallengeAcceptFailed(challengeId, message) {
-            _acceptingChallengeId = ""
             if (_page !== "online")
                 root.notify("Couldn't accept the challenge: " + message, "critical")
         }
@@ -1163,7 +1163,7 @@ ApplicationWindow {
         title: "Leave this game?"
         text: "A two-player game isn't saved. The Lichess game starts instead."
         acceptText: "Accept challenge"
-        onAccepted: root._acceptingChallengeId = ChessConnector.acceptChallenge(challengeId) ? challengeId : ""
+        onAccepted: ChessConnector.acceptChallenge(challengeId)
     }
 
     ConfirmDialog {

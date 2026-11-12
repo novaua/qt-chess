@@ -24,13 +24,14 @@ void EngineWorker::findMove(int request, const Chess::MovesHistory& history, int
     ENGINE_TRACE("worker: request" << request << "started," << history.size() << "plies, thread" << QThread::currentThreadId());
     try {
         if (!_enginePlayer) {
-            _enginePlayer = std::make_shared<Chess::ChessEnginePlayer>(_level, _mode);
-            _playerForKill.store(_enginePlayer.get());
-            // FindMove restarts the engine itself when it died; that start must give up too.
+            // Not started here: FindMove starts the engine once killEngine() can reach it and the
+            // cancel check is set, so a stop during the start ends it (BL-16 review).
+            _enginePlayer = std::make_shared<Chess::ChessEnginePlayer>(_level, _mode, false);
             _enginePlayer->SetCancelCheck([this] { return _abandoned.load(); });
+            _playerForKill.store(_enginePlayer.get());
         }
         if (_abandoned.load())
-            return; // stopped while the engine was starting
+            return; // stopped before the engine started
         const auto move = QString::fromStdString(_enginePlayer->FindMove(history, std::chrono::milliseconds(maxMoveMs)));
         ENGINE_TRACE("worker: request" << request << "answers" << move);
         emit moveFound(request, move);

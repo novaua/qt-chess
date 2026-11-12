@@ -93,6 +93,9 @@ void UciConnector::Init()
 	}
 	_opt.clear();
 	_initOk = false;
+	// A new start: a Kill() from now on ends it, also one that comes before the process exists
+	// (BL-16 review: a stop during the engine's start used to wait for the whole handshake).
+	_killed.store(false);
 
 	// A candidate that is found but fails to start (e.g. a corrupt download) falls through to the next one.
 	const std::vector<std::string> candidates = EngineCandidates();
@@ -103,9 +106,10 @@ void UciConnector::Init()
 		if (_uciEngine->waitForStarted(5000)) {
 			started = true;
 			_enginePath = sfPath;
-			_killed.store(false);
 			OpenProcessHandle();
 			Trace("-- engine started: " + _enginePath);
+			if (_killed.load())
+				Kill(); // killed before its handle was open: end it now (the handshake below then ends at once)
 			break;
 		}
 		_uciEngine->kill();

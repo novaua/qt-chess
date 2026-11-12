@@ -217,6 +217,19 @@ void LichessClient::rejoinGame(const QString& gameId)
     setRejoiningGameId(gameId);
 }
 
+void LichessClient::setAcceptingId(const QString& challengeId)
+{
+    if (_acceptingId == challengeId)
+        return;
+    const QString previous = _acceptingId;
+    const bool started = _acceptedGameStarted;
+    _acceptingId = challengeId;
+    _acceptedGameStarted = false;
+    if (started)
+        removeIncomingChallenge(previous); // its game began: the challenge is gone on Lichess
+    emit acceptingChanged();
+}
+
 void LichessClient::setRejoiningGameId(const QString& gameId)
 {
     if (_rejoiningGameId == gameId)
@@ -482,22 +495,20 @@ void LichessClient::acceptChallenge(const QString& challengeId, const QString& c
     // BL-10: a challenge to the player stays listed until its game starts (gameStart removes it):
     // if Lichess refuses, it's still there to decline.
     const bool incoming = isIncomingChallenge(challengeId);
-    _acceptingId = challengeId;
     if (_acceptReply) {
         auto* previous = _acceptReply;
         _acceptReply = nullptr;
         previous->abort();
     }
+    setAcceptingId(challengeId); // replaces an earlier one
     auto* reply = _nam.post(makeRequest(acceptPath(challengeId, color)), QByteArray());
     // Kept so stopStream() can drop it (Back on the Online page before Lichess answered).
     _acceptReply = reply;
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, challengeId, incoming]() {
         reply->deleteLater();
-        if (_acceptingId == challengeId)
-            _acceptingId.clear();
         if (reply != _acceptReply)
-            return; // stopped or replaced: no game must start
+            return; // stopped or replaced (stopStream() or the new accept took its state over): no game must start
         _acceptReply = nullptr;
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const QByteArray body = reply->readAll();
@@ -509,12 +520,14 @@ void LichessClient::acceptChallenge(const QString& challengeId, const QString& c
         const bool authExpired = reply->property("authExpiredReported").toBool() || status == 401;
         // A challenge to the player that is gone (canceled meanwhile) also answers 404: not a game.
         if (incoming && status == 404) {
+            setAcceptingId({});
             removeIncomingChallenge(challengeId);
             emit challengeAcceptFailed(challengeId, QStringLiteral("the challenge is no longer there"));
             return;
         }
         if (authExpired || (reply->error() != QNetworkReply::NoError && status != 404)) {
             const QString message = authExpired ? QStringLiteral("Lichess sign-in expired") : apiErrorMessage(body, reply);
+            setAcceptingId({});
             if (incoming)
                 emit challengeAcceptFailed(challengeId, message);
             else
@@ -573,7 +586,12 @@ void LichessClient::handleEventStreamLine(const QByteArray& line)
             ? game.value(QStringLiteral("gameId")).toString() : game.value(QStringLiteral("id")).toString();
         qDebug() << "LichessClient: event stream" << type << gameId << "| waiting for:" << _waitForGameId;
         if (type == QLatin1String("gameStart")) {
-            removeIncomingChallenge(gameId); // an accepted challenge's game has its id
+            // An accepted challenge's game has its id. The one being accepted stays listed until its
+            // game is on the board (its Accept shows "Accepting…"; BL-16): setAcceptingId removes it.
+            if (gameId == _acceptingId)
+                _acceptedGameStarted = true;
+            else
+                removeIncomingChallenge(gameId);
             if (!_waitForGameId.isEmpty() && gameId == _waitForGameId) {
                 onGameStartDetected(gameId);
                 return;
@@ -819,7 +837,7 @@ void LichessClient::onGameStartDetected(const QString& gameId)
 
 void LichessClient::streamGame(const QString& gameId)
 {
-    stopStream();
+    stopAll(gameId == _acceptingId); // an accepted challenge's game: still accepting until it starts
     _currentGameId   = gameId;
     _lastMovesList.clear();
     _sentMoves.clear();
@@ -847,6 +865,7 @@ void LichessClient::gameStreamEnded(QNetworkReply::NetworkError error, const QSt
         emit rejoinFailed(rejoining, message);
         return;
     }
+    setAcceptingId({}); // an accepted challenge's game didn't come: its Accept is over too
     emit networkError(message);
 }
 
@@ -916,6 +935,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
             _lastMovesList = moves;
             _sentMoves.clear();
             setRejoiningGameId({}); // a rejoin has its game
+            setAcceptingId({});     // so has an accepted challenge (its row goes)
             emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl, moves);
             startClock(obj);
         }
@@ -1413,7 +1433,14 @@ RematchInfo LichessClient::parseRematchInfo(const QJsonObject& gameFull, const Q
 
 void LichessClient::stopStream()
 {
+    stopAll(false);
+}
+
+void LichessClient::stopAll(bool keepAccept)
+{
     setRejoiningGameId({}); // dropped, not failed: no rejoinFailed
+    if (!keepAccept)
+        setAcceptingId({}); // dropped: no challengeAcceptFailed
     _watchingForRematch = false;
     setRematchOfferId({});
     stopDirectChallenge();

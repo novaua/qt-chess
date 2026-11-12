@@ -2,9 +2,7 @@
 #define CHESSCONNECTOR_H
 
 #include <QDate>
-#include <QList>
 #include <QObject>
-#include <QPointer>
 #include <QStringList>
 #include <QUrl>
 #include <QVariantList>
@@ -101,6 +99,9 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool StartingOnlineGame READ startingOnlineGame NOTIFY startingOnlineGameChanged)
 		// BL-16: that game's id, for the one card that shows "Starting…"; empty when none is.
 		Q_PROPERTY(QString StartingGameId READ startingGameId NOTIFY startingOnlineGameChanged)
+		// BL-16: the Lichess challenge acceptChallenge() is accepting, until its game starts, Lichess refuses
+		// it or it is dropped (cancelOnlineStart, another profile); "" when none. One for the bar and the Online page.
+		Q_PROPERTY(QString AcceptingChallengeId READ acceptingChallengeId NOTIFY acceptingChallengeChanged)
 		Q_PROPERTY(GameClock* Clock READ clock CONSTANT) // the game's clocks; Clock.enabled false: none
 		// --screenshot mode: { scene, moves, black, dark, width, height }; empty in a normal run
 		Q_PROPERTY(QVariantMap ScreenshotScene READ screenshotScene CONSTANT)
@@ -156,6 +157,7 @@ public:
 	QVariantMap continueGameInfo() const;
 	bool startingOnlineGame() const { return !startingGameId().isEmpty(); }
 	QString startingGameId() const { return _lichessClient ? _lichessClient->rejoiningGameId() : QString(); }
+	QString acceptingChallengeId() const { return _lichessClient ? _lichessClient->acceptingChallengeId() : QString(); }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 	int materialBalance() const;
@@ -224,6 +226,7 @@ signals:
 
 	void screenshotSceneReady(); // QML has set up the --screenshot scene: grab the window
 	void startFrameShown(); // waitForStartFrame(): the notice is on the screen
+	void acceptingChallengeChanged();
 	void screenshotSceneSetUp(); // the takeback scene: QML is done, C++ plays the rest (main.cpp)
 	void boardIdle();            // the page has settled and no move waits to be shown (BL-14)
 
@@ -366,8 +369,8 @@ private:
 	void appendMoveToHistory();
 	void resetMoveHistoryCache();
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
-	// Stops the robot without waiting for it (BL-16): its thread finishes on its own, among
-	// _stoppingEngines. Only the app's exit waits for them (waitForStoppedEngines).
+	// Stops the robot without waiting for it (BL-16): its thread, a child of this connector, finishes on
+	// its own and is deleted then. Only the app's exit waits for the stopped ones (waitForStoppedEngines).
 	void stopEngineThread();
 	void waitForStoppedEngines();
 	void askEngineMove(); // the robot's turn: start the engine on a copy of the moves
@@ -399,7 +402,6 @@ private:
 	QString         _onlineGameId;
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
-	QList<QPointer<QThread>> _stoppingEngines; // stopped, still finishing (e.g. inside the engine's UCI start)
 	MoveGate* _gate = nullptr; // holds the robot's and the Lichess opponent's moves until the board is idle (BL-14)
 	GameClock* _clock = nullptr;
 	GameStartTiming _startTiming; // BL-11: from the action that starts a game to its first frame

@@ -4,16 +4,21 @@
 
 using namespace Chess;
 
-ChessEnginePlayer::ChessEnginePlayer(EngineLevel level, PositionMode mode)
+ChessEnginePlayer::ChessEnginePlayer(EngineLevel level, PositionMode mode, bool startNow)
 	: _level(level), _mode(mode)
 {
 	_connector = std::make_shared<UciConnector>();
-	StartEngine();
+	if (startNow)
+		StartEngine();
 }
 
 void ChessEnginePlayer::StartEngine()
 {
+	if (_cancelled && _cancelled())
+		throw std::logic_error("engine request cancelled");
 	_connector->Init();
+	if (_cancelled && _cancelled()) // killed during the handshake: don't go on with its options
+		throw std::logic_error("engine request cancelled");
 	if (_level.UsesEngineElo())
 		_connector->SetDifficulty(_level.Elo());
 }

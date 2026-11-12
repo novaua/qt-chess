@@ -16,12 +16,12 @@ Page {
     signal backRequested()
     signal profileRequested()   // link or reconnect the Lichess account there
 
-    // What is under way (BL-16: its button says so): "challenge", "join", or the id of a challenge
-    // being accepted; "" when nothing is.
+    // What is under way (BL-16: its button says so): "challenge" or "join"; "" when nothing is. An
+    // Accept: ChessConnector.AcceptingChallengeId (shared with the challenge bar).
     property string _busyAction: ""
     readonly property bool _busy: _busyAction !== ""
     // That, or a rejoin (ChessConnector.continueOnlineGame): no second start meanwhile.
-    readonly property bool _starting: _busy || ChessConnector.StartingOnlineGame
+    readonly property bool _starting: _busy || ChessConnector.StartingOnlineGame || ChessConnector.AcceptingChallengeId !== ""
 
     readonly property string _opponent: opponentField.text.trim()   // empty: a challenge with a link
     readonly property bool _opponentValid: _opponent === "" || LichessClient.isUsername(_opponent)
@@ -215,7 +215,7 @@ Page {
                                     BusyButton {
                                         idleText: challengeRow.modelData.canPlayHere ? "Accept" : "Open on lichess.org"
                                         idleIcon: Theme.icon(challengeRow.modelData.canPlayHere ? "play" : "link")
-                                        busy: page._busyAction === challengeRow.modelData.id
+                                        busy: ChessConnector.AcceptingChallengeId === challengeRow.modelData.id
                                         busyText: "Accepting…"
                                         highlighted: challengeRow.modelData.canPlayHere
                                         enabled: !page._starting
@@ -225,7 +225,7 @@ Page {
                                                 return
                                             }
                                             errorBar.visible = false
-                                            page._busyAction = ChessConnector.acceptChallenge(challengeRow.modelData.id) ? challengeRow.modelData.id : ""
+                                            ChessConnector.acceptChallenge(challengeRow.modelData.id)
                                         }
                                     }
                                     Button {
@@ -339,7 +339,7 @@ Page {
                     idleText: page._named ? "Challenge " + page._opponent : "Create challenge"
                     idleIcon: page._named ? "" : Theme.icon("link")
                     busy: page._busyAction === "challenge"
-                    busyText: page._named ? "Sending the challenge…" : "Creating the challenge…"
+                    busyText: page._named ? "Sending…" : "Creating…"
                     highlighted: true
                     enabled: !page._starting && page._opponentValid && (!page._realTime || tcClock.ready)
                     Layout.topMargin: Theme.s1

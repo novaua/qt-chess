@@ -81,6 +81,9 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 			  "opponent": { "id": "speedy", "username": "Speedy", "rating": 1890 },
 			  "speed": "blitz", "source": "lobby", "variant": { "key": "standard" } }
 		] })").object());
+		// Home's Continue rejoins only the one game there is (with more it opens the list).
+		if (scene == "continue-starting")
+			sceneMap["ongoingGames"] = QVariantList{ sceneMap["ongoingGames"].toList().first() };
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
 	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online",

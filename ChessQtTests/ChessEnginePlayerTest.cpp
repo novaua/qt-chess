@@ -143,5 +143,40 @@ namespace EnginePlayerTests
 			Assert::IsTrue(timer.elapsed() < 2500, L"killEngine unblocked the search");
 			delete thread;
 		}
+
+		// BL-16 review: a stop while the engine is still starting (process launch and UCI handshake,
+		// several hundred ms) ends the start too: the thread doesn't run on to the end of the
+		// handshake, and the stopped request gives no answer.
+		TEST_METHOD(Kill_DuringTheEngineStart_EndsIt_Test)
+		{
+			auto* worker = new EngineWorker(EngineLevel{ 5 });
+			auto* thread = new QThread();
+			worker->moveToThread(thread);
+			QObject::connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+			std::atomic<int> answers{ 0 };
+			QObject::connect(worker, &EngineWorker::moveFound, [&](int, QString) { ++answers; });            // on the engine thread
+			QObject::connect(worker, &EngineWorker::moveError, [&](int, QString, QString) { ++answers; });
+			thread->start();
+
+			std::atomic<bool> started{ false };
+			const auto history = Play(MateInOne);
+			QMetaObject::invokeMethod(worker, [worker, &started, history] {
+				started = true;
+				worker->findMove(1, history);
+			}, Qt::QueuedConnection);
+			for (int i = 0; i < 300 && !started.load(); ++i)
+				QThread::msleep(5);
+			QThread::msleep(30); // inside the engine's start
+			QElapsedTimer timer;
+			timer.start();
+			worker->killEngine();
+			thread->quit();
+
+			Assert::IsTrue(thread->wait(3000), L"the engine thread stopped");
+			const qint64 ms = timer.elapsed();
+			delete thread;
+			Assert::AreEqual(0, answers.load(), L"a stopped request gives no answer");
+			Assert::IsTrue(ms < 300, (L"stopped during its start, not after it: " + std::to_wstring(ms) + L" ms").c_str());
+		}
 	};
 }
