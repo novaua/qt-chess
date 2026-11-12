@@ -219,6 +219,7 @@ signals:
 
 	void noSavedGame();
 	void savedOk();
+	void saveFailed();
 	void noMoreMovesNotify();
 	void pgnCopied();
 	void pgnExported(bool ok, const QString& path);
@@ -262,6 +263,9 @@ public slots:
 	Q_INVOKABLE void setMoveTiming(int slideMs);
 	// The gate: the page has settled, it shows the live position, and no move waits to be shown.
 	Q_INVOKABLE bool isBoardIdle() const;
+	// Leaving now loses moves: an unfinished two-player game with moves not saved since (Save game).
+	// Only the robot's games are autosaved; ChessGame.qml asks before it leaves such a game.
+	Q_INVOKABLE bool leaveLosesGame() const;
 
 	void endGame();              // leave the game for Home (autosaves an unfinished local game)
 	// The leave warning's Resign: resign the Lichess game, then endGame() once Lichess has ended it
@@ -274,7 +278,7 @@ public slots:
 	Q_INVOKABLE void cancelPremove(); // a right click or Esc: no premove, no premove dots
 	void pawnPromote(int index, const QString& piece);
 
-	void saveGame();
+	bool saveGame(); // false: not written ("Couldn't save the game"), the moves still count as unsaved
 	bool loadGame();
 
 	void moveNext();
@@ -420,6 +424,7 @@ private:
 	bool _promotionPending = false; // a pawn is on the last rank, waiting for pawnPromote()
 	std::optional<std::pair<QString, bool>> _listAfterPromotion; // Lichess's moves that came meanwhile (and moveRefused)
 	bool _gameOver = false;
+	int _savedPlies = 0; // the game's moves when it was last saved (Save game); 0 for a new game
 	bool _wasVsComputer = false;
 	bool _resuming = false; // Continue replays the saved moves: their checks were heard already
 	bool _lastGameOnline = false; // the current/last game is a Lichess game: rematch goes online

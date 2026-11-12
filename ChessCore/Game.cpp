@@ -87,7 +87,7 @@ namespace Chess
 		return player;
 	}
 
-	void Game::Save(const std::string& path)
+	bool Game::Save(const std::string& path)
 	{
 		auto moveCount = GetMoveCount();
 		std::ofstream outFileStream(path, std::ios::out | std::ios::binary);
@@ -100,6 +100,8 @@ namespace Chess
 		{
 			BinarySerializer::Serialize(move, outFileStream);
 		}
+		outFileStream.close(); // a full disk shows only when the buffer is written
+		return !outFileStream.fail();
 	}
 
 	void ValidateHeader(std::ifstream& fs, const std::string& header)

@@ -4,6 +4,33 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-04 hand test and its two fixes (branch: bugs/bl04HandTestFixes_121126)
+
+The owner ran BL-04's hand test (plan §5 rows 2, 3, 7, 11–14; results in `TASKS.md`). Two findings, both fixed:
+- **A piece dragged off the board** went under the bottom player card and the moves panel (over the top card only because it comes earlier in `GamePage`). The dragged piece (`ChessBoard.qml`) is now in the window's overlay, mapped from the squares' coordinates, so it is over everything, the command bar too.
+- **Leaving a two-player game lost it without a word** (only the robot's games are autosaved). `ChessConnector::leaveLosesGame()`: an unfinished two-player game with moves not saved since (Save game). Home, Esc and closing the window then ask "Leave / Quit without saving?" with Leave, Save and leave, Stay (`leaveLocalConfirm`; `ConfirmDialog` got an optional second action). Switch user's confirm said "The game is saved" for a two-player game too; it now says such games aren't kept.
+- `tst_twoPlayers` test 3 (Esc and Stay, Save and leave, no question without moves or after Save game); `AppDriver.leaveToHome()` answers Leave when asked.
+- Scenes `drag-off` (the knight over the bottom card) and `leave-local` (the dialog). The `drag` scenes match their baselines.
+
+### Learned
+- In the overlay the dragged piece is mapped from the squares' coordinates on each frame of a drag (`FrameAnimation`): a mapping is no binding dependency, and the `drag` scene starts its drag before the page's layout (and, for Black, the board's turn) has settled.
+- A hidden button in a `DialogButtonBox` keeps its slot: `ConfirmDialog` removes its second action's button when it has none.
+- Restoring a file with `Copy-Item` keeps the backup's older time, and MSBuild then skips it (qrc): touch it before building.
+
+**Code review (`/code-review` of #161, 10 findings), fixed:**
+- `Game::Save` returns false when the file couldn't be written (it never checked); `ChessConnector::saveGame()` then says "Couldn't save the game" and the moves still count as unsaved, and Save and leave stays in the game. Unit test `Save_UnwritablePath_ReturnsFalse_Test`.
+- The dialog's default (Enter) is **Save and leave** / Save and quit; Leave / Quit is the second action. With a saved game already there it says the save replaces it.
+- Switch user and Accept a challenge use the same rule (`leaveLosesGame()`): no question for a two-player game without unsaved moves.
+- The dragged piece is in the overlay only during a drag (an overlay with a child item stays visible), below a dialog (`z: -1`); `remap()` reads `dragFrom`, not the derived `dragging`; `ConfirmDialog` no longer destroys the removed button twice; the redundant `_gameResult` check is gone.
+- Kept: the `FrameAnimation` (only during a drag, and the game page already draws every frame for the avatar pulse), and no question for a finished two-player game (nothing to continue, its result counted, as for the robot).
+
+**Rechecked by the owner (2026-11-13):** A.3, A.4, C.11–12 OK.
+
+### Next
+- BL-04: only E.14 (touch) is open, for when a touch screen is at hand.
+
+---
+
 ## 2026-11-12 — BL-05 step 6: the installer's smoke test (branch: features/installerSmokeTest_121126)
 
 ### Done

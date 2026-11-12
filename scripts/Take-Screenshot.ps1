@@ -30,7 +30,7 @@
 #>
 [CmdletBinding()]
 param(
-    # welcome, create-user, profiles, home, continue, continue-online, game, leave-online, review, result, ended, moves, select, drag, settings, about, restore, levels,
+    # welcome, create-user, profiles, home, continue, continue-online, game, leave-online, leave-local, review, result, ended, moves, select, drag, drag-off, settings, about, restore, levels,
     # profile, profile-local, profile-expired, import, online, online-empty, online-disconnected, computer, players, captures, or all
     # A scene can name its own window size and side: scene@WxH[@black], e.g. game@1920x1080 (all runs
     # the list in $sizedScenes after the others).
@@ -70,7 +70,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue-online', 'continue-list', 'continue-list-online',
-             'continue-list-robot', 'game', 'leave-online', 'review', 'result', 'ended', 'moves', 'select', 'drag',
+             'continue-list-robot', 'game', 'leave-online', 'leave-local', 'review', 'result', 'ended', 'moves', 'select', 'drag', 'drag-off',
              'settings', 'about', 'restore', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'online-empty', 'online-disconnected', 'computer', 'players',
              'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge',
              'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline',

@@ -1311,6 +1311,7 @@ void ChessConnector::startNewGame()
 	_player = nullptr;
 	_reviewIndex = -1;
 	_gameOver = false;
+	_savedPlies = 0;
 	if (!_gameResult.isEmpty()) setResult({}, {});
 	_game->Restart();
 	startClock();
@@ -1749,6 +1750,12 @@ bool ChessConnector::isBoardIdle() const
 	return _gate->isIdle();
 }
 
+// A two-player game has no undo (Ctrl+Z only reviews), so more moves than saved means unsaved ones.
+bool ChessConnector::leaveLosesGame() const
+{
+	return _gameMode == QLatin1String("local") && !_gameOver && plyCount() > _savedPlies;
+}
+
 void ChessConnector::onEngineMoveError(int request, const QString& message, const QString& details)
 {
 	if (request != _engineRequest) {
@@ -1792,7 +1799,7 @@ bool fileExists(QString path) {
 	}
 }
 
-void ChessConnector::saveGame()
+bool ChessConnector::saveGame()
 {
 	if (_userManager) {
 		UserManager::GameSaveInfo info;
@@ -1808,9 +1815,16 @@ void ChessConnector::saveGame()
 		}
 		_userManager->setSavedGameInfo(info);
 	}
-	_game->Save(savedGamePath().toStdString());
+	if (!_game->Save(savedGamePath().toStdString())) {
+		qWarning() << "saveGame: can't write" << savedGamePath();
+		emit saveFailed();
+		emit canLoadChanged(); // the old saved game may be gone: the file was opened for writing
+		return false;
+	}
+	_savedPlies = plyCount();
 	emit savedOk();
 	emit canLoadChanged();
+	return true;
 }
 
 bool ChessConnector::loadGame()
