@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-28, refreshed 2026-11-12 (after BL-11) |
-| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; step 3 done too (branch `features/fakeUciEngine_121126`): FakeUci, the robot test, the robot scenes on it; step 4 in three parts: 4a (the board), 4b (a restart, profiles) and 4c (Lichess against FakeLichess; branch `features/uiTestsLichess_121126`) done; next step 5 (the GitHub job). The owner chose the recommended answers to §10 (2026-11-12) |
+| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; step 3 done too (branch `features/fakeUciEngine_121126`): FakeUci, the robot test, the robot scenes on it; step 4 in three parts: 4a (the board), 4b (a restart, profiles) and 4c (Lichess against FakeLichess; branch `features/uiTestsLichess_121126`) done; step 5 (the GitHub job; branch `features/uiTestsCi_121126`) done: every push runs Layer 1. Left: the optional step 6. The owner chose the recommended answers to §10 (2026-11-12) |
 | **Branch** | one per step from `develop`, e.g. `features/uiTestsAppServices_<DDMMYY>` |
 
 ## 1. Problem
@@ -125,8 +125,10 @@ too). Python is test tooling only. Before releases, not before every PR.
   own process offscreen with Qt's `bin` on `PATH`, writes `test-results\ui\<file>.txt` (and JUnit XML,
   `-o file,junitxml`), prints a summary; exit code = failed files. `-Name tst_game*` for some.
   `-Screens` also takes all screenshots, light and dark, and compares them: the full pre-PR check.
-- **GitHub** (`tests.yml`): Layer 1 after the CppUnit tests, offscreen, with the stub engine; never the
-  screenshots (§10 Q3).
+- **GitHub** (`tests.yml`, every push and PR, and before a release through `release.yml`): Layer 1
+  after the CppUnit tests, `Run-UiTests.ps1 -Configuration Debug` on the Debug build the job already
+  makes, offscreen, FakeUci and FakeLichess; about 95 s. A failure uploads `test-results\ui` (the logs
+  and the failure pictures) as the artifact `ui-test-results`. Never the screenshots (§10 Q3).
 - **Docs:** CLAUDE.md "Running Tests", and a section in the `run-chess-app` skill.
 
 ## 9. Scenarios
@@ -230,5 +232,8 @@ Later (step 4):
    - Learned: a button just shown inside a `Flow` (a bar's actions) is placed on the next polish, and a
      click before it lands elsewhere: `click` / `clickIn` wait for the window's polish (`laidOut()`).
      Test functions run in name order: `test_10` before `test_2`, hence `test_01`…
-5. **GitHub job** (Q3).
+5. **GitHub job** (Q3) — **done** (`features/uiTestsCi_121126`): a "Run UI tests" step in `tests.yml`
+   after the CppUnit tests (Debug, offscreen; Qt's `bin` is on `PATH` from `install-qt-action`), the
+   results uploaded on a failure. Green on the first run: 8 files, 50 functions, 93 s on
+   `windows-latest` (113 s locally in Debug, ~50 s in Release), under Q3's two minutes.
 6. Optional: pywinauto smoke tests.

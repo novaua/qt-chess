@@ -121,7 +121,9 @@ Not covered yet: a real connection to Lichess (the scenes feed the stream parser
 `scripts\Run-UiTests.ps1` runs `ChessGuiTests.exe` (Qt Quick Test) once per `ChessGuiTests\qml\tst_*.qml`,
 offscreen on a fresh profile: the app's window played with real mouse events, its state and items
 checked. Works with the screen locked. Results in `test-results\ui\<file>.txt` / `.xml`; the failures
-are printed. Exit code = failed files.
+are printed. Exit code = failed files. GitHub runs the same on every push (`tests.yml`, Debug,
+~95 s); a failed run there has the artifact `ui-test-results` (logs and pictures):
+`gh run download <run id> -n ui-test-results`.
 
 ```powershell
 .\scripts\Run-UiTests.ps1 -Build                                   # build ChessGuiTests, run every file
