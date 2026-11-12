@@ -33,6 +33,7 @@ ApplicationWindow {
         || computerDialog.visible || twoPlayerDialog.visible
         || challengeDialog.visible || createUserDialog.visible
         || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible || leaveOnlineDialog.visible
+        || leaveLocalConfirm.visible
         || pgnExportDialog.visible || profileExportDialog.visible || profileImportDialog.visible
         || importConflictDialog.visible || deleteProfileConfirm.visible || disconnectLichessConfirm.visible
         || acceptChallengeConfirm.visible || recentFlyout.visible
@@ -196,8 +197,8 @@ ApplicationWindow {
         deleteProfileConfirm.open()
     }
 
-    // Home button / Escape. A running Lichess game asks first; a rematch challenge still waiting for
-    // the opponent is withdrawn.
+    // Home button / Escape. A running Lichess game asks first, and so does a two-player game whose
+    // moves would be lost (not autosaved); a rematch challenge still waiting for the opponent is withdrawn.
     function leaveGame() {
         if (_resigning) {                 // Home again while the resignation is on its way: now
             _quitAfterLeave = false
@@ -205,6 +206,9 @@ ApplicationWindow {
         } else if (_onlineRunning) {
             leaveOnlineDialog.quitting = false
             leaveOnlineDialog.open()
+        } else if (ChessConnector.leaveLosesGame()) {
+            leaveLocalConfirm.quitting = false
+            leaveLocalConfirm.open()
         } else {
             _doLeaveGame()
         }
@@ -235,10 +239,33 @@ ApplicationWindow {
     // The game ended while the warning was open: it no longer goes on without us.
     on_OnlineRunningChanged: if (!_onlineRunning) leaveOnlineDialog.close()
 
-    // Closing the window during a running Lichess game asks the same as Home (Leave quits).
+    // The two-player warning's answers: Leave / Quit, after a save if asked.
+    function _leaveLocal(quit, save) {
+        if (save)
+            ChessConnector.saveGame()
+        if (quit) {
+            _quitConfirmed = true
+            root.close()
+        } else {
+            _doLeaveGame()
+        }
+    }
+
+    // Closing the window during a running Lichess game asks the same as Home (Leave quits); so does
+    // a two-player game with unsaved moves.
     onClosing: event => {
-        if (_quitConfirmed || _screenshotMode || !(_onlineRunning || _resigning))
+        if (_quitConfirmed || _screenshotMode)
             return
+        if (!(_onlineRunning || _resigning)) {
+            if (ChessConnector.leaveLosesGame()) {
+                event.accepted = false
+                resignConfirm.close()
+                switchUserConfirm.close()
+                leaveLocalConfirm.quitting = true
+                leaveLocalConfirm.open()
+            }
+            return
+        }
         event.accepted = false
         if (_resigning) {                 // quit when the resignation is through
             _quitAfterLeave = true
@@ -1214,9 +1241,26 @@ ApplicationWindow {
         objectName: "switchUserConfirm"
         title: "Switch user?"
         text: _mode === "online" ? "You leave the Lichess game; it keeps running on lichess.org. You can come back from Continue or Play online."
+            : _mode === "local"  ? "Two-player games aren't kept: save this one first (Save game) to replay it later."
                                  : "The game is saved, so you can continue it later."
         acceptText: "Switch user"
         onAccepted: root._doSwitchUser()
+    }
+
+    // Leaving or closing during a two-player game with unsaved moves (ChessConnector.leaveLosesGame()).
+    ConfirmDialog {
+        id: leaveLocalConfirm
+        objectName: "leaveLocalConfirm"
+        property bool quitting: false   // opened by closing the window: Leave quits the app
+        title: quitting ? "Quit without saving?" : "Leave without saving?"
+        text: "Two-player games aren't kept, so this game's moves will be lost. Save it to replay it "
+              + "later from Home → Open saved game."
+        acceptText: quitting ? "Quit" : "Leave"
+        actionText: quitting ? "Save and quit" : "Save and leave"
+        cancelText: "Stay"
+        width: 460
+        onAccepted:        root._leaveLocal(quitting, false)
+        onActionRequested: root._leaveLocal(quitting, true)
     }
 
     LeaveOnlineDialog {

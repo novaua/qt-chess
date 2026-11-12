@@ -39,9 +39,9 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
 
 - Scenes: `welcome` (first run), `create-user` (first run, Create profile dialog), `profiles` (Who's
   playing? with Bob, Alice and Tester, who has a Lichess account), `home`, `continue` (Home with an autosaved robot game and the `online` scene's four Lichess games: "Continue a game", which opens the list), `continue-online` (no robot game, four Lichess games), `continue-list` (BL-17: the Continue list over Home, the robot's game first, then the four Lichess games; also at `1400x900` and `640x560`), `continue-list-online` (the list without a robot game), `continue-list-robot` (the robot's game alone, as when the Lichess games end while the list is open), `game` (two-player
-  game, Tester vs Bob), `leave-online` (the game with the leave warning of a running Lichess game: Leave / Resign / Stay), `review` (a middlegame reviewed at move 5), `result` (Fool's mate: the result
+  game, Tester vs Bob), `leave-online` (the game with the leave warning of a running Lichess game: Leave / Resign / Stay), `leave-local` (the two-player game with unsaved moves left: "Leave without saving?", Leave / Save and leave / Stay), `review` (a middlegame reviewed at move 5), `result` (Fool's mate: the result
   card), `ended` (the same with the card closed: Rematch / New game in the moves panel, Result in the sheet), `moves` (the middlegame with the move sheet open; narrow window only), `select` (1. e4 e5, the g1 knight selected: tinted square and its move dots; with `-Black` on the turned board),
-  `drag` (the same knight held over f3: faded on g1, dots, f3 outlined; `-Black` too), `settings` (Settings page, top),
+  `drag` (the same knight held over f3: faded on g1, dots, f3 outlined; `-Black` too), `drag-off` (the knight dragged off the board, over the bottom player card: drawn over it), `settings` (Settings page, top),
   `about` (Settings scrolled to About: version, licences, shortcuts), `restore` (Settings with the restore
   dialog: two backups, the newest the same as now), `levels`,
   `profile` (Profile page: Lichess linked with ratings, statistics), `profile-local` (no Lichess),

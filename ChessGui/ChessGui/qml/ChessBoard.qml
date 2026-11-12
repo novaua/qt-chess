@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import ChessPlusPlus
 
 Rectangle {
@@ -214,22 +215,41 @@ Rectangle {
                 anchors.fill: chessBoxes
             }
 
-            // The dragged piece under the pointer, above the move dots; its own square shows it faded.
-            Item {
-                anchors.fill: chessBoxes
-                visible: chessBoard.dragging
-                Image {
-                    x: chessBoard.dragPoint.x - width / 2
-                    y: chessBoard.dragPoint.y - height / 2
-                    width: chessBoard.squareSize
-                    height: width
-                    scale: 1.1   // lifted
-                    rotation: chessBoard.angle   // upright on the turned board, like the pieces
-                    smooth: true
-                    antialiasing: true
-                    fillMode: Image.PreserveAspectFit
-                    source: chessBoard.dragPiece ? Theme.piece(chessBoard.dragPiece) : ""
+            // The dragged piece under the pointer; its own square shows it faded. In the window's overlay,
+            // above everything: dragged off the board, it stays over the player cards, the moves panel and
+            // the command bar (the BL-04 hand test). The overlay doesn't turn with the board, so the piece
+            // is upright as it is.
+            Image {
+                id: draggedPiece
+                parent: chessBoard.Overlay.overlay ?? chessBoxes
+                // The pointer, from the squares' coordinates (dragPoint) to the overlay's: when it moves, and
+                // on each frame of the drag, as the board may turn (F) or the page's layout move it meanwhile
+                // (a mapping is no binding dependency).
+                property point center
+                function remap() {
+                    if (chessBoard.dragging)
+                        center = chessBoxes.mapToItem(parent, chessBoard.dragPoint.x, chessBoard.dragPoint.y)
                 }
+                Connections {
+                    target: chessBoard
+                    function onDragPointChanged() { draggedPiece.remap() }
+                    function onDragFromChanged()  { draggedPiece.remap() }
+                }
+                FrameAnimation {
+                    running: chessBoard.dragging
+                    onTriggered: draggedPiece.remap()
+                }
+                visible: chessBoard.dragging
+                x: center.x - width / 2
+                y: center.y - height / 2
+                width: chessBoard.squareSize
+                height: width
+                scale: 1.1   // lifted
+                rotation: parent === chessBoxes ? chessBoard.angle : 0
+                smooth: true
+                antialiasing: true
+                fillMode: Image.PreserveAspectFit
+                source: chessBoard.dragPiece ? Theme.piece(chessBoard.dragPiece) : ""
             }
         }
     }

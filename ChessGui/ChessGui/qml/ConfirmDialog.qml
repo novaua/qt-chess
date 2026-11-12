@@ -2,12 +2,17 @@ import QtQuick
 import QtQuick.Controls
 
 // "Are you sure?" before a destructive action: `title`, an explaining `text`, and the action's
-// verb on the accept button (`acceptText`, e.g. "Resign").
+// verb on the accept button (`acceptText`, e.g. "Resign"). An optional second action between
+// them (`actionText`, e.g. "Save and leave") emits actionRequested().
 AppDialog {
     id: dialog
 
     property alias text: message.text
     property string acceptText: "OK"
+    property string actionText: ""      // empty: no second action
+    property string cancelText: "Cancel"
+
+    signal actionRequested()
 
     width: 400
 
@@ -20,6 +25,7 @@ AppDialog {
     }
 
     footer: DialogButtonBox {
+        id: buttons
         defaultButton: primaryButton // highlighted (the box sets it, Qt 6.11+)
         Button {
             id: primaryButton
@@ -28,8 +34,26 @@ AppDialog {
             DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
         }
         Button {
-            text: "Cancel"
+            id: actionButton
+            objectName: "actionButton"
+            text: dialog.actionText
+            DialogButtonBox.buttonRole: DialogButtonBox.ActionRole
+            onClicked: {
+                dialog.close()
+                dialog.actionRequested()
+            }
+        }
+        Button {
+            text: dialog.cancelText
             DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+        }
+    }
+
+    // Without a second action its button goes: a hidden one keeps its place in the box.
+    Component.onCompleted: {
+        if (actionText === "") {
+            buttons.removeItem(actionButton)
+            actionButton.destroy()
         }
     }
 }
