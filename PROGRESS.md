@@ -4,6 +4,25 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-05 step 4a: the board's UI tests (branch: features/uiTestsBoard_121126)
+
+### Done
+- **`tst_board.qml`** (two players): e2 dropped on e5 goes back, nothing played; a black pawn can't be dragged on White's move; 1. e4 f6 2. Qh5+: "Check" over the command bar and Black's king marked; the review: 1. e4 from the move list (the position at move 1, no check shown), ‹ to the start, ›, ⏭ back to the game (the check again, Black to move); Save ("Game saved"), Home, "Open saved game": a replay at move 0 of 3, stepped with › to the saved position, the check at the end.
+- **`tst_promotion.qml`**: 1. a4 … 5. bxa8 and 5... gxh1, the pawn dropped on the last rank, the promotion box, a knight chosen: a white knight on a8, a black one on h1; the move counts at the drop and nobody can move while the piece is chosen (`MovableColor` 0).
+- **`tst_robot.qml`** + 2: Undo on the player's turn takes back its answer and the player's move; Undo while it thinks takes back the player's move only, and its answer never comes. (A two-player game has no Undo button.)
+- All: 5 files, 26 functions, ~28 s in Release (three runs alike), ~52 s in Debug.
+- `objectName`s: `undoButton`, `saveButton`, `prevButton`, `nextButton`, `review_first|prev|next|last` (the moves panel), `shortMessage`, `openSavedCard`, `promotionOptions`, `promoteQ|R|B|N`. Driver: `waitMessage`, `leaveToHome`, `waitPiece`, `settle`.
+
+### Learned
+- **A press right after a change came before QML knew of it**: `MovableColor` is sent queued (BL-11), and the test's next press came in the same turn of the event loop, so the pieces weren't draggable yet (C++ already said they were). Only a test can be that fast; `waitBoardIdle()` and the input helpers now let queued signals through first. The first board test's illegal drop would have passed either way: the robot and promotion tests showed it.
+- In review or a replay the board is never "idle" (the gate holds outside moves), so those checks wait for what is shown (`waitPiece`). In a Debug build the board's layers come a frame after the page (`LayoutGate`), so `pieceAt` is "?" until then.
+- "Open saved game" is a replay from the start, not the game resumed.
+
+### Next
+- BL-05 step 4b: a setting after a restart, profiles. Then 4c: Lichess against `FakeLichess`. Then step 5, the GitHub job.
+
+---
+
 ## 2026-11-12 — BL-05 step 3: the stub engine and the robot test (branch: features/fakeUciEngine_121126)
 
 ### Done

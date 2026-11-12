@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-28, refreshed 2026-11-12 (after BL-11) |
-| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; step 3 done too (branch `features/fakeUciEngine_121126`): FakeUci, the robot test, the robot scenes on it; next is step 4. The owner chose the recommended answers to §10 (2026-11-12) |
+| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; step 3 done too (branch `features/fakeUciEngine_121126`): FakeUci, the robot test, the robot scenes on it; step 4 in three parts: 4a (the board) done (branch `features/uiTestsBoard_121126`), next 4b (settings, profiles), 4c (Lichess). The owner chose the recommended answers to §10 (2026-11-12) |
 | **Branch** | one per step from `develop`, e.g. `features/uiTestsAppServices_<DDMMYY>` |
 
 ## 1. Problem
@@ -193,6 +193,20 @@ Later (step 4):
    - Learned: `MoveGeneration` makes castling and en passant only after a first move, so FakeUci puts one
      into its history after a FEN; a slow engine outlives the test by its "thinking" and holds the
      results file it inherited (the runner retries reading it).
-4. **The other scenarios** (4–6, 8–12), `objectName`s as needed.
+4. **The other scenarios** (4–6, 8–12), `objectName`s as needed. In three parts:
+   - **4a, the board — done** (`features/uiTestsBoard_121126`): `tst_board.qml` (a drop on an illegal
+     square goes back, a black piece can't be dragged on White's move; "Check" over the command bar and
+     the king marked; the review from the move list and its ‹ › ⏭ buttons; Save, then "Open saved game",
+     which is a replay from the start: stepped through to the saved position), `tst_promotion.qml`
+     (White and Black each choose a knight; nobody moves while the piece is chosen), and in
+     `tst_robot.qml` the takeback (two moves on the player's turn, one while it thinks, its answer never
+     played; a two-player game has no Undo button). 26 test functions in all.
+   - Learned: `MovableColor` reaches QML queued, so a press right after a change (e.g. `applyMoves`)
+     found the pieces not draggable: `waitBoardIdle()` and the input helpers now let queued signals
+     through first. The board is never idle in review (the gate holds), hence `waitPiece`. In a Debug
+     build the board's layers come a frame after the page (`LayoutGate`): `pieceAt` says "?" until then.
+   - 4b: a setting after a restart (a second process on the same data folder), profiles (create, switch
+     during a game, the picker). 4c: Lichess against `FakeLichess` (the challenge bar, Accept, the game
+     with its moves; scenario 12) and messages from Lichess.
 5. **GitHub job** (Q3).
 6. Optional: pywinauto smoke tests.

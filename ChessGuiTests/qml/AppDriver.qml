@@ -117,6 +117,19 @@ QtObject {
         test.tryVerify(() => !dialog.visible, 3000, (dialog.objectName || "the dialog") + " closed")
     }
 
+    // A short message over the command bar ("Check", "Game saved"), shown now or within `timeout`.
+    function waitMessage(text, timeout) {
+        const bar = item("shortMessage")
+        test.tryVerify(() => bar.showing && bar.text === text, timeout ?? 3000,
+                       "the message \"" + text + "\" (shown: \"" + (bar.showing ? bar.text : "") + "\")")
+    }
+
+    // From a game (two players, the robot): the Home button, then Home.
+    function leaveToHome() {
+        click("homeButton")
+        waitForPage("home", 5000)
+    }
+
     // ── The board (a1 = 0 … h8 = 63) ─────────────────────────────────
     function square(name) {   // "e2" → 12
         return (name.charCodeAt(1) - 49) * 8 + (name.charCodeAt(0) - 97)
@@ -130,12 +143,14 @@ QtObject {
         return Qt.point(board.squareX(sq) + board.squareSize / 2, board.squareY(sq) + board.squareSize / 2)
     }
     function clickSquare(name) {
+        settle()
         const p = squarePoint(name)
         test.mouseClick(grid(), p.x, p.y)
         pace()
     }
     // Press on one square, move over the board in steps (past the drag threshold), release on the other.
     function dragPiece(from, to) {
+        settle()
         const a = squarePoint(from), b = squarePoint(to)
         const g = grid()
         test.mousePress(g, a.x, a.y)
@@ -146,10 +161,15 @@ QtObject {
         test.mouseRelease(g, b.x, b.y)
         pace()
     }
-    // The piece shown on a square ("" for none), found by where its item is drawn: "P", "q", …
+    // The piece shown on a square ("" for none), found by where its item is drawn: White's in capitals
+    // ("P", "N", …), Black's in small letters ("p", "q", …).
+    // "?" while the board's layers aren't made yet (LayoutGate: the page's first frame), so a wait
+    // for "" (an empty square) can't pass before there is a board.
     function pieceAt(name) {
-        const pieces = item("chessPiecesRptr")
-        const g = grid(), board = page().board
+        const pieces = find("chessPiecesRptr"), g = find("chessPiecesGrid")
+        if (!pieces || !g)
+            return "?"
+        const board = page().board
         for (let i = 0; i < pieces.count; ++i) {
             const p = pieces.itemAt(i)
             if (!p || !p.visible || p.taken)
@@ -160,6 +180,13 @@ QtObject {
         }
         return ""
     }
+    // Wait until `letter` ("" for none) is shown on the square: in review, where the board is never
+    // idle (the gate holds outside moves meanwhile), instead of waitBoardIdle.
+    function waitPiece(name, letter, timeout) {
+        test.tryVerify(() => pieceAt(name) === letter, timeout ?? 3000,
+                       (letter === "" ? "nothing" : letter) + " on " + name + " (shown: \"" + pieceAt(name) + "\")")
+    }
+
     // A move by two clicks: the piece, then its square.
     function clickMove(from, to) {
         waitBoardIdle()
@@ -172,7 +199,12 @@ QtObject {
     function waitBoardIdle(timeout) {
         test.tryVerify(() => find("chessPiecesGrid") !== null && ChessConnector.isBoardIdle(),
                        timeout ?? 5000, "the board idle")
+        settle()
     }
+    // Let the queued signals of the last change reach QML: ChessConnector sends some once per move,
+    // queued (MovableColor, BL-11). A user's next press always comes after them; a test's could come
+    // before, while the pieces still can't be dragged (C++ already says they can).
+    function settle() { test.wait(0) }
 
     // ── Flows ────────────────────────────────────────────────────────
     // First run: Welcome → Create local profile → the dialog → Home.

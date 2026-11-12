@@ -3,6 +3,7 @@ import ChessPlusPlus
 
 Rectangle{
     id:pawnPromotionRec
+    objectName: "promotionOptions"
     radius: 0.125*height
     border.color: Theme.squareLight
     color: Theme.squareDark
@@ -47,6 +48,7 @@ Rectangle{
                                                          :["Q","R","B","N"]):0
 
             delegate: Image{
+                objectName: "promote" + modelData.toUpperCase()   // promoteQ … promoteN (the UI tests)
                 height: pawnPromotionRow.width<pawnPromotionRow.height*4?pawnPromotionRow.width/4:pawnPromotionRow.height
                 width: height
 

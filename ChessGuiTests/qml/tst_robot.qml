@@ -88,4 +88,31 @@ TestCase {
         compare(app.pieceAt("f6").toUpperCase(), "N", "its knight on f6")
         compare(ChessConnector.MovableColor, 1, "the player's move")
     }
+
+    // Undo on the player's turn: the robot's answer and the player's move go (3... Nf6, 3. Bc4).
+    function test_5_takeback() {
+        app.click("undoButton")
+        tryCompare(ChessConnector, "MoveCount", 4, 3000, "two moves taken back")
+        app.waitBoardIdle()
+        compare(app.pieceAt("f1"), "B", "the bishop back on f1")
+        compare(app.pieceAt("g8"), "n", "its knight back on g8")
+        compare(app.pieceAt("c4"), "")
+        compare(ChessConnector.EngineThinking, false)
+        compare(ChessConnector.MovableColor, 1, "the player's move again")
+    }
+
+    // Undo while it thinks: only the player's move goes, and the robot's answer is never played.
+    function test_6_takebackWhileItThinks() {
+        app.clickMove("d2", "d3")
+        tryCompare(ChessConnector, "MoveCount", 5, 3000, "d3 played")
+        tryCompare(ChessConnector, "EngineThinking", true, 3000, "the robot thinking")
+        app.click("undoButton")
+        tryCompare(ChessConnector, "MoveCount", 4, 3000, "d3 taken back")
+        compare(ChessConnector.EngineThinking, false, "it stopped thinking")
+        wait(thinkMs + 500)   // when its answer would have come
+        compare(ChessConnector.MoveCount, 4, "its answer never played")
+        app.waitBoardIdle()
+        compare(app.pieceAt("d2"), "P", "the pawn back on d2")
+        compare(ChessConnector.MovableColor, 1)
+    }
 }

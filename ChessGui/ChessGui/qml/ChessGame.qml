@@ -699,6 +699,7 @@ ApplicationWindow {
 
     BarMessage {
         id: shortMessage
+        objectName: "shortMessage"
         active: root._message !== null
         text: root._message ? root._message.text : ""
         severity: root._message ? root._message.severity : "info"
