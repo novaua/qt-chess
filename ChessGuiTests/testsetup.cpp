@@ -4,6 +4,7 @@
 #include "appservices.h"
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QDebug>
 #include <QSettings>
 #include <QtQml/qqml.h>
@@ -21,6 +22,12 @@ TestSetup::~TestSetup() = default;
 // then the services, which read it.
 void TestSetup::applicationAvailable()
 {
+	// The robot is FakeUci, built next to the tests: never Stockfish, which may not be there (GitHub)
+	// and doesn't play the same moves twice.
+	if (!qEnvironmentVariableIsSet("CHESS_ENGINE_PATH"))
+		qputenv("CHESS_ENGINE_PATH", QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/FakeUci.exe").toUtf8());
+	setEngine({});
+
 	AppConfig::setAppDataDir(_dataDir.path());
 	QSettings::setDefaultFormat(QSettings::IniFormat);
 	QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, _dataDir.path());
@@ -30,6 +37,13 @@ void TestSetup::applicationAvailable()
 	_services->start();
 	_services->registerQmlTypes();
 	qmlRegisterSingletonInstance("ChessGuiTests", 1, 0, "TestRun", this);
+}
+
+// The engine process gets this process's environment when it starts.
+void TestSetup::setEngine(const QString& moves, int delayMs)
+{
+	qputenv("FAKEUCI_MOVES", moves.toUtf8());
+	qputenv("FAKEUCI_DELAY_MS", QByteArray::number(qMax(0, delayMs)));
 }
 
 // The singletons are global, so a second test file in this process would see the first one's

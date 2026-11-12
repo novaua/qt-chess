@@ -29,11 +29,11 @@ vstest.console.exe x64\Debug\ChessTests.dll
 vstest.console.exe x64\Debug\ChessQtTests.dll
 ```
 
-- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`, `MatingMaterialTests.cpp`, `PremoveTests.cpp`). Plain C++, no Qt.
+- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`, `MatingMaterialTests.cpp`, `PremoveTests.cpp`, `FakeEngineTests.cpp`). Plain C++, no Qt.
 - `ChessQtTests/` — the Qt parts: `UciConnectorTest.cpp` (UCI protocol), `ChessEnginePlayerTest.cpp`, `LichessClientTest.cpp`, `BoardPiecesTest.cpp`,
   `MoveListModelTest.cpp`, `UserManagerTest.cpp`, `GameClockTest.cpp`, `ClaimWinTest.cpp`. Needs Qt's `bin` on `PATH`; the engine tests need Stockfish.
   `LichessClientTest.cpp`'s `LichessReconnectTests`, `LichessStreamTest.cpp` and `LichessChallengeTest.cpp` play against `FakeLichess` (`FakeLichess.h`), a `QTcpServer` on 127.0.0.1 (no Lichess).
-- `ChessGuiTests/` — the UI tests (BL-05, `docs/UiTestSuitePlan.md`): **Qt Quick Test**, a console exe, not in Test Explorer. `qml/tst_*.qml` play the app's own window (`ChessGame.qml`) with real mouse events, offscreen (also with the screen locked); `qml/AppDriver.qml` has the helpers (`clickMove`, `dragPiece`, `pieceAt`, `waitBoardIdle`, `startTwoPlayerGame`, …), items are found by `objectName`. One test file per process on a fresh profile (`TestSetup`, the app's `AppServices`). It builds every ChessGui `.cpp` except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too** (the link fails without it). Run:
+- `ChessGuiTests/` — the UI tests (BL-05, `docs/UiTestSuitePlan.md`): **Qt Quick Test**, a console exe, not in Test Explorer. `qml/tst_*.qml` (first run, two players, the robot) play the app's own window (`ChessGame.qml`) with real mouse events, offscreen (also with the screen locked); `qml/AppDriver.qml` has the helpers (`clickMove`, `dragPiece`, `pieceAt`, `waitBoardIdle`, `startTwoPlayerGame`, …), items are found by `objectName`. One test file per process on a fresh profile (`TestSetup`, the app's `AppServices`); the robot is FakeUci (`app.startComputerGame(line, thinkMs)`), no Stockfish needed. It builds every ChessGui `.cpp` except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too** (the link fails without it). Run:
 
 ```
 scripts\Run-UiTests.ps1 -Build              # every test file; -Name tst_twoPlayers -Function test_2_newGameAndDrag for one
@@ -82,6 +82,14 @@ All chess logic, isolated in the `Chess::` namespace. Key types:
 ### UciConnector (static library)
 
 Spawns and communicates with external UCI engines via `QProcess`. Main API: `Init()`, `NewGame()`, `GetEngineMove()`.
+The engine is `./engines/stockfish.exe`, else one on `PATH`; `CHESS_ENGINE_PATH` names the only one instead (the tests' FakeUci).
+
+### FakeUci (console exe, tests only)
+
+A stand-in UCI engine on `ChessCore`, no Qt (`FakeUci/fakeengine.h`, BL-05 step 3): answers what the app asks of Stockfish
+at once and the same way every time: the move of the game in `FAKEUCI_MOVES` at that ply when legal there, else the first legal
+move by its UCI text; `FAKEUCI_DELAY_MS` before each answer; `moves` (not UCI) lists its legal moves. The UI tests
+(`TestSetup`) and the robot screenshot scenes (`Take-Screenshot.ps1`) run it; its tests are `ChessTests/FakeEngineTests.cpp`.
 
 ### ChessGui (Qt QML application)
 

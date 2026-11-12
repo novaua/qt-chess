@@ -1069,6 +1069,7 @@ ApplicationWindow {
 
     ComputerGameDialog {
         id: computerDialog
+        objectName: "computerDialog"
         // One dialog at a time: the levels help replaces it and brings it back.
         onLevelsHelpRequested: {
             levelsHelp.fromSetup = true

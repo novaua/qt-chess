@@ -30,6 +30,10 @@ public:
 	int stepDelay() const { return _stepDelay; }
 	bool watched() const { return _watched; }
 
+	// The robot of the next game (FakeUci, read when its engine starts): the game it follows, in UCI
+	// ("e2e4 e7e5 …", it plays its own half), and how long it thinks before each answer.
+	Q_INVOKABLE void setEngine(const QString& moves, int delayMs = 0);
+
 public slots:
 	void applicationAvailable();
 	void qmlEngineAvailable(QQmlEngine* engine);

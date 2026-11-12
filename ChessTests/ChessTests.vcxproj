@@ -175,6 +175,11 @@
     <ClCompile Include="UndoTests.cpp" />
     <ClCompile Include="MatingMaterialTests.cpp" />
     <ClCompile Include="PremoveTests.cpp" />
+    <ClCompile Include="FakeEngineTests.cpp" />
+    <!-- FakeUci's engine (BL-05 step 3): plain C++ on ChessCore, tested here -->
+    <ClCompile Include="..\FakeUci\fakeengine.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ChessCore\ChessCore.vcxproj">

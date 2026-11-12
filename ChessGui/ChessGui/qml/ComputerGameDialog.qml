@@ -94,6 +94,7 @@ AppDialog {
         defaultButton: primaryButton // highlighted (the box sets it, Qt 6.11+)
         Button {
             id: primaryButton
+            objectName: "startComputerGameButton"
             text: "Start game"
             DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
         }

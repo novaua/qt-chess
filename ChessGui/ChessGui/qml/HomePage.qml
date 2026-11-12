@@ -140,6 +140,7 @@ Page {
             }
 
             HomeCard {
+                objectName: "continueCard"
                 visible: page._pendingCount > 0
                 // Busy only when it rejoins the game itself (the one game, on Lichess): with two or
                 // more it opens the list, whatever is starting elsewhere.
@@ -162,6 +163,7 @@ Page {
                 Layout.fillWidth: true
 
                 HomeCard {
+                    objectName: "computerCard"
                     text: "Play vs computer"
                     shortcut: "Ctrl+N"
                     description: page._levels.length + " levels, from " + page._levels[0].name.toLowerCase()

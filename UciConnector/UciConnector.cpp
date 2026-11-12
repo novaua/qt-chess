@@ -69,9 +69,13 @@ UciConnector::UciConnector() : _initOk(false)
 	_uciEngine->setReadChannel(QProcess::StandardOutput);
 }
 
-// The engine installed next to the app (./engines/) first, then one on the system PATH.
+// The engine installed next to the app (./engines/) first, then one on the system PATH. CHESS_ENGINE_PATH
+// names the only one instead: the UI tests' stand-in engine (FakeUci, BL-05), never Stockfish then.
 std::vector<std::string> UciConnector::EngineCandidates()
 {
+	const QString forced = qEnvironmentVariable("CHESS_ENGINE_PATH");
+	if (!forced.isEmpty())
+		return { forced.toStdString() };
 	const QString enginesDir = QCoreApplication::applicationDirPath() + "/engines";
 	std::vector<std::string> paths;
 	for (const QString& path : { QStandardPaths::findExecutable(UciEngineProgrammExe, { enginesDir }),

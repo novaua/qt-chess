@@ -86,6 +86,16 @@ if (-not ($dllDirs | Where-Object { Test-Path (Join-Path $_ $qtCore) } | Select-
 if ($StepDelay -lt 0) { $StepDelay = if ($Visible) { 500 } else { 0 } }
 if ($Timeout -le 0) { $Timeout = if ($Visible) { 1800 } else { 180 } }
 
+# The results file, once readable: an engine the test started (FakeUci, still "thinking") may hold it
+# a moment after the test process ends, as it inherited its handle.
+function Read-Results([string]$path) {
+    if (-not (Test-Path $path)) { return @() }
+    for ($try = 0; $try -lt 50; $try++) {
+        try { return @(Get-Content $path -ErrorAction Stop) } catch { Start-Sleep -Milliseconds 200 }
+    }
+    return @(Get-Content $path)
+}
+
 $files = @(Get-ChildItem $testsDir -Filter 'tst_*.qml' |
     Where-Object { $n = $_.BaseName; $Name | Where-Object { $n -like $_ } } | Sort-Object Name)
 if ($files.Count -eq 0) { throw "No test files in $testsDir match $($Name -join ', ')" }
@@ -119,7 +129,7 @@ foreach ($file in $files) {
         continue
     }
     $code = $process.ExitCode
-    $log = if (Test-Path $txt) { Get-Content $txt } else { @() }
+    $log = Read-Results $txt
     $totals = $log | Where-Object { $_ -like 'Totals:*' } | Select-Object -First 1
     if ($code -eq 0 -and $totals) {
         Write-Host "OK    $($file.BaseName) - $($totals -replace '^Totals: ', '')"

@@ -197,6 +197,7 @@ Page {
     header: CommandBar {
         messageArea: barFill   // the window's short messages show over it
         IconButton {
+            objectName: "homeButton"
             icon.source: Theme.icon("home")
             tip: "Home (Esc)"
             onClicked: page.homeRequested()
@@ -423,12 +424,8 @@ Page {
                 anchors.fill: parent
             }
 
-            // The robot is thinking: no clicks on the board.
-            MouseArea {
-                anchors.fill: parent
-                visible: ChessConnector.EngineThinking
-                cursorShape: Qt.WaitCursor
-            }
+            // No blocker while the robot thinks: a click or a drag then is a premove (LI-05), and
+            // ChessConnector plays nothing else on its turn (canPlayerMove / canPremove).
 
             // The result, over the dimmed board.
             Rectangle {

@@ -93,6 +93,12 @@
     <ProjectReference Include="..\LiChessConnector\LiChessConnector.vcxproj">
       <Project>{2ed0175f-4de2-440a-965e-04b2f1e4e3c0}</Project>
     </ProjectReference>
+    <!-- Built with the tests, not linked: the engine the robot plays with (TestSetup sets CHESS_ENGINE_PATH) -->
+    <ProjectReference Include="..\FakeUci\FakeUci.vcxproj">
+      <Project>{56bebe5a-cb12-4dbf-8858-ae02439334bf}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
     <ProjectReference Include="..\UciConnector\UciConnector.vcxproj">
       <Project>{bb742a5a-2729-45f2-90c1-2fa70de41600}</Project>
     </ProjectReference>
@@ -142,6 +148,7 @@
     <None Include="qml\AppDriver.qml" />
     <None Include="qml\tst_firstRun.qml" />
     <None Include="qml\tst_twoPlayers.qml" />
+    <None Include="qml\tst_robot.qml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-28, refreshed 2026-11-12 (after BL-11) |
-| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; next is step 3 (the stub engine). The owner chose the recommended answers to §10 (2026-11-12) |
+| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; step 3 done too (branch `features/fakeUciEngine_121126`): FakeUci, the robot test, the robot scenes on it; next is step 4. The owner chose the recommended answers to §10 (2026-11-12) |
 | **Branch** | one per step from `develop`, e.g. `features/uiTestsAppServices_<DDMMYY>` |
 
 ## 1. Problem
@@ -182,6 +182,17 @@ Later (step 4):
      test's own window, so a `TextField` gets its text set; a single test function on the command
      line is `<TestCase name>::<function>` (the runner adds the name); the qmake module is `qmltest`; `waitForRendering` on a page that is already drawn waits out its whole timeout (5 s), so it isn't used.
 3. **The stub engine** and `CHESS_ENGINE_PATH`; scenario 7; the robot scenes on the stub.
+   - Done (`features/fakeUciEngine_121126`): `FakeUci` (console exe on `ChessCore`, no Qt; 10 tests in
+     `ChessTests`), `UciConnector` takes `CHESS_ENGINE_PATH`, `TestSetup` sets it and `TestRun.setEngine`
+     scripts the robot; `tst_robot.qml`: it answers, a premove made with clicks while it thinks is played
+     after its answer, Home while it thinks (at once, its answer dropped), Continue. `robot` and
+     `premove-robot` are now the same every time and in `all`; `-Stockfish` for the real engine.
+   - **Found by the robot test:** a `MouseArea` over the board while the robot thought (from BL-02 P2) took
+     every click and drag, so a premove against the robot could only be made by the scenes (which call
+     `figureSelected`), never with the mouse. Removed: `ChessConnector` already plays nothing else then.
+   - Learned: `MoveGeneration` makes castling and en passant only after a first move, so FakeUci puts one
+     into its history after a FEN; a slow engine outlives the test by its "thinking" and holds the
+     results file it inherited (the runner retries reading it).
 4. **The other scenarios** (4–6, 8–12), `objectName`s as needed.
 5. **GitHub job** (Q3).
 6. Optional: pywinauto smoke tests.

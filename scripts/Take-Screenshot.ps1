@@ -61,7 +61,10 @@ param(
     [switch]$Offscreen,
     # Keep each scene's app log (<picture>.png.log) also when it succeeds: the [Timing] and [Frame trace]
     # lines (BL-11).
-    [switch]$KeepLog
+    [switch]$KeepLog,
+    # robot, premove-robot and play: the real engine (./engines/ or PATH) instead of FakeUci, the UI
+    # tests' stand-in (BL-05), which plays the same moves every time
+    [switch]$Stockfish
 )
 
 $ErrorActionPreference = 'Stop'
@@ -72,7 +75,12 @@ $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue
              'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge',
              'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline',
              'captures', 'check', 'draw-offer', 'saved', 'home-message', 'messages', 'opponent-left', 'opponent-left-claim', 'opponent-left-turn',
-             'opponent-left-error', 'rejoin', 'continue-starting', 'continue-list-starting', 'challenge-accepting', 'starting', 'more-menu'
+             'opponent-left-error', 'rejoin', 'continue-starting', 'continue-list-starting', 'challenge-accepting', 'starting', 'more-menu',
+             'robot', 'premove-robot'
+# The scenes with the robot play against FakeUci (BL-05 step 3), the game it follows: robot (White)
+# mates with Qh5#; premove-robot: 1... e5 after e4, then Nc6 after the premoved Nf3; play: its first
+# legal moves. -Stockfish: the real engine instead (their pictures then vary).
+$engineScenes = @{ 'robot' = 'e2e4 f7f6 d2d4 g7g5 d1h5'; 'premove-robot' = 'e2e4 e7e5 g1f3 b8c6'; 'play' = '' }
 # BL-13: the game page in wide windows (the player column left of the board), and sizes that must
 # keep the cards above and below the board.
 $sizedScenes = 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'captures@1400x900', 'review@1400x900',
@@ -81,14 +89,14 @@ $sizedScenes = 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'cap
 if ($Scene -contains 'all') { $Scene = $allScenes + $sizedScenes }
 foreach ($s in $Scene) {
     $s = ($s -split '@')[0]
-    if ($s -notin ($allScenes + 'robot', 'premove-robot', 'login', 'menu', 'board', 'slides', 'takeback', 'timing', 'play')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
+    if ($s -notin ($allScenes + 'login', 'menu', 'board', 'slides', 'takeback', 'timing', 'play')) { throw "Unknown scene '$s'. Scenes: $($allScenes -join ', '), all" }
 }
 
 if ($Build) {
     $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
     $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
     if (-not $msbuild) { throw 'MSBuild not found' }
-    & $msbuild "$root\ChessCore.sln" /t:ChessGui "/p:Configuration=$Configuration" /p:Platform=x64 /m /v:minimal /nologo
+    & $msbuild "$root\ChessCore.sln" '/t:ChessGui;FakeUci' "/p:Configuration=$Configuration" /p:Platform=x64 /m /v:minimal /nologo
     if ($LASTEXITCODE -ne 0) { throw "Build failed ($LASTEXITCODE)" }
 }
 
@@ -134,6 +142,16 @@ foreach ($run in $Scene) {
     if ($HighContrast) { $argList += '--high-contrast' }
     if ($runSize) { $argList += '--size', $runSize }
 
+    # The robot's engine: FakeUci and its game for the robot scenes, else whatever the app finds.
+    if ($engineScenes.ContainsKey($s) -and -not $Stockfish) {
+        $fake = "$root\x64\$Configuration\FakeUci.exe"
+        if (-not (Test-Path $fake)) { throw "$fake not found - build it first (-Build), or use -Stockfish" }
+        $env:CHESS_ENGINE_PATH = $fake
+        $env:FAKEUCI_MOVES = $engineScenes[$s]
+        $env:FAKEUCI_DELAY_MS = '0'
+    } else {
+        Remove-Item Env:CHESS_ENGINE_PATH, Env:FAKEUCI_MOVES, Env:FAKEUCI_DELAY_MS -ErrorAction SilentlyContinue
+    }
     $p = Start-Process $exe -ArgumentList $argList -Wait -PassThru
     if ($p.ExitCode -eq 0) {
         if (-not $KeepLog) { Remove-Item "$file.log" -ErrorAction SilentlyContinue }

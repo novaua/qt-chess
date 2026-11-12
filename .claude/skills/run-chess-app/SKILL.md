@@ -69,11 +69,13 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   (`Take-Screenshot.ps1`): the player column at `1920x1080` and `1400x900` (`game`, `clock-online`,
   `captures`, `review`, `ended`, `result`, `challenge-ingame`, `drag@black`, `reconnecting`, `check`:
   the bars between the column's cards), and `game` at `1100x900`, `960x1040` and `1000x560` (no room
-  for a bar between the cards), which must keep the cards above and below the board. `premove-robot` (not in `all`: needs
-  Stockfish; no baseline, the robot's moves vary): 1. e4 vs the robot, Nf3 premoved and played after its answer. `robot` (not in `all`: needs Stockfish): a saved game vs the robot at
-  level 5, continued, where the robot mates with Qh5# (the engine's answer is played on the GUI thread).
+  for a bar between the cards), which must keep the cards above and below the board. `premove-robot`: 1. e4 vs the robot, Nf3 premoved
+  and played after its answer (1. e4 e5 2. Nf3 Nc6). `robot`: a saved game vs the robot at level 5, continued, where the robot mates
+  with Qh5# (the engine's answer is played on the GUI thread). These two and `play` run against **FakeUci** (BL-05 step 3,
+  `$engineScenes` in `Take-Screenshot.ps1`: the game it follows), so they are the same every time and in `all`; `-Stockfish`
+  runs them against the real engine (their pictures then vary).
   `timing` (not in `all`, BL-11; since BL-11 step 2 the board's layers are made in the first frame's polish (`LayoutGate`), so most of the build shows as `first frame`, not `page`): from Home, 1.5 s apart, vs Robot, leave, Continue, leave, two players, leave, vs Robot as Black left while the engine thinks, then Settings and the Online page opened and closed (`[Timing] Settings: N ms to open`); run with `-KeepLog` (keeps `<picture>.png.log` also on success) and read its `[Timing]` lines (and, with `$env:QT_LOGGING_RULES='chess.frames.debug=true'`, "GUI thread busy"). Its picture is not a baseline.
-  `play` (not in `all`, BL-11 step 3, needs Stockfish): a game vs the robot (level 1) played with mouse events (`SceneInput`: clicks and a drag through the board's handlers), animations on: Nf3 by clicks, the robot's answer, e4 by a drag, a takeback, the review; `[Play]` lines mark the steps (run with `-KeepLog`, the frame trace, or under `qmlprofiler`). Not a baseline.
+  `play` (not in `all`, BL-11 step 3; FakeUci unless `-Stockfish`): a game vs the robot (level 1) played with mouse events (`SceneInput`: clicks and a drag through the board's handlers), animations on: Nf3 by clicks, the robot's answer, e4 by a drag, a takeback, the review; `[Play]` lines mark the steps (run with `-KeepLog`, the frame trace, or under `qmlprofiler`). Not a baseline.
   `slides` (not in `all`): the BL-14 frame-trace scene — animations on (every other scene forces them
   off), selects the g1 knight and plays Nf3, Nf6, Bc4, Nc6 0.4–1 s apart, so a run with
   `$env:QT_LOGGING_RULES='chess.frames.debug=true'` and `-Delay 5200` gets `[Frame trace]` lines in the
@@ -111,8 +113,7 @@ fine, but only in dark mode. Offscreen the Fluent style always uses its dark pal
 switched, so `Theme.dark` follows it there. Light shots need an unlocked screen. Dialog backgrounds
 don't render offscreen (the page shows through).
 
-Not covered yet: a game vs the robot without Stockfish (a stub engine is planned), and a real
-connection to Lichess (the scenes feed the stream parser or set the dialog by hand). Sending keys to an interactive window
+Not covered yet: a real connection to Lichess (the scenes feed the stream parser or set the dialog by hand). Sending keys to an interactive window
 (SendKeys) doesn't reach the Qt controls reliably and takes over the user's desktop: add a scene instead. Plan for the full UI test suite: `docs/UiTestSuitePlan.md`.
 
 ## Does it still work? (UI tests, BL-05)
@@ -132,6 +133,9 @@ are printed. Exit code = failed files.
 A failed test function leaves `test-results\ui\<TestCase>-<function>.png`, the window at the failure
 (offscreen: dark), listed under the failure: Read it. `-Visible` puts windows on the owner's screen and,
 after a failure, waits until they close the window: for the owner, not for an agent's runs.
+
+The robot in the UI tests is FakeUci too: `app.startComputerGame("e2e4 e7e5 …", thinkMs)` gives it the
+game to follow and how long it thinks (`tst_robot.qml`).
 
 A new test: a `TestCase` in `ChessGuiTests\qml\tst_<area>.qml` with an `AppDriver` (`app.start()` in
 `initTestCase`, `app.stop()` in `cleanupTestCase`; functions `test_1_…`, `test_2_…` run in name order
