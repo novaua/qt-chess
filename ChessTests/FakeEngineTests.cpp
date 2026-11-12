@@ -94,6 +94,13 @@ public:
         Assert::IsTrue(engine.Play("a7a8n"));
     }
 
+    TEST_METHOD(Script_PromotionWithoutItsPiece_AQueen)
+    {
+        FakeEngine engine({ "a7a8" }, 0);
+        Assert::IsTrue(engine.SetFen("8/P7/8/8/8/8/8/k6K w - - 0 1"));
+        Assert::AreEqual(std::string("a7a8q"), engine.ChooseMove());
+    }
+
     TEST_METHOD(Mated_NoMove)
     {
         FakeEngine engine({}, 0);

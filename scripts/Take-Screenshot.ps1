@@ -115,62 +115,81 @@ if (-not ($dllDirs | Where-Object { Test-Path (Join-Path $_ $qtCore) } | Select-
 
 $exitMeaning = @{ 1 = 'grabbing or saving the window failed'; 2 = 'timed out waiting for the scene';
                   3 = 'QML failed to load'; 4 = 'unknown scene' }
+# The robot scenes set the engine of the app they start in this shell's environment: the shell's
+# own values (none, or an engine of its own) are put back for the other scenes and at the end.
+$engineVars = 'CHESS_ENGINE_PATH', 'FAKEUCI_MOVES', 'FAKEUCI_DELAY_MS'
+$savedEnv = @{}
+foreach ($v in $engineVars) { $savedEnv[$v] = [Environment]::GetEnvironmentVariable($v, 'Process') }
+function Restore-EngineEnv { foreach ($v in $engineVars) { [Environment]::SetEnvironmentVariable($v, $savedEnv[$v], 'Process') } }
+$fake = "$root\x64\$Configuration\FakeUci.exe"
+$skippedScenes = @()
 $failed = 0
 $done = 0
-foreach ($run in $Scene) {
-    $parts = @($run -split '@')   # scene[@WxH[@black]]
-    $s = $parts[0]
-    $runSize = if ($parts.Count -gt 1) { $parts[1] } else { $Size }
-    $runBlack = $Black -or ($parts -contains 'black')
-    # Built step by step: Windows PowerShell 5.1 dropped the size from a (... | Where-Object) list.
-    $nameParts = @($s)
-    if ($runBlack) { $nameParts += 'black' }
-    if ($Dark -or $Offscreen) { $nameParts += 'dark' }
-    if ($HighContrast) { $nameParts += 'hc' }
-    if ($Name) { $nameParts += $Name }
-    if ($parts.Count -gt 1) { $nameParts += $parts[1] }
-    $baseName = $nameParts -join '-'
-    $file = Join-Path $OutDir "$baseName.png"
-    Remove-Item $file -ErrorAction SilentlyContinue   # a failed scene leaves no old picture behind (Compare-Screenshots.ps1)
-    # "rejoin" (BL-18) is the game page's first frame: no delay, unless one was asked for.
-    $sceneDelay = if ($s -eq 'rejoin' -and -not $PSBoundParameters.ContainsKey('Delay')) { 0 } else { $Delay }
-    $argList = @('--screenshot', "`"$file`"", '--scene', $s, '--delay', $sceneDelay)
-    if ($Offscreen) { $argList = @('-platform', 'offscreen') + $argList }
-    if ($Moves) { $argList += '--moves', "`"$Moves`"" }
-    if ($runBlack) { $argList += '--black' }
-    if ($Dark)  { $argList += '--dark' }
-    if ($HighContrast) { $argList += '--high-contrast' }
-    if ($runSize) { $argList += '--size', $runSize }
+try {
+    foreach ($run in $Scene) {
+        $parts = @($run -split '@')   # scene[@WxH[@black]]
+        $s = $parts[0]
+        $runSize = if ($parts.Count -gt 1) { $parts[1] } else { $Size }
+        $runBlack = $Black -or ($parts -contains 'black')
+        # Built step by step: Windows PowerShell 5.1 dropped the size from a (... | Where-Object) list.
+        $nameParts = @($s)
+        if ($runBlack) { $nameParts += 'black' }
+        if ($Dark -or $Offscreen) { $nameParts += 'dark' }
+        if ($HighContrast) { $nameParts += 'hc' }
+        if ($Name) { $nameParts += $Name }
+        if ($parts.Count -gt 1) { $nameParts += $parts[1] }
+        $baseName = $nameParts -join '-'
+        $file = Join-Path $OutDir "$baseName.png"
+        Remove-Item $file -ErrorAction SilentlyContinue   # a failed scene leaves no old picture behind (Compare-Screenshots.ps1)
+        # "rejoin" (BL-18) is the game page's first frame: no delay, unless one was asked for.
+        $sceneDelay = if ($s -eq 'rejoin' -and -not $PSBoundParameters.ContainsKey('Delay')) { 0 } else { $Delay }
+        $argList = @('--screenshot', "`"$file`"", '--scene', $s, '--delay', $sceneDelay)
+        if ($Offscreen) { $argList = @('-platform', 'offscreen') + $argList }
+        if ($Moves) { $argList += '--moves', "`"$Moves`"" }
+        if ($runBlack) { $argList += '--black' }
+        if ($Dark)  { $argList += '--dark' }
+        if ($HighContrast) { $argList += '--high-contrast' }
+        if ($runSize) { $argList += '--size', $runSize }
 
-    # The robot's engine: FakeUci and its game for the robot scenes, else whatever the app finds.
-    if ($engineScenes.ContainsKey($s) -and -not $Stockfish) {
-        $fake = "$root\x64\$Configuration\FakeUci.exe"
-        if (-not (Test-Path $fake)) { throw "$fake not found - build it first (-Build), or use -Stockfish" }
-        $env:CHESS_ENGINE_PATH = $fake
-        $env:FAKEUCI_MOVES = $engineScenes[$s]
-        $env:FAKEUCI_DELAY_MS = '0'
-    } else {
-        Remove-Item Env:CHESS_ENGINE_PATH, Env:FAKEUCI_MOVES, Env:FAKEUCI_DELAY_MS -ErrorAction SilentlyContinue
-    }
-    $p = Start-Process $exe -ArgumentList $argList -Wait -PassThru
-    if ($p.ExitCode -eq 0) {
-        if (-not $KeepLog) { Remove-Item "$file.log" -ErrorAction SilentlyContinue }
-        Write-Host "OK    $file"
-    } else {
-        $failed++
-        Write-Host "FAIL  $s - exit code $($p.ExitCode): $($exitMeaning[$p.ExitCode])" -ForegroundColor Red
-        if (Test-Path "$file.log") { Write-Host "Log: $file.log"; Get-Content "$file.log" | Select-Object -Last 20 }
-    }
-    $done++
+        # The robot's engine: FakeUci and its game for the robot scenes (not built: the scene is skipped,
+        # the others still taken), else whatever the app finds, the shell's CHESS_ENGINE_PATH included.
+        if ($engineScenes.ContainsKey($s) -and -not $Stockfish) {
+            if (-not (Test-Path $fake)) {
+                Write-Host "SKIP  $s - $fake not built (-Build), or use -Stockfish" -ForegroundColor Yellow
+                $skippedScenes += $run
+                continue
+            }
+            $env:CHESS_ENGINE_PATH = $fake
+            $env:FAKEUCI_MOVES = $engineScenes[$s]
+            $env:FAKEUCI_DELAY_MS = '0'
+        } else {
+            Restore-EngineEnv
+        }
+        $p = Start-Process $exe -ArgumentList $argList -Wait -PassThru
+        if ($p.ExitCode -eq 0) {
+            if (-not $KeepLog) { Remove-Item "$file.log" -ErrorAction SilentlyContinue }
+            Write-Host "OK    $file"
+        } else {
+            $failed++
+            Write-Host "FAIL  $s - exit code $($p.ExitCode): $($exitMeaning[$p.ExitCode])" -ForegroundColor Red
+            if (Test-Path "$file.log") { Write-Host "Log: $file.log"; Get-Content "$file.log" | Select-Object -Last 20 }
+        }
+        $done++
 
-    # Sanity gate: if the first scene fails, or the app didn't run at all (not one of its own exit
-    # codes: a missing DLL, a crash), the other scenes would only fail the same way. Stop here.
-    $appFailed = $p.ExitCode -ne 0 -and -not $exitMeaning.ContainsKey($p.ExitCode)
-    if ($done -lt $Scene.Count -and $p.ExitCode -ne 0 -and ($done -eq 1 -or $appFailed)) {
-        $skipped = $Scene.Count - $done
-        Write-Host "STOP  $skipped more scene(s) not run: fix the failure above first" -ForegroundColor Red
-        $failed += $skipped
-        break
+        # Sanity gate: if the first scene fails, or the app didn't run at all (not one of its own exit
+        # codes: a missing DLL, a crash), the other scenes would only fail the same way. Stop here.
+        $appFailed = $p.ExitCode -ne 0 -and -not $exitMeaning.ContainsKey($p.ExitCode)
+        if ($done -lt $Scene.Count -and $p.ExitCode -ne 0 -and ($done -eq 1 -or $appFailed)) {
+            $skipped = $Scene.Count - $done
+            Write-Host "STOP  $skipped more scene(s) not run: fix the failure above first" -ForegroundColor Red
+            $failed += $skipped
+            break
+        }
     }
+} finally {
+    Restore-EngineEnv
+}
+if ($skippedScenes.Count -gt 0) {
+    Write-Host "$($skippedScenes.Count) scene(s) skipped, FakeUci not built: $($skippedScenes -join ', ')" -ForegroundColor Yellow
 }
 exit $failed

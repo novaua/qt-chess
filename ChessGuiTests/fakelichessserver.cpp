@@ -230,9 +230,15 @@ void FakeLichessServer::boardAction(QTcpSocket* socket, const QString& gameId, c
 	} else if (what == QLatin1String("resign")) {
 		game->status = QStringLiteral("resign");
 		game->winner = white ? QStringLiteral("black") : QStringLiteral("white");
-	} else if (what != QLatin1String("takeback") && what != QLatin1String("abort") && what != QLatin1String("claim-victory")) {
+	} else if (what == QLatin1String("abort")) {
+		game->status = QStringLiteral("aborted"); // no winner
+	} else if (what == QLatin1String("claim-victory")) {
+		game->status = QStringLiteral("timeout"); // as Lichess ends a claimed game: the player wins
+		game->winner = playerColor(*game);
+	} else if (what != QLatin1String("takeback")) {
 		return FakeLichess::answer(socket, 404, "Not Found");
 	}
+	// takeback: the player's request waits for the opponent, who never answers here (and never asks).
 	ok(socket);
 	sendState(*game);
 }

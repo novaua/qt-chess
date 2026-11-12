@@ -10,7 +10,10 @@ TestCase {
     when: windowShown
 
     readonly property string line: "e2e4 e7e5 g1f3 b8c6 f1c4 g8f6"
-    readonly property int thinkMs: 1500   // long enough to premove, and to leave, while it thinks
+    // Long enough to premove, and to leave, while it thinks: also in a slow Debug build (GitHub), where
+    // the end of one test function and the start of the next take a while.
+    readonly property int thinkMs: 3000
+    property double robotStarted: 0   // when it began to think after the premove (test 2), for test 3
 
     AppDriver { id: app; test: test }
 
@@ -55,6 +58,7 @@ TestCase {
         compare(ChessConnector.PremoveTo, app.square("c4"), "the premove's to square")
 
         tryCompare(ChessConnector, "MoveCount", 5, thinkMs + 5000, "its answer, then the premove")
+        robotStarted = Date.now()   // it thinks about Bc4 from now (test 3 leaves meanwhile)
         compare(ChessConnector.LastMoveFrom, app.square("f1"))
         compare(ChessConnector.LastMoveTo, app.square("c4"))
         compare(ChessConnector.PremoveFrom, -1, "the premove is gone")
@@ -67,10 +71,11 @@ TestCase {
     // answer isn't played; the game is kept for Continue.
     function test_3_leaveWhileItThinks() {
         tryCompare(ChessConnector, "EngineThinking", true, 3000, "the robot thinking")
-        const before = Date.now()
         app.click("homeButton")
         app.waitForPage("home", 2000)
-        verify(Date.now() - before < thinkMs, "Home before the robot would have answered")
+        // From when it began to think, not from the click: the end of test 2 took some of its time.
+        verify(Date.now() - robotStarted < thinkMs,
+               "Home before the robot would have answered (" + (Date.now() - robotStarted) + " ms after it began)")
         compare(ChessConnector.InGame, false)
         tryCompare(ChessConnector, "CanContinue", true, 3000, "the game kept for Continue")
         wait(thinkMs + 500)   // when the answer would have come

@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <iostream>
 #include <sstream>
 #include <thread>
 
@@ -191,8 +192,17 @@ bool FakeEngine::IsLegal(const std::string& uciMove) const
 
 std::string FakeEngine::ChooseMove() const
 {
-	if (_ply < int(_script.size()) && IsLegal(_script[_ply]))
-		return _script[_ply];
+	if (_ply < int(_script.size())) {
+		std::string scripted = _script[_ply];
+		// A promotion written without its piece ("e7e8"): a queen, as Stockfish would choose.
+		if (scripted.size() == 4 && !IsLegal(scripted) && IsLegal(scripted + 'q'))
+			scripted += 'q';
+		if (IsLegal(scripted))
+			return scripted;
+		// The player left the script, or the script is wrong: said, so a test that fails later shows why.
+		std::cerr << "FakeUci: the script's move " << _script[_ply] << " at ply " << _ply
+		          << " isn't legal there: the first legal move instead" << std::endl;
+	}
 	const auto legal = LegalMoves();
 	return legal.empty() ? std::string() : legal.front();
 }

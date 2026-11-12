@@ -24,6 +24,9 @@ int main(int argc, char** argv)
 	if (!qEnvironmentVariableIsSet("QT_ENABLE_HIGHDPI_SCALING") && qEnvironmentVariableIntValue("CHESS_UI_TEST_WATCHED") == 0)
 		qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
 
+	// Before the app, so it goes after it: the app's services (its children) save on their way out (the
+	// robot's unfinished game), into the profile folder TestSetup deletes when it goes.
+	TestSetup setup;
 	QApplication app(argc, argv); // takes Qt's own options (-platform); quick_test_main uses this one
 	if (QGuiApplication::platformName() == "offscreen")
 		QGuiApplication::setFont(QFont("Segoe UI", 9)); // the Windows default; offscreen picks any font
@@ -31,6 +34,5 @@ int main(int argc, char** argv)
 	QTEST_SET_MAIN_SOURCE_PATH
 	// The tests next to this file, when no -input is given.
 	const QByteArray testsDir = QFileInfo(QString::fromUtf8(__FILE__)).absolutePath().toUtf8() + "/qml";
-	TestSetup setup;
 	return quick_test_main_with_setup(argc, argv, "ChessGuiTests", testsDir.constData(), &setup);
 }

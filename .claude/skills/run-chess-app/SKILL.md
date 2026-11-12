@@ -73,7 +73,8 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   and played after its answer (1. e4 e5 2. Nf3 Nc6). `robot`: a saved game vs the robot at level 5, continued, where the robot mates
   with Qh5# (the engine's answer is played on the GUI thread). These two and `play` run against **FakeUci** (BL-05 step 3,
   `$engineScenes` in `Take-Screenshot.ps1`: the game it follows), so they are the same every time and in `all`; `-Stockfish`
-  runs them against the real engine (their pictures then vary).
+  runs them against the real engine (their pictures then vary). FakeUci not built: they are skipped with
+  a warning, the other scenes still taken. The script puts the shell's own `CHESS_ENGINE_PATH` back.
   `timing` (not in `all`, BL-11; since BL-11 step 2 the board's layers are made in the first frame's polish (`LayoutGate`), so most of the build shows as `first frame`, not `page`): from Home, 1.5 s apart, vs Robot, leave, Continue, leave, two players, leave, vs Robot as Black left while the engine thinks, then Settings and the Online page opened and closed (`[Timing] Settings: N ms to open`); run with `-KeepLog` (keeps `<picture>.png.log` also on success) and read its `[Timing]` lines (and, with `$env:QT_LOGGING_RULES='chess.frames.debug=true'`, "GUI thread busy"). Its picture is not a baseline.
   `play` (not in `all`, BL-11 step 3; FakeUci unless `-Stockfish`): a game vs the robot (level 1) played with mouse events (`SceneInput`: clicks and a drag through the board's handlers), animations on: Nf3 by clicks, the robot's answer, e4 by a drag, a takeback, the review; `[Play]` lines mark the steps (run with `-KeepLog`, the frame trace, or under `qmlprofiler`). Not a baseline.
   `slides` (not in `all`): the BL-14 frame-trace scene — animations on (every other scene forces them

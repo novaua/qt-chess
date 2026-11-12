@@ -431,7 +431,13 @@ Page {
             }
 
             // No blocker while the robot thinks: a click or a drag then is a premove (LI-05), and
-            // ChessConnector plays nothing else on its turn (canPlayerMove / canPremove).
+            // ChessConnector plays nothing else on its turn (canPlayerMove / canPremove). The pointer
+            // still says it thinks: busy, not wait, as the board takes a premove meanwhile (a hover
+            // handler takes no input). Over a piece that can be premoved its open hand shows instead.
+            HoverHandler {
+                enabled: ChessConnector.EngineThinking
+                cursorShape: Qt.BusyCursor
+            }
 
             // The result, over the dimmed board.
             Rectangle {
