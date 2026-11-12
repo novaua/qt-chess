@@ -4,6 +4,26 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-05 step 3: the stub engine and the robot test (branch: features/fakeUciEngine_121126)
+
+### Done
+- **FakeUci** (new project, console exe on `ChessCore`, no Qt): answers what the app asks of Stockfish (`uci` with the options `UCI_LimitStrength`, `UCI_Elo`, `MultiPV`; `isready`, `ucinewgame`, `setoption`, `position startpos|fen … moves …`, `go` with one `info … multipv 1 … pv` line, `quit`), at once and the same way every time: at ply N the move N of `FAKEUCI_MOVES` (a whole game in UCI) when legal there, else the first legal move by its UCI text; `FAKEUCI_DELAY_MS` before each answer. A FEN's castling field and en passant square are honoured; a promotion names its piece. 10 tests in `ChessTests/FakeEngineTests.cpp` (140 in all pass).
+- **`UciConnector::EngineCandidates`**: `CHESS_ENGINE_PATH` names the only engine (also what Settings / About probe).
+- **UI tests**: `TestSetup` points the app at `FakeUci.exe` next to the tests; `TestRun.setEngine(moves, delayMs)`, `app.startComputerGame(line, thinkMs)`. `tst_robot.qml` (6 functions): 1. e4 dragged, the robot thinks and answers e5; 2. Nf3, Bc4 premoved with clicks while it thinks (red squares), its Nc6, then the premove at once; Home while it thinks: at once, its answer dropped, the game kept; Continue: the moves back and its answer Nf6. All 3 files, 14 functions, ~16 s.
+- **Screenshots**: `robot`, `premove-robot` and `play` run against FakeUci (`$engineScenes`: `robot` mates with Qh5#, `premove-robot` ends 1. e4 e5 2. Nf3 Nc6), so they are the same every time; `robot` and `premove-robot` joined `all` (new baselines). `-Stockfish` for the real engine.
+
+### Fixed (found by the robot test)
+- **A premove against the robot couldn't be made with the mouse.** `GamePage` had a `MouseArea` over the board while the robot thought (since BL-02 P2: "no clicks on the board") that took every click and drag; LI-05 added premoves vs the robot later, and its scenes premove with `figureSelected` directly, so it never showed. Removed: `ChessConnector` already refuses other moves then (`canPlayerMove`) and turns a click or drop into a premove (`canPremove`). The wait cursor over the board went with it.
+
+### Notes
+- `MoveGeneration` makes castling and en passant only after a first move (an empty history is the start position): after a FEN, FakeUci puts the other side's double step (when the FEN names an en passant square) or an empty move into its history.
+- A thinking engine outlives the test process for its delay and holds the results file it inherited: `Run-UiTests.ps1` retries reading it.
+
+### Next
+- BL-05 step 4: the other scenarios (illegal drop, promotion, takeback and review, save and Continue, a setting after a restart, profiles, messages, Lichess against `FakeLichess`). Then step 5, the GitHub job (now possible without Stockfish).
+
+---
+
 ## 2026-11-12 — BL-05 step 2: the first UI tests (branch: features/uiTestsAppServices_121126)
 
 ### Done

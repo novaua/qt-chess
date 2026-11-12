@@ -187,6 +187,20 @@ QtObject {
         waitClosed(dialog)
     }
 
+    // From Home: Play vs computer → the dialog (the last level and side, no clock) → the game page.
+    // The robot is FakeUci: `moves`, a game in UCI, is the line it follows (its own half of it; a
+    // move not legal there: its first legal move), `thinkMs` how long it thinks before each answer.
+    function startComputerGame(moves, thinkMs) {
+        TestRun.setEngine(moves ?? "", thinkMs ?? 0)
+        waitForPage("home")
+        click("computerCard")
+        const dialog = item("computerDialog")
+        test.tryVerify(() => dialog.opened, 3000, "the vs computer dialog open")
+        click("startComputerGameButton")
+        waitForPage("game", 10000)
+        waitClosed(dialog)
+    }
+
     // From Home: Two players → the dialog (White, Guest, no clock: the defaults) → the game page.
     function startTwoPlayerGame() {
         waitForPage("home")
