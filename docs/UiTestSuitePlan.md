@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-28, refreshed 2026-11-12 (after BL-11) |
-| **Status** | Layer 2 (screenshots and their diff) done; Layer 1 (behaviour tests) not started; the owner's answers to §10 needed before step 2 |
+| **Status** | Layer 2 (screenshots and their diff) done; Layer 1 (behaviour tests) not started; the owner chose the recommended answers to §10 (2026-11-12): next is step 2 |
 | **Branch** | one per step from `develop`, e.g. `features/uiTestsAppServices_<DDMMYY>` |
 
 ## 1. Problem
@@ -150,6 +150,8 @@ Later (step 4):
 12. Lichess against `FakeLichess`: a challenge on the bar, Accept → the game page with its moves.
 
 ## 10. Questions for the owner
+
+**Answered 2026-11-12: the recommended option for all four** (Q1 a, Q2 yes, Q3 a, Q4 a).
 
 - **Q1 How `ChessGuiTests` gets the ChessGui code.** (a) **Recommended:** list the ChessGui sources in
   the test project, as `ChessQtTests` does today; a new ChessGui `.cpp` must then go into both (the

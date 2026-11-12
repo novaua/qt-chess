@@ -8,7 +8,8 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 - `docs/UiTestSuitePlan.md` brought up to date: Layer 2 (screenshot scenes, `Compare-Screenshots.ps1`, `SceneInput`) is done; the old plan's context properties, "main menu" and "Load" are gone from the app.
 - Layer 1 designed against today's code: `AppServices` (new) takes the services and their wiring out of `main.cpp`, so the app and the tests run the same code; `ChessGuiTests` (Qt Quick Test, `QUICK_TEST_MAIN_WITH_SETUP`) builds the ChessGui sources except `main.cpp`, runs offscreen, one process per test file (fresh data folder and singletons); `AppDriver` helpers (`squarePoint`, `dragPiece`, `waitBoardIdle`, …); `scripts\Run-UiTests.ps1`. A stub engine (`FakeUci`, links `ChessCore`) and `CHESS_ENGINE_PATH` come next.
-- **Next:** the owner's answers to the plan's §10 (Q1 how the test project gets the ChessGui code, Q2 the test setup outside ChessGui, Q3 the GitHub job, Q4 when the stub engine), then step 2.
+- **The owner's answers (§10):** the recommended ones: the test project lists the ChessGui sources (as `ChessQtTests`); the test setup outside ChessGui calling `AppServices` is fine; the GitHub job on every push (if under ~2 min); the stub engine as its own step 3.
+- **Next:** step 2 on a new `features/` branch once this PR is merged.
 
 ---
 
