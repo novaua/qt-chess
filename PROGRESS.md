@@ -4,6 +4,14 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — Compare-Screenshots.ps1 on PowerShell 7.7 (branch: bugs/compareScreenshotsDrawing_121126)
+
+- **Broken:** on PowerShell 7.7 (.NET 11) `Compare-Screenshots.ps1` stopped before comparing anything: `CS1069: The type name 'Bitmap' could not be found in the namespace 'System.Drawing'. This type has been forwarded to assembly 'System.Drawing.Common'`. The script hands its C# helper the assemblies already loaded, and `Add-Type -AssemblyName System.Drawing` now loads only the facade, not `System.Drawing.Common`.
+- **Fixed:** the script names `[System.Drawing.Bitmap]` before collecting them, which loads the assembly it is forwarded to.
+- **Checked:** all scenes, light and dark, after PR #150 (unlocked screen): **202 compared, 200 the same**; `about` and `about-dark` differ only by the build date in the version line (noted in the `run-chess-app` skill).
+
+---
+
 ## 2026-11-12 — BL-11 step 3: the move, drag, takeback and review profile (branch: features/moveProfile_121126)
 
 ### Measuring

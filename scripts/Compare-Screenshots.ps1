@@ -58,7 +58,10 @@ if ($Update) {
 
 Add-Type -AssemblyName System.Drawing
 # .NET spreads Bitmap over several assemblies (System.Drawing.Common, System.Private.Windows.GdiPlus,
-# ...): the C# below references the loaded ones.
+# ...): the C# below references the loaded ones. System.Drawing is only a facade that forwards
+# Bitmap, and since PowerShell 7.7 (.NET 11) the assembly it forwards to isn't loaded yet: naming
+# the type loads it (else CS1069: 'Bitmap' ... forwarded to assembly 'System.Drawing.Common').
+$null = [System.Drawing.Bitmap]
 $drawing = [AppDomain]::CurrentDomain.GetAssemblies() |
     Where-Object { $_.GetName().Name -match '^System\.(Drawing|Private\.Windows|Runtime(\.InteropServices)?$|Primitives)' -and $_.Location } |
     ForEach-Object Location
