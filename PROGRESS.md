@@ -13,6 +13,7 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **`objectName`s** for them: `pages` (the StackView), `createUserDialog`, `nameField`, `createProfileButton`, `createLocalProfile`, `twoPlayersCard`, `twoPlayerDialog`, `startGameButton`, `resultCard`, `rematchButton`, `newGameButton`, `reviewButton`, `ply<N>` (the move list's cells).
 - **`scripts\Run-UiTests.ps1`**: `-Build`, `-Name`, `-Function`, `-Timeout`; results in `test-results\ui\` (txt and JUnit XML); the failures printed; `-Screens` adds all screenshots and the comparison.
 - Docs: CLAUDE.md (Running Tests, `AppServices`), the `run-chess-app` skill, the plan (step 2 and what was learned).
+- **Seeing a failure** (the owner's ask): a failed test function leaves `test-results\ui\<TestCase>-<function>.png` (the window at that moment; the runner lists it under the failure). `Run-UiTests.ps1 -Visible`: a real window on the screen, 500 ms after each click or drag (`-StepDelay`), and after a failure the window stays with a red note until it is closed. The options reach the tests through `TestSetup` (QML singleton `TestRun`, from `CHESS_UI_TEST_*` set by the runner). Checked: the picture of a forced failure; the pause after it (offscreen, still waiting at 25 s). Not yet watched on a real screen.
 
 ### Next
 - BL-05 step 3: the stub engine (`FakeUci`, `CHESS_ENGINE_PATH`) and a game vs the robot (scenario 7). Then step 4 (more scenarios) and step 5 (the GitHub job).

@@ -1,11 +1,13 @@
 import QtQuick
 import QtTest
 import ChessPlusPlus
+import ChessGuiTests
 import "qrc:/qml"
 
 // The app in a UI test (BL-05, docs/UiTestSuitePlan.md): makes the app's window (ChessGame.qml, the
 // same as ChessGui.exe shows) and plays it as a user does: real mouse events on its items, through
-// the same handlers. Each tst_*.qml has one, with `test` set to its TestCase.
+// the same handlers. Each tst_*.qml has one, with `test` set to its TestCase, and calls
+// start() / stop() in initTestCase / cleanupTestCase and afterTest() in cleanup.
 QtObject {
     id: driver
 
@@ -28,6 +30,45 @@ QtObject {
         if (window)
             window.destroy()
         window = null
+    }
+
+    // After each test function (the TestCase's cleanup): a failed one leaves a picture of the window,
+    // <TestRun.resultsDir>/<TestCase>-<function>.png; watched (-Visible), the window then waits
+    // with a note on it until it is closed.
+    function afterTest() {
+        if (!window || !test.qtest_results.failed)
+            return
+        const what = test.name + "-" + test.qtest_results.functionName
+        if (TestRun.resultsDir !== "") {
+            const path = TestRun.resultsDir + "/" + what + ".png"
+            test.grabImage(window.contentItem.parent ?? window.contentItem).save(path)   // Run-UiTests.ps1 lists it
+        }
+        if (!TestRun.pauseOnFailure || !window.visible)
+            return
+        const note = failureNote.createObject(window.contentItem.parent ?? window.contentItem,
+                                              { text: "UI test failed: " + test.name + "::" + test.qtest_results.functionName
+                                                      + "\nClose this window to go on." })
+        while (window && window.visible)
+            test.wait(200)
+        note?.destroy()
+    }
+    readonly property Component failureNote: Component {
+        Rectangle {
+            property alias text: label.text
+            anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter
+            anchors.topMargin: 8
+            width: label.implicitWidth + 32; height: label.implicitHeight + 16
+            z: 1000000
+            radius: 6
+            color: "#c42b1c"
+            Text { id: label; anchors.centerIn: parent; color: "white"; font.pixelSize: 15; font.bold: true }
+        }
+    }
+
+    // A pause after an action, when a run is watched (-Visible): TestRun.stepDelay ms.
+    function pace() {
+        if (TestRun.stepDelay > 0)
+            test.wait(TestRun.stepDelay)
     }
 
     // ── Finding things ───────────────────────────────────────────────
@@ -55,6 +96,7 @@ QtObject {
         const target = item(name)
         test.tryVerify(() => target.visible && target.enabled, 3000, name + " visible and enabled")
         test.mouseClick(target)
+        pace()
     }
 
     // A dialog gone, its fade done: until then its modal overlay takes the clicks.
@@ -77,6 +119,7 @@ QtObject {
     function clickSquare(name) {
         const p = squarePoint(name)
         test.mouseClick(grid(), p.x, p.y)
+        pace()
     }
     // Press on one square, move over the board in steps (past the drag threshold), release on the other.
     function dragPiece(from, to) {
@@ -84,9 +127,11 @@ QtObject {
         const g = grid()
         test.mousePress(g, a.x, a.y)
         const steps = 8
+        const stepMs = Math.max(16, TestRun.stepDelay / steps)   // watched: a drag you can follow
         for (let i = 1; i <= steps; ++i)
-            test.mouseMove(g, a.x + (b.x - a.x) * i / steps, a.y + (b.y - a.y) * i / steps, 16, Qt.LeftButton)
+            test.mouseMove(g, a.x + (b.x - a.x) * i / steps, a.y + (b.y - a.y) * i / steps, stepMs, Qt.LeftButton)
         test.mouseRelease(g, b.x, b.y)
+        pace()
     }
     // The piece shown on a square ("" for none), found by where its item is drawn: "P", "q", …
     function pieceAt(name) {

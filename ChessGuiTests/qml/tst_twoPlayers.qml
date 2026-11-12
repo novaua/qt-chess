@@ -14,6 +14,7 @@ TestCase {
         app.start()
         app.createFirstProfile("Tester")
     }
+    function cleanup() { app.afterTest() }
     function cleanupTestCase() { app.stop() }
 
     // Fool's mate by clicks: 1. f3 e5 2. g4 Qh4#, then the result card.

@@ -38,7 +38,9 @@ vstest.console.exe x64\Debug\ChessQtTests.dll
 ```
 scripts\Run-UiTests.ps1 -Build              # every test file; -Name tst_twoPlayers -Function test_2_newGameAndDrag for one
 scripts\Run-UiTests.ps1 -Build -Screens     # the pre-PR check: also every screenshot, compared with the baselines
+scripts\Run-UiTests.ps1 -Name tst_twoPlayers -Visible   # watch it in a real window, paced; a failure waits until you close it
 ```
+A failed test function leaves a picture of the window: `test-results\ui\<TestCase>-<function>.png` (listed with the failure).
 
 ## Seeing the UI
 

@@ -12,6 +12,12 @@
     Compare-Screenshots.ps1 against your baselines. That is the full pre-PR check; it needs an
     unlocked screen (light pictures can't be taken offscreen) and PowerShell 7 for the comparison.
 
+    A failed test function leaves a picture of the app's window: test-results\ui\<TestCase>-<function>.png
+    (its path is printed with the failure).
+
+    -Visible shows the run in a real window on the screen instead, a pause after each click or drag
+    (-StepDelay), and after a failure the window stays up with a note until you close it.
+
     Sanity gate: Qt's DLLs must be next to the exe or on PATH (checked first).
     Exit code: the number of test files that failed (plus the failed screenshots with -Screens).
 
@@ -22,6 +28,10 @@
 .EXAMPLE
     .\scripts\Run-UiTests.ps1 -Name tst_twoPlayers -Function test_2_newGameAndDrag
     One file, one test function (the file's initTestCase and cleanupTestCase still run).
+
+.EXAMPLE
+    .\scripts\Run-UiTests.ps1 -Name tst_twoPlayers -Visible
+    Watch it: a real window, half a second after each action; a failure waits for you to close it.
 
 .EXAMPLE
     .\scripts\Run-UiTests.ps1 -Build -Screens
@@ -39,8 +49,13 @@ param(
     [switch]$Build,
     # Also take every screenshot (light and dark) and compare them with the baselines
     [switch]$Screens,
-    # Seconds one test file may take before it is stopped (and counted as failed)
-    [int]$Timeout = 180,
+    # A real window on the screen instead of offscreen, paced, waiting after a failure until closed
+    [switch]$Visible,
+    # The pause after each action in ms (default: 500 with -Visible, else 0)
+    [int]$StepDelay = -1,
+    # Seconds one test file may take before it is stopped and counted as failed (default 180;
+    # with -Visible 1800, as a failure waits for you)
+    [int]$Timeout = 0,
     [string]$OutDir = (Join-Path $PSScriptRoot '..\test-results\ui')
 )
 
@@ -68,12 +83,19 @@ if (-not ($dllDirs | Where-Object { Test-Path (Join-Path $_ $qtCore) } | Select-
           "`$env:PATH = 'D:\Tools\Qt\6.12.0\msvc2022_64\bin;' + `$env:PATH"
 }
 
+if ($StepDelay -lt 0) { $StepDelay = if ($Visible) { 500 } else { 0 } }
+if ($Timeout -le 0) { $Timeout = if ($Visible) { 1800 } else { 180 } }
+
 $files = @(Get-ChildItem $testsDir -Filter 'tst_*.qml' |
     Where-Object { $n = $_.BaseName; $Name | Where-Object { $n -like $_ } } | Sort-Object Name)
 if ($files.Count -eq 0) { throw "No test files in $testsDir match $($Name -join ', ')" }
 
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $OutDir = Resolve-Path $OutDir
+# Read by the tests (TestSetup, TestRun in QML)
+$env:CHESS_UI_TEST_RESULTS = "$OutDir"
+$env:CHESS_UI_TEST_STEP_MS = "$StepDelay"
+$env:CHESS_UI_TEST_PAUSE = if ($Visible) { '1' } else { '0' }
 $failedFiles = 0
 $started = Get-Date
 
@@ -83,9 +105,10 @@ foreach ($file in $files) {
     Remove-Item $txt, $xml -ErrorAction SilentlyContinue
     # Qt Quick Test names a function <TestCase name>::<function>: the name comes from the file.
     $caseName = ([regex]::Match((Get-Content $file.FullName -Raw), '(?m)^\s*name:\s*"([^"]+)"')).Groups[1].Value
+    if ($caseName) { Remove-Item (Join-Path $OutDir "$caseName-*.png") -ErrorAction SilentlyContinue }   # the last run's failures
     $functions = @($Function | ForEach-Object { if ($_ -like '*::*' -or -not $caseName) { $_ } else { "${caseName}::$_" } })
-    $argList = @('-platform', 'offscreen', '-input', "`"$($file.FullName)`"",
-                 '-o', "`"$txt,txt`"", '-o', "`"$xml,junitxml`"") + $functions
+    $argList = @('-input', "`"$($file.FullName)`"", '-o', "`"$txt,txt`"", '-o', "`"$xml,junitxml`"") + $functions
+    if (-not $Visible) { $argList = @('-platform', 'offscreen') + $argList }
     $process = Start-Process $exe -ArgumentList $argList -WorkingDirectory $root -NoNewWindow -PassThru
     $handle = $process.Handle   # keeps the exit code readable after the process is gone
     if (-not $process.WaitForExit($Timeout * 1000)) {
@@ -111,6 +134,10 @@ foreach ($file in $files) {
         if ($line -like 'FAIL!*') { $inFailure = $true }
         elseif ($line -match '^(PASS|SKIP|QINFO|QDEBUG|QWARN|Totals|\*{9})') { $inFailure = $false }
         if ($inFailure -or $line -like 'QWARN*') { Write-Host "      $line" }
+    }
+    if ($caseName) {
+        Get-ChildItem (Join-Path $OutDir "$caseName-*.png") -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Host "      Picture: $($_.FullName)" }
     }
 }
 

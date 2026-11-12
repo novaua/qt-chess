@@ -6,9 +6,15 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QSettings>
+#include <QtQml/qqml.h>
 #include <cstdlib>
 
-TestSetup::TestSetup() = default;
+TestSetup::TestSetup()
+	: _resultsDir(qEnvironmentVariable("CHESS_UI_TEST_RESULTS"))
+	, _stepDelay(qMax(0, qEnvironmentVariableIntValue("CHESS_UI_TEST_STEP_MS")))
+	, _pauseOnFailure(qEnvironmentVariableIntValue("CHESS_UI_TEST_PAUSE") != 0)
+{
+}
 TestSetup::~TestSetup() = default;
 
 // Before the first test file: a fresh profile folder (users, settings, saves), as --data-dir does,
@@ -23,6 +29,7 @@ void TestSetup::applicationAvailable()
 	_services = std::make_unique<AppServices>(QCoreApplication::instance(), true);
 	_services->start();
 	_services->registerQmlTypes();
+	qmlRegisterSingletonInstance("ChessGuiTests", 1, 0, "TestRun", this);
 }
 
 // The singletons are global, so a second test file in this process would see the first one's

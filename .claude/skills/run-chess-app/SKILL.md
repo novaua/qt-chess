@@ -126,7 +126,12 @@ are printed. Exit code = failed files.
 .\scripts\Run-UiTests.ps1 -Build                                   # build ChessGuiTests, run every file
 .\scripts\Run-UiTests.ps1 -Name tst_twoPlayers -Function test_2_newGameAndDrag   # one function
 .\scripts\Run-UiTests.ps1 -Build -Screens                          # + all screenshots and the comparison: the pre-PR check
+.\scripts\Run-UiTests.ps1 -Name tst_twoPlayers -Visible            # the owner watches: a real window, 500 ms per action (-StepDelay)
 ```
+
+A failed test function leaves `test-results\ui\<TestCase>-<function>.png`, the window at the failure
+(offscreen: dark), listed under the failure: Read it. `-Visible` puts windows on the owner's screen and,
+after a failure, waits until they close the window: for the owner, not for an agent's runs.
 
 A new test: a `TestCase` in `ChessGuiTests\qml\tst_<area>.qml` with an `AppDriver` (`app.start()` in
 `initTestCase`, `app.stop()` in `cleanupTestCase`; functions `test_1_…`, `test_2_…` run in name order

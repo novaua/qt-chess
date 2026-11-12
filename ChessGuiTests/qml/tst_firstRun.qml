@@ -11,6 +11,7 @@ TestCase {
     AppDriver { id: app; test: test }
 
     function initTestCase() { app.start() }
+    function cleanup() { app.afterTest() }
     function cleanupTestCase() { app.stop() }
 
     function test_1_welcome() {
