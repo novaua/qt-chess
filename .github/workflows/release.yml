@@ -176,6 +176,22 @@ jobs:
             @stockfishArgs `
             installer\ChessSetup.iss
 
+      # What a user gets (BL-05 step 6): the installer silently into a temporary folder, the installed
+      # app on a few screenshot scenes with Qt taken off PATH (only the installed files count), the
+      # uninstaller. Before the upload and the release: a broken installer stops both.
+      - name: Smoke test the installer
+        shell: pwsh
+        run: ./installer/Test-Installer.ps1
+
+      # Its pictures and the app's logs, the install log.
+      - name: Upload installer test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-test-results
+          path: test-results/installer
+          if-no-files-found: ignore
+
       - name: Cleanup Certificate
         if: always()
         run: | 
