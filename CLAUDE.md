@@ -49,6 +49,11 @@ A failed test function leaves a picture of the window: `test-results\ui\<TestCas
 local baselines (`-Update` accepts the current look). Details: the `run-chess-app` skill
 (`.claude/skills/run-chess-app/SKILL.md`).
 
+The installer's smoke test (BL-05 step 6): `installer\Test-Installer.ps1`, run by `release.yml` on every PR and
+release after the installer is built: installs it silently, runs the installed app on five screenshot scenes
+with Qt off `PATH` (only installed files count), checks exit codes, pictures and logs, uninstalls. Locally only
+`-AppDir <folder>` (it refuses to install where Chess++ is installed).
+
 App icon and installer images: `python scripts\make_icons.py` (Pillow) redraws `chess.ico`,
 `pics/app-icon.png` and `installer/art/*.bmp`.
 

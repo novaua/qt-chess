@@ -4,6 +4,21 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-05 step 6: the installer's smoke test (branch: features/installerSmokeTest_121126)
+
+### Done
+- **`installer\Test-Installer.ps1`** (owner's choice over pywinauto, every PR): the installer silently into a temp folder (no desktop icon, no Stockfish); the installed `ChessGui.exe` on `home`, `game`, `settings`, `online`, `robot` (vs FakeUci to mate) in screenshot mode with Qt off `PATH` and Qt's plugin/QML paths unset; each scene: exit 0, a picture that isn't blank, no warning in its log; the TLS backend present; the uninstaller: folder and Add/Remove Programs entry gone. "DLL not found" dialogs off (`SetErrorMode`); a scene that didn't run skips the rest. Refuses to install where Chess++ is installed; `-AppDir` tests a folder.
+- **`release.yml`**: "Smoke test the installer" after the installer is built, before its upload and the release; "Upload installer test results" on a failure.
+- Checked locally on a `windeployqt` folder: healthy passes; without `multimedia\` the log's warning fails it; without the Fluent style module exit 3; without `Qt6Network.dll` `0xC0000135` at once, no dialog.
+
+### Learned
+- On GitHub the installed app's real window works (no offscreen plugin is installed). The runner has no sound device ("playback of this format is not supported on the selected audio device": ignored) and no engine (every scene gets FakeUci, as if Stockfish were installed).
+
+### Next
+- BL-05 is done. Open from before: the LI-04 / LI-02 / LI-05 hand tests on real Lichess (`TASKS.md`).
+
+---
+
 ## 2026-11-12 — BL-05 review fixes (branch: bugs/bl05ReviewFixes_121126)
 
 A `/code-review medium` of all BL-05 commits found 8 problems, none a crash in the app; all fixed:
