@@ -49,6 +49,7 @@ Page {
     header: CommandBar {
         messageArea: barFill   // the window's short messages show over it
         IconButton {
+            objectName: "backButton"
             icon.source: Theme.icon("back")
             tip: "Back (Esc)"
             onClicked: page.backRequested()
@@ -177,6 +178,7 @@ Page {
                     title: "Highlight the last move"
                     description: "Tint the squares the last move came from and went to."
                     Switch {
+                        objectName: "highlightLastMoveSwitch"
                         checked: AppSettings.highlightLastMove
                         onToggled: AppSettings.highlightLastMove = checked
                         Accessible.name: "Highlight the last move"

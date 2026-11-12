@@ -51,6 +51,7 @@ Page {
         messageArea: barFill   // the window's short messages show over it
         ToolButton {
             id: accountButton
+            objectName: "accountButton"
             text: UserManager.activeUserName
             Accessible.name: "Account: " + text + (page.unseenMessages > 0 ? ", " + page.unseenMessages + " new messages" : "")
             // Own content: the style tints the icon and draws the text in icon.color, and the
@@ -92,6 +93,7 @@ Page {
                     onTriggered: page.profileRequested()
                 }
                 MenuItem {
+                    objectName: "switchUserItem"
                     text: "Switch user"
                     icon.source: Theme.icon("sign-out")
                     onTriggered: page.switchUserRequested()
@@ -107,6 +109,7 @@ Page {
         Item { id: barFill; Layout.fillWidth: true }
 
         IconButton {
+            objectName: "settingsButton"
             icon.source: Theme.icon("settings")
             tip: "Settings (Ctrl+,)"
             onClicked: page.settingsRequested()

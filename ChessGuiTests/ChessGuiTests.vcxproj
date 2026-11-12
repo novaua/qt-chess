@@ -151,6 +151,8 @@
     <None Include="qml\tst_robot.qml" />
     <None Include="qml\tst_board.qml" />
     <None Include="qml\tst_promotion.qml" />
+    <None Include="qml\tst_restart.qml" />
+    <None Include="qml\tst_profiles.qml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

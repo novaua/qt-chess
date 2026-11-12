@@ -63,6 +63,7 @@ Page {
                     delegate: AbstractButton {
                         id: card
                         required property var modelData
+                        objectName: "profileCard_" + modelData.name   // the UI tests
                         readonly property bool isLast: modelData.id === UserManager.activeUserId
 
                         width: page._cardWidth; height: page._cardHeight
@@ -160,6 +161,7 @@ Page {
                 Layout.topMargin: Theme.s2
 
                 Button {
+                    objectName: "addProfileButton"
                     text: "Add profile"
                     icon.source: Theme.icon("person-add")
                     onClicked: page.addUserRequested()

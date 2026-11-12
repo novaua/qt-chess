@@ -21,6 +21,9 @@ class TestSetup : public QObject
 	Q_PROPERTY(int stepDelay READ stepDelay CONSTANT)
 	// Watched (-Visible): the window on the screen, centred, and after a failure it stays up until closed
 	Q_PROPERTY(bool watched READ watched CONSTANT)
+	// Which run of a test file that runs more than once on the same data folder ("// ui-test-runs: 2":
+	// a restart), from 1
+	Q_PROPERTY(int run READ run CONSTANT)
 
 public:
 	TestSetup();
@@ -29,6 +32,7 @@ public:
 	QString resultsDir() const { return _resultsDir; }
 	int stepDelay() const { return _stepDelay; }
 	bool watched() const { return _watched; }
+	int run() const { return _run; }
 
 	// The robot of the next game (FakeUci, read when its engine starts): the game it follows, in UCI
 	// ("e2e4 e7e5 …", it plays its own half), and how long it thinks before each answer.
@@ -39,10 +43,12 @@ public slots:
 	void qmlEngineAvailable(QQmlEngine* engine);
 
 private:
-	QTemporaryDir _dataDir;
+	QTemporaryDir _tempDataDir;
+	QString _dataDir; // the temporary one, or CHESS_UI_TEST_DATA_DIR (kept from one run to the next)
 	std::unique_ptr<AppServices> _services;
 	int _engines = 0;
 	QString _resultsDir;
 	int _stepDelay = 0;
 	bool _watched = false;
+	int _run = 1;
 };
