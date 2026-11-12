@@ -68,3 +68,19 @@ jobs:
           if (-not $vstest) { throw "vstest.console.exe not found" }
           & $vstest x64\Debug\ChessTests.dll
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # BL-05 Layer 1: the app's window played with the mouse by Qt Quick Test, offscreen, each test
+      # file on a fresh profile. The robot is FakeUci and Lichess is FakeLichess (a local server):
+      # no Stockfish, no lichess.org. Qt's bin is on PATH (install-qt-action).
+      - name: Run UI tests
+        shell: pwsh
+        run: ./scripts/Run-UiTests.ps1 -Configuration Debug
+
+      # The logs and, for each failed test function, a picture of the window at the failure.
+      - name: Upload UI test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-test-results
+          path: test-results/ui
+          if-no-files-found: ignore
