@@ -12,9 +12,10 @@
          Qt taken out of PATH and Qt's plugin and QML paths unset, so it finds only what was installed.
          Each scene must exit with 0 (1: grab failed, 2: scene timed out, 3: QML failed to load, e.g. a
          module not installed; a missing DLL or a crash: a Windows code), leave a picture that isn't
-         blank, and log no warning (a missing multimedia backend only warns). The robot scene plays a
-         game against FakeUci from the build (the installer has no engine of its own): the installed app
-         can start an engine.
+         blank, and log no warning (a missing multimedia backend only warns; but "can't play on the
+         selected audio device": GitHub's machines have none). The engine is FakeUci from the build, as
+         if Stockfish were installed (the test doesn't download it); the robot scene plays a game
+         against it: the installed app can start an engine.
       3. The files Lichess needs that no scene loads (the TLS backend: HTTPS).
       4. The uninstaller, silently: the folder and its Add/Remove Programs entry gone.
 
@@ -126,6 +127,10 @@ $exitMeaning = @{ '0x00000001' = 'grabbing or saving the window failed'; '0x0000
                   '0xC0000135' = 'a DLL is missing'; '0xC0000005' = 'it crashed (access violation)';
                   '0xC000007B' = 'a DLL of the wrong architecture'; '0xC0000409' = 'it crashed (stack buffer overrun)' }
 
+# GitHub's machines have no sound device: the sounds can't be played there, though the multimedia
+# backend was found (a missing one says "No QtMultimedia backends found", which still fails).
+$soundDeviceWarning = 'QSoundEffect: playback of this format is not supported on the selected audio device'
+
 # The robot scene: White mates with Qh5# (as in Take-Screenshot.ps1).
 $scenes = [ordered]@{ 'home' = $null; 'game' = $null; 'settings' = $null; 'online' = $null;
                       'robot' = 'e2e4 f7f6 d2d4 g7g5 d1h5' }
@@ -134,15 +139,12 @@ try {
         Set-Env 'PATH' (($savedEnv['PATH'] -split ';' | Where-Object { $_ -and -not (Test-Path (Join-Path $_ 'Qt6Core.dll')) }) -join ';')
         foreach ($n in 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH', 'QML_IMPORT_PATH', 'QT_QPA_PLATFORM_PLUGIN_PATH') { Set-Env $n $null }
         foreach ($scene in $scenes.Keys) {
-            $engineLine = $scenes[$scene]
-            if ($null -ne $engineLine) {
-                if (-not (Test-Path $FakeUci)) { Fail "$scene - $FakeUci not found (build FakeUci)"; continue }
-                Set-Env 'CHESS_ENGINE_PATH' $FakeUci
-                Set-Env 'FAKEUCI_MOVES' $engineLine
-                Set-Env 'FAKEUCI_DELAY_MS' '0'
-            } else {
-                foreach ($n in 'CHESS_ENGINE_PATH', 'FAKEUCI_MOVES', 'FAKEUCI_DELAY_MS') { Set-Env $n $null }
-            }
+            # Every scene has an engine, as if Stockfish were installed (the app looks for one at start,
+            # and warns when none answers); the robot scene plays its game.
+            if (-not (Test-Path $FakeUci)) { Fail "$scene - $FakeUci not found (build FakeUci)"; continue }
+            Set-Env 'CHESS_ENGINE_PATH' $FakeUci
+            Set-Env 'FAKEUCI_MOVES' $scenes[$scene]
+            Set-Env 'FAKEUCI_DELAY_MS' '0'
             $png = Join-Path $OutDir "$scene.png"
             $app = Start-Process "$AppDir\ChessGui.exe" -PassThru -ArgumentList '--screenshot', "`"$png`"", '--scene', $scene
             $handle = $app.Handle   # keeps the exit code readable after the process is gone
@@ -152,7 +154,7 @@ try {
                 continue
             }
             $log = if (Test-Path "$png.log") { @(Get-Content "$png.log") } else { @() }
-            $warnings = @($log | Where-Object { $_ -match '\[(WARN |CRIT |FATAL)\]' })
+            $warnings = @($log | Where-Object { $_ -match '\[(WARN |CRIT |FATAL)\]' -and $_ -notmatch [regex]::Escape($soundDeviceWarning) })
             if ($app.ExitCode -ne 0) {
                 $code = '0x{0:X8}' -f $app.ExitCode
                 $why = if ($exitMeaning.ContainsKey($code)) { $exitMeaning[$code] } else { 'see its log' }   # (no ?? in 5.1)

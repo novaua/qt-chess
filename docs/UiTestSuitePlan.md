@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-28, refreshed 2026-11-12 (after BL-11) |
-| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; step 3 done too (branch `features/fakeUciEngine_121126`): FakeUci, the robot test, the robot scenes on it; step 4 in three parts: 4a (the board), 4b (a restart, profiles) and 4c (Lichess against FakeLichess; branch `features/uiTestsLichess_121126`) done; step 5 (the GitHub job; branch `features/uiTestsCi_121126`) done: every push runs Layer 1. Left: the optional step 6. The owner chose the recommended answers to §10 (2026-11-12) |
+| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; step 3 done too (branch `features/fakeUciEngine_121126`): FakeUci, the robot test, the robot scenes on it; step 4 in three parts: 4a (the board), 4b (a restart, profiles) and 4c (Lichess against FakeLichess; branch `features/uiTestsLichess_121126`) done; step 5 (the GitHub job; branch `features/uiTestsCi_121126`) done: every push runs Layer 1. Step 6 done as the installer's smoke test (branch `features/installerSmokeTest_121126`, owner's choice 2026-11-12, instead of pywinauto): every PR and release installs the installer and runs the installed app. The owner chose the recommended answers to §10 (2026-11-12) |
 | **Branch** | one per step from `develop`, e.g. `features/uiTestsAppServices_<DDMMYY>` |
 
 ## 1. Problem
@@ -32,7 +32,7 @@ Goal: a **local pre-PR suite** that plays the app as a user does and checks the 
 |---|---|---|---|---|
 | 1. Behaviour | **Qt Quick Test** (in Qt: `Qt6QuickTest`, `qmltestrunner`) | `ChessGuiTests.exe`, offscreen | click, drag, check state and items | **to do** |
 | 2. Visual | screenshot scenes + golden-image diff | `ChessGui.exe --screenshot`, real transparent window | layout and look | done |
-| 3. Smoke | pywinauto (UI Automation) | the installed app on the desktop | packaging and deployment | optional |
+| 3. Smoke | `installer\Test-Installer.ps1`: the installed app's screenshot scenes | the installer on GitHub (`release.yml`) | packaging and deployment | done |
 
 **Why Qt Quick Test, not CppUnitTest:** one `QGuiApplication` per process and a QML engine don't sit well
 inside the `vstest` host next to the other tests; Qt Quick Test is made for this (`TestCase`, `mouseDrag`,
@@ -101,11 +101,28 @@ could run without Stockfish and with the same moves every time (the plan's old s
 `run-chess-app` skill. Local only (fonts and scaling differ per PC). Layer 1 doesn't replace it; the
 pre-PR run does both (§8).
 
-## 6. Layer 3 — pywinauto smoke tests (optional, unchanged)
+## 6. Layer 3 — the installer's smoke test (done, step 6)
 
-3–5 tests against the built Release exe or the installed app: it starts, Home's cards are there, a
-two-player game, one move, a clean exit. Needs `Accessible.name` on the controls (screen readers gain
-too). Python is test tooling only. Before releases, not before every PR.
+Chosen by the owner (2026-11-12) over pywinauto: Layer 1 already plays the app; what nothing checked was
+what a user installs (a DLL, plugin or QML module `windeployqt` missed). `installer\Test-Installer.ps1`,
+run by `release.yml` on every PR and release tag after the installer is built (before the upload and
+the release):
+
+1. The installer silently (`/VERYSILENT`) into a temporary folder; no desktop icon, no Stockfish.
+2. The installed `ChessGui.exe` in screenshot mode (a fresh profile) on `home`, `game`, `settings`,
+   `online` and `robot`, with Qt taken off `PATH` and Qt's plugin and QML paths unset (`install-qt-action`
+   sets them: they would hide a missing file). Each: exit code 0 (the app's 1–4, or a Windows code such
+   as `0xC0000135`, a DLL missing), a picture that isn't blank, no `WARN` or worse in its log (a missing
+   multimedia backend only warns; but not the runner's "no audio device" line). The engine is FakeUci from
+   the build, as if Stockfish were installed; `robot` plays to mate against it. Windows' "DLL not found"
+   dialog is off for the app (`SetErrorMode`, inherited), and a scene that didn't run stops the others.
+3. The TLS backend (`tls\qschannelbackend.dll`): Lichess is HTTPS, and no scene goes online.
+4. The uninstaller silently: the folder and the Add/Remove Programs entry gone.
+
+Pictures and logs in `test-results\installer\`, uploaded on a failure (`installer-test-results`). It
+refuses to install where Chess++ is installed (same AppId: it would replace and then remove it);
+`-AppDir deploy` tests a folder instead, nothing installed. pywinauto (clicks in the installed window,
+`Accessible.name` on the controls) is dropped: it would mostly repeat Layer 1.
 
 ## 7. Determinism
 
@@ -236,4 +253,7 @@ Later (step 4):
    after the CppUnit tests (Debug, offscreen; Qt's `bin` is on `PATH` from `install-qt-action`), the
    results uploaded on a failure. Green on the first run: 8 files, 50 functions, 93 s on
    `windows-latest` (113 s locally in Debug, ~50 s in Release), under Q3's two minutes.
-6. Optional: pywinauto smoke tests.
+6. **The installer's smoke test** — **done** (`features/installerSmokeTest_121126`), §6. Checked by
+   breaking a deploy folder: no multimedia plugins (the log's warning), no Fluent style module (exit 3),
+   no `Qt6Network.dll` (`0xC0000135` at once, the other scenes skipped). Learned on GitHub: the installed
+   app's real (transparent) window works there; the runner has no sound device and no engine.
