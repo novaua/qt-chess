@@ -17,7 +17,7 @@ class SceneInput : public QObject
 public:
 	explicit SceneInput(QObject* parent = nullptr);
 
-	// A press and a release at the point.
+	// A press, and the release 50 ms later, at the point.
 	Q_INVOKABLE void click(QQuickItem* item, QPointF point);
 	// A press at `from`, a move every frame (16 ms) to `to` over `ms`, then the release there.
 	Q_INVOKABLE void drag(QQuickItem* item, QPointF from, QPointF to, int ms);

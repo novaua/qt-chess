@@ -18,8 +18,12 @@ void SceneInput::click(QQuickItem* item, QPointF point)
 {
 	if (!item || !item->window())
 		return;
-	send(item->window(), QEvent::MouseButtonPress, point, true);
-	send(item->window(), QEvent::MouseButtonRelease, point, false);
+	QPointer<QQuickWindow> window = item->window();
+	send(window, QEvent::MouseButtonPress, point, true);
+	QTimer::singleShot(50, this, [=, this]() { // as a hand would: a frame or more between the two
+		if (window)
+			send(window, QEvent::MouseButtonRelease, point, false);
+	});
 }
 
 void SceneInput::drag(QQuickItem* item, QPointF from, QPointF to, int ms)

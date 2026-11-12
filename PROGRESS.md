@@ -12,7 +12,8 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - **Debug, before**: a move 26–47 ms of GUI thread with a frame or two dropped (28–69 ms); the takeback and each review step 17–23 ms of QML, three of the seven over 25 ms of GUI thread; a selection's dots 8.5 ms. The QML profile per step showed redundant work: the 32 pieces' `movable` binding 192 times per move (`MovableColor` passed on seven signals of a move as its own, changed or not), the 64 dots' colour and visibility on every review step with no dots shown (clearing them signalled anyway, 3.5 ms in C++ each time), and the click's own call 14.3 ms.
 
 ### Fixed
-1. **`MovableColor` is signalled only when it changes** (`ChessConnector::updateMovableColor`, the same seven signals as before).
+1. **`MovableColor` is signalled once for all the signals of one move** (`ChessConnector::scheduleMovableColorChanged`, queued like the pieces' sync): the same seven signals as before, one `movableColorChanged` after them. Always sent, not only when the value differs (the code review: some of what it reads changes without a signal, so an "unchanged" could hide a change that a piece made in between has seen).
+4. **A click that changes neither the dots nor the selection doesn't signal** (`figureSelected`: an empty square with nothing selected).
 2. **Clearing the move dots does nothing when there are none** (`clearPossibleMoves`): no `PossibleMovesChanged`, so the 64 dots aren't evaluated again.
 3. **The dots' colour once for the layer** (`NavigationLayer.dotColor`), not in each of the 64.
 
@@ -29,6 +30,12 @@ A move is still 40–48 ms of GUI thread in Debug. What is left is the move itse
 
 ### Checks
 - All screenshots (light and dark) match; `premove-robot` still plays the premove after the robot's answer.
+- After the code review's fixes (the screen was locked, so offscreen): the same 12 game scenes (select, drag, the three premove scenes, check, review, …) before and after are the same to the pixel.
+
+### Code review (8 findings)
+- **Fixed**: the `play` steps wait for what they need (the board's layers, the robot's answer shown and its slide done: `isBoardIdle()`) instead of fixed times, so a slow Debug build or a cold engine can't play e4 as a premove or start before the page; the `MovableColor` signal is coalesced instead of cached (above); `figureSelected` signals only on a change; a click's release comes 50 ms after its press.
+- **Not changed**: QML never writes `PossibleMoves` (the early return also needs no selection); one flag instead of the 64-entry check would have to be kept right in more places; the synthetic events' timestamps can't mix with real input, which the screenshot window doesn't take (`WindowTransparentForInput`).
+- **Found on the way**: with the screen locked, a scene's QML `Timer`s never fire (no frames, no animation timer), and the scene times out without a message. Use `-Offscreen` then, as for the screenshots.
 
 ### Left (not BL-11)
 - Each move-list row has its own `MultiEffect` layer for the figurine's glow: fine now, but a long game has one per move. A pre-drawn glow image would do the same with less, if it ever shows up in a profile.
