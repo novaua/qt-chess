@@ -360,6 +360,7 @@
     <ClCompile Include="movegate.cpp" />
     <ClCompile Include="claimwin.cpp" />
     <ClCompile Include="layoutgate.cpp" />
+    <ClCompile Include="sceneinput.cpp" />
     <ClCompile Include="gameclock.cpp" />
     <ClCompile Include="applog.cpp" />
     <ClCompile Include="engineworker.cpp" />
@@ -380,6 +381,7 @@
     <QtMoc Include="movegate.h" />
     <QtMoc Include="claimwin.h" />
     <QtMoc Include="layoutgate.h" />
+    <QtMoc Include="sceneinput.h" />
     <QtMoc Include="gameclock.h" />
     <ClInclude Include="applog.h" />
     <QtMoc Include="engineworker.h" />

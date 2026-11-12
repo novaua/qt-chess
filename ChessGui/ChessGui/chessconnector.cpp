@@ -125,8 +125,8 @@ ChessConnector::ChessConnector(QObject* parent)
 	                      &ChessConnector::reviewStateChanged, &ChessConnector::IsOnPlayerModeChanged,
 	                      &ChessConnector::isOnlineGameChanged, &ChessConnector::playerPlaysWhiteChanged,
 	                      &ChessConnector::gameResultChanged })
-		connect(this, changed, this, &ChessConnector::movableColorChanged);
-	connect(this, &ChessConnector::pawnPromotionNotify, this, &ChessConnector::movableColorChanged);
+		connect(this, changed, this, &ChessConnector::scheduleMovableColorChanged);
+	connect(this, &ChessConnector::pawnPromotionNotify, this, &ChessConnector::scheduleMovableColorChanged);
 	for (auto changed : { &ChessConnector::isOnlineGameChanged, &ChessConnector::gameResultChanged })
 		connect(this, changed, this, &ChessConnector::canAcceptChallengeChanged);
 }
@@ -167,6 +167,20 @@ int ChessConnector::movableColor() const
 	if (canPlayerMove())
 		return _game->IsWhiteMove() ? 1 : 2;
 	return canPremove() ? (_config.playerPlaysWhite ? 1 : 2) : 0;
+}
+
+// Once the current change is complete, as schedulePiecesSync. Always sent, not only when the value
+// differs from the last one: some of what movableColor() reads changes without a signal, so an
+// "unchanged" could hide a change that a piece made in between has seen.
+void ChessConnector::scheduleMovableColorChanged()
+{
+	if (_movableColorPosted)
+		return;
+	_movableColorPosted = true;
+	QMetaObject::invokeMethod(this, [this] {
+		_movableColorPosted = false;
+		emit movableColorChanged();
+	}, Qt::QueuedConnection);
 }
 
 // Not in a two-player game: both sides sit at this board and move in turn.
@@ -247,6 +261,11 @@ void ChessConnector::refreshSelection()
 
 void ChessConnector::clearPossibleMoves()
 {
+	// Already clear (a review step, a move without a selection): no signal, so the 64 dots aren't
+	// evaluated again for nothing (BL-11).
+	if (_selectedSquare < 0 && !_premoveDots
+			&& std::all_of(_possibleMoves.cbegin(), _possibleMoves.cend(), [](const QString& m) { return m == EmptyFlag; }))
+		return;
 	ClearBoard(_possibleMoves);
 	_selectedSquare = -1;
 	_premoveDots = false;
@@ -265,6 +284,11 @@ void ChessConnector::figureSelected(int index)
 
 	//find possible moves for the position and notify IU
 	auto pmString = _possibleMoves[index];
+	// The dots and the selection as they were: a click that changes neither (an empty square with
+	// nothing selected) doesn't signal (BL-11).
+	const QStringList dotsBefore = _possibleMoves;
+	const int selectedBefore = _selectedSquare;
+	const bool premoveDotsBefore = _premoveDots;
 
 	auto selected = pmString == EmptyFlag
 		? -1
@@ -304,6 +328,8 @@ void ChessConnector::figureSelected(int index)
 			_selectedSquare = index;
 	}
 
+	if (_possibleMoves == dotsBefore && _selectedSquare == selectedBefore && _premoveDots == premoveDotsBefore)
+		return;
 	FrameTraceScope trace("move dots");
 	emit PossibleMovesChanged();
 }

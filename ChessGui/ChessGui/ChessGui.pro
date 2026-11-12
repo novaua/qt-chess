@@ -24,6 +24,7 @@ SOURCES += main.cpp \
     movegate.cpp \
     claimwin.cpp \
     layoutgate.cpp \
+    sceneinput.cpp \
     gameclock.cpp \
     applog.cpp \
     ChessEnginePlayer.cpp \
@@ -71,6 +72,7 @@ HEADERS += \
     movegate.h \
     claimwin.h \
     layoutgate.h \
+    sceneinput.h \
     gameclock.h \
     applog.h \
     ChessEnginePlayer.h \
