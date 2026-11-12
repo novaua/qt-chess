@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-28, refreshed 2026-11-12 (after BL-11) |
-| **Status** | Layer 2 (screenshots and their diff) done; Layer 1 (behaviour tests) not started; the owner chose the recommended answers to §10 (2026-11-12): next is step 2 |
+| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; next is step 3 (the stub engine). The owner chose the recommended answers to §10 (2026-11-12) |
 | **Branch** | one per step from `develop`, e.g. `features/uiTestsAppServices_<DDMMYY>` |
 
 ## 1. Problem
@@ -172,6 +172,15 @@ Later (step 4):
    `Compare-Screenshots.ps1` (old step 4, BL-02 P6), `SceneInput` (BL-11).
 2. **`AppServices` out of `main.cpp`** (all scenes still match), **the `ChessGuiTests` project** with
    `TestSetup`, `AppDriver`, scenarios 1–3, **`Run-UiTests.ps1`**; docs.
+   - Done (`features/uiTestsAppServices_121126`): `tst_firstRun.qml` (Welcome → a profile → Home) and
+     `tst_twoPlayers.qml` (Fool's mate by clicks → the result card; New game → e2–e4 dragged: the pawn
+     on e4, the last move, "e4" in the move list, Black to move), 8 test functions in ~6 s.
+   - Learned on the way: the window is made with `createObject` and destroyed in `cleanupTestCase`
+     (`createTemporaryObject` would destroy it after each test function); a `ListView`'s rows are found
+     only by the visual search, so `AppDriver.find` starts at the window's root item; a dialog still
+     fading out takes the clicks with its modal overlay (`waitClosed`); keys from a test go to the
+     test's own window, so a `TextField` gets its text set; a single test function on the command
+     line is `<TestCase name>::<function>` (the runner adds the name); the qmake module is `qmltest`; `waitForRendering` on a page that is already drawn waits out its whole timeout (5 s), so it isn't used.
 3. **The stub engine** and `CHESS_ENGINE_PATH`; scenario 7; the robot scenes on the stub.
 4. **The other scenarios** (4–6, 8–12), `objectName`s as needed.
 5. **GitHub job** (Q3).

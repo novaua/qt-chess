@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- BL-05 Layer 1: the app's QML played by Qt Quick Test (docs/UiTestSuitePlan.md). A console exe:
+       ChessGuiTests.exe -input qml\tst_x.qml, one test file per process (scripts\Run-UiTests.ps1). -->
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{203B586A-76A8-470C-A78D-B9DC27B7EDFE}</ProjectGuid>
+    <Keyword>QtVS_v304</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <QtMsBuild Condition="'$(QtMsBuild)'=='' OR !Exists('$(QtMsBuild)\qt.targets')">$(MSBuildProjectDirectory)\..\ChessGui\ChessGui\QtMsBuild</QtMsBuild>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt_defaults.props')">
+    <Import Project="$(QtMsBuild)\qt_defaults.props" />
+  </ImportGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="QtSettings">
+    <QtInstall>6.12.0_msvc2022_64</QtInstall>
+    <QtModules>core;gui;network;qml;quick;widgets;quickcontrols2;multimedia;qmltest</QtModules>
+    <QtBuildConfig>debug</QtBuildConfig>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="QtSettings">
+    <QtInstall>6.12.0_msvc2022_64</QtInstall>
+    <QtModules>core;gui;network;qml;quick;widgets;quickcontrols2;multimedia;qmltest</QtModules>
+    <QtBuildConfig>release</QtBuildConfig>
+  </PropertyGroup>
+  <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
+    <Message Importance="High" Text="QtMsBuild: could not locate qt.targets, qt.props; project may not build correctly." />
+  </Target>
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(QtMsBuild)\Qt.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(QtMsBuild)\Qt.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>.;$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(SolutionDir)\LiChessConnector;$(SolutionDir)\UciConnector;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>-w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <WarningLevel>Level3</WarningLevel>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <ClCompile>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ChessCore\ChessCore.vcxproj">
+      <Project>{113a444b-2f1c-4b33-9905-41a466ffef7f}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\LiChessConnector\LiChessConnector.vcxproj">
+      <Project>{2ed0175f-4de2-440a-965e-04b2f1e4e3c0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\UciConnector\UciConnector.vcxproj">
+      <Project>{bb742a5a-2729-45f2-90c1-2fa70de41600}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="testsetup.cpp" />
+    <!-- The app: every ChessGui source but its main.cpp (a new one goes here too; the link fails without it) -->
+    <ClCompile Include="..\ChessGui\ChessGui\AppConfig.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\AppInfo.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\appservices.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\AvatarProvider.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\UserManager.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\chessconnector.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\ChessEnginePlayer.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\boardpieces.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\frametrace.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\movelistmodel.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\movegate.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\claimwin.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\layoutgate.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\sceneinput.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\gameclock.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\applog.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\engineworker.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="testsetup.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\AppInfo.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\AvatarProvider.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\UserManager.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\chessconnector.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\boardpieces.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\movelistmodel.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\movegate.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\claimwin.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\layoutgate.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\sceneinput.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\gameclock.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\engineworker.h" />
+    <ClInclude Include="..\ChessGui\ChessGui\appservices.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="..\ChessGui\ChessGui\qml.qrc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="qml\AppDriver.qml" />
+    <None Include="qml\tst_firstRun.qml" />
+    <None Include="qml\tst_twoPlayers.qml" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

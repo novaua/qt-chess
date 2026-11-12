@@ -4,6 +4,23 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-05 step 2: the first UI tests (branch: features/uiTestsAppServices_121126)
+
+### Done
+- **`AppServices`** (`appservices.h/cpp`, new in ChessGui): makes the five QML services, wires them (the Lichess token, account, ongoing games, `isOnlineGameChanged`, `gameEnded`) and registers them; `main.cpp` keeps only the options, the log and the screenshot scenes. No behaviour change: all screenshots, light and dark, match (202 compared; `about` / `about-dark` differ only by the build date).
+- **`ChessGuiTests`** (new project, console exe, Qt Quick Test): builds the ChessGui sources except `main.cpp`, and `qml.qrc`; `TestSetup` gives each run a fresh data folder and the app's own `AppServices` (Lichess offline); one test file per process (a second file in the same run stops with a message). `qml/AppDriver.qml`: `start`/`stop`, `find`/`item`/`click`, `waitForPage`, `waitClosed`, `squarePoint`, `clickSquare`, `clickMove`, `dragPiece`, `pieceAt` (by where the piece is drawn), `waitBoardIdle`, `createFirstProfile`, `startTwoPlayerGame`.
+- **Tests**: `tst_firstRun.qml` (Welcome → Create local profile → Home) and `tst_twoPlayers.qml` (Fool's mate by clicks: the queen on h4, White's king in check, "… checkmate", the result card; New game from it, then e2–e4 dragged: the pawn on e4 and e2 empty, last move e2/e4, Black to move, "e4" as the move list's first move). 8 functions, ~6 s offscreen (Release; Debug ~13 s). A copy with wrong expectations fails where it should.
+- **`objectName`s** for them: `pages` (the StackView), `createUserDialog`, `nameField`, `createProfileButton`, `createLocalProfile`, `twoPlayersCard`, `twoPlayerDialog`, `startGameButton`, `resultCard`, `rematchButton`, `newGameButton`, `reviewButton`, `ply<N>` (the move list's cells).
+- **`scripts\Run-UiTests.ps1`**: `-Build`, `-Name`, `-Function`, `-Timeout`; results in `test-results\ui\` (txt and JUnit XML); the failures printed; `-Screens` adds all screenshots and the comparison.
+- Docs: CLAUDE.md (Running Tests, `AppServices`), the `run-chess-app` skill, the plan (step 2 and what was learned).
+- **Seeing a failure** (the owner's ask): a failed test function leaves `test-results\ui\<TestCase>-<function>.png` (the window at that moment; the runner lists it under the failure). `Run-UiTests.ps1 -Visible`: a real window on the screen, 500 ms after each click or drag (`-StepDelay`), and after a failure the window stays with a red note until it is closed. The options reach the tests through `TestSetup` (QML singleton `TestRun`, from `CHESS_UI_TEST_*` set by the runner). Watched, the window is fitted to the screen and centred (it opened at 0,0 with its title bar off the screen: the owner's report), with Windows' scaling as in the app. Checked: the picture of a forced failure; the pause after it (offscreen, still waiting at 25 s); the owner watched a run.
+- **5 s per page wait removed:** `waitForPage` called `waitForRendering`, which on a page already drawn waits its whole 5 s timeout for a frame that doesn't come (without failing): `tst_twoPlayers` 9.6–14.6 s → 4.6 s.
+
+### Next
+- BL-05 step 3: the stub engine (`FakeUci`, `CHESS_ENGINE_PATH`) and a game vs the robot (scenario 7). Then step 4 (more scenarios) and step 5 (the GitHub job).
+
+---
+
 ## 2026-11-12 — BL-05 plan refreshed (branch: docs/bl05Plan_121126)
 
 - `docs/UiTestSuitePlan.md` brought up to date: Layer 2 (screenshot scenes, `Compare-Screenshots.ps1`, `SceneInput`) is done; the old plan's context properties, "main menu" and "Load" are gone from the app.

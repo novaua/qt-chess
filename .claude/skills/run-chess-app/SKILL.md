@@ -115,6 +115,29 @@ Not covered yet: a game vs the robot without Stockfish (a stub engine is planned
 connection to Lichess (the scenes feed the stream parser or set the dialog by hand). Sending keys to an interactive window
 (SendKeys) doesn't reach the Qt controls reliably and takes over the user's desktop: add a scene instead. Plan for the full UI test suite: `docs/UiTestSuitePlan.md`.
 
+## Does it still work? (UI tests, BL-05)
+
+`scripts\Run-UiTests.ps1` runs `ChessGuiTests.exe` (Qt Quick Test) once per `ChessGuiTests\qml\tst_*.qml`,
+offscreen on a fresh profile: the app's window played with real mouse events, its state and items
+checked. Works with the screen locked. Results in `test-results\ui\<file>.txt` / `.xml`; the failures
+are printed. Exit code = failed files.
+
+```powershell
+.\scripts\Run-UiTests.ps1 -Build                                   # build ChessGuiTests, run every file
+.\scripts\Run-UiTests.ps1 -Name tst_twoPlayers -Function test_2_newGameAndDrag   # one function
+.\scripts\Run-UiTests.ps1 -Build -Screens                          # + all screenshots and the comparison: the pre-PR check
+.\scripts\Run-UiTests.ps1 -Name tst_twoPlayers -Visible            # the owner watches: a real window, 500 ms per action (-StepDelay)
+```
+
+A failed test function leaves `test-results\ui\<TestCase>-<function>.png`, the window at the failure
+(offscreen: dark), listed under the failure: Read it. `-Visible` puts windows on the owner's screen and,
+after a failure, waits until they close the window: for the owner, not for an agent's runs.
+
+A new test: a `TestCase` in `ChessGuiTests\qml\tst_<area>.qml` with an `AppDriver` (`app.start()` in
+`initTestCase`, `app.stop()` in `cleanupTestCase`; functions `test_1_…`, `test_2_…` run in name order
+and go on from each other). Give the items it needs an `objectName`. Keys can't be typed into the
+app's window from a test (they go to the test's own): set a `TextField`'s text instead.
+
 ## Did the look change? (screenshot baselines)
 
 `scripts\Compare-Screenshots.ps1` compares `test-results\screens\*.png` with

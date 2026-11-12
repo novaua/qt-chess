@@ -5,9 +5,9 @@
 #include <QQmlApplicationEngine>
 #include <QtQml/qqml.h>
 #include "chessconnector.h"
+#include "appservices.h"
 #include "applog.h"
 #include "frametrace.h"
-#include "layoutgate.h"
 #include "sceneinput.h"
 #include "AppInfo.h"
 #include "AvatarProvider.h"
@@ -410,19 +410,14 @@ int main(int argc, char* argv[])
 	AppLog::open(logPath, screenshotMode);
 	qInstallMessageHandler(customLogMessageHandler);
 
-	// The QML singletons below must outlive the engine: children of the app, not of the engine.
-	auto* connector = new ChessConnector(&app);
-	auto* avatarProvider = new AvatarProvider(&app);
-	auto* userManager = new UserManager(&app);
-	auto* lichessClient = new LichessClient(&app);
-	auto* appInfo = new AppInfo(&app);
+	// The QML singletons must outlive the engine: children of the app, not of the engine.
+	AppServices services(&app, screenshotMode); // offline in the scenes: their Lichess token is a placeholder
+	auto* connector = services.connector();
+	auto* userManager = services.userManager();
+	auto* lichessClient = services.lichessClient();
 
 	QQmlApplicationEngine engine;
 
-	connector->setAvatarProvider(avatarProvider);
-	connector->setUserManager(userManager);
-	connector->setLichessClient(lichessClient);
-	lichessClient->setOffline(screenshotMode); // the scenes' Lichess token is a placeholder
 	if (screenshotMode && (scene == "continue-starting" || scene == "continue-list-starting" || scene == "challenge-accepting"))
 		useSilentLichess(lichessClient);
 
@@ -459,54 +454,14 @@ int main(int argc, char* argv[])
 		});
 	}
 
-	// The active profile's Lichess token goes to the client (none while it is expired). A new token:
-	// fetch the account for the ratings; a 401 on any call marks the link expired.
-	auto lastToken = std::make_shared<QString>();
-	auto updateLichessToken = [=]() {
-		const QString token = userManager->lichessConnected()
-			? LichessClient::decryptToken(userManager->lichessTokenEncrypted()) : QString();
-		lichessClient->setUsername(userManager->lichessUsername());
-		if (token == *lastToken) return;
-		*lastToken = token;
-		lichessClient->setToken(token);
-		if (!token.isEmpty()) { // neither in screenshot mode (setOffline)
-			lichessClient->refreshAccount();
-			lichessClient->refreshOngoingGames(); // LI-04: Continue and the Online page
-			lichessClient->startEventStream();    // BL-10: challenges, games started elsewhere
-		}
-	};
-	QObject::connect(userManager, &UserManager::activeUserChanged, [=]() {
-		avatarProvider->setPlayerFromUser(userManager->activeUserAvatar());
-		updateLichessToken();
-		});
-	QObject::connect(userManager, &UserManager::lichessChanged, updateLichessToken);
-	updateLichessToken(); // load() sets the active user silently — seed the token now
+	services.start(); // after the scene's profiles: the active one's Lichess token
 	// The online scene's games (no network in screenshot mode): after the token, which resets the list.
 	if (screenshotMode && connector->screenshotScene().contains("ongoingGames"))
 		lichessClient->setOngoingGames(connector->screenshotScene().value("ongoingGames").toList());
 	if (screenshotMode && (scene == "challenge" || scene == "challenge-accepting" || scene == "challenge-unplayable" || scene.startsWith("online-challenges"))) // after the token too
 		seedChallenges(lichessClient, scene);
-	QObject::connect(lichessClient, &LichessClient::accountFetched, userManager, &UserManager::setLichessAccount);
-	QObject::connect(lichessClient, &LichessClient::authExpired, userManager, &UserManager::setLichessExpired);
-	// A Lichess game left unfinished (Home, switch user) is now one of the ongoing games (LI-04).
-	QObject::connect(connector, &ChessConnector::isOnlineGameChanged, lichessClient, [=]() {
-		if (!connector->isOnlineGame())
-			lichessClient->refreshOngoingGames();
-	});
-	QObject::connect(lichessClient, &LichessClient::gameEnded, lichessClient, [=]() {
-		QTimer::singleShot(3000, lichessClient, [=]() {
-			lichessClient->refreshAccount();      // the new rating
-			lichessClient->refreshOngoingGames(); // that game is no longer ongoing
-		});
-	});
 
-	// QML: `import ChessPlusPlus`, then e.g. ChessConnector.startLocalGame(…), UserManager.login(…).
-	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "ChessConnector", connector);
-	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "AvatarProvider", avatarProvider);
-	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "UserManager", userManager);
-	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "LichessClient", lichessClient);
-	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "AppInfo", appInfo);
-	qmlRegisterType<LayoutGate>("ChessPlusPlus", 1, 0, "LayoutGate"); // BL-11
+	services.registerQmlTypes();
 	if (screenshotMode) // the scenes' mouse input (ScreenshotScene.qml)
 		qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "SceneInput", new SceneInput(&app));
 

@@ -171,6 +171,7 @@ Page {
                     onClicked: page.computerGameRequested()
                 }
                 HomeCard {
+                    objectName: "twoPlayersCard"
                     text: "Two players"
                     description: "Take turns on this computer"
                     icon.source: Theme.icon("two-players")
