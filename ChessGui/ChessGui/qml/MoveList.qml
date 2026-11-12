@@ -44,6 +44,8 @@ ListView {
 
         readonly property bool current: ply === list.shownPly
 
+        objectName: ply > 0 ? "ply" + ply : ""   // the UI tests: "ply1" is White's first move
+
         width: list.cellWidth
         height: 28
         hoverEnabled: true

@@ -404,6 +404,7 @@ ApplicationWindow {
     // ── Pages ────────────────────────────────────────────────────────────
     StackView {
         id: stack
+        objectName: "pages"   // the UI tests' way to the page on top (ChessGuiTests)
         anchors.fill: parent
 
         // WinUI page transitions: the new page fades in and rises a little; the old one fades out.
@@ -1097,7 +1098,7 @@ ApplicationWindow {
         }
     }
 
-    TwoPlayerDialog { id: twoPlayerDialog }
+    TwoPlayerDialog { id: twoPlayerDialog; objectName: "twoPlayerDialog" }
 
     // Waiting for the opponent to accept a Lichess challenge.
     ChallengeDialog {
@@ -1110,6 +1111,7 @@ ApplicationWindow {
 
     CreateUserDialog {
         id: createUserDialog
+        objectName: "createUserDialog"
         onConfirmed: function(name, avatar) {
             UserManager.createUser(name, avatar)
         }

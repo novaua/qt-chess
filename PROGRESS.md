@@ -4,6 +4,21 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-05 step 2: the first UI tests (branch: features/uiTestsAppServices_121126)
+
+### Done
+- **`AppServices`** (`appservices.h/cpp`, new in ChessGui): makes the five QML services, wires them (the Lichess token, account, ongoing games, `isOnlineGameChanged`, `gameEnded`) and registers them; `main.cpp` keeps only the options, the log and the screenshot scenes. No behaviour change: all screenshots, light and dark, match (202 compared; `about` / `about-dark` differ only by the build date).
+- **`ChessGuiTests`** (new project, console exe, Qt Quick Test): builds the ChessGui sources except `main.cpp`, and `qml.qrc`; `TestSetup` gives each run a fresh data folder and the app's own `AppServices` (Lichess offline); one test file per process (a second file in the same run stops with a message). `qml/AppDriver.qml`: `start`/`stop`, `find`/`item`/`click`, `waitForPage`, `waitClosed`, `squarePoint`, `clickSquare`, `clickMove`, `dragPiece`, `pieceAt` (by where the piece is drawn), `waitBoardIdle`, `createFirstProfile`, `startTwoPlayerGame`.
+- **Tests**: `tst_firstRun.qml` (Welcome → Create local profile → Home) and `tst_twoPlayers.qml` (Fool's mate by clicks: the queen on h4, White's king in check, "… checkmate", the result card; New game from it, then e2–e4 dragged: the pawn on e4 and e2 empty, last move e2/e4, Black to move, "e4" as the move list's first move). 8 functions, ~12 s offscreen. A copy with wrong expectations fails where it should.
+- **`objectName`s** for them: `pages` (the StackView), `createUserDialog`, `nameField`, `createProfileButton`, `createLocalProfile`, `twoPlayersCard`, `twoPlayerDialog`, `startGameButton`, `resultCard`, `rematchButton`, `newGameButton`, `reviewButton`, `ply<N>` (the move list's cells).
+- **`scripts\Run-UiTests.ps1`**: `-Build`, `-Name`, `-Function`, `-Timeout`; results in `test-results\ui\` (txt and JUnit XML); the failures printed; `-Screens` adds all screenshots and the comparison.
+- Docs: CLAUDE.md (Running Tests, `AppServices`), the `run-chess-app` skill, the plan (step 2 and what was learned).
+
+### Next
+- BL-05 step 3: the stub engine (`FakeUci`, `CHESS_ENGINE_PATH`) and a game vs the robot (scenario 7). Then step 4 (more scenarios) and step 5 (the GitHub job).
+
+---
+
 ## 2026-11-12 — BL-05 plan refreshed (branch: docs/bl05Plan_121126)
 
 - `docs/UiTestSuitePlan.md` brought up to date: Layer 2 (screenshot scenes, `Compare-Screenshots.ps1`, `SceneInput`) is done; the old plan's context properties, "main menu" and "Load" are gone from the app.

@@ -350,6 +350,7 @@
   <ItemGroup>
     <ClCompile Include="AppConfig.cpp" />
     <ClCompile Include="AppInfo.cpp" />
+    <ClCompile Include="appservices.cpp" />
     <ClCompile Include="AvatarProvider.cpp" />
     <ClCompile Include="UserManager.cpp" />
     <ClCompile Include="chessconnector.cpp" />
@@ -370,6 +371,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\ChessCore\Piece.h" />
     <ClInclude Include="AppConfig.h" />
+    <ClInclude Include="appservices.h" />
     <ClInclude Include="frametrace.h" />
     <QtMoc Include="AppInfo.h" />
     <QtMoc Include="AvatarProvider.h" />

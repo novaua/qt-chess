@@ -26,6 +26,7 @@ AppDialog {
 
         TextField {
             id: nameField
+            objectName: "nameField"
             Layout.fillWidth: true
             placeholderText: "Your name"
             maximumLength: 40
@@ -46,6 +47,7 @@ AppDialog {
         defaultButton: primaryButton // highlighted (the box sets it, Qt 6.11+)
         Button {
             id: primaryButton
+            objectName: "createProfileButton"
             text: "Create profile"
             enabled: dialog.acceptEnabled
             DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole

@@ -29,6 +29,7 @@ SOURCES += main.cpp \
     applog.cpp \
     ChessEnginePlayer.cpp \
     AppInfo.cpp \
+    appservices.cpp \
     AvatarProvider.cpp \
     UserManager.cpp
 
@@ -77,6 +78,7 @@ HEADERS += \
     applog.h \
     ChessEnginePlayer.h \
     AppInfo.h \
+    appservices.h \
     AvatarProvider.h \
     UserManager.h
 

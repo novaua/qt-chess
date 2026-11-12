@@ -65,6 +65,7 @@ Rectangle {
             rowSpacing: Theme.s2
 
             Button {
+                objectName: "rematchButton"
                 visible: card.canRematch
                 text: "Rematch"
                 icon.source: Theme.icon("rematch")
@@ -73,6 +74,7 @@ Rectangle {
                 onClicked: card.rematchRequested()
             }
             Button {
+                objectName: "newGameButton"
                 text: "New game"
                 icon.source: Theme.icon("play")
                 highlighted: !card.canRematch
@@ -80,6 +82,7 @@ Rectangle {
                 onClicked: card.newGameRequested()
             }
             Button {
+                objectName: "reviewButton"
                 text: "Review moves"
                 icon.source: Theme.icon("first")
                 Layout.fillWidth: true

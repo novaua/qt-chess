@@ -440,6 +440,7 @@ Page {
             }
             ResultCard {
                 id: resultCard
+                objectName: "resultCard"
                 visible: page._resultShown && !page._resultCardClosed
                 anchors.centerIn: parent
                 width: Math.min(area.squaresSize - 2 * Theme.s5, 440)

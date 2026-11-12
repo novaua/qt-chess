@@ -93,6 +93,7 @@ Page {
         }
 
         Button {
+            objectName: "createLocalProfile"
             text: "Create local profile"
             icon.source: Theme.icon("person-add")
             enabled: !page._linking

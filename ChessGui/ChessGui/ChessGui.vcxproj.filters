@@ -110,6 +110,9 @@
     <ClCompile Include="AppInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="appservices.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="AvatarProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -161,6 +164,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AppConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="appservices.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="frametrace.h">
