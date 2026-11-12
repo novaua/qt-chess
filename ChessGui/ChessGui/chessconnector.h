@@ -348,6 +348,9 @@ private:
 	void playPremove();       // right after the opponent's move: the premove, if it is legal now
 	void refreshSelection();  // the turn changed under a selected piece: its dots follow
 	void clearPossibleMoves();  // no piece selected, no move dots
+	// MovableColor may have changed: the signal only when it did (BL-11: each of the 32 pieces reads it,
+	// and seven signals of a move used to pass on as its own).
+	void updateMovableColor();
 	std::shared_ptr<Chess::Game> shownGame() const; // the position on the board: a replay while reviewing
 	void schedulePiecesSync();  // update Pieces once, after the current change is complete
 	void onHumanMoveDone();
@@ -385,6 +388,7 @@ private:
 private:
 	QStringList _possibleMoves;
 	int _selectedSquare = -1;
+	int _shownMovableColor = -1; // MovableColor as last signalled (updateMovableColor)
 	bool _premoveDots = false;
 	int _premoveFrom = -1;
 	int _premoveTo = -1;

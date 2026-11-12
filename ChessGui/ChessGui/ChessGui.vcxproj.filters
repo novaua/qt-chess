@@ -83,6 +83,9 @@
     <ClCompile Include="layoutgate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sceneinput.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="gameclock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -134,6 +137,9 @@
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="layoutgate.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="sceneinput.h">
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="gameclock.h">

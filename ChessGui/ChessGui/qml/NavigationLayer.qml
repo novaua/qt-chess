@@ -7,6 +7,8 @@ Item {
     id: navigationLayer
     // Read once per change, not by each of the 64 dots: " " = no move to that square.
     readonly property var moves: ChessConnector.PossibleMoves
+    // Also once for all dots (BL-11): PremoveDots changes with every selection.
+    readonly property color dotColor: ChessConnector.PremoveDots ? Theme.premoveDot : Theme.legalMoveDot
 
     Repeater{
         id:navigationLayerRptr
@@ -23,7 +25,7 @@ Item {
 
             Rectangle{
                 id:navigationLayerRec
-                color: ChessConnector.PremoveDots ? Theme.premoveDot : Theme.legalMoveDot
+                color: navigationLayer.dotColor
 
                 anchors.centerIn: navigationLayerItm
                 smooth: true

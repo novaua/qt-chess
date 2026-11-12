@@ -88,6 +88,18 @@ Item {
             timingSteps.start()
             return
         }
+        if (name === "play") {
+            // BL-11 measurement, not a screenshot (not in all; needs Stockfish): a game vs the robot
+            // (level 1) played as a user plays it, animations on: clicks and a drag are mouse events
+            // (SceneInput), through the board's TapHandler and DragHandler. Nf3 by two clicks, the
+            // robot's answer, e4 by a drag, a takeback (Ctrl+Z's), then the review (←, ←, →, →, Home,
+            // End). Run with -KeepLog and QT_LOGGING_RULES="chess.frames.debug=true", or under
+            // qmlprofiler; "[Play]" lines in the log mark the steps.
+            Theme.forceReduceMotion = false
+            ChessConnector.startComputerGame(1, 0)
+            playSteps.start()
+            return
+        }
         if (name === "premove-robot") {
             // LI-05 check, needs Stockfish: 1. e4 against the robot (level 1), and Ng1-f3 premoved
             // while it thinks. Its answer comes, then Nf3 is played (by the shot, a second later, the
@@ -325,6 +337,44 @@ Item {
                 readyTimer.interval = 0
                 readyTimer.start()
             }
+        }
+    }
+
+    // Scene "play" (BL-11): the steps, each after the previous one's wait.
+    function squarePoint(square) {   // a square's middle, in the window
+        const board = pages.currentItem.board
+        const grid = findItem(pages.currentItem, "chessPiecesGrid")
+        return grid.mapToItem(null, board.squareX(square) + board.squareSize / 2,
+                              board.squareY(square) + board.squareSize / 2)
+    }
+    Timer {
+        id: playSteps
+        interval: 1500   // the page has opened and settled (1 s)
+        property int step: 0
+        readonly property var steps: [
+            // [what, its action, the wait after it (ms)]
+            ["select g1 (click)", () => SceneInput.click(window.contentItem, squarePoint(6)), 400],
+            ["Nf3 (click)", () => SceneInput.click(window.contentItem, squarePoint(21)), 2600],   // the robot's answer
+            ["e4 (drag)", () => SceneInput.drag(window.contentItem, squarePoint(12), squarePoint(28), 300), 2500],
+            ["takeback", () => ChessConnector.requestTakeback(), 1500],
+            ["review ←", () => ChessConnector.reviewPrev(), 500],
+            ["review ←", () => ChessConnector.reviewPrev(), 500],
+            ["review →", () => ChessConnector.reviewNext(), 500],
+            ["review →", () => ChessConnector.reviewNext(), 500],
+            ["review Home", () => ChessConnector.reviewFirst(), 500],
+            ["review End", () => ChessConnector.reviewLast(), 1000],
+        ]
+        onTriggered: {
+            if (step >= steps.length) {
+                readyTimer.interval = 0
+                readyTimer.start()
+                return
+            }
+            const [what, action, wait] = steps[step++]
+            console.log("[Play] " + what + ", move " + ChessConnector.MoveCount)
+            action()
+            interval = wait
+            start()
         }
     }
 

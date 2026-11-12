@@ -125,8 +125,8 @@ ChessConnector::ChessConnector(QObject* parent)
 	                      &ChessConnector::reviewStateChanged, &ChessConnector::IsOnPlayerModeChanged,
 	                      &ChessConnector::isOnlineGameChanged, &ChessConnector::playerPlaysWhiteChanged,
 	                      &ChessConnector::gameResultChanged })
-		connect(this, changed, this, &ChessConnector::movableColorChanged);
-	connect(this, &ChessConnector::pawnPromotionNotify, this, &ChessConnector::movableColorChanged);
+		connect(this, changed, this, &ChessConnector::updateMovableColor);
+	connect(this, &ChessConnector::pawnPromotionNotify, this, &ChessConnector::updateMovableColor);
 	for (auto changed : { &ChessConnector::isOnlineGameChanged, &ChessConnector::gameResultChanged })
 		connect(this, changed, this, &ChessConnector::canAcceptChallengeChanged);
 }
@@ -167,6 +167,15 @@ int ChessConnector::movableColor() const
 	if (canPlayerMove())
 		return _game->IsWhiteMove() ? 1 : 2;
 	return canPremove() ? (_config.playerPlaysWhite ? 1 : 2) : 0;
+}
+
+void ChessConnector::updateMovableColor()
+{
+	const int color = movableColor();
+	if (color == _shownMovableColor)
+		return;
+	_shownMovableColor = color;
+	emit movableColorChanged();
 }
 
 // Not in a two-player game: both sides sit at this board and move in turn.
@@ -247,6 +256,11 @@ void ChessConnector::refreshSelection()
 
 void ChessConnector::clearPossibleMoves()
 {
+	// Already clear (a review step, a move without a selection): no signal, so the 64 dots aren't
+	// evaluated again for nothing (BL-11).
+	if (_selectedSquare < 0 && !_premoveDots
+			&& std::all_of(_possibleMoves.cbegin(), _possibleMoves.cend(), [](const QString& m) { return m == EmptyFlag; }))
+		return;
 	ClearBoard(_possibleMoves);
 	_selectedSquare = -1;
 	_premoveDots = false;
