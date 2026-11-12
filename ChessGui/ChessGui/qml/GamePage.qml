@@ -49,8 +49,17 @@ Page {
     // A premove waits, or its dots show: Esc cancels it, doesn't leave
     readonly property bool premovePending: ChessConnector.PremoveFrom >= 0 || ChessConnector.PremoveDots
     property alias board: chessBoard                            // for ScreenshotScene's drag scene
+    // BL-11: the page's layout has settled (its first frame is being prepared): the moves panel is made
+    // then, at its size (see LayoutGate).
+    LayoutGate { id: layoutGate }
 
     function flipBoard() { chessBoard.angle = chessBoard.angle === 0 ? 180 : 0 }
+    // The command bar's More menu, made on the first click (BL-11; also the more-menu scene).
+    function openMoreMenu() {
+        if (!moreButton.moreMenu)
+            moreButton.moreMenu = moreMenuComponent.createObject(moreButton)
+        moreButton.moreMenu.popup(moreButton, moreButton.width - moreButton.moreMenu.width, moreButton.height)
+    }
     function _facePlayer() { chessBoard.angle = ChessConnector.PlayerPlaysWhite ? 0 : 180 }
 
     // BL-11: tells the start's timing that the game is up (created: the page itself is a step). Before
@@ -240,49 +249,53 @@ Page {
             icon.source: Theme.icon("more")
             tip: page.unseenMessages > 0 ? "More (" + page.unseenMessages + " new messages)" : "More"
             Accessible.name: tip
-            onClicked: moreMenu.popup(moreButton, moreButton.width - moreMenu.width, moreButton.height)
+            onClicked: page.openMoreMenu()
 
             NewMessagesDot { count: page.unseenMessages }
 
-            Menu {
-                id: moreMenu
-                MenuItem {
-                    text: "Copy PGN"
-                    icon.source: Theme.icon("copy")
-                    enabled: ChessConnector.PlyCount > 0
-                    onTriggered: ChessConnector.copyPgn()
-                }
-                MenuItem {
-                    text: "Export PGN…"
-                    icon.source: Theme.icon("export")
-                    enabled: ChessConnector.PlyCount > 0
-                    onTriggered: page.exportPgnRequested()
-                }
-                MenuSeparator {}
-                MenuItem {
-                    text: "Computer levels"
-                    icon.source: Theme.icon("robot")
-                    onTriggered: page.levelsHelpRequested()
-                }
-                RecentMessagesMenuItem {
-                    count: page.unseenMessages
-                    onTriggered: page.recentMessagesRequested(moreButton)
-                }
-                MenuSeparator {}
-                MenuItem {
-                    text: "Settings"
-                    icon.source: Theme.icon("settings")
-                    onTriggered: page.settingsRequested()
-                }
-                MenuItem {
-                    text: "Profile"
-                    icon.source: Theme.icon("person")
-                    onTriggered: page.profileRequested()
-                }
-                MenuItem {
-                    text: "Switch user"
-                    icon.source: Theme.icon("sign-out")
-                    onTriggered: page.switchUserRequested()
+            // Made on the first click (BL-11): its items took a tenth of the page's time to build.
+            property Menu moreMenu: null
+            Component {
+                id: moreMenuComponent
+                Menu {
+                    MenuItem {
+                        text: "Copy PGN"
+                        icon.source: Theme.icon("copy")
+                        enabled: ChessConnector.PlyCount > 0
+                        onTriggered: ChessConnector.copyPgn()
+                    }
+                    MenuItem {
+                        text: "Export PGN…"
+                        icon.source: Theme.icon("export")
+                        enabled: ChessConnector.PlyCount > 0
+                        onTriggered: page.exportPgnRequested()
+                    }
+                    MenuSeparator {}
+                    MenuItem {
+                        text: "Computer levels"
+                        icon.source: Theme.icon("robot")
+                        onTriggered: page.levelsHelpRequested()
+                    }
+                    RecentMessagesMenuItem {
+                        count: page.unseenMessages
+                        onTriggered: page.recentMessagesRequested(moreButton)
+                    }
+                    MenuSeparator {}
+                    MenuItem {
+                        text: "Settings"
+                        icon.source: Theme.icon("settings")
+                        onTriggered: page.settingsRequested()
+                    }
+                    MenuItem {
+                        text: "Profile"
+                        icon.source: Theme.icon("person")
+                        onTriggered: page.profileRequested()
+                    }
+                    MenuItem {
+                        text: "Switch user"
+                        icon.source: Theme.icon("sign-out")
+                        onTriggered: page.switchUserRequested()
+                    }
                 }
             }
         }
@@ -454,16 +467,20 @@ Page {
             color: Theme.cardBg
             border.color: Theme.cardStroke
 
-            MovesPanel {
+            // Only the shown moves panel is made, this one or the sheet's (BL-11), once the page is laid out.
+            Loader {
                 anchors.fill: parent
                 anchors.margins: 1
-                status: page.status
-                reviewText: page.reviewText
-                resultActions: page._resultHidden
-                canRematch: page.canRematch
-                onExportRequested: page.exportPgnRequested()
-                onRematchRequested: ChessConnector.rematch()
-                onNewGameRequested: page.newGameRequested()
+                active: layoutGate.open && area.wide
+                sourceComponent: MovesPanel {
+                    status: page.status
+                    reviewText: page.reviewText
+                    resultActions: page._resultHidden
+                    canRematch: page.canRematch
+                    onExportRequested: page.exportPgnRequested()
+                    onRematchRequested: ChessConnector.rematch()
+                    onNewGameRequested: page.newGameRequested()
+                }
             }
         }
     }
@@ -551,11 +568,14 @@ Page {
             }
         }
 
-        MovesPanel {
+        Loader {
             anchors { top: handle.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
+            active: layoutGate.open && !area.wide
             visible: sheet.height > Theme.sheetHandleHeight
-            showTitle: false   // the handle says "Moves", the status and the review
-            onExportRequested: page.exportPgnRequested()
+            sourceComponent: MovesPanel {
+                showTitle: false   // the handle says "Moves", the status and the review
+                onExportRequested: page.exportPgnRequested()
+            }
         }
     }
 }

@@ -23,6 +23,7 @@ SOURCES += main.cpp \
     movelistmodel.cpp \
     movegate.cpp \
     claimwin.cpp \
+    layoutgate.cpp \
     gameclock.cpp \
     applog.cpp \
     ChessEnginePlayer.cpp \
@@ -69,6 +70,7 @@ HEADERS += \
     movelistmodel.h \
     movegate.h \
     claimwin.h \
+    layoutgate.h \
     gameclock.h \
     applog.h \
     ChessEnginePlayer.h \

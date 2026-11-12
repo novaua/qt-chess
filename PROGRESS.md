@@ -4,6 +4,38 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-11 step 2: the game page faster to build, the scene graph checks (branch: features/gamePageSpeed_121126)
+
+### Measuring
+- The `timing` scene (Release and Debug), and a QML profile of it (`qmlprofiler` on the Debug build, which has QML debugging on), summed per file and line over each game start (the route() handler that builds the page and the 1.3 s after it). The profile lists each range twice; the self times are right.
+- **Where the Debug build's 1.8 s went** (per game start, self time with the profiler on): the board's square-size binding **~535 ms** (`ChessBoard.qml:14`: the page passes through stand-in sizes while it is built, 200 px and then the real one, and each moved every square, piece, dot and label), the 64 squares with 6 highlight items each (a check-glow `Shape` among them) ~200 ms, the 32 edge coordinates with `Text.Fit` (each searches its own font size) ~135 ms, the More menu's items ~95 ms, the piece images ~78 ms (the 12 PNGs decoded again on every start), the second moves panel (both the side panel's and the sheet's were made).
+
+### Fixed
+1. **The board's layers are made once, at the board's real size** (`LayoutGate`, new, `layoutgate.h/cpp`, a QML type in `ChessPlusPlus`): an item that opens in the first frame's polish pass, once the page's layout has settled; `ChessBoard`'s layers (squares, pieces, coordinates, dots, the dragged piece) are behind a `Loader` on it. Items made in the polish pass are polished in the same pass, so the first frame still has the whole board (the `rejoin` scene grabs that frame). The stand-in size couldn't be avoided in the bindings: `boardSize` is evaluated before `freeH` has caught up (`boardSize 200 … freeH 0`, then 736), and a `RowLayout` around the board passed the 200 too.
+2. **The square highlights are one item each** (`ChessBoxes.qml`: last move ×2, premove ×2, check glow, flagged king, selected, drop square), moved to their square, in the order they had on a square; the 64 squares are plain rectangles.
+3. **Only the shown coordinates are made** (around the board or on the squares), and the edge labels' size is fitted once (one hidden `Text.Fit`, its `fontInfo.pixelSize` for all 32; checked at 12 sizes: the same size and layout as each label fitting itself).
+4. **The More menu is made on its first opening** (`GamePage.openMoreMenu()`; scene `more-menu`, new), and **only the shown moves panel** (side panel or sheet), behind the `LayoutGate` too.
+5. **The piece images stay decoded for the session** (`ChessGame.qml`: 12 hidden images, made after the window's first frame): Qt's image cache keeps about 2 MB of images no item shows, less than the pieces' 4.3 MB, so each game page decoded them again (the first of each kind 4–7 ms in Debug, the repeats ~1 ms).
+
+### Numbers (this PC, the `timing` scene: the session's first start (vs Robot), Continue, two players, vs Robot again)
+| | before | after |
+|---|---|---|
+| Release, to the first frame | 222–238, 203–220, 171–172, 217–231 ms | 124–136, 102–108, 82–93, 113–124 ms |
+| Release, page + first frame | 153–198 ms | 70–110 ms |
+| Debug, to the first frame | ~2000 ms (continue 1949, two players 2023) | 602–773 ms |
+
+The `[Timing]` line's steps moved: most of the build is now in `first frame` (the layers are made in its polish), `page` is 14–29 ms in Release. Settings (52 ms) and the Online page (22 ms) unchanged. All 198 screenshots (light and dark) match the baselines from `develop`.
+
+### Scene graph
+- **During a move** (`QSG_VISUALIZE=changes`, grabbed 100 ms into a slide): only the sliding piece changes. **Batches**: the 64 squares are one batch; each piece is its own (its own texture: 32 small draws). **Overdraw**: nothing unusual.
+- **An idle game page draws 60 frames a second**: the active player's avatar pulse (`PlayerCard.qml`, an infinite animation) is the only cause; with it off, an idle board draws nothing (checked with `qt.scenegraph.time.renderloop`). It costs **117 ms of CPU per second** (Release). As `OpacityAnimator`s it was no lighter (the GUI thread still synced 30 times a second; 128–133 ms), so **the owner kept it as it is** (2026-11-12: "I like this effect"). The check glow pulses the same way while a king is in check.
+
+### Left
+- The QML profile of a move, a drag, a takeback and the review (←/→): not done (the frame trace of BL-14 covers the slides).
+- Smaller still, if wanted: the 64 move dots each have a wrapper item and an animation (~20 ms per start in Debug; keeping their whole-pixel centring without the wrapper needs Qt's own rounding), the pieces' 14 objects each.
+
+---
+
 ## 2026-11-11 — BL-16: respond at once when a game starts (branch: features/gameStartFeedback_111126)
 
 ### What was done
