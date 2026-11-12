@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-05 step 4c: Lichess against FakeLichess (branch: features/uiTestsLichess_121126)
+
+### Done
+- **`FakeLichessServer`** (`ChessGuiTests/fakelichessserver.h/.cpp`, QML singleton `FakeLichess` in `ChessGuiTests`), built on `ChessQtTests/FakeLichess.h`: lichess.org on 127.0.0.1 as far as the app uses it: `/api/account`, `/api/account/playing`, the event stream (challenges, resent when it opens; `gameStart`, `gameFinish`), accept / decline, the game stream (`gameFull`, `gameState`), move, draw yes/no, resign; a keep-alive line every second. The test plays the other side: `challenge`, `play`, `offerDraw`, `endGame`, `dropGameStreams(id, downMs)` (cut, then 503 for a while), `addOngoingGame`; and checks `received("POST /api/…")`, `bodyOf`, `moves(id)`, `status(id)`.
+- **`TestSetup`**: every test file's Lichess is the fake (not offline any more; without a token nothing is asked), short stream timings (retry after 0.2 s); `TestRun.linkLichess(username)` links the profile as the sign-in does (the OAuth page is lichess.org's own, not tested).
+- **`tst_lichess.qml`** (12 functions): linked (rating, ongoing games, event stream); a challenge declined from the bar (`reason=generic`); one accepted from Home: the game page, the board turned for Black, the opponent's e4 in, our dragged e5 posted; a draw offer over the command bar, declined; a challenge during the real-time game (Decline only, "Finish your game first", Hide keeps it on Lichess); the stream cut: "Reconnecting to Lichess…", then "Reconnected to Lichess", a move still posted; the opponent resigns: the result card, Home without a question; an unfinished game continued from Home with its moves on the board, a move posted; Home during it: Leave the game? → Resign posted.
+- All: 8 files, 50 functions, ~50 s in Release; `tst_lichess` five runs alike.
+- `objectName`s: `challengeAcceptButton`, `challengeDeclineButton`, `challengeHideButton`, `statusMessage`, `offerAcceptButton`, `offerDeclineButton`, `acceptChallengeConfirm`, `leaveOnlineDialog`, `resignButton` (LeaveOnlineDialog).
+
+### Learned
+- A bar's buttons (in a `Flow`) are placed on the next polish after it shows: a click before that missed Decline. `AppDriver.click` / `clickIn` now wait for the window's polish (`laidOut()`).
+- Qt Quick Test runs the functions in name order: `test_10_…` runs before `test_2_…`; two digits from ten on.
+
+### Next
+- BL-05 step 5: the GitHub job (Layer 1 in `tests.yml`, offscreen, FakeUci and FakeLichess: no Stockfish, no Lichess).
+
+---
+
 ## 2026-11-12 — BL-05 step 4b: a restart and profiles (branch: features/uiTestsSettingsProfiles_121126)
 
 ### Done

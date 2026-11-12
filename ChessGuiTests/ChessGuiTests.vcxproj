@@ -106,6 +106,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="testsetup.cpp" />
+    <ClCompile Include="fakelichessserver.cpp" />
     <!-- The app: every ChessGui source but its main.cpp (a new one goes here too; the link fails without it) -->
     <ClCompile Include="..\ChessGui\ChessGui\AppConfig.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\AppInfo.cpp" />
@@ -127,6 +128,7 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="testsetup.h" />
+    <QtMoc Include="fakelichessserver.h" />
     <QtMoc Include="..\ChessGui\ChessGui\AppInfo.h" />
     <QtMoc Include="..\ChessGui\ChessGui\AvatarProvider.h" />
     <QtMoc Include="..\ChessGui\ChessGui\UserManager.h" />
@@ -140,6 +142,7 @@
     <QtMoc Include="..\ChessGui\ChessGui\gameclock.h" />
     <QtMoc Include="..\ChessGui\ChessGui\engineworker.h" />
     <ClInclude Include="..\ChessGui\ChessGui\appservices.h" />
+    <ClInclude Include="..\ChessQtTests\FakeLichess.h" />
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="..\ChessGui\ChessGui\qml.qrc" />

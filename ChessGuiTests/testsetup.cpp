@@ -2,6 +2,9 @@
 
 #include "AppConfig.h"
 #include "appservices.h"
+#include "fakelichessserver.h"
+#include "LichessClient.h"
+#include "UserManager.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -40,10 +43,18 @@ void TestSetup::applicationAvailable()
 	QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, _dataDir);
 
 	// Children of the app: the QML singletons outlive the test file's engine, as in main.cpp.
-	_services = std::make_unique<AppServices>(QCoreApplication::instance(), true);
+	// Lichess is FakeLichess on 127.0.0.1 (BL-05 step 4c): online, but nothing reaches lichess.org,
+	// and without linkLichess() there is no token, so nothing is asked of it at all.
+	_lichess = new FakeLichessServer(QCoreApplication::instance());
+	_services = std::make_unique<AppServices>(QCoreApplication::instance(), false);
+	_services->lichessClient()->setBaseUrl(_lichess->url());
+	// A lost stream is tried again after 0.2 s (then 0.4, 0.8, …), a move without an answer gives up
+	// after 3 s; FakeLichess's keep-alive comes every second, well inside the 10 s of silence.
+	_services->lichessClient()->setStreamTiming(10000, 200, 3000, 1000, 2000);
 	_services->start();
 	_services->registerQmlTypes();
 	qmlRegisterSingletonInstance("ChessGuiTests", 1, 0, "TestRun", this);
+	qmlRegisterSingletonInstance("ChessGuiTests", 1, 0, "FakeLichess", _lichess);
 }
 
 // The engine process gets this process's environment when it starts.
@@ -51,6 +62,11 @@ void TestSetup::setEngine(const QString& moves, int delayMs)
 {
 	qputenv("FAKEUCI_MOVES", moves.toUtf8());
 	qputenv("FAKEUCI_DELAY_MS", QByteArray::number(qMax(0, delayMs)));
+}
+
+void TestSetup::linkLichess(const QString& username)
+{
+	_services->userManager()->saveLichessCredentials(QStringLiteral("fake-token"), username);
 }
 
 // The singletons are global, so a second test file in this process would see the first one's

@@ -672,6 +672,7 @@ ApplicationWindow {
 
     BarMessage {
         id: statusMessage
+        objectName: "statusMessage"
         active: root._statusKind !== "" && !shortMessage.showing   // a short message has the place for its time
         severity: root._statusKind === "offer" ? "info" : "caution"
         text: root._statusKind === "offer" ? root._offerText
@@ -681,11 +682,13 @@ ApplicationWindow {
         onCloseRequested: root._goneDismissed = true
         tooltip: root._statusKind === "connection" ? "The connection to Lichess was lost. Your clock keeps running on Lichess." : ""
         Button {
+            objectName: "offerAcceptButton"
             visible: root._statusKind === "offer"
             text: "Accept"; highlighted: true
             onClicked: root.respondOffer(true)
         }
         Button {
+            objectName: "offerDeclineButton"
             visible: root._statusKind === "offer"
             text: "Decline"
             onClicked: root.respondOffer(false)
@@ -851,6 +854,7 @@ ApplicationWindow {
                 text: root._challenge ? root.challengeText(root._challenge) : ""
                 // During a running real-time Lichess game: Decline only (the text says why).
                 BusyButton {
+                    objectName: "challengeAcceptButton"
                     visible: root._challenge !== null && root._challenge.canPlayHere && ChessConnector.CanAcceptChallenge
                     idleText: "Accept"
                     busy: root._challenge !== null && ChessConnector.AcceptingChallengeId === root._challenge.id
@@ -865,10 +869,12 @@ ApplicationWindow {
                     onClicked: Qt.openUrlExternally(root._challenge.url)
                 }
                 Button {
+                    objectName: "challengeDeclineButton"
                     text: "Decline"
                     onClicked: LichessClient.declineChallenge(root._challenge.id)
                 }
                 Button {
+                    objectName: "challengeHideButton"
                     text: "Hide"
                     flat: true
                     onClicked: root.hideChallenge(root._challenge.id)
@@ -1187,6 +1193,7 @@ ApplicationWindow {
 
     ConfirmDialog {
         id: acceptChallengeConfirm
+        objectName: "acceptChallengeConfirm"
         property string challengeId
         title: "Leave this game?"
         text: "A two-player game isn't saved. The Lichess game starts instead."
@@ -1214,6 +1221,7 @@ ApplicationWindow {
 
     LeaveOnlineDialog {
         id: leaveOnlineDialog
+        objectName: "leaveOnlineDialog"
         onAccepted:        root._leaveOnline(quitting, false)
         onResignRequested: root._leaveOnline(quitting, true)
     }
