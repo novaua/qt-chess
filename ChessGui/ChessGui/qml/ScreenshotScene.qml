@@ -39,7 +39,7 @@ Item {
         // A second profile to play against: same names and avatars every time.
         var gameScene = ["game", "leave-online", "continue", "continue-list", "continue-list-robot", "continue-list-starting", "review", "result", "ended", "moves", "select", "drag", "slides",
                          "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate",
-                         "captures", "check", "saved"].includes(name)
+                         "captures", "check", "saved", "more-menu"].includes(name)
         if ((gameScene || name.startsWith("players")) && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -155,6 +155,8 @@ Item {
                 dialogs.leaveOnline.open()   // the dialog only: an online game needs Lichess
             if (name === "saved")
                 ChessConnector.saveGame()   // "Game saved" over the command bar, centred on the board
+            if (name === "more-menu")
+                pages.currentItem.openMoreMenu()   // made on its first opening (BL-11)
             if (name === "select")
                 ChessConnector.figureSelected(6)   // the g1 knight: tinted square, dots on its moves
             if (name === "drag") {

@@ -1,12 +1,15 @@
 import QtQuick
 
+// The ranks along an edge of the board. All labels have the same size (pixelSize: ChessBoard fits it once).
 Column {
+    id: markerColumn
+    property real pixelSize
 
     Repeater {
         model: ["8","7","6","5","4","3","2","1"]
          delegate: Item{
              rotation: chessBoard.angle
-             height:chessBoxes.height/8
+             height: chessBoard.squareSize
              width:height/4
 
              Behavior on rotation  {
@@ -27,10 +30,8 @@ Column {
                  horizontalAlignment: Text.AlignHCenter
                  verticalAlignment: Text.AlignVCenter
                  text:modelData
-                 fontSizeMode: Text.Fit
                  color: Theme.textSecondary
-                 minimumPixelSize: 2
-                 font.pixelSize: 50
+                 font.pixelSize: markerColumn.pixelSize
              }
          }
     }

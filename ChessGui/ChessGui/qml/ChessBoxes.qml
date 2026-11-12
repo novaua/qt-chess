@@ -3,105 +3,118 @@ import QtQuick.Shapes
 import ChessPlusPlus
 
 // The squares with their highlights, placed by ChessBoard.squareX/Y (a1 at the bottom left).
+// Each highlight is one item moved to its square, not one per square (BL-11: 6 items on each of the
+// 64 squares, a check glow among them, were a sixth of the game page's time to build). They lie over
+// all squares in the order they had on a square: last move, premove, check, flagged king, selected,
+// drop square.
 Item {
     width: chessBoard.squaresSize
     height: width
 
-    Repeater
-    {
-        id:chessBoxesRptr
+    Repeater {
         model: 64
         delegate: Rectangle {
-            id:chessBox
+            required property int index
             smooth: true
             antialiasing: true
             x: chessBoard.squareX(index)
             y: chessBoard.squareY(index)
             width: chessBoard.squareSize
             height: width
+            // index 0 = a1: (rank + file) even is dark
+            color: (Math.floor(index / 8) + index % 8) % 2 === 0 ? Theme.squareDark : Theme.squareLight
+        }
+    }
 
-            // index 0 = a1: row = rank, column = file
-            property int rowIndex: Math.floor(index/8)
-            property int columnIndex: index%8
-            color: (rowIndex + columnIndex) % 2 === 0 ? Theme.squareDark : Theme.squareLight   // a1 is dark
+    // A highlight on one square; hidden without one (-1).
+    component SquareMark: Rectangle {
+        property int square: -1
+        visible: square >= 0
+        x: chessBoard.squareX(square)
+        y: chessBoard.squareY(square)
+        width: chessBoard.squareSize
+        height: width
+    }
 
-            //highlighting last move
-            Rectangle {
-                anchors.fill: parent
-                color: Theme.lastMove
-                opacity: index === ChessConnector.LastMoveTo ? 1 : 0.7
-                visible: AppSettings.highlightLastMove
-                         && (index === ChessConnector.LastMoveFrom || index === ChessConnector.LastMoveTo)
-                z: 1
-            }
+    // The last move
+    SquareMark {
+        square: AppSettings.highlightLastMove ? ChessConnector.LastMoveFrom : -1
+        color: Theme.lastMove
+        opacity: 0.7
+    }
+    SquareMark {
+        square: AppSettings.highlightLastMove ? ChessConnector.LastMoveTo : -1
+        color: Theme.lastMove
+    }
 
-            // The premove waiting for the opponent's move (LI-05), over the last move
-            Rectangle {
-                anchors.fill: parent
-                color: Theme.premove
-                visible: index === ChessConnector.PremoveFrom || index === ChessConnector.PremoveTo
-                z: 1
-            }
+    // The premove waiting for the opponent's move (LI-05), over the last move
+    SquareMark {
+        square: ChessConnector.PremoveFrom
+        color: Theme.premove
+    }
+    SquareMark {
+        square: ChessConnector.PremoveTo
+        color: Theme.premove
+    }
 
-            // The king in check glows (red-yellow) and pulses, so a missed "Check" message doesn't
-            // leave the player wondering why most moves are refused.
-            Shape {
-                id: checkGlow
-                anchors.fill: parent
-                visible: index === ChessConnector.CheckedKing
-                z: 2
-                preferredRendererType: Shape.CurveRenderer
+    // The king in check glows (red-yellow) and pulses, so a missed "Check" message doesn't
+    // leave the player wondering why most moves are refused.
+    Item {
+        readonly property int square: ChessConnector.CheckedKing
+        visible: square >= 0
+        x: chessBoard.squareX(square)
+        y: chessBoard.squareY(square)
+        width: chessBoard.squareSize
+        height: width
 
-                ShapePath {
-                    strokeWidth: -1
-                    fillGradient: RadialGradient {
-                        centerX: checkGlow.width / 2; centerY: checkGlow.height / 2
-                        focalX: centerX; focalY: centerY
-                        centerRadius: checkGlow.width * 0.71   // the corners: half the square's diagonal
-                        // The king hides the middle: the ring around it carries the colour.
-                        GradientStop { position: 0.0;  color: Theme.checkGlowCenter }
-                        GradientStop { position: 0.4;  color: Qt.tint(Theme.checkGlowCenter, Qt.alpha(Theme.checkGlowEdge, 0.5)) }
-                        GradientStop { position: 0.7;  color: Theme.checkGlowEdge }
-                        GradientStop { position: 1.0;  color: Qt.alpha(Theme.checkGlowEdge, 0.4) }
-                    }
-                    PathRectangle { width: checkGlow.width; height: checkGlow.height }
+        Shape {
+            id: checkGlow
+            anchors.fill: parent
+            preferredRendererType: Shape.CurveRenderer
+
+            ShapePath {
+                strokeWidth: -1
+                fillGradient: RadialGradient {
+                    centerX: checkGlow.width / 2; centerY: checkGlow.height / 2
+                    focalX: centerX; focalY: centerY
+                    centerRadius: checkGlow.width * 0.71   // the corners: half the square's diagonal
+                    // The king hides the middle: the ring around it carries the colour.
+                    GradientStop { position: 0.0;  color: Theme.checkGlowCenter }
+                    GradientStop { position: 0.4;  color: Qt.tint(Theme.checkGlowCenter, Qt.alpha(Theme.checkGlowEdge, 0.5)) }
+                    GradientStop { position: 0.7;  color: Theme.checkGlowEdge }
+                    GradientStop { position: 1.0;  color: Qt.alpha(Theme.checkGlowEdge, 0.4) }
                 }
-
-                SequentialAnimation on opacity {
-                    running: checkGlow.visible && !Theme.reduceMotion
-                    loops: Animation.Infinite
-                    alwaysRunToEnd: true
-                    NumberAnimation { from: 1.0; to: 0.7; duration: 700; easing.type: Easing.InOutSine }
-                    NumberAnimation { from: 0.7; to: 1.0; duration: 700; easing.type: Easing.InOutSine }
-                }
+                PathRectangle { width: checkGlow.width; height: checkGlow.height }
             }
 
-            // King of the side that resigned / lost on time (like Lichess's red king)
-            Rectangle {
-                anchors.fill: parent
-                visible: index === ChessConnector.FlaggedKing
-                color: Theme.flaggedKing
-                opacity: 0.6
-                z: 3
-            }
-
-            // The selected piece: accent tint on its square
-            Rectangle {
-                anchors.fill: parent
-                color: Theme.selected
-                visible: index === ChessConnector.SelectedSquare
-                z: 4
-            }
-
-            // The square under a dragged piece: where it would be dropped
-            Rectangle {
-                anchors.fill: parent
-                color: "transparent"
-                border.color: Theme.dropSquare
-                border.width: Math.max(2, Math.round(parent.width * 0.06))
-                visible: index === chessBoard.dropSquare
-                z: 5
+            SequentialAnimation on opacity {
+                running: checkGlow.visible && !Theme.reduceMotion
+                loops: Animation.Infinite
+                alwaysRunToEnd: true
+                NumberAnimation { from: 1.0; to: 0.7; duration: 700; easing.type: Easing.InOutSine }
+                NumberAnimation { from: 0.7; to: 1.0; duration: 700; easing.type: Easing.InOutSine }
             }
         }
+    }
+
+    // King of the side that resigned / lost on time (like Lichess's red king)
+    SquareMark {
+        square: ChessConnector.FlaggedKing
+        color: Theme.flaggedKing
+        opacity: 0.6
+    }
+
+    // The selected piece: accent tint on its square
+    SquareMark {
+        square: ChessConnector.SelectedSquare
+        color: Theme.selected
+    }
+
+    // The square under a dragged piece: where it would be dropped
+    SquareMark {
+        square: chessBoard.dropSquare
+        color: "transparent"
+        border.color: Theme.dropSquare
+        border.width: Math.max(2, Math.round(width * 0.06))
     }
 }

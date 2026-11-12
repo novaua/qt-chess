@@ -377,6 +377,30 @@ ApplicationWindow {
         Behavior on opacity { enabled: !Theme.reduceMotion; NumberAnimation { duration: Theme.normal } }
     }
 
+    // The pieces' images, kept decoded for the session (BL-11): Qt's image cache keeps only about 2 MB of
+    // images that no item shows, less than the 12 pieces (4.3 MB), so every game page decoded them again
+    // (4–7 ms each in a Debug build). Made after the window's first frame, so as not to delay it.
+    Loader {
+        id: pieceImages
+        active: false
+        sourceComponent: Item {
+            visible: false
+            Repeater {
+                model: ["K", "Q", "R", "B", "N", "P", "k", "q", "r", "b", "n", "p"]
+                Image {
+                    required property string modelData
+                    source: Theme.piece(modelData)
+                    fillMode: Image.PreserveAspectFit   // as on the board: part of the image cache's key
+                }
+            }
+        }
+    }
+    Connections {
+        target: root
+        enabled: !pieceImages.active
+        function onFrameSwapped() { pieceImages.active = true }
+    }
+
     // ── Pages ────────────────────────────────────────────────────────────
     StackView {
         id: stack

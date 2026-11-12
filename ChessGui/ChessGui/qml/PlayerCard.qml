@@ -71,6 +71,8 @@ Rectangle {
             opacity: 0
             visible: card.isActive
 
+            // The window draws every frame while it runs (BL-11: 117 ms of CPU per second here, Release).
+            // OpacityAnimators were no lighter (the GUI thread still synced 30 times a second, 130 ms).
             SequentialAnimation on opacity {
                 running: card.isActive && pulse.parent.visible && !Theme.reduceMotion
                 loops: Animation.Infinite

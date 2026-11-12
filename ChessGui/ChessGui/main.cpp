@@ -7,6 +7,7 @@
 #include "chessconnector.h"
 #include "applog.h"
 #include "frametrace.h"
+#include "layoutgate.h"
 #include "AppInfo.h"
 #include "AvatarProvider.h"
 #include "UserManager.h"
@@ -352,7 +353,7 @@ int main(int argc, char* argv[])
 		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "saved", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-		"opponent-left-error", "timing"
+		"opponent-left-error", "timing", "more-menu"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -504,6 +505,7 @@ int main(int argc, char* argv[])
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "UserManager", userManager);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "LichessClient", lichessClient);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "AppInfo", appInfo);
+	qmlRegisterType<LayoutGate>("ChessPlusPlus", 1, 0, "LayoutGate"); // BL-11
 
 	engine.load(QUrl(QStringLiteral("qrc:/qml/ChessGame.qml")));
 	if (screenshotMode && engine.rootObjects().isEmpty())

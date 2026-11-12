@@ -1,10 +1,13 @@
 import QtQuick
+// The files along an edge of the board. All labels have the same size (pixelSize: ChessBoard fits it once).
 Row {
+    id: markerRow
+    property real pixelSize
     Repeater {
         model: ["A","B","C","D","E","F","G","H"]
         delegate: Item{
             rotation: chessBoard.angle
-            width:chessBoxes.width/8
+            width: chessBoard.squareSize
             height:width/4
 
             Behavior on rotation  {
@@ -27,10 +30,8 @@ Row {
                 verticalAlignment: Text.AlignVCenter
                 text:modelData
                 anchors.fill: parent
-                fontSizeMode: Text.Fit
                 color: Theme.textSecondary
-                minimumPixelSize: 2
-                font.pixelSize: 50
+                font.pixelSize: markerRow.pixelSize
             }
         }
     }
