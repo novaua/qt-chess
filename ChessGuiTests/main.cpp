@@ -19,8 +19,9 @@ int main(int argc, char** argv)
 	QCoreApplication::setApplicationName("ChessPlusPlus");
 	if (!qEnvironmentVariableIsSet("QT_QPA_FONTDIR"))
 		qputenv("QT_QPA_FONTDIR", qgetenv("WINDIR") + "\\Fonts");
-	// 1 test pixel = 1 QML pixel, whatever the monitor's scaling (the window sizes in the tests).
-	if (!qEnvironmentVariableIsSet("QT_ENABLE_HIGHDPI_SCALING"))
+	// 1 test pixel = 1 QML pixel, whatever the monitor's scaling (the window sizes in the tests);
+	// watched (Run-UiTests.ps1 -Visible), the window is scaled as the app's is.
+	if (!qEnvironmentVariableIsSet("QT_ENABLE_HIGHDPI_SCALING") && qEnvironmentVariableIntValue("CHESS_UI_TEST_WATCHED") == 0)
 		qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
 
 	QApplication app(argc, argv); // takes Qt's own options (-platform); quick_test_main uses this one

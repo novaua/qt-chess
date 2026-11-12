@@ -95,7 +95,7 @@ $OutDir = Resolve-Path $OutDir
 # Read by the tests (TestSetup, TestRun in QML)
 $env:CHESS_UI_TEST_RESULTS = "$OutDir"
 $env:CHESS_UI_TEST_STEP_MS = "$StepDelay"
-$env:CHESS_UI_TEST_PAUSE = if ($Visible) { '1' } else { '0' }
+$env:CHESS_UI_TEST_WATCHED = if ($Visible) { '1' } else { '0' }
 $failedFiles = 0
 $started = Get-Date
 

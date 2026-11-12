@@ -174,13 +174,13 @@ Later (step 4):
    `TestSetup`, `AppDriver`, scenarios 1–3, **`Run-UiTests.ps1`**; docs.
    - Done (`features/uiTestsAppServices_121126`): `tst_firstRun.qml` (Welcome → a profile → Home) and
      `tst_twoPlayers.qml` (Fool's mate by clicks → the result card; New game → e2–e4 dragged: the pawn
-     on e4, the last move, "e4" in the move list, Black to move), 8 test functions in ~12 s.
+     on e4, the last move, "e4" in the move list, Black to move), 8 test functions in ~6 s.
    - Learned on the way: the window is made with `createObject` and destroyed in `cleanupTestCase`
      (`createTemporaryObject` would destroy it after each test function); a `ListView`'s rows are found
      only by the visual search, so `AppDriver.find` starts at the window's root item; a dialog still
      fading out takes the clicks with its modal overlay (`waitClosed`); keys from a test go to the
      test's own window, so a `TextField` gets its text set; a single test function on the command
-     line is `<TestCase name>::<function>` (the runner adds the name); the qmake module is `qmltest`.
+     line is `<TestCase name>::<function>` (the runner adds the name); the qmake module is `qmltest`; `waitForRendering` on a page that is already drawn waits out its whole timeout (5 s), so it isn't used.
 3. **The stub engine** and `CHESS_ENGINE_PATH`; scenario 7; the robot scenes on the stub.
 4. **The other scenarios** (4–6, 8–12), `objectName`s as needed.
 5. **GitHub job** (Q3).

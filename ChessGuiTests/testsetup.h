@@ -19,8 +19,8 @@ class TestSetup : public QObject
 	Q_PROPERTY(QString resultsDir READ resultsDir CONSTANT)
 	// A pause after each action, to watch a run in a real window (-Visible), ms
 	Q_PROPERTY(int stepDelay READ stepDelay CONSTANT)
-	// After a failure the window stays up until it is closed (-Visible)
-	Q_PROPERTY(bool pauseOnFailure READ pauseOnFailure CONSTANT)
+	// Watched (-Visible): the window on the screen, centred, and after a failure it stays up until closed
+	Q_PROPERTY(bool watched READ watched CONSTANT)
 
 public:
 	TestSetup();
@@ -28,7 +28,7 @@ public:
 
 	QString resultsDir() const { return _resultsDir; }
 	int stepDelay() const { return _stepDelay; }
-	bool pauseOnFailure() const { return _pauseOnFailure; }
+	bool watched() const { return _watched; }
 
 public slots:
 	void applicationAvailable();
@@ -40,5 +40,5 @@ private:
 	int _engines = 0;
 	QString _resultsDir;
 	int _stepDelay = 0;
-	bool _pauseOnFailure = false;
+	bool _watched = false;
 };

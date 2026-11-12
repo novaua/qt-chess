@@ -12,7 +12,7 @@
 TestSetup::TestSetup()
 	: _resultsDir(qEnvironmentVariable("CHESS_UI_TEST_RESULTS"))
 	, _stepDelay(qMax(0, qEnvironmentVariableIntValue("CHESS_UI_TEST_STEP_MS")))
-	, _pauseOnFailure(qEnvironmentVariableIntValue("CHESS_UI_TEST_PAUSE") != 0)
+	, _watched(qEnvironmentVariableIntValue("CHESS_UI_TEST_WATCHED") != 0)
 {
 }
 TestSetup::~TestSetup() = default;

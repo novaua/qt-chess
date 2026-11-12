@@ -23,9 +23,21 @@ QtObject {
         test.verify(window !== null, "the window")
         window.width = width ?? 1400   // wide: the moves beside the board, the player cards in a column
         window.height = height ?? 900
+        if (TestRun.watched)
+            fitOnScreen()
         Theme.forceReduceMotion = true
         test.tryVerify(() => pageName() !== "", 5000, "the first page")
     }
+    // Watched: within the screen the window is on (smaller if it must be), centred, clear of the taskbar.
+    function fitOnScreen() {
+        const s = window.screen
+        const taskbar = 48, frame = 32, margin = 24   // the title bar is above the window's y
+        window.width = Math.min(window.width, s.width - 2 * margin)
+        window.height = Math.min(window.height, s.height - taskbar - frame - 2 * margin)
+        window.x = s.virtualX + Math.round((s.width - window.width) / 2)
+        window.y = s.virtualY + frame + Math.max(margin, Math.round((s.height - taskbar - frame - window.height) / 2))
+    }
+
     function stop() {   // cleanupTestCase
         if (window)
             window.destroy()
@@ -43,7 +55,7 @@ QtObject {
             const path = TestRun.resultsDir + "/" + what + ".png"
             test.grabImage(window.contentItem.parent ?? window.contentItem).save(path)   // Run-UiTests.ps1 lists it
         }
-        if (!TestRun.pauseOnFailure || !window.visible)
+        if (!TestRun.watched || !window.visible)
             return
         const note = failureNote.createObject(window.contentItem.parent ?? window.contentItem,
                                               { text: "UI test failed: " + test.name + "::" + test.qtest_results.functionName
@@ -87,7 +99,8 @@ QtObject {
     function pageName() { return window && find("pages")?.currentItem ? page().objectName : "" }
     function waitForPage(name, timeout) {
         test.tryVerify(() => pageName() === name, timeout ?? 5000, "page " + name + " (on " + pageName() + ")")
-        test.waitForRendering(page())
+        // Not waitForRendering(): on a page that is already drawn and doesn't change it waits its whole
+        // timeout (5 s) for a frame that never comes.
     }
 
     // ── Input ────────────────────────────────────────────────────────
