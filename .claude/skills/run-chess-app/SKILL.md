@@ -134,7 +134,8 @@ number of failures; `NEW` = no baseline yet.
 A pixel changed when a channel differs by more than `-Tolerance` (24); a shot fails above
 `-MaxChangedPercent` (0.05 %). Two runs of all scenes match, except that `settings`, `about` and `restore` now and then differ by a
 line: the Settings page's engine lookup races the shot, so take those again before reading anything into
-it. A baseline without a new
+it. `about` and `about-dark` also fail (~0.08 %) after every rebuild of the exe: the version line shows
+the build date; accept them with `-Update -Name 'about*'` once the diff shows only that. A baseline without a new
 screenshot fails as `MISSING` (Take-Screenshot.ps1 deletes the old PNG first, so a failed scene leaves
 none): take the same scenes as the baselines, or use `-Name`. Needs PowerShell 7. A scene that shows
 the time of day must use fixed times (`restore`: backups at 9:00 and 9:30). The game clock stands still in
