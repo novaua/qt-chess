@@ -30,6 +30,7 @@ AppDialog {
             DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
         }
         Button {
+            objectName: "resignButton"
             text: "Resign"
             DialogButtonBox.buttonRole: DialogButtonBox.ActionRole
             onClicked: {

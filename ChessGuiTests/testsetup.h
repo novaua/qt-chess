@@ -5,6 +5,7 @@
 #include <memory>
 
 class AppServices;
+class FakeLichessServer;
 class QQmlEngine;
 
 // Qt Quick Test's setup object (BL-05): the app's services on a fresh data folder, made by the
@@ -37,6 +38,10 @@ public:
 	// The robot of the next game (FakeUci, read when its engine starts): the game it follows, in UCI
 	// ("e2e4 e7e5 …", it plays its own half), and how long it thinks before each answer.
 	Q_INVOKABLE void setEngine(const QString& moves, int delayMs = 0);
+	// The active profile linked to Lichess as `username` (FakeLichess's player), as the sign-in ends:
+	// the account, the ongoing games and the event stream follow, from FakeLichess. Lichess's sign-in
+	// page itself (LichessAuth) is lichess.org's: not in a test.
+	Q_INVOKABLE void linkLichess(const QString& username);
 
 public slots:
 	void applicationAvailable();
@@ -46,6 +51,7 @@ private:
 	QTemporaryDir _tempDataDir;
 	QString _dataDir; // the temporary one, or CHESS_UI_TEST_DATA_DIR (kept from one run to the next)
 	std::unique_ptr<AppServices> _services;
+	FakeLichessServer* _lichess = nullptr; // the app's Lichess in every test file: never lichess.org
 	int _engines = 0;
 	QString _resultsDir;
 	int _stepDelay = 0;

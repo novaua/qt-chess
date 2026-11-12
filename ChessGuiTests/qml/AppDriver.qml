@@ -108,9 +108,13 @@ QtObject {
     function click(name) {
         const target = item(name)
         test.tryVerify(() => target.visible && target.enabled, 3000, name + " visible and enabled")
+        laidOut()
         test.mouseClick(target)
         pace()
     }
+    // The window's layouts done: an item just shown (a bar's buttons in a Flow) is where it will be
+    // drawn only after the next polish; a click before that lands where it isn't yet.
+    function laidOut() { test.waitForPolish(window, 1000) }
 
     // A dialog gone, its fade done: until then its modal overlay takes the clicks.
     function waitClosed(dialog) {
@@ -125,6 +129,7 @@ QtObject {
         const target = test.findChild(container, name)
         test.verify(target !== null, "no " + name + " in " + containerName)
         test.tryVerify(() => target.visible && target.enabled, 3000, name + " in " + containerName + " visible and enabled")
+        laidOut()
         test.mouseClick(target)
         pace()
     }

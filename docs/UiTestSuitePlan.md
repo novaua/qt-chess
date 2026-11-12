@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-28, refreshed 2026-11-12 (after BL-11) |
-| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; step 3 done too (branch `features/fakeUciEngine_121126`): FakeUci, the robot test, the robot scenes on it; step 4 in three parts: 4a (the board) and 4b (a restart, profiles; branch `features/uiTestsSettingsProfiles_121126`) done, next 4c (Lichess). The owner chose the recommended answers to §10 (2026-11-12) |
+| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; step 3 done too (branch `features/fakeUciEngine_121126`): FakeUci, the robot test, the robot scenes on it; step 4 in three parts: 4a (the board), 4b (a restart, profiles) and 4c (Lichess against FakeLichess; branch `features/uiTestsLichess_121126`) done; next step 5 (the GitHub job). The owner chose the recommended answers to §10 (2026-11-12) |
 | **Branch** | one per step from `develop`, e.g. `features/uiTestsAppServices_<DDMMYY>` |
 
 ## 1. Problem
@@ -60,7 +60,7 @@ optional smoke tests (§6).
 - **`TestSetup`** (test project): `applicationAvailable()` sets the style (`FluentWinUI3`), the
   organisation names and a fresh data folder (`QTemporaryDir` → `AppConfig::setAppDataDir`, `QSettings`
   ini path), as `--data-dir` does; `qmlEngineAvailable()` makes the `AppServices`, with Lichess
-  offline (`setOffline(true)`).
+  `FakeLichess` (a local server, step 4c) instead of lichess.org.
 - **One process per test file**: `Run-UiTests.ps1` runs `ChessGuiTests.exe -input tst_x.qml` per file,
   so each file starts on a new profile with new services (`qmlRegisterSingletonInstance` is global; a
   second engine in the same process would see the first one's state). The test functions of one file
@@ -114,7 +114,7 @@ too). Python is test tooling only. Before releases, not before every PR.
 | The real profile (`users.json`, settings, saves) | a fresh data folder per test file (`TestSetup`), as `--data-dir` |
 | Stockfish's answers and timing | the stub engine (§4) |
 | Random avatars | profiles made by the test with a fixed avatar; the opponent's as in the scenes |
-| Lichess | offline (`setOffline`); later `FakeLichess` (already in `ChessQtTests`) via `setBaseUrl` |
+| Lichess | `FakeLichess` on 127.0.0.1 (`setBaseUrl`, step 4c); without `linkLichess` no token, so no request at all |
 | Animations | Reduce animations on; `tryCompare` / `waitBoardIdle()` where they're on |
 | The clock | games without a clock unless the test is about the clock |
 | Window size | fixed by the test (`window.width/height`), as `--size` |
@@ -215,7 +215,20 @@ Later (step 4):
      Tester's Home without her game; back to Alice, her game continued. 38 test functions in all.
    - Learned: a menu item clicked during the menu's enter animation is missed (`chooseFromMenu` waits
      for `menu.opened`).
-   - 4c: Lichess against `FakeLichess` (the challenge bar, Accept, the game
-     with its moves; scenario 12) and messages from Lichess.
+   - **4c, Lichess — done** (`features/uiTestsLichess_121126`): `FakeLichessServer`
+     (`ChessGuiTests/fakelichessserver.h`, QML singleton `FakeLichess`, on `ChessQtTests`' `FakeLichess.h`):
+     lichess.org as far as the app uses it (the account, the ongoing games, the event stream with the
+     challenges, accept and decline, the game stream, moves, draw yes/no, resign), with keep-alives; the
+     test plays the other side. `TestSetup` points every test file's `LichessClient` at it (no longer
+     offline; no token without `TestRun.linkLichess`, so nothing is asked) with short stream timings.
+     `tst_lichess.qml`: linked (rating, event stream); a challenge on the bar, declined (with its reason);
+     one accepted: the game page turned for Black, the opponent's e4 in, our e5 posted; a draw offer over
+     the command bar, declined; a challenge during the game (Decline only, Hide); the stream cut and
+     refused for 1.5 s: "Reconnecting to Lichess…", then "Reconnected to Lichess"; the opponent resigns:
+     the result card; an unfinished game continued from Home with its three moves; Home during it:
+     Leave the game?, Resign. 50 test functions in all, ~50 s.
+   - Learned: a button just shown inside a `Flow` (a bar's actions) is placed on the next polish, and a
+     click before it lands elsewhere: `click` / `clickIn` wait for the window's polish (`laidOut()`).
+     Test functions run in name order: `test_10` before `test_2`, hence `test_01`…
 5. **GitHub job** (Q3).
 6. Optional: pywinauto smoke tests.

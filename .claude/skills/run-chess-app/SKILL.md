@@ -146,11 +146,19 @@ capitals, Black's in small letters.
 A restart: a test file with the line `// ui-test-runs: 2` runs twice on the same data folder
 (`tst_restart.qml`); each function skips itself in the other run (`TestRun.run`). Menus: open them with
 `chooseFromMenu(button, item)` (it waits for the menu to be open: a click during its enter animation
-misses); a button that every dialog has (`acceptButton`): `clickIn(dialog, button)`.
+misses); a button that every dialog has (`acceptButton`): `clickIn(dialog, button)`. `click` and
+`clickIn` wait for the window's layouts first (`laidOut()`): a button just shown in a `Flow` (a bar's
+actions) is placed only on the next polish.
+
+Lichess in the UI tests is `FakeLichess` (QML singleton in `ChessGuiTests`, `fakelichessserver.h`), a
+local server: never lichess.org. `TestRun.linkLichess(FakeLichess.username)` links the profile; the
+test plays the other side (`challenge`, `play`, `offerDraw`, `endGame`, `dropGameStreams`,
+`addOngoingGame`) and checks what the app asked (`received("POST /api/…")`, `bodyOf`, `moves(gameId)`).
+See `tst_lichess.qml`.
 
 A new test: a `TestCase` in `ChessGuiTests\qml\tst_<area>.qml` with an `AppDriver` (`app.start()` in
 `initTestCase`, `app.stop()` in `cleanupTestCase`; functions `test_1_…`, `test_2_…` run in name order
-and go on from each other). Give the items it needs an `objectName`. Keys can't be typed into the
+and go on from each other; ten or more: `test_01_…`, or `test_10` runs second). Give the items it needs an `objectName`. Keys can't be typed into the
 app's window from a test (they go to the test's own): set a `TextField`'s text instead.
 
 ## Did the look change? (screenshot baselines)
