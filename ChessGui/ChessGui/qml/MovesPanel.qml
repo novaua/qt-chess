@@ -76,6 +76,7 @@ ColumnLayout {
             IconButton {
                 required property var modelData
                 required property int index
+                objectName: "review_" + modelData.icon   // review_first … review_last (the UI tests)
                 dense: true
                 icon.source: Theme.icon(modelData.icon)
                 tip: modelData.tip

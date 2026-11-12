@@ -217,11 +217,13 @@ Page {
 
         IconButton {
             visible: page.mode === "replay"
+            objectName: "prevButton"
             icon.source: Theme.icon("prev"); tip: "Previous move (←)"
             onClicked: ChessConnector.movePrev()
         }
         IconButton {
             visible: page.mode === "replay"
+            objectName: "nextButton"
             icon.source: Theme.icon("next"); tip: "Next move (→)"
             onClicked: ChessConnector.moveNext()
         }
@@ -229,6 +231,7 @@ Page {
             // vs Robot this also takes back the last moves of a finished game, which resumes it.
             visible: page.mode === "computer" || (page.mode === "online" && !page.gameOver)
             enabled: !ChessConnector.Clock.timeUp // a flag ends the game for good
+            objectName: "undoButton"
             icon.source: Theme.icon("undo")
             tip: page.mode === "online" ? "Propose takeback (Ctrl+Z)" : "Undo move (Ctrl+Z)"
             onClicked: ChessConnector.requestTakeback()
@@ -239,6 +242,7 @@ Page {
         }
         IconButton {
             visible: page.mode === "computer" || page.mode === "local"
+            objectName: "saveButton"
             icon.source: Theme.icon("save"); tip: "Save game (Ctrl+S)"
             onClicked: ChessConnector.saveGame()
         }

@@ -195,6 +195,7 @@ Page {
                     onClicked: page.onlineGameRequested()
                 }
                 HomeCard {
+                    objectName: "openSavedCard"
                     text: "Open saved game"
                     shortcut: "Ctrl+O"
                     description: ChessConnector.CanLoad ? "Replay the game you saved"

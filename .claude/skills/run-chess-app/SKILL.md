@@ -137,6 +137,12 @@ after a failure, waits until they close the window: for the owner, not for an ag
 The robot in the UI tests is FakeUci too: `app.startComputerGame("e2e4 e7e5 …", thinkMs)` gives it the
 game to follow and how long it thinks (`tst_robot.qml`).
 
+Waiting right (learned in step 4a): `waitBoardIdle()` after moves (it also lets queued signals reach
+QML: `MovableColor` is sent queued, and a press before it lands finds the pieces not draggable yet);
+in review or a replay the board is never "idle" (the gate holds outside moves), so wait for what is
+shown: `waitPiece("e4", "P")` (`pieceAt` is "?" until the board's layers exist). Pieces: White's in
+capitals, Black's in small letters.
+
 A new test: a `TestCase` in `ChessGuiTests\qml\tst_<area>.qml` with an `AppDriver` (`app.start()` in
 `initTestCase`, `app.stop()` in `cleanupTestCase`; functions `test_1_…`, `test_2_…` run in name order
 and go on from each other). Give the items it needs an `objectName`. Keys can't be typed into the
