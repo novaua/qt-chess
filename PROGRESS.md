@@ -4,6 +4,20 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-05 step 5: the UI tests on GitHub (branch: features/uiTestsCi_121126)
+
+### Done
+- **`tests.yml`**: a "Run UI tests" step after the CppUnit tests: `Run-UiTests.ps1 -Configuration Debug` on the Debug build the job already makes, offscreen; FakeUci and FakeLichess, so no Stockfish and no lichess.org. On a failure, "Upload UI test results" keeps `test-results\ui` (logs, the failed functions' pictures) as the artifact `ui-test-results`. `release.yml` calls `tests.yml`, so a release waits for them too.
+- First run green: 8 files, 50 functions, 93 s on `windows-latest` (the whole job ~8 min, most of it Qt's install and the build). Locally in Debug 113 s.
+
+### Not checked
+- The upload on a failure: the step only runs when something fails, and no run has failed yet.
+
+### Next
+- BL-05 is done except the optional pywinauto smoke tests (step 6). The LI-04 / LI-02 / LI-05 hand tests on real Lichess are still open (`TASKS.md`).
+
+---
+
 ## 2026-11-12 — BL-05 step 4c: Lichess against FakeLichess (branch: features/uiTestsLichess_121126)
 
 ### Done
