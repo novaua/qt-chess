@@ -1,122 +1,178 @@
-# UI Test Suite — Plan
+# UI Test Suite — Plan (BL-05)
 
 | | |
 | :---- | :---- |
-| **Date** | 2026-10-28 |
-| **Status** | Step 1 partly done (screenshot mode, `--data-dir`); rest is backlog BL-05 in `TASKS.md` |
-| **Branch** | new branch from `develop`, e.g. `uiTestFoundation_<ddmmyy>` |
+| **Date** | 2026-10-28, refreshed 2026-11-12 (after BL-11) |
+| **Status** | Layer 2 (screenshots and their diff) done; Layer 1 (behaviour tests) not started; the owner chose the recommended answers to §10 (2026-11-12): next is step 2 |
+| **Branch** | one per step from `develop`, e.g. `features/uiTestsAppServices_<DDMMYY>` |
 
 ## 1. Problem
 
-Only the chess logic and the UCI connector have tests (`ChessTests`, CppUnitTest). Nothing checks
-the QML screens, so UI regressions are found by hand. We want:
+What is tested today:
 
-- a **local sanity suite** to run before opening a PR (the main goal; it may be heavy),
-- optionally a **GitHub job** for the lighter part,
-- a reliable way for Claude Code to **see the app's views** (screenshots it can read) while
-  working on UI changes.
+- `ChessTests` (CppUnitTest, no Qt): the chess logic.
+- `ChessQtTests` (CppUnitTest, Qt): the C++ behind the UI without QML: `BoardPieces`, `MoveListModel`,
+  `MoveGate`, `GameClock`, `ClaimWin`, `UserManager`, the UCI connector, Lichess against `FakeLichess`.
+- **Screenshot scenes** (`--screenshot`, about 100 scenes, `Take-Screenshot.ps1`) and their diff against
+  local baselines (`Compare-Screenshots.ps1`, 202 shots light and dark). `SceneInput` (BL-11) sends real
+  mouse clicks and drags through the board's handlers, in the `play` scene.
 
-Claude Code can already build the app, launch it and screenshot its window from PowerShell, but it
-cannot reliably click or drag inside it; coordinate-based input is fragile.
+What is missing: nothing **checks behaviour through the QML**. A scene sets a state and takes a picture;
+it asserts nothing. If a click stops reaching `ChessConnector`, a binding breaks, a dialog no longer
+opens or the move list misses a move, we only notice if a picture changes and someone reads the diff,
+or by hand. `ChessConnector` itself (2200 lines, the game flows) has no tests at all, since it needs the
+QML around it.
+
+Goal: a **local pre-PR suite** that plays the app as a user does and checks the result, runs headless
+(also with the screen locked), in about a minute; later the same suite in GitHub's `tests.yml`.
 
 ## 2. Approach: three layers
 
-| Layer | Tool | Runs | Purpose |
-|---|---|---|---|
-| 1. Behaviour | **Qt Quick Test** (part of Qt) | in-process, `QT_QPA_PLATFORM=offscreen` | Main suite: click, drag pieces, check state. Local + CI |
-| 2. Visual | Screenshot hook + golden-image diff | in-process, transparent real window (not offscreen, see §9) | Catch layout/look regressions. **Local only** |
-| 3. Smoke | **pywinauto** (Windows UI Automation) | real exe on the desktop | Catch packaging/deploy breakage. Before releases only |
+| Layer | Tool | Runs | Purpose | State |
+|---|---|---|---|---|
+| 1. Behaviour | **Qt Quick Test** (in Qt: `Qt6QuickTest`, `qmltestrunner`) | `ChessGuiTests.exe`, offscreen | click, drag, check state and items | **to do** |
+| 2. Visual | screenshot scenes + golden-image diff | `ChessGui.exe --screenshot`, real transparent window | layout and look | done |
+| 3. Smoke | pywinauto (UI Automation) | the installed app on the desktop | packaging and deployment | optional |
 
-### Why not UI Automation (pywinauto/FlaUI) as the main suite
+**Why Qt Quick Test, not CppUnitTest:** one `QGuiApplication` per process and a QML engine don't sit well
+inside the `vstest` host next to the other tests; Qt Quick Test is made for this (`TestCase`, `mouseDrag`,
+`tryCompare`, `findChild`, one engine per test file) and its tests read like the QML they test. The cost:
+`ChessGuiTests` is an exe, not in Test Explorer; `Run-UiTests.ps1` runs it (§8).
 
-It drives the real mouse and keyboard: the PC is unusable while it runs, it needs an unlocked
-visible desktop, it cannot run headless, and chess-board drags still need computed coordinates.
-It is kept for a handful of black-box smoke tests that in-process tests cannot cover (missing Qt
-DLL, broken qrc, missing VC++ runtime).
+**Why not UI Automation as the main suite:** it takes over the real mouse and keyboard, needs an unlocked
+visible desktop, can't run headless, and the board still needs computed coordinates. Kept for a few
+optional smoke tests (§6).
 
-## 3. Layer 1 — Qt Quick Test project
+## 3. Layer 1 — the `ChessGuiTests` project
 
-- New project `ChessGuiTests` in `ChessCore.sln` (Qt-only, no third-party libraries).
-- Uses `QUICK_TEST_MAIN_WITH_SETUP`; the setup object's `qmlEngineAvailable()` registers the real
-  `chessConnector`, `userManager`, `avatarProvider`, `lichessClient` context properties the same
-  way `main.cpp` does, then tests load `ChessGame.qml`.
-- Tests are QML `TestCase`s: find items by `objectName`, `mouseClick` / `mouseDrag` (piece moves),
-  `tryCompare` (wait for animations), `grabImage` (screenshots).
-- Prerequisite: add `objectName`s to buttons, dialogs and board squares — today the QML tree has
-  only 4 `objectName`/`Accessible` uses.
+- **A console exe** in `ChessCore.sln`, Qt modules `core gui qml quick quickcontrols2 multimedia
+  network quicktest`, references `ChessCore`, `UciConnector`, `LiChessConnector`. It builds the
+  ChessGui sources **except `main.cpp`**, plus `qml.qrc`, the way `ChessQtTests` already builds some of
+  them (§10 Q1).
+- **`main` is `QUICK_TEST_MAIN_WITH_SETUP(ChessGuiTests, TestSetup)`**; the tests are
+  `ChessGuiTests/qml/tst_*.qml`.
+- **`AppServices` (new, in ChessGui)** takes the app's wiring out of `main.cpp`: it creates
+  `ChessConnector`, `AvatarProvider`, `UserManager`, `LichessClient` and `AppInfo`, connects them (the
+  token to the client, account, ongoing games, `isOnlineGameChanged`, `gameEnded`) and registers the
+  QML singletons and `LayoutGate`. `main.cpp` and the tests both use it, so the tests run the app's own
+  wiring, not a copy. The screenshot-only parts (`seedScreenshotProfiles`, the `play*Scene` functions,
+  the grab) stay in `main.cpp`. No behaviour change: all screenshot scenes must still match.
+- **`TestSetup`** (test project): `applicationAvailable()` sets the style (`FluentWinUI3`), the
+  organisation names and a fresh data folder (`QTemporaryDir` → `AppConfig::setAppDataDir`, `QSettings`
+  ini path), as `--data-dir` does; `qmlEngineAvailable()` makes the `AppServices`, with Lichess
+  offline (`setOffline(true)`).
+- **One process per test file**: `Run-UiTests.ps1` runs `ChessGuiTests.exe -input tst_x.qml` per file,
+  so each file starts on a new profile with new services (`qmlRegisterSingletonInstance` is global; a
+  second engine in the same process would see the first one's state). The test functions of one file
+  share the app and run in order; each file's `init()` brings it back to Home.
+- **The app in a test:** a `TestCase` creates `qrc:/qml/ChessGame.qml` (`createTemporaryObject`), waits
+  for `windowShown` and for the first page. Reduce animations on (`Theme.forceReduceMotion`, as in the
+  scenes), except in a test about slides or dragging.
+- **Helpers** (`ChessGuiTests/qml/AppDriver.qml`, used by every file): `page()` (the StackView's top,
+  by `objectName`), `createProfile(name, avatar)`, `startTwoPlayerGame()`, `squarePoint("e2")` (from
+  `ChessBoard`'s `squareX/squareY`, right for a turned board too), `clickSquare`, `dragPiece(from, to)`
+  (`mousePress` / `mouseMove` / `mouseRelease`), `waitBoardIdle()` (`ChessConnector.isBoardIdle()`).
+- **What a test checks:** `ChessConnector`'s properties (`MoveCount`, `Pieces`, `SelectedSquare`,
+  `PossibleMoves`, the result), and the items a user sees (visible, text, where a piece is). No pixels:
+  that is Layer 2.
+- **`objectName`s** are added as tests need them, camelCase, unique on their page. Today there are about 20
+  (the pages: `home`, `game`, `settings`, …; `startNotice`, `challengeBar`, `robotGameCard`, …).
+- **Offscreen** (`QT_QPA_PLATFORM=offscreen`): runs with the screen locked and in CI. Fluent's colours are
+  always dark there, which a behaviour test doesn't care about. Dialog backgrounds don't render
+  offscreen; their items still exist and take clicks.
+- **The QML ↔ C++ rule** stays: QML talks to the same five singletons; nothing test-only in the pages.
+  A test-only hook, if one is ever needed, goes on `ChessConnector` next to the screenshot ones
+  (`setScreenshotClock`, …) (§10 Q2).
 
-## 4. Layer 2 — Screenshot hook and visual diff
+## 4. Stub engine
 
-- Debug/test switch in the app, e.g. `--screenshot out.png --scene board [--position <fen|save>]`:
-  open a view, take `QQuickWindow::grabWindow()`, save, exit. Also usable by Claude Code to look at
-  any view on demand.
-- Quick tests save named states (menu, board after 1.e4, promotion dialog, mate result card) to
-  `test-results/screens/`.
-- Compare against local baselines with a small tolerance; on failure write a diff image.
-- Local only: font rendering and DPI differ between machines, so baselines would be flaky in CI.
+Games vs the robot need Stockfish today: its answers vary and take time, and `tests.yml` has none. A
+**`FakeUci`** console project (links `ChessCore`) answers `uci`, `isready`, `ucinewgame`, `position`,
+`go` with `bestmove`: the next move of a script if one is given (`FAKEUCI_MOVES="e7e5 b8c6"`), else the
+first legal move in a fixed order, after an optional delay (`FAKEUCI_DELAY_MS`). `UciConnector` looks in
+`./engines/` then on `PATH`; an override (`CHESS_ENGINE_PATH`) points the app at the stub.
 
-## 5. Layer 3 — pywinauto smoke tests (optional)
+Also useful outside Layer 1: the `robot`, `premove-robot` and `play` scenes, and `ChessEnginePlayerTest`,
+could run without Stockfish and with the same moves every time (the plan's old step 1 "Open" item).
 
-- 3–5 tests against the built Release exe or the installed app: app starts, main-menu buttons
-  exist, start a two-player game, make one move, exit cleanly.
-- Requires `Accessible.name` on controls (also improves screen-reader support).
-- Python is test tooling only; no C++ dependency is added.
+## 5. Layer 2 — screenshots (done)
 
-## 6. Determinism (required for all layers)
+`--screenshot` scenes, `Take-Screenshot.ps1`, `Compare-Screenshots.ps1`, `SceneInput`: see the
+`run-chess-app` skill. Local only (fonts and scaling differ per PC). Layer 1 doesn't replace it; the
+pre-PR run does both (§8).
 
-| Source of flakiness | Fix |
+## 6. Layer 3 — pywinauto smoke tests (optional, unchanged)
+
+3–5 tests against the built Release exe or the installed app: it starts, Home's cards are there, a
+two-player game, one move, a clean exit. Needs `Accessible.name` on the controls (screen readers gain
+too). Python is test tooling only. Before releases, not before every PR.
+
+## 7. Determinism
+
+| Source | Fix |
 |---|---|
-| Tests touching the real profile (`users.json`, `config.json`, saves under `AppLocalDataLocation`, see `AppConfig.cpp`) | `QStandardPaths::setTestModeEnabled(true)` or a `--data-dir` switch |
-| Stockfish timing and move choice | Stub UCI engine with scripted replies (path configurable in test mode) |
-| Random avatars (`AvatarProvider::randomize` on every new game) | Seed / test flag |
-| Lichess / network | Fake client or skip |
-| Animations | `tryCompare` waits, or shorter durations in test mode |
-| DPI / window size (screenshots) | `QT_SCALE_FACTOR=1`, fixed window size |
-
-Test-only switches live in `ChessConnector` or `main.cpp`, keeping the rule that QML ↔ C++ goes
-through `ChessConnector`. The test project's own setup `QObject` sits outside ChessGui — confirm
-this is acceptable under that rule before starting.
-
-## 7. First scenarios
-
-1. Main menu renders; **Load** disabled when there are no saves.
-2. Two players: drag e2→e4 — piece moves, last-move highlight, move appears in the history panel.
-3. Illegal drag snaps back.
-4. Promotion dialog appears; choosing a knight gives a knight (both colours).
-5. Fool's mate → result dialog / card and red flag on the losing king.
-6. Save → Continue / Load restores the position.
-7. Move-history navigation back and forward.
-8. Single player vs the stub engine: engine replies.
-9. A Settings toggle survives a restart.
-10. Create user / log in.
+| The real profile (`users.json`, settings, saves) | a fresh data folder per test file (`TestSetup`), as `--data-dir` |
+| Stockfish's answers and timing | the stub engine (§4) |
+| Random avatars | profiles made by the test with a fixed avatar; the opponent's as in the scenes |
+| Lichess | offline (`setOffline`); later `FakeLichess` (already in `ChessQtTests`) via `setBaseUrl` |
+| Animations | Reduce animations on; `tryCompare` / `waitBoardIdle()` where they're on |
+| The clock | games without a clock unless the test is about the clock |
+| Window size | fixed by the test (`window.width/height`), as `--size` |
 
 ## 8. Running
 
-- **Local:** `scripts\ui-tests.ps1` — build Release, run CppUnit tests + Quick tests + visual diff
-  (+ smoke with a switch); write `test-results\` with screenshots and diffs. Optional, opt-in git
-  pre-push hook, since the run is heavy.
-- **GitHub:** Layer 1 only, in `tests.yml`, on `workflow_dispatch` or a PR label rather than every
-  push; screenshots uploaded as artifacts, never diffed.
+- **`scripts\Run-UiTests.ps1`**: builds `ChessGuiTests` (and `FakeUci`), runs each `tst_*.qml` in its
+  own process offscreen with Qt's `bin` on `PATH`, writes `test-results\ui\<file>.txt` (and JUnit XML,
+  `-o file,junitxml`), prints a summary; exit code = failed files. `-Name tst_game*` for some.
+  `-Screens` also takes all screenshots, light and dark, and compares them: the full pre-PR check.
+- **GitHub** (`tests.yml`): Layer 1 after the CppUnit tests, offscreen, with the stub engine; never the
+  screenshots (§10 Q3).
+- **Docs:** CLAUDE.md "Running Tests", and a section in the `run-chess-app` skill.
 
-## 9. Steps
+## 9. Scenarios
 
-1. Test foundation in the app: isolated data dir, avatar seed, stub-engine path, screenshot switch.
-   - Done (`screenshotHook_281026`): `--data-dir`, `--screenshot` with scenes `create-user`, `login`,
-     `menu`, `board` (+ `--moves`, `--black`, `--dark`, `--size`), `settings`, `levels`, `profile`;
-     `scripts\Take-Screenshot.ps1`; `run-chess-app` skill. The board scene fixes the opponent avatar
-     instead of seeding the random one.
-   - Open: stub UCI engine (for a single-player scene), Lichess scenes.
-   - Since BL-02 P1 (FluentWinUI3) screenshots don't use `-platform offscreen`: it can't force a
-     light/dark colour scheme and FluentWinUI3 then falls back to its dark palette (white text on
-     our light surfaces). Screenshot mode uses a real window that is transparent, frameless,
-     ignores input and has no taskbar button, at 100% scale (`QT_ENABLE_HIGHDPI_SCALING=0`).
-     Behaviour tests (Layer 1) can still run offscreen, but don't trust their colours.
-   - Scenes `online` (Lichess dialog, not connected) and `players` (second-player picker) added in P1.
-2. `objectName`s + `ChessGuiTests` project with scenarios 1, 2 and 5.
-3. `scripts\ui-tests.ps1` local runner.
-4. Golden-image baselines and diff.
-   - Done in BL-02 P6 (`polish_291026`): `scripts\Compare-Screenshots.ps1` (local baselines in
-     `test-results\baselines\`, `-Update` to accept, diff images in `test-results\diffs\`).
-     Screenshot mode turns animations off, so two runs of all 42 scenes match.
-5. Remaining scenarios.
-6. Optional: pywinauto smoke tests; manual CI job.
+First batch (step 2):
+1. **First run:** Welcome → create a profile → Home with its cards.
+2. **Two players, a drag:** e2→e4 dragged: the pawn on e4, last-move highlight on e2 and e4, "1. e4"
+   in the move list, Black to move; the black pieces now draggable, the white ones not.
+3. **Fool's mate by clicks:** f3, e5, g4, Qh4#: the result card (Black wins), the flagged king,
+   Rematch / New game.
+
+Later (step 4):
+4. A drag to an illegal square: the piece goes back, nothing played.
+5. Promotion: the dialog, a knight chosen (White and Black).
+6. Takeback, and the review: ←, →, Home, End, a click on a move.
+7. vs the stub robot: it answers; a premove is played after its answer; leaving while it thinks.
+8. Save, back to Home, Continue: the same position. Two unfinished games: the Continue list.
+9. A setting survives a restart (a second process on the same data folder).
+10. Profiles: create, switch during a game (the confirmation), the picker with two profiles.
+11. Messages: "Check" over the command bar, the recent messages.
+12. Lichess against `FakeLichess`: a challenge on the bar, Accept → the game page with its moves.
+
+## 10. Questions for the owner
+
+**Answered 2026-11-12: the recommended option for all four** (Q1 a, Q2 yes, Q3 a, Q4 a).
+
+- **Q1 How `ChessGuiTests` gets the ChessGui code.** (a) **Recommended:** list the ChessGui sources in
+  the test project, as `ChessQtTests` does today; a new ChessGui `.cpp` must then go into both (the
+  test build fails to link if it's forgotten, so it can't slip). (b) A ChessGui static library used by
+  `ChessGui.exe` and both test projects: one list, but a bigger change to the build, the `.pro` file and
+  the qrc (`Q_INIT_RESOURCE`), and it touches the release build.
+- **Q2 The test setup outside ChessGui** (the old plan's open question). **Recommended: yes**, since
+  `TestSetup` only calls `AppServices`, the same code `main.cpp` runs; the rule (game flows through
+  `ChessConnector`, services as typed singletons) holds for the tests as for the app.
+- **Q3 Layer 1 on GitHub.** (a) **Recommended:** on every push, as the CppUnit tests, if the run stays
+  under ~2 minutes (offscreen, stub engine). (b) Only by hand (`workflow_dispatch`) or a PR label.
+- **Q4 The stub engine.** (a) **Recommended:** its own step after the first scenarios (step 3): the first
+  batch needs no robot. (b) In step 2, so the first batch has a game vs the robot too.
+
+## 11. Steps
+
+1. **Foundation — done:** `--data-dir`, `--screenshot` with ~100 scenes, `Take-Screenshot.ps1`,
+   `Compare-Screenshots.ps1` (old step 4, BL-02 P6), `SceneInput` (BL-11).
+2. **`AppServices` out of `main.cpp`** (all scenes still match), **the `ChessGuiTests` project** with
+   `TestSetup`, `AppDriver`, scenarios 1–3, **`Run-UiTests.ps1`**; docs.
+3. **The stub engine** and `CHESS_ENGINE_PATH`; scenario 7; the robot scenes on the stub.
+4. **The other scenarios** (4–6, 8–12), `objectName`s as needed.
+5. **GitHub job** (Q3).
+6. Optional: pywinauto smoke tests.

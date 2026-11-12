@@ -4,6 +4,15 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-05 plan refreshed (branch: docs/bl05Plan_121126)
+
+- `docs/UiTestSuitePlan.md` brought up to date: Layer 2 (screenshot scenes, `Compare-Screenshots.ps1`, `SceneInput`) is done; the old plan's context properties, "main menu" and "Load" are gone from the app.
+- Layer 1 designed against today's code: `AppServices` (new) takes the services and their wiring out of `main.cpp`, so the app and the tests run the same code; `ChessGuiTests` (Qt Quick Test, `QUICK_TEST_MAIN_WITH_SETUP`) builds the ChessGui sources except `main.cpp`, runs offscreen, one process per test file (fresh data folder and singletons); `AppDriver` helpers (`squarePoint`, `dragPiece`, `waitBoardIdle`, …); `scripts\Run-UiTests.ps1`. A stub engine (`FakeUci`, links `ChessCore`) and `CHESS_ENGINE_PATH` come next.
+- **The owner's answers (§10):** the recommended ones: the test project lists the ChessGui sources (as `ChessQtTests`); the test setup outside ChessGui calling `AppServices` is fine; the GitHub job on every push (if under ~2 min); the stub engine as its own step 3.
+- **Next:** step 2 on a new `features/` branch once this PR is merged.
+
+---
+
 ## 2026-11-12 — Compare-Screenshots.ps1 on PowerShell 7.7 (branch: bugs/compareScreenshotsDrawing_121126)
 
 - **Broken:** on PowerShell 7.7 (.NET 11) `Compare-Screenshots.ps1` stopped before comparing anything: `CS1069: The type name 'Bitmap' could not be found in the namespace 'System.Drawing'. This type has been forwarded to assembly 'System.Drawing.Common'`. The script hands its C# helper the assemblies already loaded, and `Add-Type -AssemblyName System.Drawing` now loads only the facade, not `System.Drawing.Common`.
