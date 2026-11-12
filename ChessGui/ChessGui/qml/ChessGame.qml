@@ -1204,6 +1204,7 @@ ApplicationWindow {
 
     ConfirmDialog {
         id: switchUserConfirm
+        objectName: "switchUserConfirm"
         title: "Switch user?"
         text: _mode === "online" ? "You leave the Lichess game; it keeps running on lichess.org. You can come back from Continue or Play online."
                                  : "The game is saved, so you can continue it later."

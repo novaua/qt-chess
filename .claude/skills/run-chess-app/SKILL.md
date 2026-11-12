@@ -143,6 +143,11 @@ in review or a replay the board is never "idle" (the gate holds outside moves), 
 shown: `waitPiece("e4", "P")` (`pieceAt` is "?" until the board's layers exist). Pieces: White's in
 capitals, Black's in small letters.
 
+A restart: a test file with the line `// ui-test-runs: 2` runs twice on the same data folder
+(`tst_restart.qml`); each function skips itself in the other run (`TestRun.run`). Menus: open them with
+`chooseFromMenu(button, item)` (it waits for the menu to be open: a click during its enter animation
+misses); a button that every dialog has (`acceptButton`): `clickIn(dialog, button)`.
+
 A new test: a `TestCase` in `ChessGuiTests\qml\tst_<area>.qml` with an `AppDriver` (`app.start()` in
 `initTestCase`, `app.stop()` in `cleanupTestCase`; functions `test_1_…`, `test_2_…` run in name order
 and go on from each other). Give the items it needs an `objectName`. Keys can't be typed into the

@@ -12,6 +12,9 @@
     Compare-Screenshots.ps1 against your baselines. That is the full pre-PR check; it needs an
     unlocked screen (light pictures can't be taken offscreen) and PowerShell 7 for the comparison.
 
+    A test file with a line "// ui-test-runs: 2" runs twice on the same data folder, as the app
+    restarted (TestRun.run is 1, then 2); its results are <file>-run1.txt, <file>-run2.txt.
+
     A failed test function leaves a picture of the app's window: test-results\ui\<TestCase>-<function>.png
     (its path is printed with the failure).
 
@@ -109,13 +112,15 @@ $env:CHESS_UI_TEST_WATCHED = if ($Visible) { '1' } else { '0' }
 $failedFiles = 0
 $started = Get-Date
 
-foreach ($file in $files) {
-    $txt = Join-Path $OutDir "$($file.BaseName).txt"
-    $xml = Join-Path $OutDir "$($file.BaseName).xml"
+# One run of a test file: its results' base name, the run number and the data folder (empty: its own).
+function Invoke-TestRun($file, [string]$baseName, [int]$run, [string]$dataDir) {
+    $txt = Join-Path $OutDir "$baseName.txt"
+    $xml = Join-Path $OutDir "$baseName.xml"
     Remove-Item $txt, $xml -ErrorAction SilentlyContinue
+    $env:CHESS_UI_TEST_RUN = "$run"
+    $env:CHESS_UI_TEST_DATA_DIR = $dataDir
     # Qt Quick Test names a function <TestCase name>::<function>: the name comes from the file.
     $caseName = ([regex]::Match((Get-Content $file.FullName -Raw), '(?m)^\s*name:\s*"([^"]+)"')).Groups[1].Value
-    if ($caseName) { Remove-Item (Join-Path $OutDir "$caseName-*.png") -ErrorAction SilentlyContinue }   # the last run's failures
     $functions = @($Function | ForEach-Object { if ($_ -like '*::*' -or -not $caseName) { $_ } else { "${caseName}::$_" } })
     $argList = @('-input', "`"$($file.FullName)`"", '-o', "`"$txt,txt`"", '-o', "`"$xml,junitxml`"") + $functions
     if (-not $Visible) { $argList = @('-platform', 'offscreen') + $argList }
@@ -124,20 +129,18 @@ foreach ($file in $files) {
     if (-not $process.WaitForExit($Timeout * 1000)) {
         $process.Kill()
         $process.WaitForExit()
-        Write-Host "FAIL  $($file.BaseName) - stopped after $Timeout s" -ForegroundColor Red
-        $failedFiles++
-        continue
+        Write-Host "FAIL  $baseName - stopped after $Timeout s" -ForegroundColor Red
+        return $false
     }
     $code = $process.ExitCode
     $log = Read-Results $txt
     $totals = $log | Where-Object { $_ -like 'Totals:*' } | Select-Object -First 1
     if ($code -eq 0 -and $totals) {
-        Write-Host "OK    $($file.BaseName) - $($totals -replace '^Totals: ', '')"
-        continue
+        Write-Host "OK    $baseName - $($totals -replace '^Totals: ', '')"
+        return $true
     }
-    $failedFiles++
     $why = if ($totals) { $totals -replace '^Totals: ', '' } else { "exit code $code, no results (see $txt)" }
-    Write-Host "FAIL  $($file.BaseName) - $why" -ForegroundColor Red
+    Write-Host "FAIL  $baseName - $why" -ForegroundColor Red
     # Each failure with its message and location (the lines after FAIL! up to the next result).
     $inFailure = $false
     foreach ($line in $log) {
@@ -149,7 +152,31 @@ foreach ($file in $files) {
         Get-ChildItem (Join-Path $OutDir "$caseName-*.png") -ErrorAction SilentlyContinue |
             ForEach-Object { Write-Host "      Picture: $($_.FullName)" }
     }
+    return $false
 }
+
+foreach ($file in $files) {
+    $text = Get-Content $file.FullName -Raw
+    $caseName = ([regex]::Match($text, '(?m)^\s*name:\s*"([^"]+)"')).Groups[1].Value
+    if ($caseName) { Remove-Item (Join-Path $OutDir "$caseName-*.png") -ErrorAction SilentlyContinue }   # the last run's failures
+    $runs = [regex]::Match($text, '(?m)^\s*//\s*ui-test-runs:\s*(\d+)')
+    $runCount = if ($runs.Success) { [int]$runs.Groups[1].Value } else { 1 }
+    if ($runCount -le 1) {
+        if (-not (Invoke-TestRun $file $file.BaseName 1 '')) { $failedFiles++ }
+        continue
+    }
+    # The runs share one data folder: what the first leaves (settings, profiles, an autosaved game)
+    # the next one finds, as after a restart. A failed run ends the file.
+    $dataDir = Join-Path ([IO.Path]::GetTempPath()) ("chess-ui-test-" + [guid]::NewGuid().ToString('N'))
+    try {
+        for ($run = 1; $run -le $runCount; $run++) {
+            if (-not (Invoke-TestRun $file "$($file.BaseName)-run$run" $run $dataDir)) { $failedFiles++; break }
+        }
+    } finally {
+        Remove-Item $dataDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+Remove-Item Env:CHESS_UI_TEST_RUN, Env:CHESS_UI_TEST_DATA_DIR -ErrorAction SilentlyContinue
 
 $seconds = [int]((Get-Date) - $started).TotalSeconds
 Write-Host "$($files.Count) test files, $failedFiles failed, $seconds s. Results: $OutDir"

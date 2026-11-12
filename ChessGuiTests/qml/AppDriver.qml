@@ -117,6 +117,28 @@ QtObject {
         test.tryVerify(() => !dialog.visible, 3000, (dialog.objectName || "the dialog") + " closed")
     }
 
+    // A button inside a dialog or another container: names like "acceptButton" repeat from one dialog
+    // to the next, so it is looked up in the one named.
+    function clickIn(containerName, name) {
+        const container = item(containerName)
+        test.tryVerify(() => container.visible, 3000, containerName + " shown")
+        const target = test.findChild(container, name)
+        test.verify(target !== null, "no " + name + " in " + containerName)
+        test.tryVerify(() => target.visible && target.enabled, 3000, name + " in " + containerName + " visible and enabled")
+        test.mouseClick(target)
+        pace()
+    }
+
+    // A menu's item: the button that opens the menu, then the item.
+    function chooseFromMenu(buttonName, itemName) {
+        click(buttonName)
+        // Open, not opening: a click during the menu's enter animation misses the item.
+        test.tryVerify(() => { const it = find(itemName); return it !== null && it.visible && (!it.menu || it.menu.opened) },
+                       3000, "the menu's " + itemName)
+        test.mouseClick(find(itemName))
+        pace()
+    }
+
     // A short message over the command bar ("Check", "Game saved"), shown now or within `timeout`.
     function waitMessage(text, timeout) {
         const bar = item("shortMessage")
@@ -187,6 +209,11 @@ QtObject {
                        (letter === "" ? "nothing" : letter) + " on " + name + " (shown: \"" + pieceAt(name) + "\")")
     }
 
+    // The last move's two squares marked on the board (Settings: Highlight last move)
+    function lastMoveMarked() {
+        return item("lastMoveFromMark").visible && item("lastMoveToMark").visible
+    }
+
     // A move by two clicks: the piece, then its square.
     function clickMove(from, to) {
         waitBoardIdle()
@@ -217,6 +244,32 @@ QtObject {
         click("createProfileButton")
         waitForPage("home")
         waitClosed(dialog)
+    }
+
+    // A profile added from the profile picker (Add profile → the dialog): it is then the active one, on Home.
+    function addProfile(name) {
+        waitForPage("login")
+        click("addProfileButton")
+        const dialog = item("createUserDialog")
+        test.tryVerify(() => dialog.opened, 3000, "the Create profile dialog open")
+        item("nameField").text = name
+        click("createProfileButton")
+        waitForPage("home")
+        waitClosed(dialog)
+    }
+
+    // Home's account menu → Switch user (no game on: no question) → the profile picker.
+    function switchUserFromHome() {
+        waitForPage("home")
+        chooseFromMenu("accountButton", "switchUserItem")
+        waitForPage("login")
+    }
+
+    // From the picker: that profile's card → its Home.
+    function pickProfile(name) {
+        waitForPage("login")
+        click("profileCard_" + name)
+        waitForPage("home")
     }
 
     // From Home: Play vs computer → the dialog (the last level and side, no clock) → the game page.

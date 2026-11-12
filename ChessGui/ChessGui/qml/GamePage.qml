@@ -259,6 +259,7 @@ Page {
         }
         IconButton {
             id: moreButton
+            objectName: "moreButton"
             icon.source: Theme.icon("more")
             tip: page.unseenMessages > 0 ? "More (" + page.unseenMessages + " new messages)" : "More"
             Accessible.name: tip
@@ -305,6 +306,7 @@ Page {
                         onTriggered: page.profileRequested()
                     }
                     MenuItem {
+                        objectName: "switchUserItem"
                         text: "Switch user"
                         icon.source: Theme.icon("sign-out")
                         onTriggered: page.switchUserRequested()

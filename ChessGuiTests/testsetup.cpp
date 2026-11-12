@@ -14,7 +14,14 @@ TestSetup::TestSetup()
 	: _resultsDir(qEnvironmentVariable("CHESS_UI_TEST_RESULTS"))
 	, _stepDelay(qMax(0, qEnvironmentVariableIntValue("CHESS_UI_TEST_STEP_MS")))
 	, _watched(qEnvironmentVariableIntValue("CHESS_UI_TEST_WATCHED") != 0)
+	, _run(qMax(1, qEnvironmentVariableIntValue("CHESS_UI_TEST_RUN")))
 {
+	// A test file that runs twice (a restart) gets its folder from Run-UiTests.ps1, the same for both.
+	_dataDir = qEnvironmentVariable("CHESS_UI_TEST_DATA_DIR");
+	if (_dataDir.isEmpty())
+		_dataDir = _tempDataDir.path();
+	else
+		QDir().mkpath(_dataDir);
 }
 TestSetup::~TestSetup() = default;
 
@@ -28,9 +35,9 @@ void TestSetup::applicationAvailable()
 		qputenv("CHESS_ENGINE_PATH", QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/FakeUci.exe").toUtf8());
 	setEngine({});
 
-	AppConfig::setAppDataDir(_dataDir.path());
+	AppConfig::setAppDataDir(_dataDir);
 	QSettings::setDefaultFormat(QSettings::IniFormat);
-	QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, _dataDir.path());
+	QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, _dataDir);
 
 	// Children of the app: the QML singletons outlive the test file's engine, as in main.cpp.
 	_services = std::make_unique<AppServices>(QCoreApplication::instance(), true);

@@ -38,11 +38,13 @@ Item {
 
     // The last move
     SquareMark {
+        objectName: "lastMoveFromMark"
         square: AppSettings.highlightLastMove ? ChessConnector.LastMoveFrom : -1
         color: Theme.lastMove
         opacity: 0.7
     }
     SquareMark {
+        objectName: "lastMoveToMark"
         square: AppSettings.highlightLastMove ? ChessConnector.LastMoveTo : -1
         color: Theme.lastMove
     }

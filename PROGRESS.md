@@ -4,6 +4,23 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-05 step 4b: a restart and profiles (branch: features/uiTestsSettingsProfiles_121126)
+
+### Done
+- **A test file that runs twice** (a restart): the line `// ui-test-runs: 2` makes `Run-UiTests.ps1` run it twice on one data folder (made in %TEMP%, deleted after; results `<file>-run1.txt`, `-run2.txt`); `TestSetup` takes the folder from `CHESS_UI_TEST_DATA_DIR` and the run from `CHESS_UI_TEST_RUN` (`TestRun.run`).
+- **`tst_restart.qml`**: run 1 creates Tester, turns "Highlight last move" off in Settings and plays 1. e4 e5 vs the robot, then the window closes with the game on (the app autosaves it: `~ChessConnector`); run 2 starts on Home as Tester, the setting off and its switch shown off, Continue brings the game back with the last move known but not marked. Run 2 alone fails (Welcome, no game).
+- **`tst_profiles.qml`**: Switch user with one profile (the picker), Alice added with Add profile; Alice plays 1. e4 e5 vs the robot, Switch user from the game's More menu asks first ("Switch user?"), then the picker with both cards; Tester's Home has no game to continue; back to Alice, her game continues.
+- All: 7 files, 38 functions, ~40 s in Release (three runs alike).
+- `objectName`s: `settingsButton`, `accountButton`, `switchUserItem` (Home's and the game's menu), `moreButton`, `backButton` (Settings), `highlightLastMoveSwitch`, `switchUserConfirm`, `acceptButton` (every ConfirmDialog), `profileCard_<name>`, `addProfileButton`, `lastMoveFromMark` / `lastMoveToMark`. Driver: `clickIn`, `chooseFromMenu`, `addProfile`, `switchUserFromHome`, `pickProfile`, `lastMoveMarked`.
+
+### Learned
+- A menu item clicked while the menu is still opening (its enter animation) is missed: `chooseFromMenu` waits for `menu.opened`.
+
+### Next
+- BL-05 step 4c: Lichess against `FakeLichess` (the challenge bar, Accept, the game with its moves). Then step 5, the GitHub job.
+
+---
+
 ## 2026-11-12 — BL-05 step 4a: the board's UI tests (branch: features/uiTestsBoard_121126)
 
 ### Done

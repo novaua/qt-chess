@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-10-28, refreshed 2026-11-12 (after BL-11) |
-| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; step 3 done too (branch `features/fakeUciEngine_121126`): FakeUci, the robot test, the robot scenes on it; step 4 in three parts: 4a (the board) done (branch `features/uiTestsBoard_121126`), next 4b (settings, profiles), 4c (Lichess). The owner chose the recommended answers to §10 (2026-11-12) |
+| **Status** | Layer 2 (screenshots and their diff) done; Layer 1: step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices`, `ChessGuiTests` with scenarios 1–3, `Run-UiTests.ps1`; step 3 done too (branch `features/fakeUciEngine_121126`): FakeUci, the robot test, the robot scenes on it; step 4 in three parts: 4a (the board) and 4b (a restart, profiles; branch `features/uiTestsSettingsProfiles_121126`) done, next 4c (Lichess). The owner chose the recommended answers to §10 (2026-11-12) |
 | **Branch** | one per step from `develop`, e.g. `features/uiTestsAppServices_<DDMMYY>` |
 
 ## 1. Problem
@@ -205,8 +205,17 @@ Later (step 4):
      found the pieces not draggable: `waitBoardIdle()` and the input helpers now let queued signals
      through first. The board is never idle in review (the gate holds), hence `waitPiece`. In a Debug
      build the board's layers come a frame after the page (`LayoutGate`): `pieceAt` says "?" until then.
-   - 4b: a setting after a restart (a second process on the same data folder), profiles (create, switch
-     during a game, the picker). 4c: Lichess against `FakeLichess` (the challenge bar, Accept, the game
+   - **4b, a restart and profiles — done** (`features/uiTestsSettingsProfiles_121126`):
+     `tst_restart.qml` runs twice on one data folder (`// ui-test-runs: 2`, `TestRun.run`; the runner
+     makes the folder and deletes it after): run 1 turns "Highlight last move" off and closes with a
+     game vs the robot on; run 2 starts on Home with the profile, the setting still off (and shown so),
+     the game on the Continue card, the last move not marked. Run 2 alone fails (Welcome, no game), so it
+     does test the restart. `tst_profiles.qml`: Switch user with one profile, Alice added from the
+     picker; a game of hers, Switch user from the game's menu (asked first, then the picker with both);
+     Tester's Home without her game; back to Alice, her game continued. 38 test functions in all.
+   - Learned: a menu item clicked during the menu's enter animation is missed (`chooseFromMenu` waits
+     for `menu.opened`).
+   - 4c: Lichess against `FakeLichess` (the challenge bar, Accept, the game
      with its moves; scenario 12) and messages from Lichess.
 5. **GitHub job** (Q3).
 6. Optional: pywinauto smoke tests.

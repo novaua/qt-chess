@@ -23,6 +23,7 @@ AppDialog {
         defaultButton: primaryButton // highlighted (the box sets it, Qt 6.11+)
         Button {
             id: primaryButton
+            objectName: "acceptButton"   // the UI tests find it in its dialog (AppDriver.clickIn)
             text: dialog.acceptText
             DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
         }
