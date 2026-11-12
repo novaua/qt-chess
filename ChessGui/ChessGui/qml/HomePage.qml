@@ -141,10 +141,14 @@ Page {
 
             HomeCard {
                 visible: page._pendingCount > 0
-                enabled: !page.continueBusy
+                // Busy only when it rejoins the game itself (the one game, on Lichess): with two or
+                // more it opens the list, whatever is starting elsewhere.
+                readonly property bool _rejoining: page.continueBusy && page._pendingCount === 1 && !ChessConnector.CanContinue
+                enabled: !_rejoining
+                busy: _rejoining
                 text: page._pendingCount > 1 ? "Continue a game"
                     : ChessConnector.CanContinue ? "Continue game" : "Continue online game"
-                description: page._continueText
+                description: _rejoining ? "Connecting to Lichess…" : page._continueText
                 icon.source: Theme.icon("play")
                 Layout.fillWidth: true
                 Layout.bottomMargin: Theme.s2

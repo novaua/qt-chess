@@ -8,7 +8,9 @@
 #include <algorithm>
 #include <QClipboard>
 #include <QDate>
+#include <QDeadlineTimer>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QDebug>
 #include <QFile>
 #include <QGuiApplication>
@@ -733,13 +735,13 @@ bool ChessConnector::continueOnlineGame(const QString& gameId)
 void ChessConnector::cancelOnlineStart()
 {
 	_startTiming.cancel();
-	if (startingOnlineGame())
+	if (startingOnlineGame() || !acceptingChallengeId().isEmpty())
 		_lichessClient->stopStream(); // no game is on yet: nothing else is lost
 }
 
 void ChessConnector::checkOnlineStart()
 {
-	if (startingOnlineGame()
+	if ((startingOnlineGame() || !acceptingChallengeId().isEmpty())
 		&& (!_userManager->isLoggedIn() || _userManager->activeUserId() != _onlineStartUserId || !_userManager->lichessConnected()))
 		cancelOnlineStart();
 }
@@ -1152,6 +1154,7 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 			this, &ChessConnector::canRematchChanged, Qt::UniqueConnection);
 		connect(_lichessClient, &LichessClient::gameStarted, this, &ChessConnector::onLichessGameStarted);
 		connect(_lichessClient, &LichessClient::rejoiningChanged, this, &ChessConnector::startingOnlineGameChanged);
+	connect(_lichessClient, &LichessClient::acceptingChanged, this, &ChessConnector::acceptingChallengeChanged);
 		// A refused Accept, or a Lichess game that never came (a challenge canceled, an error): not timed.
 		connect(_lichessClient, &LichessClient::challengeAcceptFailed, this, [this] { _startTiming.cancel(); });
 		connect(_lichessClient, &LichessClient::challengeCanceled, this, [this] { _startTiming.cancel(); });
@@ -1207,6 +1210,7 @@ bool ChessConnector::acceptChallenge(const QString& challengeId)
 	if (!_lichessClient || !canAcceptChallenge())
 		return false;
 	_startTiming.begin(QStringLiteral("accept a Lichess challenge"));
+	_onlineStartUserId = _userManager ? _userManager->activeUserId() : QString();
 	_lichessClient->acceptChallenge(challengeId); // the challenger chose the sides
 	return true;
 }
@@ -1444,33 +1448,47 @@ void ChessConnector::stopEngineThread()
 	++_engineRequest; // an answer still on its way belongs to the old game: drop it
 	ENGINE_TRACE("stop thread: was thinking" << _engineThinking << ", next answer must be" << _engineRequest + 1);
 
+	// The old engine's answers no longer reach this game (the request number drops one already queued).
+	disconnect(_engineWorker, nullptr, this, nullptr);
+
+	// Don't wait for the thread (BL-16): inside the engine's UCI start it can't be stopped, and the
+	// window froze up to a second here (BL-11). It finishes on its own: the worker is deleted on it
+	// (finished → deleteLater), then the thread here. Never QThread::terminate() (TerminateThread):
+	// the thread can die inside the heap or the log lock and leave it held (BL-15).
+	QThread* thread = _engineThread;
+	QElapsedTimer stopping;
+	stopping.start();
+	connect(thread, &QThread::finished, this, [stopping] {
+		if (stopping.elapsed() > 20)
+			qCInfo(chessTiming).noquote() << QStringLiteral("[Timing] engine stop: the old engine finished %1 ms later (not waited for)").arg(stopping.elapsed());
+	});
+	connect(thread, &QThread::finished, thread, &QObject::deleteLater); // before quit(): it may finish at once
+
 	// Stop the search: the process is terminated through its own handle (BL-15); a request that
 	// has not started yet gives up. Never touch QProcess here: it belongs to the engine thread.
 	_engineWorker->killEngine();
-	_engineThread->quit();
-	QElapsedTimer stopping;
-	stopping.start();
-
-	// Give the thread time to leave a UCI wait. Never call QThread::terminate() (TerminateThread):
-	// the thread can die inside the heap or the log lock and leave it held. If it doesn't stop,
-	// leave it (detached) — destroying a running QThread aborts the process (BL-15).
-	const bool stopped = _engineThread->wait(3000);
-	if (stopping.elapsed() > 20) // BL-11: the GUI thread waits here
-		qCInfo(chessTiming).noquote() << QStringLiteral("[Timing] engine stop: the GUI thread waited %1 ms").arg(stopping.elapsed());
-	if (stopped) {
-		// _engineWorker was deleted on the engine thread via the finished->deleteLater connection.
-		delete _engineThread;
-	}
-	else {
-		qWarning() << "Engine thread did not stop within 3 s; leaving it behind";
-		_engineThread->setParent(nullptr); // the connector must not delete it either
-	}
+	thread->quit();
 	_engineThread = nullptr;
 	_engineWorker = nullptr;
 
 	_engineThinking = false;
 	_engineAutoPlay = false;
 	emit engineThinkingChanged();
+}
+
+// The app's exit: a running QThread must not be destroyed (it aborts the process). The stopped
+// engines' threads are this connector's children until they finish (finished → deleteLater); a stop
+// ends even an engine's start at once (BL-16 review), so they are done in a few ms. Up to 3 s for
+// all of them; one still running then is left behind (detached), as before.
+void ChessConnector::waitForStoppedEngines()
+{
+	const QDeadlineTimer deadline(3000);
+	for (QThread* thread : findChildren<QThread*>(Qt::FindDirectChildrenOnly)) {
+		if (thread->wait(deadline))
+			continue;
+		qWarning() << "Engine thread did not stop within 3 s; leaving it behind";
+		thread->setParent(nullptr); // the connector must not delete it
+	}
 }
 
 // The robot's turn. The engine thread gets a copy of the moves and only looks for a move;
@@ -1660,6 +1678,31 @@ void ChessConnector::setBoardSettled(bool settled)
 void ChessConnector::gameShown(QObject* window, bool pageCreated)
 {
 	_startTiming.shown(qobject_cast<QQuickWindow*>(window), pageCreated);
+}
+
+// As GameStartTiming::shown: both signals come from the render thread, queued here in the order they
+// were sent; a frame whose synchronization came before this call (drawn without the notice) is skipped.
+void ChessConnector::waitForStartFrame(QObject* windowObject)
+{
+	const int wait = ++_startFrameWait;
+	struct Connections { QMetaObject::Connection sync, swap; bool synced = false; };
+	auto state = std::make_shared<Connections>();
+	auto done = [this, wait, state]() {
+		QObject::disconnect(state->sync);
+		QObject::disconnect(state->swap);
+		if (wait != _startFrameWait)
+			return; // a newer wait, or this one is over
+		++_startFrameWait;
+		_startTiming.step("notice");
+		emit startFrameShown();
+	};
+	auto* window = qobject_cast<QQuickWindow*>(windowObject);
+	if (window) {
+		state->sync = connect(window, &QQuickWindow::afterSynchronizing, this, [state]() { state->synced = true; }, Qt::QueuedConnection);
+		state->swap = connect(window, &QQuickWindow::frameSwapped, this, [state, done]() { if (state->synced) done(); }, Qt::QueuedConnection);
+		window->update();
+	}
+	QTimer::singleShot(window ? 500 : 0, this, done);
 }
 
 void ChessConnector::pageOpened()
@@ -2133,6 +2176,7 @@ ChessConnector::~ChessConnector()
 		autoSaveGame();
 
 	stopEngineThread();
+	waitForStoppedEngines();
 	qDebug() << "Game Exited.";
 }
 

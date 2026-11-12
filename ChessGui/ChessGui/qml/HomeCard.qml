@@ -10,6 +10,7 @@ AbstractButton {
     property string description
     property bool   dimmed: false   // looks unavailable but still clicks: it then explains what's missing
     property string shortcut        // shown as the tooltip, e.g. "Ctrl+N" (ChessGame.qml handles the keys)
+    property bool   busy: false     // its action waits for an answer (BL-16): a ring in the icon's place
 
     padding: Theme.s4
     implicitWidth:  implicitContentWidth + leftPadding + rightPadding
@@ -36,11 +37,20 @@ AbstractButton {
     contentItem: RowLayout {
         spacing: Theme.s3
 
-        IconImage {
-            source: card.icon.source
-            sourceSize.width: Theme.iconSizeCard; sourceSize.height: Theme.iconSizeCard
-            color: card.dimmed ? Theme.textDisabled : Theme.accent
+        Item {
+            implicitWidth: Theme.iconSizeCard; implicitHeight: Theme.iconSizeCard
             Layout.alignment: Qt.AlignTop
+
+            IconImage {
+                visible: !card.busy
+                source: card.icon.source
+                sourceSize.width: Theme.iconSizeCard; sourceSize.height: Theme.iconSizeCard
+                color: card.dimmed ? Theme.textDisabled : Theme.accent
+            }
+            BusyRing {
+                visible: card.busy
+                anchors.fill: parent
+            }
         }
         ColumnLayout {
             spacing: 2

@@ -97,6 +97,11 @@ class ChessConnector : public QObject
 		// BL-17: an unfinished Lichess game is being rejoined (continueOnlineGame) until its game
 		// starts, it fails (gameStartFailed) or it is dropped (cancelOnlineStart, another profile).
 		Q_PROPERTY(bool StartingOnlineGame READ startingOnlineGame NOTIFY startingOnlineGameChanged)
+		// BL-16: that game's id, for the one card that shows "Starting…"; empty when none is.
+		Q_PROPERTY(QString StartingGameId READ startingGameId NOTIFY startingOnlineGameChanged)
+		// BL-16: the Lichess challenge acceptChallenge() is accepting, until its game starts, Lichess refuses
+		// it or it is dropped (cancelOnlineStart, another profile); "" when none. One for the bar and the Online page.
+		Q_PROPERTY(QString AcceptingChallengeId READ acceptingChallengeId NOTIFY acceptingChallengeChanged)
 		Q_PROPERTY(GameClock* Clock READ clock CONSTANT) // the game's clocks; Clock.enabled false: none
 		// --screenshot mode: { scene, moves, black, dark, width, height }; empty in a normal run
 		Q_PROPERTY(QVariantMap ScreenshotScene READ screenshotScene CONSTANT)
@@ -150,7 +155,9 @@ public:
 	bool    canClaimVictory() const { return _claimWin->canClaim(); }
 	QString continueDescription() const;
 	QVariantMap continueGameInfo() const;
-	bool startingOnlineGame() const { return _lichessClient && !_lichessClient->rejoiningGameId().isEmpty(); }
+	bool startingOnlineGame() const { return !startingGameId().isEmpty(); }
+	QString startingGameId() const { return _lichessClient ? _lichessClient->rejoiningGameId() : QString(); }
+	QString acceptingChallengeId() const { return _lichessClient ? _lichessClient->acceptingChallengeId() : QString(); }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 	int materialBalance() const;
@@ -218,6 +225,8 @@ signals:
 	void movesTakenBack(int plies); // a Lichess takeback was accepted (by either side)
 
 	void screenshotSceneReady(); // QML has set up the --screenshot scene: grab the window
+	void startFrameShown(); // waitForStartFrame(): the notice is on the screen
+	void acceptingChallengeChanged();
 	void screenshotSceneSetUp(); // the takeback scene: QML is done, C++ plays the rest (main.cpp)
 	void boardIdle();            // the page has settled and no move waits to be shown (BL-14)
 
@@ -245,6 +254,10 @@ public slots:
 	// BL-11: the game page is up (pageCreated), or a new game started on it: the start's timing line
 	// is written at the window's next frame (GameStartTiming).
 	Q_INVOKABLE void gameShown(QObject* window, bool pageCreated);
+	// BL-16: route() shows "Starting the game…" before it builds the game page, which keeps the GUI
+	// thread (150 ms here in Release, 1.5 s in a Debug build, more on a slow PC or a phone): once a frame
+	// drawn after this call is on the screen, startFrameShown() (after 500 ms anyway: a hidden window).
+	Q_INVOKABLE void waitForStartFrame(QObject* window);
 	// Theme.slow, or 0 with Reduce animations: how long a piece slides.
 	Q_INVOKABLE void setMoveTiming(int slideMs);
 	// The gate: the page has settled, it shows the live position, and no move waits to be shown.
@@ -356,7 +369,10 @@ private:
 	void appendMoveToHistory();
 	void resetMoveHistoryCache();
 	void startEngineThread(Chess::EngineLevel level = Chess::EngineLevel{ 3 });
+	// Stops the robot without waiting for it (BL-16): its thread, a child of this connector, finishes on
+	// its own and is deleted then. Only the app's exit waits for the stopped ones (waitForStoppedEngines).
 	void stopEngineThread();
+	void waitForStoppedEngines();
 	void askEngineMove(); // the robot's turn: start the engine on a copy of the moves
 	void beginGame(bool online); // resets per-game end state; online: rematch goes to Lichess
 	void setFlaggedKing(int square);
@@ -389,6 +405,7 @@ private:
 	MoveGate* _gate = nullptr; // holds the robot's and the Lichess opponent's moves until the board is idle (BL-14)
 	GameClock* _clock = nullptr;
 	GameStartTiming _startTiming; // BL-11: from the action that starts a game to its first frame
+	int _startFrameWait = 0; // waitForStartFrame(): a frame or timeout of an earlier wait doesn't count
 	int _clockLimitSec = 0; // the local game's time control, kept for a rematch
 	int _clockIncSec = 0;
 	bool _piecesAnew = false;  // the next Pieces sync shows the position anew, without slides (a resync)

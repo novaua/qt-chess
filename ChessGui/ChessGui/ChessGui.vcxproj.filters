@@ -236,6 +236,12 @@
     <None Include="qml\OnlinePage.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\BusyButton.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\BusyRing.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\GameCard.qml">
       <Filter>Source Files\Qml</Filter>
     </None>

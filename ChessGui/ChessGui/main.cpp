@@ -25,6 +25,8 @@
 #include <QDateTime>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QTcpServer>
+#include <QTcpSocket>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QDir>
@@ -60,7 +62,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	}
 	// The Online page's "Your games" and Home's Continue (LI-04): fixed rows, no network.
 	if (scene == "online" || scene == "continue" || scene == "continue-online" || scene == "continue-list"
-	    || scene == "continue-list-online") {
+	    || scene == "continue-list-online" || scene == "continue-list-starting" || scene == "continue-starting") {
 		sceneMap["ongoingGames"] = LichessClient::parseOngoingGames(QJsonDocument::fromJson(R"({ "nowPlaying": [
 			{ "gameId": "aEPqtBMc", "color": "white", "isMyTurn": true, "secondsLeft": 540,
 			  "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "lastMove": "b8c6",
@@ -79,12 +81,15 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 			  "opponent": { "id": "speedy", "username": "Speedy", "rating": 1890 },
 			  "speed": "blitz", "source": "lobby", "variant": { "key": "standard" } }
 		] })").object());
+		// Home's Continue rejoins only the one game there is (with more it opens the list).
+		if (scene == "continue-starting")
+			sceneMap["ongoingGames"] = QVariantList{ sceneMap["ongoingGames"].toList().first() };
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
 	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online",
-	                  "continue-list", "continue-list-online", "takeback",
+	                  "continue-list", "continue-list-online", "continue-list-starting", "continue-starting", "takeback",
 	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting", "rejoin",
-	                  "challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
+	                  "challenge", "challenge-accepting", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
 	                  "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
 	                  "opponent-left-error" }.contains(scene))
 		return;
@@ -273,7 +278,7 @@ static void seedChallenges(LichessClient* lichess, const QString& scene)
 		"challenger":{"id":"friendlyrival","name":"FriendlyRival","rating":1712,"provisional":false},"destUser":{"id":"testerchess","name":"TesterChess"},
 		"variant":{"key":"standard"},"rated":false,"speed":"rapid",
 		"timeControl":{"type":"clock","limit":600,"increment":5,"show":"10+5"},"color":"white"}})");
-	if (scene == "challenge" || online)
+	if (scene == "challenge" || scene == "challenge-accepting" || online)
 		lichess->handleEventStreamLine(R"({"type":"challenge","compat":{"bot":false,"board":true},"challenge":{
 			"id":"chal0002","url":"https://lichess.org/chal0002","status":"created","direction":"in",
 			"challenger":{"id":"slowplayer","name":"SlowPlayer","rating":1540,"provisional":true},"destUser":{"id":"testerchess","name":"TesterChess"},
@@ -291,6 +296,20 @@ static void playChallengeInGameScene(ChessConnector* connector, LichessClient* l
 	seedChallenges(lichess, QStringLiteral("challenge-ingame"));
 	QObject::connect(connector, &ChessConnector::boardIdle, lichess,
 		[=]() { emit connector->screenshotSceneReady(); }, Qt::SingleShotConnection);
+}
+
+// Scenes "continue-starting", "continue-list-starting" and "challenge-accepting" (BL-16): what a button
+// shows while Lichess hasn't answered yet. Lichess is a local server that takes the request and never
+// answers, so the rejoin or the Accept stays under way (no network).
+static void useSilentLichess(LichessClient* lichess)
+{
+	auto* server = new QTcpServer(lichess);
+	QObject::connect(server, &QTcpServer::newConnection, server, [server]() {
+		while (QTcpSocket* socket = server->nextPendingConnection())
+			socket->setParent(server); // kept open, never answered
+	});
+	if (server->listen(QHostAddress::LocalHost))
+		lichess->setBaseUrl(QStringLiteral("http://127.0.0.1:%1").arg(server->serverPort()));
 }
 
 int main(int argc, char* argv[])
@@ -326,7 +345,7 @@ int main(int argc, char* argv[])
 	// "login", "menu" and "board" are the older names of "profiles", "home" and "game".
 	static const QStringList screenshotScenes = {
 		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "continue-list", "continue-list-online",
-		"continue-list-robot", "game", "leave-online", "settings", "about", "restore", "levels",
+		"continue-list-robot", "continue-list-starting", "continue-starting", "challenge-accepting", "starting", "game", "leave-online", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
 		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge",
@@ -402,6 +421,8 @@ int main(int argc, char* argv[])
 	connector->setUserManager(userManager);
 	connector->setLichessClient(lichessClient);
 	lichessClient->setOffline(screenshotMode); // the scenes' Lichess token is a placeholder
+	if (screenshotMode && (scene == "continue-starting" || scene == "continue-list-starting" || scene == "challenge-accepting"))
+		useSilentLichess(lichessClient);
 
 	if (screenshotMode) {
 		QVariantMap sceneMap{
@@ -461,7 +482,7 @@ int main(int argc, char* argv[])
 	// The online scene's games (no network in screenshot mode): after the token, which resets the list.
 	if (screenshotMode && connector->screenshotScene().contains("ongoingGames"))
 		lichessClient->setOngoingGames(connector->screenshotScene().value("ongoingGames").toList());
-	if (screenshotMode && (scene == "challenge" || scene == "challenge-unplayable" || scene.startsWith("online-challenges"))) // after the token too
+	if (screenshotMode && (scene == "challenge" || scene == "challenge-accepting" || scene == "challenge-unplayable" || scene.startsWith("online-challenges"))) // after the token too
 		seedChallenges(lichessClient, scene);
 	QObject::connect(lichessClient, &LichessClient::accountFetched, userManager, &UserManager::setLichessAccount);
 	QObject::connect(lichessClient, &LichessClient::authExpired, userManager, &UserManager::setLichessExpired);

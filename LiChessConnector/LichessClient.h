@@ -70,6 +70,10 @@ public:
 	// player (incomingChallenges) stays listed until its game starts; if Lichess refuses it,
 	// challengeAcceptFailed says why (otherwise networkError).
 	Q_INVOKABLE void acceptChallenge(const QString& challengeId, const QString& color = {});
+	// BL-16: the challenge acceptChallenge() is accepting, until its game starts (gameStarted), Lichess
+	// refuses it (challengeAcceptFailed), its stream fails (networkError) or stopStream() drops it. Its
+	// row stays in incomingChallenges meanwhile (also after Lichess's gameStart), so its Accept says so.
+	QString acceptingChallengeId() const { return _acceptingId; }
 	// "Join a game": a Lichess link or a game id. A player link (…?color=black, …/black) joins as
 	// that side. False if it is neither a link nor an id.
 	Q_INVOKABLE bool joinFromUrl(const QString& urlOrId);
@@ -189,6 +193,7 @@ signals:
 	void gameEnded(QString status, QString winner);
 	void networkError(QString message);
 	void rejoiningChanged();                          // rejoinGame() started, or ended (a game, a failure, stopStream)
+	void acceptingChanged();                          // acceptingChallengeId() changed
 	void rejoinFailed(QString gameId, QString message); // rejoinGame()'s stream ended before its game started
 	void challengeCanceled();
 	void directChallengeSent(QString challengeId, QString opponentName); // we wait for the answer
@@ -226,6 +231,8 @@ private:
 	void stopWaitingForDirectChallenge(); // stop probing for the game; keeps the reply
 	void gameStreamEnded(QNetworkReply::NetworkError error, const QString& errorString, bool authExpired); // before gameFull
 	void setRejoiningGameId(const QString& gameId);
+	void setAcceptingId(const QString& challengeId);
+	void stopAll(bool keepAccept); // stopStream(); keepAccept: streamGame() of the game being accepted
 	void gameStreamRefused(bool authExpired, int httpStatus); // mid-game: Lichess said no, no more reconnects
 	bool resyncMoves(const QStringList& moves); // a gameFull after a reconnect; true: our move was lost
 	void applyStreamMoves(const QStringList& moves); // a gameState's moves against ours
@@ -264,7 +271,8 @@ private:
 	QTimer         _challengesSettle;           // then drop the ones not resent
 	QTimer         _ongoingRefresh;             // gameStart / gameFinish elsewhere: one refresh for a burst
 	QTimer         _eventStreamRetry;           // Lichess refused the event stream (not a 401): try again later
-	QString        _acceptingId;                // acceptChallenge's POST in flight: its gameStart isn't "elsewhere"
+	QString        _acceptingId;                // acceptingChallengeId(): its gameStart isn't "elsewhere"
+	bool           _acceptedGameStarted = false; // Lichess's gameStart for it came: the row goes when the accept ends
 	QNetworkReply* _probeReply       = nullptr;
 	QNetworkReply* _openChallengeReply   = nullptr; // POST /api/challenge/open in flight
 	QNetworkReply* _acceptReply          = nullptr; // acceptChallenge's POST in flight (then the stream)

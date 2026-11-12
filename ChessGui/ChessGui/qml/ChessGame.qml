@@ -40,7 +40,8 @@ ApplicationWindow {
     // ── BL-10: Lichess challenges to the player ─────────────────────────
     // The bar shows the oldest one not hidden. The finished game's rematch offer has its own bar.
     property var  _hiddenChallenges: ({})   // id → true: "Hide" until the next challenge arrives
-    property bool _acceptingChallenge: false // Lichess's answer to Accept is awaited
+    // Lichess's answer to an Accept is awaited (the bar's or the Online page's: one state, BL-16)
+    readonly property bool _acceptingChallenge: ChessConnector.AcceptingChallengeId !== ""
     readonly property var _challengesShown: LichessClient.incomingChallenges.filter(c =>
         !_hiddenChallenges[c.id] && c.id !== LichessClient.rematchOfferId)
     readonly property var _challenge: _challengesShown.length > 0 ? _challengesShown[0] : null
@@ -65,7 +66,7 @@ ApplicationWindow {
             acceptChallengeConfirm.open()
             return
         }
-        _acceptingChallenge = ChessConnector.acceptChallenge(id)
+        ChessConnector.acceptChallenge(id)
     }
 
     function hideChallenge(id) {
@@ -81,14 +82,49 @@ ApplicationWindow {
         return Qt.hsla((1 - t) * 0.36, 0.65, 0.45, 1)
     }
 
+    // BL-16: route() shows "Starting the game…" (startNotice) and waits for it to be drawn before it
+    // builds the game page.
+    property bool _startingGame: false
+    property bool _startNoticeDrawn: false
+    Connections {
+        target: ChessConnector
+        function onStartFrameShown() {
+            if (!root._startingGame)
+                return
+            root._startNoticeDrawn = true
+            root.route()
+        }
+    }
+
     // The page under everything follows the state; the Profile and Settings pages stay on top of it
     // until the base page changes (e.g. its profile was deleted).
     function route() {
         var page = UserManager.isLoggedIn ? (ChessConnector.InGame ? "game" : "home")
                  : UserManager.hasUsers ? "login" : "welcome"
         var base = stack.depth > 0 ? stack.get(0, StackView.DontLoad) : null
+        if (page !== "game" || (base && base.objectName === page))
+            _startingGame = _startNoticeDrawn = false   // no game page to build (any more)
         if (base && base.objectName === page)
             return
+        // BL-16: building the game page keeps the GUI thread (150 ms here in Release, 1.5 s in a Debug
+        // build, more on a slow PC or a phone). "Starting the game…" first; the page once that is on
+        // the screen (ChessConnector.startFrameShown → route() again). Not in the scenes, which use
+        // the page as soon as they start a game (but in "timing", which measures this).
+        if (page === "game" && base && !_startNoticeDrawn
+                && (!_screenshotMode || ChessConnector.ScreenshotScene.scene === "timing")) {
+            if (!_startingGame) {
+                _startingGame = true
+                // First: whatever happens below, the frame comes and the page is built (an error after
+                // _startingGame once left the notice up and no page: the game "hung").
+                ChessConnector.waitForStartFrame(root)
+                // A dialog still open at the start (the challenge waiting for the opponent, the
+                // accept confirmation) goes at once: its fade would stay on the screen under the notice.
+                for (const d of [challengeDialog, acceptChallengeConfirm])
+                    d.closeAtOnce()
+            }
+            return
+        }
+        _startingGame = _startNoticeDrawn = false
         var component = ({ welcome: welcomePage, login: loginPage, home: homePage, game: gamePage })[page]
         if (stack.depth === 0) stack.push(component)
         else                   stack.replace(null, component)
@@ -372,6 +408,71 @@ ApplicationWindow {
         }
         replaceExit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: stack._fast }
+        }
+    }
+
+    // BL-16: "Starting the game…" while the game page is built (route()). It takes the clicks meanwhile.
+    // It fades in late, by an Animator (on the render thread, like the ring's turn: both go on while the
+    // GUI thread builds the page): a start of 150 ms barely shows it, a slow one (a Debug build, a slow
+    // PC or a phone) has it after about 0.3 s. Not a motion: also with Reduce animations.
+    // Over the popups too (the Overlay layer): a setup dialog that started the game is still closing
+    // (its fade waits for the GUI thread as well), and would cover it.
+    MouseArea {
+        id: startNotice
+        objectName: "startNotice"
+        parent: Overlay.overlay
+        anchors.fill: parent
+        visible: root._startingGame
+        hoverEnabled: true
+        acceptedButtons: Qt.AllButtons
+        z: 1000
+        onVisibleChanged: if (visible) noticeFade.restart(); else noticeFade.stop()
+
+        Item {
+            id: noticeLayer
+            anchors.fill: parent
+            opacity: 0
+
+            Rectangle {   // the page behind, dimmed as under a dialog
+                anchors.fill: parent
+                color: Theme.scrim
+            }
+            Rectangle {
+                id: noticeCard
+                anchors.centerIn: parent
+                width: noticeRow.implicitWidth + 2 * Theme.s5
+                height: noticeRow.implicitHeight + 2 * Theme.s5
+                radius: Theme.radiusCard
+                color: Theme.layerBg
+                border.color: Theme.cardStroke
+                Accessible.role: Accessible.AlertMessage
+                Accessible.name: noticeLabel.text
+
+                Row {
+                    id: noticeRow
+                    anchors.centerIn: parent
+                    spacing: Theme.s3
+                    BusyRing {
+                        width: Theme.iconSize
+                        height: Theme.iconSize
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Label {
+                        id: noticeLabel
+                        text: "Starting the game…"
+                        font: Theme.bodyStrong
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+            }
+        }
+        OpacityAnimator {
+            id: noticeFade
+            target: noticeLayer
+            from: 0
+            to: 1
+            duration: 450
+            easing.type: Easing.InExpo   // ~0 for the first 250 ms
         }
     }
 
@@ -723,9 +824,11 @@ ApplicationWindow {
                 actionsBelow: true
                 text: root._challenge ? root.challengeText(root._challenge) : ""
                 // During a running real-time Lichess game: Decline only (the text says why).
-                Button {
+                BusyButton {
                     visible: root._challenge !== null && root._challenge.canPlayHere && ChessConnector.CanAcceptChallenge
-                    text: "Accept"
+                    idleText: "Accept"
+                    busy: root._challenge !== null && ChessConnector.AcceptingChallengeId === root._challenge.id
+                    busyText: "Accepting…"
                     highlighted: true
                     enabled: !root._acceptingChallenge
                     onClicked: root.acceptChallenge(root._challenge.id)
@@ -900,7 +1003,7 @@ ApplicationWindow {
         function onChallengeCanceled() { clearPendingChallenge() }
 
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
-            _acceptingChallenge = false
+            challengeDialog.closeAtOnce()   // BL-16: not a fade under "Starting the game…"
             clearPendingChallenge()
         }
 
@@ -914,7 +1017,6 @@ ApplicationWindow {
 
         // e.g. the challenger canceled meanwhile. The Online page shows its own error.
         function onChallengeAcceptFailed(challengeId, message) {
-            _acceptingChallenge = false
             if (_page !== "online")
                 root.notify("Couldn't accept the challenge: " + message, "critical")
         }
@@ -1061,7 +1163,7 @@ ApplicationWindow {
         title: "Leave this game?"
         text: "A two-player game isn't saved. The Lichess game starts instead."
         acceptText: "Accept challenge"
-        onAccepted: root._acceptingChallenge = ChessConnector.acceptChallenge(challengeId)
+        onAccepted: ChessConnector.acceptChallenge(challengeId)
     }
 
     ConfirmDialog {

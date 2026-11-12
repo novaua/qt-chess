@@ -16,9 +16,12 @@ Page {
     signal backRequested()
     signal profileRequested()   // link or reconnect the Lichess account there
 
-    property bool _busy: false   // a challenge or a join is under way
+    // What is under way (BL-16: its button says so): "challenge" or "join"; "" when nothing is. An
+    // Accept: ChessConnector.AcceptingChallengeId (shared with the challenge bar).
+    property string _busyAction: ""
+    readonly property bool _busy: _busyAction !== ""
     // That, or a rejoin (ChessConnector.continueOnlineGame): no second start meanwhile.
-    readonly property bool _starting: _busy || ChessConnector.StartingOnlineGame
+    readonly property bool _starting: _busy || ChessConnector.StartingOnlineGame || ChessConnector.AcceptingChallengeId !== ""
 
     readonly property string _opponent: opponentField.text.trim()   // empty: a challenge with a link
     readonly property bool _opponentValid: _opponent === "" || LichessClient.isUsername(_opponent)
@@ -58,13 +61,13 @@ Page {
     function _dropStarting() {
         if (_busy && !ChessConnector.InGame)
             LichessClient.stopStream()
-        _busy = false
+        _busyAction = ""
         ChessConnector.cancelOnlineStart()
     }
     // Pushed, or shown again (back from the Profile page). Nothing started from here is under way
     // any more: a game replaces the page, a failure says so (networkError).
     StackView.onActivated: {
-        _busy = false
+        _busyAction = ""
         gamesRefresh.refresh()   // not while one is running: a new token (main.cpp) has started one already
     }
     // Linked, reconnected or signed out (expired) while the page is open, e.g. the browser sign-in
@@ -78,7 +81,7 @@ Page {
 
     function _start(action) {
         errorBar.visible = false
-        page._busy = true
+        page._busyAction = "challenge"
         action()
     }
     function _challenge() {
@@ -95,18 +98,18 @@ Page {
 
     Connections {
         target: LichessClient
-        function onChallengeCreated(gameId, joinUrl) { page._busy = false }
-        function onDirectChallengeSent(challengeId, opponentName) { page._busy = false }
-        function onDirectChallengeLeft(opponentName) { page._busy = false }
-        function onChallengeDeclined(opponentName) { page._busy = false }
-        function onChallengeCanceled() { page._busy = false }
-        function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) { page._busy = false }
+        function onChallengeCreated(gameId, joinUrl) { page._busyAction = "" }
+        function onDirectChallengeSent(challengeId, opponentName) { page._busyAction = "" }
+        function onDirectChallengeLeft(opponentName) { page._busyAction = "" }
+        function onChallengeDeclined(opponentName) { page._busyAction = "" }
+        function onChallengeCanceled() { page._busyAction = "" }
+        function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) { page._busyAction = "" }
         function onNetworkError(message) {
-            page._busy = false
+            page._busyAction = ""
             errorBar.show(message, "critical")
         }
         function onChallengeAcceptFailed(challengeId, message) {
-            page._busy = false
+            page._busyAction = ""
             errorBar.show("Couldn't accept the challenge: " + message, "critical")
         }
     }
@@ -209,9 +212,11 @@ Page {
                                 RowLayout {
                                     spacing: Theme.s2
                                     Layout.topMargin: Theme.s1
-                                    Button {
-                                        text: challengeRow.modelData.canPlayHere ? "Accept" : "Open on lichess.org"
-                                        icon.source: Theme.icon(challengeRow.modelData.canPlayHere ? "play" : "link")
+                                    BusyButton {
+                                        idleText: challengeRow.modelData.canPlayHere ? "Accept" : "Open on lichess.org"
+                                        idleIcon: Theme.icon(challengeRow.modelData.canPlayHere ? "play" : "link")
+                                        busy: ChessConnector.AcceptingChallengeId === challengeRow.modelData.id
+                                        busyText: "Accepting…"
                                         highlighted: challengeRow.modelData.canPlayHere
                                         enabled: !page._starting
                                         onClicked: {
@@ -220,7 +225,7 @@ Page {
                                                 return
                                             }
                                             errorBar.visible = false
-                                            page._busy = ChessConnector.acceptChallenge(challengeRow.modelData.id)
+                                            ChessConnector.acceptChallenge(challengeRow.modelData.id)
                                         }
                                     }
                                     Button {
@@ -329,10 +334,12 @@ Page {
                               { label: "Black",  value: "black"  }]
                 }
 
-                Button {
+                BusyButton {
                     id: challengeButton
-                    text: page._named ? "Challenge " + page._opponent : "Create challenge"
-                    icon.source: page._named ? "" : Theme.icon("link")
+                    idleText: page._named ? "Challenge " + page._opponent : "Create challenge"
+                    idleIcon: page._named ? "" : Theme.icon("link")
+                    busy: page._busyAction === "challenge"
+                    busyText: page._named ? "Sending…" : "Creating…"
                     highlighted: true
                     enabled: !page._starting && page._opponentValid && (!page._realTime || tcClock.ready)
                     Layout.topMargin: Theme.s1
@@ -357,16 +364,18 @@ Page {
                         Layout.fillWidth: true
                         onAccepted: joinButton.clicked()
                     }
-                    Button {
+                    BusyButton {
                         id: joinButton
-                        text: "Join"
+                        idleText: "Join"
+                        busy: page._busyAction === "join"
+                        busyText: "Joining…"
                         enabled: joinUrlField.text.trim() !== "" && !page._starting
                         onClicked: {
                             if (!enabled)
                                 return
                             errorBar.visible = false
                             if (LichessClient.joinFromUrl(joinUrlField.text.trim()))
-                                page._busy = true
+                                page._busyAction = "join"
                             else
                                 errorBar.show("That isn't a Lichess link or game ID", "critical")
                         }

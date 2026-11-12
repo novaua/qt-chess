@@ -4,6 +4,51 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-11 — BL-16: respond at once when a game starts (branch: features/gameStartFeedback_111126)
+
+### What was done
+- **The engine stops without the window waiting for it** (`ChessConnector::stopEngineThread`): the robot's thread is told to stop (the process killed through its handle, the worker disconnected, `quit()`), then left to finish on its own among `_stoppingEngines`; `finished` deletes the worker on its thread and the thread here. Only the app's exit waits for them (`waitForStoppedEngines`, 3 s for all, then left behind as before). This was BL-11's "up to 3 s": a stop while the engine was inside its UCI start (the `ChessEnginePlayer` constructor, which the kill can't reach) kept the GUI thread in `wait(3000)`. The log says `[Timing] engine stop: the old engine finished N ms later (not waited for)`.
+- **A busy state where an action waits for Lichess** (the local starts: "Starting the game…" below): `BusyButton` (a ring in the icon's place, the text says what is going on, no second click) and `BusyRing` (a spinning `BusyIndicator`, or a still clock with Reduce animations and in the scenes). On: a Lichess game's Continue (the Continue list, the Online page: only the card being started, `ChessConnector.StartingGameId`, new), Home's Continue card ("Connecting to Lichess…", the ring in the icon's place), the challenge bar's and the Online page's Accept ("Accepting…", the one being accepted: `_acceptingChallengeId`, `_busyAction`), Join ("Joining…"), Create challenge / Challenge *name* ("Creating the challenge…" / "Sending the challenge…").
+- **Scenes** (in `all`): `continue-starting` (Home's Continue card), `continue-list-starting` (Friend's card "Starting…"), `challenge-accepting` (the bar's "Accepting…"). Lichess is a local `QTcpServer` that takes the request and never answers (`useSilentLichess`, `main.cpp`). The `timing` scene also opens and closes Settings and the Online page (`[Timing] Settings: N ms to open`).
+
+### Numbers (Release, this PC, the `timing` scene)
+| | before (BL-11's fixes) | after |
+|---|---|---|
+| Leaving a robot game while its first answer is starting (GUI thread waits) | 755–829 ms | **0** (the old engine finishes 413–461 ms later, alone; once 5.5 s on a cold first run) |
+| Leaving while the robot thinks (GUI thread waits) | 37–49 ms | **0** (finished 23–53 ms later) |
+| vs Robot, the session's first game, to the first frame | 177–218 ms | 167–223 ms |
+| Continue vs Robot | 152–155 ms | 151–181 ms |
+| Two players | 121–126 ms | 124–172 ms |
+| Opening Settings / the Online page (GUI thread) | — | 36–48 ms / 17–19 ms |
+
+### "Starting the game…" (the owner, after a test in a Debug build)
+- In a **Debug build** the game page takes **1.5–1.8 s** to build (`page 1565`–`1778` in the owner's `[Timing]` lines; Lichess games 1.6–2.3 s), and the window shows nothing meanwhile; a slow PC or a phone (Android later) is in between. Release: 110–180 ms.
+- **`route()`** (`ChessGame.qml`), which every game start goes through (vs Robot, two players, Continue, Open saved game, a Lichess game, an accepted challenge, a rejoin), now shows **"Starting the game…"** first (a card with the ring over the dimmed page, taking the clicks) and builds the game page only once that frame is on the screen: `ChessConnector.waitForStartFrame(window)` → `startFrameShown` (the frame synchronized after the call, as `GameStartTiming` does; after 500 ms anyway, for a window that doesn't draw). The `[Timing]` line has a `notice` step (2–18 ms). Not in the screenshot scenes, which use the page as soon as they start a game; in `timing`, yes.
+- It **goes on while the page is built**: the ring turns (`BusyRing`: a `RotationAnimator` on an arc, `spinner.svg`, instead of `BusyIndicator`) and the notice fades in (`OpacityAnimator`), both Animators, run by the render thread while the GUI thread is busy. Checked with a render-thread probe (not committed): during a 169 ms page build the window still swapped a frame every 15–18 ms. The fade starts slowly (`Easing.InExpo`, 450 ms: almost nothing for 250 ms), so a Release start barely shows it.
+- **Over the dialogs too** (the owner: not shown for Play vs computer): a setup dialog that starts the game is a popup, drawn on the Overlay layer above the pages, and its closing fade waits for the GUI thread like everything else, so it covered the notice. The notice is on `Overlay.overlay` now, above the popups.
+- **"Waiting for opponent…" under the notice** (the owner, with a Lichess challenge): when the opponent accepted, the notice came first, then QML closed the challenge dialog, whose fade froze while the page was built, so the dialog stayed on the screen under the notice. `AppDialog.closeAtOnce()` closes a dialog without its fade (no `rejected()`); `route()` calls it for the challenge dialog and the accept confirmation when the notice starts, and so does `onGameStarted`.
+- Scene `starting` (in `all`): the notice over the vs-computer dialog.
+- **Screenshots** (screen on, 2026-11-12): all 190 scenes, light and dark, match; only `about` differs (0.09 %: its build date).
+
+### The owner's `/code-review medium` of #148: 10 findings, all fixed (same branch)
+- **The engine's start can be stopped** (1, 6): `ChessEnginePlayer` no longer starts the engine in its constructor for the worker (`startNow` false): `FindMove` starts it once `killEngine()` can reach it and the cancel check is set, and checks it before and after `UciConnector::Init`; `Init` keeps a `Kill()` that came before the process existed (`_killed` reset at its start, not after the launch) and ends the process as soon as its handle is open. A stop during the start: the old engine finished **413–461 ms** later before, **26–32 ms** now; leaving and starting again no longer leaves engines running side by side, and the app's exit waits for them only a few ms. New test `Kill_DuringTheEngineStart_EndsIt_Test` (48 ms). ChessQtTests **223 pass**.
+- **One Accept state** (2, 3, 4): `LichessClient::acceptingChallengeId()` (`acceptingChanged`), as `ChessConnector.AcceptingChallengeId`, from `acceptChallenge` until its game starts (`gameStarted`), Lichess refuses it, its stream fails (`networkError`) or `stopStream()` drops it (a rejoin, Back, another profile: `cancelOnlineStart` / `checkOnlineStart` cover it now). It was two flags in QML (the bar's and the Online page's), cleared only on a game or a refusal: a dropped Accept left "Accepting…" for good, and one place didn't know about the other's. The accepted challenge stays listed after Lichess's `gameStart` event until the game is on the board, so its button keeps "Accepting…" through the slowest part (it used to vanish); `setAcceptingId` removes it then.
+- **`BusyButton`** (5, 8): as wide busy as idle (the wider of the two, from `TextMetrics`): the Join and Challenge buttons don't move their neighbours; the ring's slot follows mirroring. Shorter busy texts ("Creating…", "Sending…").
+- **Home's Continue** (9) is busy only when it rejoins the game itself (one game in all, on Lichess), not for a rejoin started from the list or the Online page. Scene `continue-starting` has one Lichess game now.
+- **The stopped engines** (7) are the connector's child threads (`findChildren`), no list of their own.
+- **The `timing` scene's pages** (10) are timed to their first frame (`waitForStartFrame`): Settings 52–61 ms, the Online page 22 ms.
+- **Screenshots**: 190 compared, light and dark: the Accept buttons (`challenge`, `online-challenges*`: as wide as "Accepting…") and `continue-starting` (one Lichess game) changed as meant, 8 baselines accepted after a look; the rest match (`about`: its build date).
+
+### Continue "hung" once (the owner, Debug)
+- The log: `ChessGame.qml:120: TypeError: Property 'closeAtOnce' of object ChallengeDialog is not a function` (a build that had the new `ChessGame.qml` but not yet the new `AppDialog.qml`). `route()` had set `_startingGame` and failed before `waitForStartFrame`: the notice stayed up (taking the clicks) and the page was never built. `route()` asks for the frame first now; nothing after it can keep the page away.
+
+### Open
+- The game page itself still takes 110–180 ms in Release (1.5 s in Debug) to build: the board's square-size binding (`ChessBoard.qml:14`, 25 ms) and the 64 piece `Image`s (14 ms) (BL-11) are the first places to look.
+- The "save" step of a start (12–27 ms: `config.json` and the autosave) could move after the first frame.
+- **The owner's checks (2026-11-12): done**, the visual one ("Starting the game…" for Continue, Open saved game, vs computer, a Lichess challenge) and, after the review fixes, leaving a robot game at once and starting again, Accept from the bar then Back, Continue in Debug. **Left**: Accept a challenge, then switch profile before its game starts: "Accepting…" should go and no game start.
+
+---
+
 ## 2026-11-11 — BL-11: profiling, the top two fixes (branch: features/profiling_111126)
 
 ### Measuring

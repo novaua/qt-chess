@@ -456,6 +456,8 @@
     <None Include="qml\GamePage.qml" />
     <None Include="qml\BoardPreview.qml" />
     <None Include="qml\OnlinePage.qml" />
+    <None Include="qml\BusyButton.qml" />
+    <None Include="qml\BusyRing.qml" />
     <None Include="qml\GameCard.qml" />
     <None Include="qml\OngoingGameCard.qml" />
     <None Include="qml\OngoingGamesRefresh.qml" />

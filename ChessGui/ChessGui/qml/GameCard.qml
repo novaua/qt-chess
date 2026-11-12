@@ -21,6 +21,7 @@ Rectangle {
     property string actionIcon: "play"
     property string actionTip: ""       // e.g. why it opens lichess.org
     property bool   busy: false         // something is starting: no second click
+    property bool   starting: false     // this card's game is the one starting: "Starting…" (BL-16)
 
     signal activated()
 
@@ -73,11 +74,12 @@ Rectangle {
             elide: Text.ElideRight
             Layout.fillWidth: true
         }
-        Button {
-            text: card.actionText
-            icon.source: Theme.icon(card.actionIcon)
+        BusyButton {
+            idleText: card.actionText
+            idleIcon: Theme.icon(card.actionIcon)
+            busy: card.starting
             highlighted: card.playable && card.playerToMove
-            enabled: !card.busy
+            enabled: !card.busy && !card.starting
             Layout.fillWidth: true
             ToolTip.visible: hovered && card.actionTip !== ""
             ToolTip.text: card.actionTip

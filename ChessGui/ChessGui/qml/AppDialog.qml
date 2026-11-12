@@ -21,6 +21,18 @@ Dialog {
 
     Overlay.modal: Rectangle { color: Theme.scrim }
 
+    // BL-16: closed by a game that starts (behind "Starting the game…"): at once, without its fade,
+    // which would wait for the GUI thread building the game page and leave the dialog on the screen
+    // meanwhile. No rejected(): nothing is cancelled. A dialog that is closing already goes on fading.
+    function closeAtOnce() {
+        if (!opened)
+            return
+        const fade = exit
+        exit = null
+        close()
+        exit = fade
+    }
+
     Shortcut {
         sequences: ["Return", "Enter"]
         enabled: dialog.opened && dialog.acceptEnabled

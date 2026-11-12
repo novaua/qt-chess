@@ -37,7 +37,7 @@ Item {
             else                      UserManager.createUser("Tester", "wizard")
         }
         // A second profile to play against: same names and avatars every time.
-        var gameScene = ["game", "leave-online", "continue", "continue-list", "continue-list-robot", "review", "result", "ended", "moves", "select", "drag", "slides",
+        var gameScene = ["game", "leave-online", "continue", "continue-list", "continue-list-robot", "continue-list-starting", "review", "result", "ended", "moves", "select", "drag", "slides",
                          "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate",
                          "captures", "check", "saved"].includes(name)
         if ((gameScene || name.startsWith("players")) && UserManager.userCount < 2) {
@@ -83,7 +83,8 @@ Item {
             // BL-11 measurement, not a screenshot (not in all; run with -KeepLog and read the
             // [Timing] lines): game starts as clicks in a running app make them, 1.5 s apart, from
             // Home: vs Robot, leave, Continue, leave, two players, leave, vs Robot as Black (the
-            // engine starts thinking at once) and leave while it thinks (the engine's stop).
+            // engine starts thinking at once) and leave while it thinks (the engine's stop); then
+            // Settings and the Online page opened and closed (BL-16).
             timingSteps.start()
             return
         }
@@ -102,7 +103,7 @@ Item {
             // A Scandinavian with captures on both sides (Black +1), and Fool's mate for the result.
             var middlegame = "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 c1d2 c7c6 "
                            + "c3d5 a5d8 d5f6 d8f6 d1e2 f5c2"
-            var defaultMoves = ({ continue: "e2e4 e7e5", "continue-list": "e2e4 e7e5", "continue-list-robot": "e2e4 e7e5", review: middlegame, moves: middlegame, select: "e2e4 e7e5", drag: "e2e4 e7e5",
+            var defaultMoves = ({ continue: "e2e4 e7e5", "continue-list": "e2e4 e7e5", "continue-list-robot": "e2e4 e7e5", "continue-list-starting": "e2e4 e7e5", review: middlegame, moves: middlegame, select: "e2e4 e7e5", drag: "e2e4 e7e5",
                                   slides: "e2e4 e7e5", "leave-online": "e2e4 e7e5",
                                   result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4",
                                   clock: "e2e4 e7e5 g1f3", "clock-low": "e2e4 e7e5 g1f3", "clock-flag": "e2e4 e7e5",
@@ -125,7 +126,7 @@ Item {
             var limitSec = clockTimes ? 180 : 0
             var incSec = clockTimes ? 2 : 0
             var bob = UserManager.users.find(u => u.name === "Bob")
-            var robot = ["continue", "continue-list", "continue-list-robot", "clock-continue"].includes(name)
+            var robot = ["continue", "continue-list", "continue-list-robot", "continue-list-starting", "clock-continue"].includes(name)
             if (robot)   // only a game vs the robot is autosaved; White: no engine needed
                 ChessConnector.startComputerGame(3, 0, limitSec, incSec)
             else
@@ -181,6 +182,18 @@ Item {
         // BL-17: the Continue list over Home (the robot's game, if any, autosaved by endGame above).
         if (name.startsWith("continue-list"))
             window._openPage("games")
+        // BL-16: Lichess (main.cpp: a local server that never answers) hasn't answered yet: the
+        // rejoined game's Continue (or Home's card) and the challenge bar's Accept say so.
+        if (name === "continue-list-starting" || name === "continue-starting")
+            ChessConnector.continueOnlineGame("aEPqtBMc")
+        if (name === "challenge-accepting")
+            window.acceptChallenge("chal0001")
+        // BL-16: "Starting the game…" as while a game page is built (no game here), over the setup
+        // dialog that started it (in the app the dialog is closing then): the notice must be on top.
+        if (name === "starting") {
+            dialogs.computer.openNew()
+            window._startingGame = true
+        }
 
         if (name === "home-message")
             window.notify("Profile imported", "success")   // over Home's command bar
@@ -265,6 +278,22 @@ Item {
         onTriggered: ChessConnector.screenshotSceneReady()
     }
 
+    // Scene "timing": how long opening a page takes to its first frame (its creation and push, then
+    // what is left for the frame: deferred items, polish, the scene graph's sync), in the log like
+    // ChessConnector's game starts. The frame: the one synchronized after the push, as for a game.
+    function timePage(name, open) {
+        const t0 = Date.now()
+        open()
+        const created = Date.now() - t0
+        const shown = function() {
+            ChessConnector.startFrameShown.disconnect(shown)
+            console.info("[Timing] " + name + ": " + (Date.now() - t0) + " ms to the first frame (open "
+                         + created + ")")
+        }
+        ChessConnector.startFrameShown.connect(shown)
+        ChessConnector.waitForStartFrame(window)
+    }
+
     // Scene "timing" (BL-11): one step every 1.5 s, as clicks in a running app.
     Timer {
         id: timingSteps
@@ -284,6 +313,11 @@ Item {
             case 5: ChessConnector.endGame(); break
             case 6: ChessConnector.startComputerGame(5, 1); break   // the robot (White) thinks at once ...
             case 7: ChessConnector.endGame(); break                  // ... and is stopped
+            // BL-16: the other pages pushed over Home, created on each push.
+            case 8: timePage("Settings", window.openSettings); break
+            case 9: window.closeSettings(); break
+            case 10: timePage("Online page", window.openOnline); break
+            case 11: window.closeOnline(); break
             default:
                 stop()
                 readyTimer.interval = 0
