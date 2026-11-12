@@ -87,8 +87,8 @@ The engine is `./engines/stockfish.exe`, else one on `PATH`; `CHESS_ENGINE_PATH`
 ### FakeUci (console exe, tests only)
 
 A stand-in UCI engine on `ChessCore`, no Qt (`FakeUci/fakeengine.h`, BL-05 step 3): answers what the app asks of Stockfish
-at once and the same way every time: the move of the game in `FAKEUCI_MOVES` at that ply when legal there, else the first legal
-move by its UCI text; `FAKEUCI_DELAY_MS` before each answer; `moves` (not UCI) lists its legal moves. The UI tests
+at once and the same way every time: the move of the game in `FAKEUCI_MOVES` at that ply when legal there (a promotion without its piece: a queen), else the first legal
+move by its UCI text (said on stderr); `FAKEUCI_DELAY_MS` before each answer; `moves` (not UCI) lists its legal moves. The UI tests
 (`TestSetup`) and the robot screenshot scenes (`Take-Screenshot.ps1`) run it; its tests are `ChessTests/FakeEngineTests.cpp`.
 
 ### ChessGui (Qt QML application)

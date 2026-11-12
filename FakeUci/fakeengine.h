@@ -11,8 +11,10 @@
 // asks of Stockfish (uci, isready, ucinewgame, setoption, position, go, quit), answered at once and
 // the same way every time. Its moves:
 //  - FAKEUCI_MOVES, a whole game in UCI ("e2e4 e7e5 g1f3 …"): asked at ply N, it plays the game's
-//    move N when that is legal there. A test writes the line it expects; the robot plays its half.
-//  - otherwise the first legal move in a fixed order (by the UCI text).
+//    move N when that is legal there (a promotion without its piece: a queen). A test writes the
+//    line it expects; the robot plays its half.
+//  - otherwise the first legal move in a fixed order (by the UCI text); a scripted move it can't
+//    play is said on stderr.
 // FAKEUCI_DELAY_MS: it "thinks" that long before it answers (a test can leave while it thinks).
 class FakeEngine
 {

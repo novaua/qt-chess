@@ -127,7 +127,11 @@ function Invoke-TestRun($file, [string]$baseName, [int]$run, [string]$dataDir) {
     $process = Start-Process $exe -ArgumentList $argList -WorkingDirectory $root -NoNewWindow -PassThru
     $handle = $process.Handle   # keeps the exit code readable after the process is gone
     if (-not $process.WaitForExit($Timeout * 1000)) {
-        $process.Kill()
+        # The whole tree: a FakeUci it started would live on, holding the results file it inherited.
+        # (taskkill: Process.Kill(true) isn't in Windows PowerShell 5.1.)
+        # Its messages aren't wanted, and 5.1 turns a redirected stderr line into an error under 'Stop'.
+        try { & taskkill.exe /T /F /PID $process.Id 2>&1 | Out-Null } catch { }
+        if (-not $process.HasExited) { $process.Kill() }
         $process.WaitForExit()
         Write-Host "FAIL  $baseName - stopped after $Timeout s" -ForegroundColor Red
         return $false

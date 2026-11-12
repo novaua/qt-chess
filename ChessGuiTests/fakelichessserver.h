@@ -16,9 +16,9 @@ class QTcpSocket;
 // QML singleton `FakeLichess` (`import ChessGuiTests`). The player is TesterChess. It keeps what a
 // test needs of Lichess: the challenges to the player, the games (their moves, draw offers, how they
 // ended), the account's event stream and each game's stream, and answers the app's requests as Lichess
-// does (accept, decline, a move, draw yes/no, resign, the ongoing games). A test plays the other side:
-// challenge(), play(), offerDraw(), endGame(), dropGameStreams(). Open streams get a keep-alive line
-// every second, as Lichess sends one every 7 s.
+// does (accept, decline, a move, draw yes/no, resign, abort, claim victory, the ongoing games). A
+// test plays the other side: challenge(), play(), offerDraw(), endGame(), dropGameStreams(). Open
+// streams get a keep-alive line every second, as Lichess sends one every 7 s.
 class FakeLichessServer : public QObject
 {
 	Q_OBJECT

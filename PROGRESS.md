@@ -4,6 +4,22 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-12 — BL-05 review fixes (branch: bugs/bl05ReviewFixes_121126)
+
+A `/code-review medium` of all BL-05 commits found 8 problems, none a crash in the app; all fixed:
+- **`Take-Screenshot.ps1`** left `CHESS_ENGINE_PATH` / `FAKEUCI_*` set in the shell (the app then played FakeUci), or removed the shell's own: the values are saved and put back (`finally`), and the non-robot scenes get the shell's own. Without `FakeUci.exe` the robot scenes are skipped with a warning instead of stopping `-Scene all`.
+- **`tst_robot`** test 3 could flake on a slow machine: the robot thinks 3 s (was 1.5), and "Home before it answered" is timed from when it began to think (test 2), not from the click.
+- **The UI tests left a profile folder in `%TEMP%`** for every robot game (306 of them here): `TestSetup` went before the app, so the autosave on the way out wrote into a folder already deleted. It is now made before the `QApplication`. (Only a test file stopped by the timeout still leaves one.)
+- **The busy cursor** over the board while the robot thinks is back as `Qt.BusyCursor` on a `HoverHandler` (it takes no input: premoves still work; over a piece that can be premoved its open hand shows).
+- **`Run-UiTests.ps1`**: a test file stopped by the timeout is ended with its whole tree (`taskkill /T`), so a FakeUci it started doesn't hold the results file.
+- **FakeLichess**: abort ends the game (`aborted`), claim-victory too (`timeout`, the player wins).
+- **FakeUci**: a scripted promotion without its piece ("a7a8") is a queen; a scripted move it can't play is said on stderr (new test `Script_PromotionWithoutItsPiece_AQueen`).
+- `tst_lichess.qml` listed in `ChessGuiTests.vcxproj`.
+
+Checked: ChessTests 141/141; UI tests all 8 files in Release (58 s), `tst_robot` and `tst_profiles` in Debug; no new `%TEMP%` folder after a run; a screenshot run keeps the shell's `CHESS_ENGINE_PATH`; FakeUci renamed: `robot` skipped, `home` taken; `-Timeout 5`: no FakeUci left.
+
+---
+
 ## 2026-11-12 — BL-05 step 5: the UI tests on GitHub (branch: features/uiTestsCi_121126)
 
 ### Done
