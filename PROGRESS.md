@@ -45,7 +45,7 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 ### Open
 - The game page itself still takes 110–180 ms in Release (1.5 s in Debug) to build: the board's square-size binding (`ChessBoard.qml:14`, 25 ms) and the 64 piece `Image`s (14 ms) (BL-11) are the first places to look.
 - The "save" step of a start (12–27 ms: `config.json` and the autosave) could move after the first frame.
-- The owner's check in a real window: leave a robot game at once after a move and start another (no freeze); Continue a Lichess game, Accept a challenge and Join by link (the ring and the words, then the game).
+- **The owner's checks (2026-11-12): done**, the visual one ("Starting the game…" for Continue, Open saved game, vs computer, a Lichess challenge) and, after the review fixes, leaving a robot game at once and starting again, Accept from the bar then Back, Continue in Debug. **Left**: Accept a challenge, then switch profile before its game starts: "Accepting…" should go and no game start.
 
 ---
 
