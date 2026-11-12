@@ -17,8 +17,17 @@ The owner ran BL-04's hand test (plan §5 rows 2, 3, 7, 11–14; results in `TAS
 - A hidden button in a `DialogButtonBox` keeps its slot: `ConfirmDialog` removes its second action's button when it has none.
 - Restoring a file with `Copy-Item` keeps the backup's older time, and MSBuild then skips it (qrc): touch it before building.
 
+**Code review (`/code-review` of #161, 10 findings), fixed:**
+- `Game::Save` returns false when the file couldn't be written (it never checked); `ChessConnector::saveGame()` then says "Couldn't save the game" and the moves still count as unsaved, and Save and leave stays in the game. Unit test `Save_UnwritablePath_ReturnsFalse_Test`.
+- The dialog's default (Enter) is **Save and leave** / Save and quit; Leave / Quit is the second action. With a saved game already there it says the save replaces it.
+- Switch user and Accept a challenge use the same rule (`leaveLosesGame()`): no question for a two-player game without unsaved moves.
+- The dragged piece is in the overlay only during a drag (an overlay with a child item stays visible), below a dialog (`z: -1`); `remap()` reads `dragFrom`, not the derived `dragging`; `ConfirmDialog` no longer destroys the removed button twice; the redundant `_gameResult` check is gone.
+- Kept: the `FrameAnimation` (only during a drag, and the game page already draws every frame for the avatar pulse), and no question for a finished two-player game (nothing to continue, its result counted, as for the robot).
+
+**Rechecked by the owner (2026-11-13):** A.3, A.4, C.11–12 OK.
+
 ### Next
-- The owner rechecks A.3 and A.4, and runs C.11–12 (vs the robot), which weren't reported; then BL-04 can be ticked.
+- BL-04: only E.14 (touch) is open, for when a touch screen is at hand.
 
 ---
 

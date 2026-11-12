@@ -219,6 +219,7 @@ signals:
 
 	void noSavedGame();
 	void savedOk();
+	void saveFailed();
 	void noMoreMovesNotify();
 	void pgnCopied();
 	void pgnExported(bool ok, const QString& path);
@@ -277,7 +278,7 @@ public slots:
 	Q_INVOKABLE void cancelPremove(); // a right click or Esc: no premove, no premove dots
 	void pawnPromote(int index, const QString& piece);
 
-	void saveGame();
+	bool saveGame(); // false: not written ("Couldn't save the game"), the moves still count as unsaved
 	bool loadGame();
 
 	void moveNext();

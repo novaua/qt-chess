@@ -79,7 +79,7 @@ TestCase {
 
         app.click("homeButton")
         tryVerify(() => dialog.opened, 3000, "Home: \"Leave without saving?\"")
-        app.clickIn("leaveLocalConfirm", "actionButton")   // Save and leave
+        keyClick(Qt.Key_Return)   // the default: Save and leave
         app.waitForPage("home", 5000)
         app.waitClosed(dialog)
         compare(ChessConnector.CanLoad, true, "the game saved")

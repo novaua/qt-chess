@@ -215,21 +215,24 @@ Rectangle {
                 anchors.fill: chessBoxes
             }
 
-            // The dragged piece under the pointer; its own square shows it faded. In the window's overlay,
-            // above everything: dragged off the board, it stays over the player cards, the moves panel and
-            // the command bar (the BL-04 hand test). The overlay doesn't turn with the board, so the piece
-            // is upright as it is.
+            // The dragged piece under the pointer; its own square shows it faded. During a drag in the
+            // window's overlay, over the rest of the window: dragged off the board, it stays over the player
+            // cards, the moves panel and the command bar (the BL-04 hand test); below a dialog (z), should
+            // one open meanwhile. Only during a drag: an overlay with a child item stays visible. The
+            // overlay doesn't turn with the board, so the piece is upright as it is.
             Image {
                 id: draggedPiece
-                parent: chessBoard.Overlay.overlay ?? chessBoxes
-                // The pointer, from the squares' coordinates (dragPoint) to the overlay's: when it moves, and
+                parent: chessBoard.dragFrom >= 0 && chessBoard.Overlay.overlay ? chessBoard.Overlay.overlay : chessBoxes
+                z: -1
+                // The pointer, from the squares' coordinates (dragPoint) to its parent's: when it moves, and
                 // on each frame of the drag, as the board may turn (F) or the page's layout move it meanwhile
                 // (a mapping is no binding dependency).
                 property point center
                 function remap() {
-                    if (chessBoard.dragging)
+                    if (chessBoard.dragFrom >= 0)
                         center = chessBoxes.mapToItem(parent, chessBoard.dragPoint.x, chessBoard.dragPoint.y)
                 }
+                onParentChanged: remap()
                 Connections {
                     target: chessBoard
                     function onDragPointChanged() { draggedPiece.remap() }

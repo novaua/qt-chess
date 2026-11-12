@@ -68,7 +68,7 @@ namespace Chess
 		const MovesHistory &GetGameRecord() const;
 		HistoryPlayerAptr MakePlayer();
 
-		void Save(const std::string &path);
+		bool Save(const std::string &path); // false: the file couldn't be written
 		void Load(const std::string &path);
 		void ResumeFromLoad();
 

@@ -59,10 +59,10 @@ ApplicationWindow {
         return text
     }
 
-    // A two-player game isn't saved: ask before leaving it. A robot game is autosaved, a Lichess game
-    // goes on at Lichess.
+    // A two-player game with unsaved moves: ask before leaving it. A robot game is autosaved, a Lichess
+    // game goes on at Lichess.
     function acceptChallenge(id) {
-        if (_inGame && _mode === "local" && !_gameOver) {
+        if (ChessConnector.leaveLosesGame()) {
             acceptChallengeConfirm.challengeId = id
             acceptChallengeConfirm.open()
             return
@@ -239,10 +239,11 @@ ApplicationWindow {
     // The game ended while the warning was open: it no longer goes on without us.
     on_OnlineRunningChanged: if (!_onlineRunning) leaveOnlineDialog.close()
 
-    // The two-player warning's answers: Leave / Quit, after a save if asked.
+    // The two-player warning's answers: Leave / Quit, after a save if asked. A save that failed stays
+    // in the game ("Couldn't save the game"): leaving would lose the moves after all.
     function _leaveLocal(quit, save) {
-        if (save)
-            ChessConnector.saveGame()
+        if (save && !ChessConnector.saveGame())
+            return
         if (quit) {
             _quitConfirmed = true
             root.close()
@@ -277,8 +278,10 @@ ApplicationWindow {
         leaveOnlineDialog.open()
     }
 
+    // A two-player game asks only when it has unsaved moves (ChessConnector.leaveLosesGame()), as Home does.
     function switchUser() {
-        if (_inGame && !_gameOver && _mode !== "replay")
+        if (_inGame && !_gameOver && _mode !== "replay"
+                && (_mode !== "local" || ChessConnector.leaveLosesGame()))
             switchUserConfirm.open()
         else
             _doSwitchUser()
@@ -1008,6 +1011,7 @@ ApplicationWindow {
                 sndWin.play()
         }
         function onSavedOk()           { root.notify("Game saved", "success") }
+        function onSaveFailed()        { root.notify("Couldn't save the game", "critical") }
         function onNoSavedGame()       { root.notify("There is no saved game yet. Use Save during a game to keep one.") }
         function onNoMoreMovesNotify() { root.notify("No more moves") }
         function onPgnCopied()         { root.notify("PGN copied to the clipboard", "success") }
@@ -1223,7 +1227,7 @@ ApplicationWindow {
         objectName: "acceptChallengeConfirm"
         property string challengeId
         title: "Leave this game?"
-        text: "A two-player game isn't saved. The Lichess game starts instead."
+        text: "This two-player game's moves aren't saved. The Lichess game starts instead."
         acceptText: "Accept challenge"
         onAccepted: ChessConnector.acceptChallenge(challengeId)
     }
@@ -1241,7 +1245,7 @@ ApplicationWindow {
         objectName: "switchUserConfirm"
         title: "Switch user?"
         text: _mode === "online" ? "You leave the Lichess game; it keeps running on lichess.org. You can come back from Continue or Play online."
-            : _mode === "local"  ? "Two-player games aren't kept: save this one first (Save game) to replay it later."
+            : _mode === "local"  ? "This two-player game's moves aren't saved: save it first (Save game) to replay it later."
                                  : "The game is saved, so you can continue it later."
         acceptText: "Switch user"
         onAccepted: root._doSwitchUser()
@@ -1254,13 +1258,15 @@ ApplicationWindow {
         property bool quitting: false   // opened by closing the window: Leave quits the app
         title: quitting ? "Quit without saving?" : "Leave without saving?"
         text: "Two-player games aren't kept, so this game's moves will be lost. Save it to replay it "
-              + "later from Home → Open saved game."
-        acceptText: quitting ? "Quit" : "Leave"
-        actionText: quitting ? "Save and quit" : "Save and leave"
+              + "later from Home → Open saved game"
+              + (ChessConnector.CanLoad ? " (it replaces the game saved there now)." : ".")
+        // The safe answer is the default (Enter): save, then leave.
+        acceptText: quitting ? "Save and quit" : "Save and leave"
+        actionText: quitting ? "Quit" : "Leave"
         cancelText: "Stay"
         width: 460
-        onAccepted:        root._leaveLocal(quitting, false)
-        onActionRequested: root._leaveLocal(quitting, true)
+        onAccepted:        root._leaveLocal(quitting, true)
+        onActionRequested: root._leaveLocal(quitting, false)
     }
 
     LeaveOnlineDialog {

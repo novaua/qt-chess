@@ -9,7 +9,7 @@ AppDialog {
 
     property alias text: message.text
     property string acceptText: "OK"
-    property string actionText: ""      // empty: no second action
+    property string actionText: ""      // empty: no second action (decided once, when the dialog is made)
     property string cancelText: "Cancel"
 
     signal actionRequested()
@@ -49,11 +49,10 @@ AppDialog {
         }
     }
 
-    // Without a second action its button goes: a hidden one keeps its place in the box.
+    // Without a second action its button goes (removeItem destroys it): a hidden one keeps its place in
+    // the box. So actionText is set where the dialog is declared, not later.
     Component.onCompleted: {
-        if (actionText === "") {
+        if (actionText === "")
             buttons.removeItem(actionButton)
-            actionButton.destroy()
-        }
     }
 }

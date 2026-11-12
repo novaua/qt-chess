@@ -177,13 +177,24 @@ namespace ChessTests
 			auto tempPath = fs::path(std::string(std::getenv("TEMP")));
 			tempPath /= "tempFile1";
 
-			game->Save(tempPath.generic_string());
+			Assert::IsTrue(game->Save(tempPath.generic_string()));
 			game->Load(tempPath.generic_string());
 
 			fs::remove(fs::path(tempPath));
 
 			auto player = game->MakePlayer();
 			Assert::IsTrue((bool)player);
+		}
+
+		// A save that can't be written says so (a two-player game then still counts as unsaved).
+		TEST_METHOD(Save_UnwritablePath_ReturnsFalse_Test)
+		{
+			auto game = std::make_shared<Game>();
+			game->Restart();
+			game->DoMove(e2, e4);
+
+			auto missingFolder = fs::path(std::string(std::getenv("TEMP"))) / "no-such-folder-qtchess" / "game.sav";
+			Assert::IsFalse(game->Save(missingFolder.generic_string()));
 		}
 
 		TEST_METHOD(PositionPiecedHash_Test)
