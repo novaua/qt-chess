@@ -30,6 +30,16 @@ The `[Timing]` line's steps moved: most of the build is now in `first frame` (th
 - **During a move** (`QSG_VISUALIZE=changes`, grabbed 100 ms into a slide): only the sliding piece changes. **Batches**: the 64 squares are one batch; each piece is its own (its own texture: 32 small draws). **Overdraw**: nothing unusual.
 - **An idle game page draws 60 frames a second**: the active player's avatar pulse (`PlayerCard.qml`, an infinite animation) is the only cause; with it off, an idle board draws nothing (checked with `qt.scenegraph.time.renderloop`). It costs **117 ms of CPU per second** (Release). As `OpacityAnimator`s it was no lighter (the GUI thread still synced 30 times a second; 128–133 ms), so **the owner kept it as it is** (2026-11-12: "I like this effect"). The check glow pulses the same way while a king is in check.
 
+### Code review (9 findings, no definite bug)
+- **Fixed**: each moves panel is kept once made (a window resized across the wide/narrow size rebuilt it, and lost its scroll); the edge coordinates' Loader fills the squares, so they no longer repeat the squares' geometry in an item of their own; a redundant `anchors.fill` gone.
+- **Not changed, and why**:
+  - The gate opening before a layout settles: nothing lays the board out in the polish pass. Its size comes from bindings, which have settled before the first polish (a probe saw only the two sizes during the build, both before the gate opened).
+  - The piece images decoded synchronously after the first frame (~10 ms in Release, 50–80 ms in Debug): asynchronous, a game page made while they load (the scenes start one at once) would wait for them and miss its pieces in the first frame.
+  - The layers not made while the window is minimized: they come with its first frame; nothing outside the board uses them.
+  - The More menu's width on its first opening: the `more-menu` scene opens it the first time and it sits right.
+  - The rank labels fitted in the files' box: a rank digit is less than half its box wide at that size; checked at 12 sizes.
+  - Making the sheet's panel only when the sheet opens: that opening would then build it during the sheet's slide.
+
 ### Left
 - The QML profile of a move, a drag, a takeback and the review (←/→): not done (the frame trace of BL-14 covers the slides).
 - Smaller still, if wanted: the 64 move dots each have a wrapper item and an animation (~20 ms per start in Debug; keeping their whole-pixel centring without the wrapper needs Qt's own rounding), the pieces' 14 objects each.

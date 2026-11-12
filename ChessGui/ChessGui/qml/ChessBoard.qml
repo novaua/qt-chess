@@ -89,16 +89,10 @@ Rectangle {
 
             // The files and ranks around the squares (the default), or on them (Settings → Board coordinates):
             // only the shown set is made.
-            Loader {
-                anchors.fill: parent
+            Loader {   // over the squares; the labels go outside its edges
+                anchors.fill: chessBoxes
                 active: !AppSettings.coordinatesInside
                 sourceComponent: Item {
-                    Item {   // where the squares are (chessBoxes), for the anchors
-                        id: squaresFrame
-                        anchors.centerIn: parent
-                        width: chessBoard.squaresSize
-                        height: width
-                    }
                     // The labels' size: the biggest that fits a label's box (a quarter of a square high), found
                     // once here instead of by each of the 32 (Text.Fit tries sizes; BL-11).
                     Text {
@@ -115,18 +109,18 @@ Rectangle {
                     MarkerColumn {
                         id:markerColumnLeft
                         pixelSize: labelFit.fontInfo.pixelSize
-                        anchors.top: squaresFrame.top
+                        anchors.top: parent.top
                         anchors.topMargin: 0
-                        anchors.right: squaresFrame.left
+                        anchors.right: parent.left
                         anchors.rightMargin: 0
                     }
 
                     MarkerColumn {
                         id:markerColumnRight
                         pixelSize: labelFit.fontInfo.pixelSize
-                        anchors.top: squaresFrame.top
+                        anchors.top: parent.top
                         anchors.topMargin: 0
-                        anchors.left: squaresFrame.right
+                        anchors.left: parent.right
                         anchors.rightMargin: 0
                     }
 
@@ -134,9 +128,9 @@ Rectangle {
                         id:markerRowTop
                         pixelSize: labelFit.fontInfo.pixelSize
                         antialiasing: true
-                        anchors.bottom:  squaresFrame.top
+                        anchors.bottom:  parent.top
                         anchors.bottomMargin: 0
-                        anchors.left:  squaresFrame.left
+                        anchors.left:  parent.left
                         anchors.leftMargin: 0
                     }
 
@@ -144,9 +138,9 @@ Rectangle {
                         id:markerRowBottom
                         pixelSize: labelFit.fontInfo.pixelSize
                         antialiasing: true
-                        anchors.top:  squaresFrame.bottom
+                        anchors.top:  parent.bottom
                         anchors.bottomMargin: 0
-                        anchors.left:  squaresFrame.left
+                        anchors.left:  parent.left
                         anchors.leftMargin: 0
                     }
                 }
@@ -161,7 +155,6 @@ Rectangle {
                 active: AppSettings.coordinatesInside
                 sourceComponent: Item {
                     id: insideCoordinates
-                    anchors.fill: parent
                     readonly property bool turned: (chessBoard.angle % 360) !== 0
                     readonly property real square: width / 8
 

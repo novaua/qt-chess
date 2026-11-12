@@ -49,9 +49,17 @@ Page {
     // A premove waits, or its dots show: Esc cancels it, doesn't leave
     readonly property bool premovePending: ChessConnector.PremoveFrom >= 0 || ChessConnector.PremoveDots
     property alias board: chessBoard                            // for ScreenshotScene's drag scene
-    // BL-11: the page's layout has settled (its first frame is being prepared): the moves panel is made
-    // then, at its size (see LayoutGate).
-    LayoutGate { id: layoutGate }
+    // BL-11: each moves panel (beside the board, or in the sheet) is made once the page's layout has
+    // settled (its first frame is being prepared, LayoutGate), when it is first shown, and then kept:
+    // a window resized across the wide/narrow size doesn't rebuild it.
+    LayoutGate { id: layoutGate; onOpenChanged: page._makeMovesPanel() }
+    property bool _sidePanelMade: false
+    property bool _sheetPanelMade: false
+    function _makeMovesPanel() {
+        if (!layoutGate.open) return
+        if (area.wide) _sidePanelMade = true
+        else           _sheetPanelMade = true
+    }
 
     function flipBoard() { chessBoard.angle = chessBoard.angle === 0 ? 180 : 0 }
     // The command bar's More menu, made on the first click (BL-11; also the more-menu scene).
@@ -379,7 +387,10 @@ Page {
                                                              : Math.min(width - panelW, freeH - 2 * (Theme.playerCardHeight + gap)))
         readonly property real squaresSize: boardSize * Theme.boardSquares
         readonly property real inset: (boardSize - squaresSize) / 2   // the coordinates' edge
-        onWideChanged: if (wide) page.sheetOpen = false   // the sheet is hidden then
+        onWideChanged: {
+            if (wide) page.sheetOpen = false   // the sheet is hidden then
+            page._makeMovesPanel()
+        }
 
         // Stacked: card, board, card in a column, centred with the panel beside it. Side: the cards'
         // column, the board and the panel in a row, the cards level with the squares' top and bottom.
@@ -467,11 +478,10 @@ Page {
             color: Theme.cardBg
             border.color: Theme.cardStroke
 
-            // Only the shown moves panel is made, this one or the sheet's (BL-11), once the page is laid out.
-            Loader {
+            Loader {   // made when first shown (page._makeMovesPanel)
                 anchors.fill: parent
                 anchors.margins: 1
-                active: layoutGate.open && area.wide
+                active: page._sidePanelMade
                 sourceComponent: MovesPanel {
                     status: page.status
                     reviewText: page.reviewText
@@ -570,7 +580,7 @@ Page {
 
         Loader {
             anchors { top: handle.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
-            active: layoutGate.open && !area.wide
+            active: page._sheetPanelMade   // made when first shown (page._makeMovesPanel)
             visible: sheet.height > Theme.sheetHandleHeight
             sourceComponent: MovesPanel {
                 showTitle: false   // the handle says "Moves", the status and the review
