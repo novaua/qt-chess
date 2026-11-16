@@ -12,6 +12,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSaveFile>
+#include <QTimer>
 #include <QUuid>
 #include <algorithm>
 
@@ -90,20 +91,27 @@ GameRecord GameRecord::fromJson(const QJsonObject& o)
 	return r;
 }
 
+bool GameRecord::playOn(Chess::Game& game, const QStringList& uciMoves)
+{
+	for (const auto& m : uciMoves) {
+		try {
+			const auto move = Chess::Move::Parse(m.toStdString());
+			if (game.GetPieceAt(move.From).IsEmpty())
+				return false;
+			game.DoMove(move);
+		}
+		catch (const std::exception&) {
+			return false;
+		}
+	}
+	return true;
+}
+
 std::shared_ptr<Chess::Game> GameRecord::play(const QStringList& uciMoves)
 {
-	std::vector<std::string> uci;
-	for (const auto& m : uciMoves)
-		uci.push_back(m.toStdString());
 	auto game = std::make_shared<Chess::Game>();
-	try {
-		game->LoadMoves(uci);
-		game->ResumeFromLoad();
-	}
-	catch (const std::exception&) {
-		return nullptr;
-	}
-	return game;
+	game->Restart();
+	return playOn(*game, uciMoves) ? game : nullptr;
 }
 
 bool GameRecord::setMoves(const QStringList& uciMoves)
@@ -150,6 +158,11 @@ GameLibrary::GameLibrary(QObject* parent)
 {
 }
 
+GameLibrary::~GameLibrary()
+{
+	flush(); // e.g. the game kept as the app closes (ChessConnector goes first)
+}
+
 void GameLibrary::setUserManager(UserManager* um)
 {
 	_userManager = um;
@@ -173,33 +186,81 @@ static bool newerFirst(const GameRecord& a, const GameRecord& b)
 }
 
 // The active profile's games. Without one (logged out, deleted) the library is empty and keeps nothing.
+GameLibrary::FileState GameLibrary::readFile(const QString& path, QList<GameRecord>& records)
+{
+	records.clear();
+	if (!QFileInfo::exists(path))
+		return FileState::Missing;
+	QFile file(path);
+	if (!file.open(QIODevice::ReadOnly))
+		return FileState::Unreadable;
+	QJsonParseError err;
+	const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+	if (err.error != QJsonParseError::NoError || !doc.isObject())
+		return FileState::Damaged;
+	for (const auto& g : doc.object().value(QStringLiteral("games")).toArray()) {
+		GameRecord r = GameRecord::fromJson(g.toObject());
+		if (!r.id.isEmpty() && !r.moves.isEmpty())
+			records.append(r);
+	}
+	std::stable_sort(records.begin(), records.end(), newerFirst);
+	return FileState::Read;
+}
+
+bool GameLibrary::writeFile(const QString& path, const QList<GameRecord>& records)
+{
+	QJsonArray games;
+	for (const auto& r : records)
+		games.append(r.toJson());
+	const QJsonObject root{
+		{ QStringLiteral("version"), FormatVersion },
+		{ QStringLiteral("games"),   games },
+	};
+	QSaveFile file(path);
+	if (!file.open(QIODevice::WriteOnly)) {
+		qWarning() << "GameLibrary: can't write" << path << file.errorString();
+		return false;
+	}
+	file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
+	if (!file.commit()) {
+		qWarning() << "GameLibrary: can't write" << path << file.errorString();
+		return false;
+	}
+	return true;
+}
+
+// A damaged file is kept aside, not overwritten or deleted: the owner may want to look at it.
+static void keepAside(const QString& path)
+{
+	const QString aside = path + QStringLiteral(".damaged");
+	QFile::remove(aside);
+	QFile::rename(path, aside);
+	qWarning() << "GameLibrary:" << path << "is damaged, kept as" << aside;
+}
+
 void GameLibrary::reload()
 {
+	flush(); // the profile being left: its last change
 	const QString userId = _userManager && _userManager->isLoggedIn() ? _userManager->activeUserId() : QString();
 	_userId = userId;
+	_unreadable = false;
 	_records.clear();
 	if (!_userId.isEmpty()) {
-		QFile file(filePath());
-		if (file.open(QIODevice::ReadOnly)) {
-			QJsonParseError err;
-			const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
-			if (err.error != QJsonParseError::NoError || !doc.isObject()) {
-				// Kept aside, not overwritten: the owner may want to look at it.
-				const QString aside = filePath() + QStringLiteral(".damaged");
-				QFile::remove(aside);
-				file.close();
-				QFile::rename(filePath(), aside);
-				qWarning() << "GameLibrary: games.json is damaged, kept as" << aside << err.errorString();
-			} else {
-				for (const auto& g : doc.object().value(QStringLiteral("games")).toArray()) {
-					GameRecord r = GameRecord::fromJson(g.toObject());
-					if (!r.id.isEmpty() && !r.moves.isEmpty())
-						_records.append(r);
-				}
-				std::stable_sort(_records.begin(), _records.end(), newerFirst);
-			}
-		} else {
+		switch (readFile(filePath(), _records)) {
+		case FileState::Read:
+			break;
+		case FileState::Damaged:
+			keepAside(filePath());
+			break;
+		case FileState::Unreadable:
+			// There, but not to be read now (another program holds it): its games aren't shown, and it
+			// isn't written over; save() tries it again.
+			_unreadable = true;
+			qWarning() << "GameLibrary: can't read" << filePath() << "now; it is kept as it is";
+			break;
+		case FileState::Missing:
 			migrateOldSaves();
+			break;
 		}
 	}
 	emit gamesChanged();
@@ -207,26 +268,90 @@ void GameLibrary::reload()
 
 bool GameLibrary::save()
 {
+	_dirty = false;
 	if (_userId.isEmpty())
 		return false;
-	QJsonArray games;
-	for (const auto& r : _records)
-		games.append(r.toJson());
-	const QJsonObject root{
-		{ QStringLiteral("version"), FormatVersion },
-		{ QStringLiteral("games"),   games },
+	if (_unreadable) {
+		// Read it again: its games and the ones kept since go in together.
+		QList<GameRecord> onDisk;
+		switch (readFile(filePath(), onDisk)) {
+		case FileState::Unreadable:
+			_dirty = true; // the next change tries again
+			qWarning() << "GameLibrary: still can't read" << filePath() << "- not written";
+			return false;
+		case FileState::Damaged:
+			keepAside(filePath());
+			break;
+		case FileState::Read:
+			for (const auto& r : onDisk)
+				if (std::none_of(_records.begin(), _records.end(), [&](const GameRecord& k) { return k.id == r.id; }))
+					_records.append(r);
+			std::stable_sort(_records.begin(), _records.end(), newerFirst);
+			trim();
+			break;
+		case FileState::Missing:
+			break;
+		}
+		_unreadable = false;
+		emit gamesChanged();
+	}
+	return writeFile(filePath(), _records);
+}
+
+void GameLibrary::scheduleSave()
+{
+	_dirty = true;
+	if (_saveQueued)
+		return;
+	_saveQueued = true;
+	QTimer::singleShot(0, this, [this]() {
+		_saveQueued = false;
+		flush();
+	});
+}
+
+void GameLibrary::flush()
+{
+	if (_dirty)
+		save();
+}
+
+QStringList GameLibrary::profileIds() const
+{
+	QStringList ids;
+	if (_userManager)
+		for (const auto& u : _userManager->users())
+			ids.append(u.toMap().value(QStringLiteral("id")).toString());
+	return ids;
+}
+
+int GameLibrary::finishedBeyond(int keep) const
+{
+	keep = std::max(1, keep);
+	auto beyond = [keep](const QList<GameRecord>& records) {
+		const int finished = (int)std::count_if(records.begin(), records.end(), [](const GameRecord& r) { return r.finished; });
+		return std::max(0, finished - keep);
 	};
-	QSaveFile file(filePath());
-	if (!file.open(QIODevice::WriteOnly)) {
-		qWarning() << "GameLibrary: can't write" << filePath() << file.errorString();
-		return false;
+	int total = beyond(_records);
+	for (const auto& id : profileIds()) {
+		if (id == _userId)
+			continue;
+		QList<GameRecord> records;
+		if (readFile(filePathOf(id), records) == FileState::Read)
+			total += beyond(records);
 	}
-	file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
-	if (!file.commit()) {
-		qWarning() << "GameLibrary: can't write" << filePath() << file.errorString();
-		return false;
+	return total;
+}
+
+void GameLibrary::trimOtherProfiles()
+{
+	for (const auto& id : profileIds()) {
+		if (id == _userId)
+			continue;
+		QList<GameRecord> records;
+		if (readFile(filePathOf(id), records) == FileState::Read && trimRecords(records, _keepCount))
+			writeFile(filePathOf(id), records);
 	}
-	return true;
 }
 
 QVariantList GameLibrary::games() const
@@ -281,12 +406,11 @@ void GameLibrary::setKeepCount(int count)
 		return;
 	_keepCount = count;
 	emit keepCountChanged();
-	const int before = _records.size();
-	trim();
-	if (_records.size() != before) {
+	if (trimRecords(_records, _keepCount)) {
 		save();
 		emit gamesChanged();
 	}
+	trimOtherProfiles();
 }
 
 QString GameLibrary::put(GameRecord record)
@@ -304,7 +428,7 @@ QString GameLibrary::put(GameRecord record)
 		_records.prepend(record);
 	std::stable_sort(_records.begin(), _records.end(), newerFirst);
 	trim();
-	save();
+	scheduleSave();
 	emit gamesChanged();
 	return record.id;
 }
@@ -315,30 +439,31 @@ bool GameLibrary::remove(const QString& id)
 	if (it == _records.end())
 		return false;
 	_records.erase(it);
-	save();
+	scheduleSave();
 	emit gamesChanged();
 	return true;
 }
 
 // The oldest finished games beyond keepCount go (by when they finished); unfinished ones stay.
-void GameLibrary::trim()
+bool GameLibrary::trimRecords(QList<GameRecord>& records, int keep)
 {
 	QList<const GameRecord*> finished;
-	for (const auto& r : _records)
+	for (const auto& r : records)
 		if (r.finished)
 			finished.append(&r);
-	if (finished.size() <= _keepCount)
-		return;
+	if (finished.size() <= keep)
+		return false;
 	std::sort(finished.begin(), finished.end(), [](const GameRecord* a, const GameRecord* b) {
 		const QDateTime da = a->finishedAt.isValid() ? a->finishedAt : a->startedAt;
 		const QDateTime db = b->finishedAt.isValid() ? b->finishedAt : b->startedAt;
 		return da < db;
 	});
 	QStringList drop;
-	for (int i = 0; i < finished.size() - _keepCount; ++i)
+	for (int i = 0; i < finished.size() - keep; ++i)
 		drop.append(finished[i]->id);
-	_records.erase(std::remove_if(_records.begin(), _records.end(),
-		[&](const GameRecord& r) { return drop.contains(r.id); }), _records.end());
+	records.erase(std::remove_if(records.begin(), records.end(),
+		[&](const GameRecord& r) { return drop.contains(r.id); }), records.end());
+	return true;
 }
 
 // Versions before BL-19 kept two binary files per profile, the robot's autosave and the game saved
@@ -359,6 +484,12 @@ void GameLibrary::migrateOldSaves()
 		if (!QFileInfo::exists(s.path))
 			continue;
 		any = true;
+		// The autosave of a Lichess game (or of a version that kept others): those versions never
+		// offered it, and the game is Lichess's. Not one for this library.
+		if (s.autosave && !s.info.isSinglePlayer) {
+			QFile::remove(s.path);
+			continue;
+		}
 		try {
 			Chess::Game game;
 			game.Load(s.path.toStdString());
@@ -402,7 +533,10 @@ void GameLibrary::migrateOldSaves()
 			}
 		}
 		catch (const std::exception& e) {
+			// Kept aside, not lost: a later version may read it.
 			qWarning() << "GameLibrary: can't migrate" << s.path << e.what();
+			keepAside(s.path);
+			continue;
 		}
 		QFile::remove(s.path);
 	}

@@ -46,6 +46,8 @@ public:
 	// BL-19: that many finished two-player games (Fool's mate, vs Guest) in the active profile's library,
 	// a day apart and older than any game played in the test: many games without playing them.
 	Q_INVOKABLE void addFinishedGames(int count);
+	// An unfinished two-player game whose third move can't be played (a damaged record); its id.
+	Q_INVOKABLE QString addDamagedGame();
 	// A file in the test's data folder, as a URL (e.g. for Export PGN), and a text file's contents.
 	Q_INVOKABLE QUrl fileUrl(const QString& name) const;
 	Q_INVOKABLE QString readTextFile(const QUrl& file) const;

@@ -3,6 +3,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QCoreApplication>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <CppUnitTest.h>
@@ -98,6 +99,8 @@ namespace GameLibraryTests
 			const QString id = _library->put(r);
 			Assert::IsFalse(id.isEmpty(), L"an id is given");
 			Assert::AreEqual(1, (int)changed.count());
+			Assert::IsFalse(QFile::exists(GameLibrary::filePathOf(user)), L"written once the event is done, not at once");
+			QCoreApplication::processEvents();
 			Assert::IsTrue(QFile::exists(GameLibrary::filePathOf(user)), L"games.json written");
 
 			makeLibrary(); // read again from the file (the profile is still logged in)
@@ -225,6 +228,7 @@ namespace GameLibraryTests
 		{
 			const QString user = addUser("Alice");
 			_library->put(makeRecord("local", false, { "e2e4" }));
+			_library->flush();
 			QFile f(GameLibrary::filePathOf(user));
 			Assert::IsTrue(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
 			f.write("{ not json");
@@ -327,6 +331,7 @@ namespace GameLibraryTests
 		{
 			const QString user = addUser("Alice");
 			_library->put(makeRecord("local", false, { "e2e4" }));
+			_library->flush();
 			const QJsonObject root = QJsonDocument::fromJson(readFile(GameLibrary::filePathOf(user))).object();
 			Assert::AreEqual(GameLibrary::FormatVersion, root.value("version").toInt());
 			Assert::AreEqual(1, (int)root.value("games").toArray().size());
@@ -334,6 +339,91 @@ namespace GameLibraryTests
 			Assert::AreEqual(QStringLiteral("e2e4"), g.value("moves").toArray()[0].toString());
 			Assert::IsFalse(g.contains("result"), L"no result while unfinished");
 			Assert::IsFalse(g.contains("analysis"), L"nothing until analysed");
+		}
+		// A games.json that is there but can't be read now (here: a folder of that name) is never written
+		// over; once it can be read, its games and the ones kept meanwhile go in together (review #3).
+		TEST_METHOD(AFileThatCantBeReadIsntWrittenOver)
+		{
+			const QString user = addUser("Alice");
+			_library->put(makeRecord("local", true, { "e2e4" }, QDateTime::currentDateTime().addDays(-2)));
+			_library->flush();
+			const QByteArray before = readFile(GameLibrary::filePathOf(user));
+			Assert::IsTrue(QFile::rename(GameLibrary::filePathOf(user), GameLibrary::filePathOf(user) + ".held"));
+			Assert::IsTrue(QDir().mkdir(GameLibrary::filePathOf(user)), L"a folder in its place: it can't be opened");
+			makeLibrary();
+			Assert::AreEqual(0, _library->count(), L"its games can't be shown");
+			_library->put(makeRecord("local", false, { "d2d4" }));
+			_library->flush();
+			Assert::IsTrue(QFileInfo(GameLibrary::filePathOf(user)).isDir(), L"not written over");
+
+			// It can be read again: the next write has both.
+			Assert::IsTrue(QDir().rmdir(GameLibrary::filePathOf(user)));
+			Assert::IsTrue(QFile::rename(GameLibrary::filePathOf(user) + ".held", GameLibrary::filePathOf(user)));
+			_library->put(makeRecord("local", false, { "c2c4" }));
+			_library->flush();
+			Assert::AreEqual(3, _library->count(), L"the file's game and the two kept meanwhile");
+			makeLibrary();
+			Assert::AreEqual(3, _library->count());
+			Assert::AreNotEqual(before.size(), readFile(GameLibrary::filePathOf(user)).size());
+		}
+
+		// An old save that can't be read is kept aside, not deleted (review #5); the autosave of a
+		// Lichess game isn't migrated: those versions never offered it (review #1).
+		TEST_METHOD(OldSavesThatCantBeMigrated)
+		{
+			const QString user = addUser("Alice");
+			{
+				QFile f(AppConfig::savedGameFilePath(user));
+				Assert::IsTrue(f.open(QIODevice::WriteOnly));
+				f.write("not a saved game");
+			}
+			{
+				Chess::Game game;
+				game.DoMove(Chess::Move::Parse("e2e4"));
+				Assert::IsTrue(game.Save(AppConfig::autoSaveFilePath(user).toStdString()));
+				UserManager::GameSaveInfo info;
+				info.isSinglePlayer = false; // a Lichess game's
+				info.opponentName = "Lichess opponent";
+				_users->setAutoSaveInfo(info);
+			}
+			QFile::remove(GameLibrary::filePathOf(user));
+			makeLibrary();
+			Assert::AreEqual(0, _library->count(), L"neither became a game");
+			Assert::IsTrue(QFile::exists(AppConfig::savedGameFilePath(user) + ".damaged"), L"the unreadable save kept aside");
+			Assert::IsFalse(QFile::exists(AppConfig::savedGameFilePath(user)));
+			Assert::IsFalse(QFile::exists(AppConfig::autoSaveFilePath(user)), L"the Lichess autosave gone");
+		}
+
+		// "Games kept" is every profile's: finishedBeyond counts them all, and a smaller keepCount trims the
+		// other profiles' files at once (review #2).
+		TEST_METHOD(KeepCountCountsAndTrimsEveryProfile)
+		{
+			const QString alice = addUser("Alice");
+			for (int i = 0; i < 3; ++i)
+				_library->put(makeRecord("local", true, { "e2e4" }, QDateTime::currentDateTime().addDays(-10 + i)));
+			const QString bob = addUser("Bob"); // the library follows: Bob's now (Alice's written)
+			for (int i = 0; i < 5; ++i)
+				_library->put(makeRecord("local", true, { "d2d4" }, QDateTime::currentDateTime().addDays(-10 + i)));
+			_library->put(makeRecord("local", false, { "c2c4" }));
+			Assert::AreEqual(0, _library->finishedBeyond(5));
+			Assert::AreEqual(1 + 3, _library->finishedBeyond(2), L"Alice 1, Bob 3");
+			_library->setKeepCount(2);
+			Assert::AreEqual(3, _library->count(), L"Bob: 2 finished, the unfinished one");
+			_users->login(alice);
+			Assert::AreEqual(2, _library->count(), L"Alice's file trimmed too");
+			Assert::AreEqual(0, _library->finishedBeyond(2));
+		}
+
+		// A move from an empty square isn't played (the game itself only asserts on it): false, no crash.
+		TEST_METHOD(PlayStopsAtAMoveThatCantBePlayed)
+		{
+			Assert::IsTrue(GameRecord::play({ "e2e4", "e7e5" }) != nullptr);
+			Assert::IsTrue(GameRecord::play({ "e2e4", "e2e4" }) == nullptr, L"from an empty square");
+			Assert::IsTrue(GameRecord::play({ "e2e4", "e7e5", "e4e6" }) == nullptr, L"an illegal move");
+			Chess::Game game;
+			game.Restart();
+			Assert::IsFalse(GameRecord::playOn(game, { "e2e4", "a3a4", "e7e5" }));
+			Assert::AreEqual(1, game.GetMoveCount(), L"the moves before it stay");
 		}
 	};
 }

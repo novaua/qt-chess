@@ -106,6 +106,12 @@ QString UserManager::nameOf(const QString& userId) const
     return u ? u->name : QString();
 }
 
+QString UserManager::avatarOf(const QString& userId) const
+{
+    const auto* u = userById(userId);
+    return u ? u->avatarName : QString();
+}
+
 QVariantList UserManager::users() const
 {
     QVariantList result;
