@@ -592,6 +592,7 @@ ApplicationWindow {
             onHomeRequested:        root.leaveGame()
             onNewGameRequested:     root.newGameLikeThis()
             onExportPgnRequested:   root.exportPgn()
+            onPlayFromHereRequested: (position, robot) => robot ? computerDialog.openFrom(position) : twoPlayerDialog.openFrom(position)
             onResignRequested:      root.resign()
             onLevelsHelpRequested:  levelsHelp.open()
             onSettingsRequested:    root.openSettings()

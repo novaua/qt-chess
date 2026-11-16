@@ -39,8 +39,12 @@ static QString capitalize(const QString& s)
 
 void AvatarProvider::restore(const QString& playerName, const QString& opponentName, bool isComputerGame)
 {
-    _playerName     = playerName;
-    _opponentName   = opponentName;
+    // A kept game without them (made outside a game, or an old save): the ones shown now, else the first.
+    auto orCurrent = [](const QString& name, const QString& current) {
+        return !name.isEmpty() ? name : !current.isEmpty() ? current : avatarNames().first();
+    };
+    _playerName     = orCurrent(playerName, _playerName);
+    _opponentName   = orCurrent(opponentName, _opponentName);
     _isComputerGame = isComputerGame;
     emit playerAvatarChanged();
     emit opponentAvatarChanged();

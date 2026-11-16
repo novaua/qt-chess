@@ -3,30 +3,43 @@ import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
 import ChessPlusPlus
+import "games.js" as Games
 
 // New game for two players on this computer: the player's side, the opponent (another profile or a
-// Guest) and the clock.
+// Guest) and the clock. Play from here (BL-19): openFrom() starts it from a position of a kept game.
 AppDialog {
     id: dialog
 
     property string _opponentId: ""   // a profile's id; "" = Guest
+    property var from: ({})           // Play from here: ChessConnector.playFromHere(); {} = a new game
+    readonly property bool _fromHere: from.gameId !== undefined
+
+    // From the position `position` (playFromHere()): the player takes the side to move.
+    function openFrom(position) {
+        from = position
+        open()
+    }
 
     // Guest first, then every profile except the player's own.
     readonly property var _opponents: [{ id: "", name: "Guest", avatarUrl: "" }].concat(
         UserManager.users.filter(u => u.id !== UserManager.activeUserId))
 
-    title: "Two players"
+    title: _fromHere ? "Play from here, two players" : "Two players"
     width: 420
     height: Math.min(implicitHeight, parent ? parent.height : implicitHeight)
 
     onOpened: {
         _opponentId = ""
-        side.checkedIndex = ChessConnector.PlayerPlaysWhite ? 0 : 1
+        side.checkedIndex = _fromHere ? (from.whiteToMove ? 0 : 1) : ChessConnector.PlayerPlaysWhite ? 0 : 1
         clock.restore()
     }
+    onClosed: from = ({})   // the next open() is a new game
     onAccepted: {
         clock.remember()
-        ChessConnector.startLocalGame(side.checkedIndex === 0, _opponentId, clock.limitSec, clock.incSec)
+        if (_fromHere)
+            ChessConnector.startLocalGameFrom(from.gameId, from.ply, side.checkedIndex === 0, _opponentId, clock.limitSec, clock.incSec)
+        else
+            ChessConnector.startLocalGame(side.checkedIndex === 0, _opponentId, clock.limitSec, clock.incSec)
     }
 
     // Many profiles: the opponents wrap and the dialog would outgrow a small window, so this scrolls.
@@ -39,6 +52,14 @@ AppDialog {
             width: body.availableWidth
             spacing: Theme.s2
 
+            Label {
+                objectName: "fromHereText"
+                visible: dialog._fromHere
+                text: dialog._fromHere ? Games.fromHereText(dialog.from) : ""
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+                Layout.bottomMargin: Theme.s2
+            }
             Label { text: "You play"; color: Theme.textSecondary; font: Theme.caption }
             ChoiceRow {
                 id: side

@@ -11,11 +11,23 @@ function title(game, levels) {
     return "Robot · Level " + game.level + (level ? " · " + level.name : "")
 }
 
+// The move number a position after `ply` moves goes on with: after 23 plies, Black's 12th move.
+function moveNumberAfter(ply) {
+    return Math.floor(ply / 2) + 1
+}
+
+// The setup dialogs' line for Play from here: "From the position after 12. Nf3: Black to move."
+function fromHereText(from) {
+    return "From the position after " + from.move + ": " + (from.whiteToMove ? "White" : "Black") + " to move."
+}
+
 // The card's line under the title: the result or whose turn, the day, the moves.
 function details(game) {
     var parts = []
     parts.push(game.kind === "computer" ? "you play " + (game.playerPlaysWhite ? "White" : "Black")
                                         : (game.playerPlaysWhite ? "White" : "Black") + " vs " + (game.playerPlaysWhite ? "Black" : "White"))
+    if (game.forkOfId)   // Play from here: where it began
+        parts.push("from move " + moveNumberAfter(game.forkPly))
     const when = game.finished ? game.finishedAt : game.startedAt
     if (when && !isNaN(when.getTime()))
         parts.push(Qt.formatDate(when, "d MMM yyyy"))

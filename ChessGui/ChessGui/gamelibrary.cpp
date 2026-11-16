@@ -90,7 +90,7 @@ GameRecord GameRecord::fromJson(const QJsonObject& o)
 	return r;
 }
 
-bool GameRecord::setMoves(const QStringList& uciMoves)
+std::shared_ptr<Chess::Game> GameRecord::play(const QStringList& uciMoves)
 {
 	std::vector<std::string> uci;
 	for (const auto& m : uciMoves)
@@ -101,8 +101,16 @@ bool GameRecord::setMoves(const QStringList& uciMoves)
 		game->ResumeFromLoad();
 	}
 	catch (const std::exception&) {
-		return false;
+		return nullptr;
 	}
+	return game;
+}
+
+bool GameRecord::setMoves(const QStringList& uciMoves)
+{
+	const auto game = play(uciMoves);
+	if (!game)
+		return false;
 	moves = uciMoves;
 	fen = QString::fromStdString(game->MakeFen());
 	return true;

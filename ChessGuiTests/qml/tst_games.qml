@@ -164,5 +164,94 @@ TestCase {
         verify(!confirm.visible)
         tryCompare(box, "displayText", "200 games")
         compare(GameLibrary.finishedCount, 50)
+        app.clickIn("settings", "backButton")
+        app.waitForPage("home", 5000)
+    }
+
+    // Play from here (BL-19 step 4) vs the robot: a two-player game 1. e4 e5 2. Nf3 Nc6, reviewed back
+    // to 1... e5; More → Play from here vs computer: the dialog says where, the player takes White (to
+    // move), the board has the two moves; Nf3 and the robot's Nc6 (FakeUci follows the same game). The
+    // fork is a record of its own (forkOfId, forkPly 2); a takeback stops at the moves it began with.
+    function test_6_playFromHereVsRobot() {
+        app.startTwoPlayerGame()
+        for (const [from, to] of [["e2", "e4"], ["e7", "e5"], ["g1", "f3"], ["b8", "c6"]])
+            app.clickMove(from, to)
+        tryCompare(ChessConnector, "MoveCount", 4, 3000)
+        app.waitBoardIdle()
+        // Copied: a list property's element read again later is the list's element then.
+        const sourceId = GameLibrary.games[0].id
+        compare(GameLibrary.games[0].plyCount, 4, "the two-player game kept")
+
+        app.click("review_prev")
+        app.click("review_prev")
+        tryCompare(ChessConnector, "ShownPly", 2, 2000, "after 1... e5")
+        TestRun.setEngine("e2e4 e7e5 g1f3 b8c6", 0)
+        app.chooseFromMenu("moreButton", "playFromHereRobotItem")
+        const dialog = app.item("computerDialog")
+        tryVerify(() => dialog.opened, 3000, "the vs computer dialog")
+        compare(dialog.title, "Play from here vs computer")
+        compare(app.item("fromHereText").text, "From the position after 1… e5: White to move.")
+        app.click("startComputerGameButton")
+        app.waitClosed(dialog)
+        tryCompare(ChessConnector, "GameMode", "computer", 5000)
+        compare(ChessConnector.MoveCount, 2, "the moves it begins with")
+        compare(ChessConnector.PlayerPlaysWhite, true, "the side to move")
+        app.waitBoardIdle()
+        compare(app.pieceAt("e5"), "p")
+        compare(GameLibrary.count, 53, "no record before a move of its own")
+
+        app.clickMove("g1", "f3")
+        tryCompare(ChessConnector, "MoveCount", 4, 5000, "the robot's Nc6")
+        app.waitBoardIdle()
+        const fork = GameLibrary.games[0]
+        compare(fork.kind, "computer")
+        compare(fork.forkOfId, sourceId)
+        compare(fork.forkPly, 2)
+        compare(fork.plyCount, 4)
+        compare(GameLibrary.game(sourceId).plyCount, 4, "the game it came from as it was")
+
+        keyClick(Qt.Key_Z, Qt.ControlModifier)   // Nf3 and Nc6 back
+        tryCompare(ChessConnector, "MoveCount", 2, 3000)
+        app.waitBoardIdle()
+        keyClick(Qt.Key_Z, Qt.ControlModifier)   // nothing more: the fork's first moves stay
+        app.waitMessage("No more moves")
+        compare(ChessConnector.MoveCount, 2)
+        app.leaveToHome()
+    }
+
+    // Play from here, two players, from a replay of a kept game (Fool's mate after 1. f3 e5): the
+    // dialog takes the side to move; the game goes on from there with the two moves; left without a
+    // move of its own, it isn't kept.
+    function test_7_playFromHereTwoPlayers() {
+        const keptId = GameLibrary.games.find(g => g.finished).id
+        const count = GameLibrary.count
+        verify(ChessConnector.openGame(keptId))
+        app.waitForPage("game", 10000)
+        app.click("nextButton")
+        app.click("nextButton")
+        tryCompare(ChessConnector, "ShownPly", 2, 2000)
+        app.chooseFromMenu("moreButton", "playFromHereTwoPlayersItem")
+        const dialog = app.item("twoPlayerDialog")
+        tryVerify(() => dialog.opened, 3000, "the two players dialog")
+        compare(dialog.title, "Play from here, two players")
+        app.click("startGameButton")
+        app.waitClosed(dialog)
+        tryCompare(ChessConnector, "GameMode", "local", 5000)
+        compare(ChessConnector.MoveCount, 2)
+        compare(ChessConnector.MovableColor, 1, "White to move")
+        app.waitBoardIdle()
+        app.leaveToHome()
+        compare(GameLibrary.count, count, "not kept without a move")
+
+        // The robot's game over there: nothing to play from (the last position is a mate).
+        verify(ChessConnector.openGame(keptId))
+        app.waitForPage("game", 10000)
+        for (let i = 0; i < 4; ++i)
+            app.click("nextButton")
+        tryCompare(ChessConnector, "ShownPly", 4, 2000)
+        compare(Object.keys(ChessConnector.playFromHere()).length, 0, "after the mate: none")
+        app.click("prevButton")
+        tryCompare(ChessConnector, "ShownPly", 3, 2000)
+        compare(ChessConnector.playFromHere().ply, 3)
     }
 }

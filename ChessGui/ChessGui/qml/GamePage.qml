@@ -32,6 +32,7 @@ Page {
     signal homeRequested()
     signal newGameRequested()      // the result card: a new game of the same kind
     signal exportPgnRequested()
+    signal playFromHereRequested(var position, bool robot) // position: ChessConnector.playFromHere()
     signal resignRequested()
     signal levelsHelpRequested()
     signal settingsRequested()
@@ -266,6 +267,12 @@ Page {
             Component {
                 id: moreMenuComponent
                 Menu {
+                    id: menu
+                    width: 280   // "Play from here, two players…" whole
+                    // Play from here (BL-19): the position shown, when it can be played on (asked as the menu opens).
+                    property var position: ({})
+                    onAboutToShow: position = ChessConnector.playFromHere()
+
                     MenuItem {
                         text: "Copy PGN"
                         icon.source: Theme.icon("copy")
@@ -277,6 +284,25 @@ Page {
                         icon.source: Theme.icon("export")
                         enabled: ChessConnector.PlyCount > 0
                         onTriggered: page.exportPgnRequested()
+                    }
+                    MenuSeparator { visible: page.mode !== "online"; height: visible ? implicitHeight : 0 }
+                    MenuItem {
+                        objectName: "playFromHereRobotItem"
+                        text: "Play from here vs computer…"
+                        icon.source: Theme.icon("robot")
+                        visible: page.mode !== "online"
+                        height: visible ? implicitHeight : 0
+                        enabled: menu.position.gameId !== undefined
+                        onTriggered: page.playFromHereRequested(menu.position, true)
+                    }
+                    MenuItem {
+                        objectName: "playFromHereTwoPlayersItem"
+                        text: "Play from here, two players…"
+                        icon.source: Theme.icon("two-players")
+                        visible: page.mode !== "online"
+                        height: visible ? implicitHeight : 0
+                        enabled: menu.position.gameId !== undefined
+                        onTriggered: page.playFromHereRequested(menu.position, false)
                     }
                     MenuSeparator {}
                     MenuItem {

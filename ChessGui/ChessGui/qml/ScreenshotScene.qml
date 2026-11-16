@@ -39,7 +39,7 @@ Item {
         // A second profile to play against: same names and avatars every time.
         var gameScene = ["game", "leave-online", "drag-off", "continue", "continue-list", "continue-list-robot", "continue-list-starting", "review", "result", "ended", "moves", "select", "drag", "slides",
                          "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate",
-                         "captures", "check", "more-menu"].includes(name)
+                         "captures", "check", "more-menu", "play-from-here"].includes(name)
         if ((gameScene || name.startsWith("players")) && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -122,7 +122,7 @@ Item {
             // A Scandinavian with captures on both sides (Black +1), and Fool's mate for the result.
             var middlegame = "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 c1d2 c7c6 "
                            + "c3d5 a5d8 d5f6 d8f6 d1e2 f5c2"
-            var defaultMoves = ({ continue: "e2e4 e7e5", "continue-list": "e2e4 e7e5", "continue-list-robot": "e2e4 e7e5", "continue-list-starting": "e2e4 e7e5", review: middlegame, moves: middlegame, select: "e2e4 e7e5", drag: "e2e4 e7e5",
+            var defaultMoves = ({ continue: "e2e4 e7e5", "continue-list": "e2e4 e7e5", "continue-list-robot": "e2e4 e7e5", "continue-list-starting": "e2e4 e7e5", review: middlegame, moves: middlegame, "play-from-here": middlegame, select: "e2e4 e7e5", drag: "e2e4 e7e5",
                                   slides: "e2e4 e7e5", "leave-online": "e2e4 e7e5", "drag-off": "e2e4 e7e5",
                                   result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4",
                                   clock: "e2e4 e7e5 g1f3", "clock-low": "e2e4 e7e5 g1f3", "clock-flag": "e2e4 e7e5",
@@ -163,8 +163,10 @@ Item {
                 ChessConnector.movePiece(49, 56)   // bxa8: the piece picker opens ...
                 ChessConnector.setScreenshotClock(0, 120000)   // ... and the time runs out: the pawn goes back
             }
-            if (name === "review")
+            if (name === "review" || name === "play-from-here")
                 ChessConnector.reviewTo(9)
+            if (name === "play-from-here")   // BL-19: the robot's setup from the reviewed position (after 5. Nf3)
+                dialogs.computer.openFrom(ChessConnector.playFromHere())
             if (name === "moves")
                 pages.currentItem.sheetOpen = true   // the move sheet (narrow window)
             if (name === "ended")

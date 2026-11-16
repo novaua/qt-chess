@@ -4,6 +4,26 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-16 — BL-19 step 4: Play from here (branch: features/playFromHere_161126)
+
+### Done
+- **More menu** of the game page: "Play from here vs computer…", "Play from here, two players…" (not online; enabled when `ChessConnector.playFromHere()` has a position: of a kept game, after a move, not mate/stalemate). They open the setup dialogs with `openFrom(position)`: title "Play from here …", "From the position after 1… e5: White to move.", the side to move preselected.
+- **`ChessConnector`**: `playFromHere()`, `startComputerGameFrom` / `startLocalGameFrom(gameId, ply, …)` (`_startFrom` → `applyStartFrom()` after the restart: the moves played quietly, `_forkOfId`, `_forkPly`); the robot answers when it is to move; the record only at the fork's own first move; a takeback stops at `_forkPly`; the clock counts `clockPly()`. `GameRecord::play(moves)` shared by `setMoves`, `GamePgn` and the fork check.
+- **Cards**: "from move N" for a fork (`games.js`). **Scenes**: `play-from-here`; `games` has a fork (14 Nov, from move 3).
+- **Fixes found on the way**: `applyMoves` (Alt+S, typed-in moves) now writes the record (it never did since step 2); a kept game without avatar names (made outside a game, an old save) keeps the current avatars instead of loading `avatars/.png`; the More menu is 280 wide (the new entries were cut).
+- **Tests**: `tst_games` test 6 (fork vs the robot from a reviewed two-player game: dialog, moves, record, takeback limit), test 7 (fork for two players from a replay; not kept without a move; none after a mate).
+
+### Checked
+- Debug: ChessTests 142/142, ChessQtTests 239/239; UI tests 9 files, 0 failed (133 s). Scenes `play-from-here`, `more-menu`, `games` looked at.
+
+### Learned
+- In Qt 6 QML, `const g = GameLibrary.games[0]` is a reference that reads the list property again on access: after the list changes, `g` is the new first element. Copy what you need (`.id`).
+
+### Next
+- Hand test 9 (step 3), and Play from here by hand; then step 5, the rating.
+
+---
+
 ## 2026-11-16 — BL-19 step 3: the games library's UI polish (branch: features/gamesLibraryUi_161126)
 
 ### Done

@@ -214,8 +214,10 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 		  "e2e3 a7a5 d1h5 a8a6 h5a5 h7h5 h2h4 a6h6 a5c7 f7f6 c7d7 e8f7 d7b7 d8d3 b7b8 d3h7 b8c8 f7g6 c8e6",
 		  "1/2-1/2", "Draw by stalemate", 0, 0 },
 		{ "local", 0, false, "Guest", QDate(2026, 11, 12), "d2d4 d7d5 c2c4", "", "", 300, 3 },
-		{ "computer", 2, true, "Robot", QDate(2026, 11, 14), "e2e4 c7c5 g1f3 d7d6", "", "", 0, 0 },
+		// Play from here (step 4): the first game again from move 3, vs level 2.
+		{ "computer", 2, true, "Robot", QDate(2026, 11, 14), "e2e4 e7e5 f1c4 b8c6 g1f3", "", "", 0, 0 },
 	};
+	QString firstId;
 	for (const auto& k : kept) {
 		GameRecord r;
 		r.kind = QString::fromLatin1(k.kind);
@@ -233,7 +235,13 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 		r.clockLimitSec = k.limitSec;
 		r.clockIncSec = k.incSec;
 		r.whiteMs = r.blackMs = k.limitSec * 1000;
-		library->put(r);
+		if (&k == &kept[std::size(kept) - 1]) { // the fork
+			r.forkOfId = firstId;
+			r.forkPly = 4;
+		}
+		const QString id = library->put(r);
+		if (firstId.isEmpty())
+			firstId = id;
 	}
 }
 
@@ -399,7 +407,7 @@ int main(int argc, char* argv[])
 		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-		"opponent-left-error", "timing", "more-menu", "play", "games", "games-empty", "games-filter"
+		"opponent-left-error", "timing", "more-menu", "play", "games", "games-empty", "games-filter", "play-from-here"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
