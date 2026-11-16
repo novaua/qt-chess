@@ -21,8 +21,10 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 - Git Bash's `sed -i` turns CRLF files into LF: edit with Python (or the Edit tool) instead.
 - The UI tests can't see the app's `AppSettings` (a qrc singleton): check `GameLibrary.keepCount`, which follows it.
 
+**Hand tests (the owner, 2026-11-16):** plan §5 rows 1–8 passed; row 9 ("Games kept" 50 with 51 finished games) still open.
+
 ### Next
-- The owner's hand tests (plan §5), then step 4 Play from here.
+- Hand test 9, then step 4 Play from here.
 
 ---
 
