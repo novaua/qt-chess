@@ -21,7 +21,7 @@ AppDialog {
         anchors.right: parent.right
         wrapMode: Text.WordWrap
         text: "Import “" + importName + "” as a new profile, or replace “" + existingName
-              + "” with it? Replacing overwrites " + existingName + "'s statistics and saved games."
+              + "” with it? Replacing overwrites " + existingName + "'s statistics and games."
     }
 
     footer: DialogButtonBox {

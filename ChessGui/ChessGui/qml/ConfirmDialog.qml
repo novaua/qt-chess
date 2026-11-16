@@ -44,6 +44,7 @@ AppDialog {
             }
         }
         Button {
+            objectName: "cancelButton"
             text: dialog.cancelText
             DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
         }

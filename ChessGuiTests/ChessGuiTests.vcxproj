@@ -124,6 +124,7 @@
     <ClCompile Include="..\ChessGui\ChessGui\sceneinput.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gameclock.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gamelibrary.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\gamepgn.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\applog.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\engineworker.cpp" />
   </ItemGroup>
@@ -159,6 +160,7 @@
     <None Include="qml\tst_restart.qml" />
     <None Include="qml\tst_profiles.qml" />
     <None Include="qml\tst_lichess.qml" />
+    <None Include="qml\tst_games.qml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

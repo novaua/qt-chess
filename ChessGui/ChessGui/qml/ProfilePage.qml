@@ -334,7 +334,7 @@ Page {
             // ── Data ──
             SectionCard {
                 title: "Profile data"
-                subtitle: "An export is one file with this profile, its statistics and saved games, for another PC or "
+                subtitle: "An export is one file with this profile, its statistics and games, for another PC or "
                           + "as a backup. It never contains your Lichess sign-in."
                 Layout.fillWidth: true
 

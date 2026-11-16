@@ -25,6 +25,9 @@ Settings {
     property int  clockLimitSec:      0     // the last new game's time control; 0 and 0: no clock
     property int  clockIncSec:        0
 
+    // Data
+    property int  gamesKept:          100   // finished games kept per profile (GameLibrary.keepCount, BL-19)
+
     // Perceptual loudness: linear 1-5 feels far too loud at level 1, since hearing is roughly logarithmic.
     // A function, not a property: Settings would store every property.
     function effectsVolume() { return Math.pow(soundVolume / 5.0, 2) }

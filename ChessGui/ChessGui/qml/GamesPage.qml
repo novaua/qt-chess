@@ -7,14 +7,25 @@ import "games.js" as Games
 // The games library (BL-19): every local game of the profile, vs the robot or between two players,
 // kept from its first move, newest first. A finished game opens as a replay (Open); an unfinished one
 // goes on (Continue); Delete removes it for good. Pushed over Home (Home's Games card, Ctrl+O); Back
-// pops it. A game that opens replaces it by the game page (ChessGame.qml route()).
+// pops it. A game that opens replaces it by the game page (ChessGame.qml route()). The filters show
+// one kind of game; Export PGN saves one game as a file (the window's file dialog).
 Page {
     id: page
     objectName: "library"
 
     signal backRequested()
+    signal exportRequested(string gameId)
 
-    readonly property var _games: GameLibrary.games
+    // The filter buttons, in their order: which kept games each one shows.
+    readonly property var _filters: [
+        { label: "All",         shows: g => true },
+        { label: "vs Robot",    shows: g => g.kind === "computer" },
+        { label: "Two players", shows: g => g.kind === "local" },
+        { label: "Unfinished",  shows: g => !g.finished },
+    ]
+    property int filter: 0
+    readonly property var _allGames: GameLibrary.games
+    readonly property var _games: _allGames.filter(_filters[filter].shows)
     readonly property var _levels: ChessConnector.Levels
     readonly property int _unfinished: GameLibrary.unfinishedCount
 
@@ -52,13 +63,30 @@ Page {
 
             Label {
                 objectName: "gamesSummary"
-                text: page._games.length === 0
+                text: page._allGames.length === 0
                       ? "No games yet. Every game you play against the robot or with another player at this computer is kept here from its first move."
-                      : page._games.length + (page._games.length === 1 ? " game" : " games")
+                      : page._allGames.length + (page._allGames.length === 1 ? " game" : " games")
                         + (page._unfinished === 0 ? "" : " · " + page._unfinished + " unfinished")
                         + " · the last " + GameLibrary.keepCount + " finished games are kept"
                 color: Theme.textSecondary
                 wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            ChoiceRow {
+                objectName: "gamesFilter"
+                visible: page._allGames.length > 0
+                options: page._filters
+                checkedIndex: page.filter
+                onCheckedIndexChanged: page.filter = checkedIndex
+                Layout.fillWidth: true
+            }
+
+            Label {
+                objectName: "gamesFilterEmpty"
+                visible: page._allGames.length > 0 && page._games.length === 0
+                text: ["", "No games against the robot.", "No two-player games.", "No unfinished games."][page.filter]
+                color: Theme.textSecondary
                 Layout.fillWidth: true
             }
 
@@ -89,6 +117,8 @@ Page {
                         actionText: modelData.finished ? "Open" : "Continue"
                         actionIcon: modelData.finished ? "folder-open" : "play"
                         deletable: true
+                        exportable: true
+                        onExportRequested: page.exportRequested(modelData.id)
                         onActivated: {
                             if (modelData.finished) ChessConnector.openGame(modelData.id)
                             else                    ChessConnector.continueGame(modelData.id)

@@ -4,6 +4,7 @@
 #include "ChessException.h"
 #include "AppConfig.h"
 #include "San.h"
+#include "gamepgn.h"
 
 #include <algorithm>
 #include <QClipboard>
@@ -526,37 +527,52 @@ int ChessConnector::shownPly() const
 	return reviewMode() ? _reviewIndex : (int)_game->GetGameRecord().size();
 }
 
-QString ChessConnector::pgn() const
+// The game on the board as PGN; a kept game shown as a replay is written from its record (the robot's
+// level, the clock), the same as from its card.
+GamePgn ChessConnector::boardPgn() const
 {
-	// Unknown for a saved or continued game: the save files don't keep it.
-	const QString date = _gameDate.isValid() ? _gameDate.toString(QStringLiteral("yyyy.MM.dd"))
-	                                         : QStringLiteral("????.??.??");
-	const QString site = isOnlineGame() ? QStringLiteral("https://lichess.org/") + _onlineGameId
-	                                    : QStringLiteral("Chess++");
-	const QString gameResult = _gameMode == QLatin1String("replay") ? _replayResult : _gameResult.section(' ', 0, 0);
-	const QString result = gameResult.isEmpty() ? QStringLiteral("*") : gameResult;
-	auto tag = [](const char* name, const QString& value) {
-		return Chess::PgnTag{ name, value.toStdString() };
-	};
-	const std::vector<Chess::PgnTag> tags = {
-		tag("Event",  QStringLiteral("Casual game")),
-		tag("Site",   site),
-		tag("Date",   date),
-		tag("Round",  QStringLiteral("-")),
-		tag("White",  sideName(true)),
-		tag("Black",  sideName(false)),
-		tag("Result", result),
-	};
-	return QString::fromStdString(Chess::FormatPgn(tags, _sanCache, result.toStdString()));
+	if (_gameMode == QLatin1String("replay") && _library) {
+		if (const auto rec = _library->find(_recordId))
+			if (auto pgn = GamePgn::ofRecord(*rec, playerName()))
+				return *pgn;
+	}
+	GamePgn pgn(sideName(true), sideName(false), _sanCache);
+	pgn.setDate(_gameDate); // unknown ("????.??.??") only for a game begun elsewhere
+	pgn.setResult(_gameMode == QLatin1String("replay") ? _replayResult : _gameResult.section(' ', 0, 0));
+	if (isOnlineGame())
+		pgn.setLichessGame(_onlineGameId);
+	else if (_gameMode == QLatin1String("computer")) {
+		pgn.setRobot(_config.lastLevel, !_config.playerPlaysWhite);
+		pgn.setTimeControl(_clockLimitSec, _clockIncSec);
+	}
+	else if (_gameMode == QLatin1String("local")) {
+		pgn.setTwoPlayers();
+		pgn.setTimeControl(_clockLimitSec, _clockIncSec);
+	}
+	return pgn;
 }
 
-QString ChessConnector::pgnFileName() const
+// A kept game (gameId) or the game on the board ("").
+std::optional<GamePgn> ChessConnector::pgnOf(const QString& gameId) const
 {
-	QString name = sideName(true) + QStringLiteral(" vs ") + sideName(false)
-		+ (_gameDate.isValid() ? QLatin1Char(' ') + _gameDate.toString(Qt::ISODate) : QString())
-		+ QStringLiteral(".pgn");
-	static const QRegularExpression notInFileNames(QStringLiteral("[<>:\"/\\\\|?*]"));
-	return name.replace(notInFileNames, QStringLiteral("_"));
+	if (gameId.isEmpty())
+		return boardPgn();
+	const auto rec = _library ? _library->find(gameId) : std::nullopt;
+	if (!rec)
+		return std::nullopt;
+	return GamePgn::ofRecord(*rec, playerName());
+}
+
+QString ChessConnector::pgn(const QString& gameId) const
+{
+	const auto pgn = pgnOf(gameId);
+	return pgn ? pgn->text() : QString();
+}
+
+QString ChessConnector::pgnFileName(const QString& gameId) const
+{
+	const auto pgn = pgnOf(gameId);
+	return pgn ? pgn->fileName() : QStringLiteral("game.pgn");
 }
 
 void ChessConnector::copyPgn()
@@ -565,16 +581,17 @@ void ChessConnector::copyPgn()
 	emit pgnCopied();
 }
 
-void ChessConnector::exportPgn(const QUrl& file)
+void ChessConnector::exportPgn(const QUrl& file, const QString& gameId)
 {
 	const QString path = file.isLocalFile() ? file.toLocalFile() : file.toString();
+	const QString text = pgn(gameId);
 	QSaveFile out(path);
-	const bool ok = file.isLocalFile()
+	const bool ok = file.isLocalFile() && !text.isEmpty()
 		&& out.open(QIODevice::WriteOnly | QIODevice::Text)
-		&& out.write(pgn().toUtf8()) >= 0
+		&& out.write(text.toUtf8()) >= 0
 		&& out.commit();
 	if (!ok)
-		qDebug() << "exportPgn: can't write" << path << out.errorString();
+		qDebug() << "exportPgn: can't write" << path << (text.isEmpty() ? QStringLiteral("no such game") : out.errorString());
 	emit pgnExported(ok, QDir::toNativeSeparators(path));
 }
 

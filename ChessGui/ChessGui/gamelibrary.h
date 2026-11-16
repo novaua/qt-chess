@@ -47,6 +47,10 @@ struct GameRecord
 	bool whiteToMove() const { return moves.size() % 2 == 0; }
 	bool playerToMove() const { return whiteToMove() == playerPlaysWhite; }
 	QString lastMove() const { return moves.isEmpty() ? QString() : moves.last(); }
+	// The moves and the position after them (fen), played from the start position; false (and nothing
+	// changed) when one of them can't be played. For records made outside a game: the screenshot
+	// scenes, the UI tests.
+	bool setMoves(const QStringList& uciMoves);
 
 	QJsonObject toJson() const;
 	static GameRecord fromJson(const QJsonObject& o);
@@ -71,6 +75,8 @@ class GameLibrary : public QObject
 	Q_PROPERTY(QVariantList unfinishedGames READ unfinishedGames NOTIFY gamesChanged)
 	Q_PROPERTY(int count READ count NOTIFY gamesChanged)
 	Q_PROPERTY(int unfinishedCount READ unfinishedCount NOTIFY gamesChanged)
+	// The finished ones: those beyond keepCount go (Settings asks before a smaller keepCount removes some).
+	Q_PROPERTY(int finishedCount READ finishedCount NOTIFY gamesChanged)
 	// How many finished games are kept per profile (Settings → Data; AppSettings.gamesKept binds it).
 	Q_PROPERTY(int keepCount READ keepCount WRITE setKeepCount NOTIFY keepCountChanged)
 
@@ -86,6 +92,7 @@ public:
 	QVariantList unfinishedGames() const;
 	int count() const { return (int)_records.size(); }
 	int unfinishedCount() const;
+	int finishedCount() const { return count() - unfinishedCount(); }
 	int keepCount() const { return _keepCount; }
 	void setKeepCount(int count);
 

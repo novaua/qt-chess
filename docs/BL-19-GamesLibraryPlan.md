@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-13 |
-| **Status** | Step 2 coded (branch `features/gamesLibraryBackend_131126`); steps 3–8 to do |
+| **Status** | Steps 1–2 merged (#162); step 3 coded (branch `features/gamesLibraryUi_161126`); steps 4–8 to do |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | BL-19 in `TASKS.md` (the owner's review of the save and game-log capabilities, 2026-11-13) |
 
@@ -90,7 +90,14 @@ Delete are non-game work, so QML calls it directly; anything that puts a game on
 - **The game page:** no Save button; Ctrl+S exports the PGN. **The window:** no "Leave without saving?" and no
   accept-challenge confirm (a local game is kept); Switch user's confirm says the game is kept.
 - Screenshot scenes: `saved` and `leave-local` are gone (their baselines too); `continue*` and `robot` continue
-  the kept game by id. New in step 3: `games`, `games-empty`, `games-narrow`.
+  the kept game by id. New in step 3: `games` (six kept games on fixed days, main.cpp; also `games@640x560`
+  and `games@1400x900` in place of a `games-narrow`), `games-filter` (Unfinished), `games-empty`.
+- **Step 3 as built:** `GamePgn` (`gamepgn.h/cpp`) writes both the game on the board and a kept game: Event
+  "Casual game vs the robot, level 3 (Club Player)" / "Casual two-player game", the robot's `WhiteElo`/`BlackElo`
+  (`EngineLevel::DisplayElo`; the player's comes with step 5), `TimeControl` "300+3" or "-" (none for a Lichess
+  game). `ChessConnector::pgn(gameId)`, `pgnFileName(gameId)`, `exportPgn(file, gameId)`. Settings → Data
+  "Games kept" 50 / 100 / 200 / 500 (`AppSettings.gamesKept` → `GameLibrary.keepCount`); a smaller number that
+  deletes games asks first ("Keep only 50 finished games?", Delete N games).
 
 ### 3.5 Rating (step 5)
 
@@ -118,7 +125,7 @@ ply. Without an engine the button says so.
 | Step | What | Branch |
 |---|---|---|
 | 1–2 | This plan; `GameRecord`, `GameLibrary`, migration, the cap, `GameLibraryTest.cpp`; `ChessConnector` writes records, `continueGame(id)`, `openGame(id)`; the old slots removed; `GamesPage` (Open / Continue / Delete), Home's Games card, the Continue list with two-player games, no Save button or leave dialog; the UI tests adjusted | `features/gamesLibraryBackend_131126` ✅ |
-| 3 | Library UI polish: filters, Export PGN per card, the PGN tags, Settings "Games kept", scenes `games*` + baselines, `tst_games.qml` | |
+| 3 | Library UI polish: filters, Export PGN per card, the PGN tags, Settings "Games kept", scenes `games*` + baselines, `tst_games.qml` | `features/gamesLibraryUi_161126` ✅ |
 | 4 | Play from here: the `…From` starts, the dialogs' `fromPly`, More menu entries, `forkOf` on the card, scene, tests | |
 | 5 | Rating: `GameLibrary::rating()`, Profile page + Home header, card deltas, tests | |
 | 6 | Analysis engine: `GameAnalyzer` + worker, FakeUci MultiPV, storage, unit tests, Settings depth | |

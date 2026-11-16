@@ -28,6 +28,7 @@
 #include "UserManager.h"
 #include "LichessClient.h"
 #include "gamelibrary.h"
+#include "gamepgn.h"
 
 class ChessConnector : public QObject
 {
@@ -276,10 +277,12 @@ public slots:
 	void reviewLast();
 	Q_INVOKABLE void reviewTo(int ply); // show the position after that many moves; the last = live
 
-	Q_INVOKABLE QString pgn() const;            // the whole game with tags, also while reviewing
-	Q_INVOKABLE QString pgnFileName() const;    // suggested name, e.g. "Alice vs Bob 2026-10-29.pgn"
+	// The game on the board (gameId ""), also while reviewing, or a kept game (BL-19: a Games card's
+	// Export PGN): the whole game with its tags (GamePgn). "" for a game id that isn't kept.
+	Q_INVOKABLE QString pgn(const QString& gameId = QString()) const;
+	Q_INVOKABLE QString pgnFileName(const QString& gameId = QString()) const; // e.g. "Alice vs Bob 2026-10-29.pgn"
 	Q_INVOKABLE void copyPgn();
-	Q_INVOKABLE void exportPgn(const QUrl& file);
+	Q_INVOKABLE void exportPgn(const QUrl& file, const QString& gameId = QString());
 
 	Q_INVOKABLE void resignGame();
 	Q_INVOKABLE void offerDraw();
@@ -373,6 +376,8 @@ private:
 	void updateRecord();
 	void keepGameOnLeave(); // updateRecord() for a game being left: a promotion still being chosen doesn't stand
 	void replayMoves(const QStringList& uciMoves); // on the game, quietly (no check sounds), up to the first that can't be played
+	GamePgn boardPgn() const;                              // the game on the board
+	std::optional<GamePgn> pgnOf(const QString& gameId) const; // a kept game, or ("") the game on the board
 
 private:
 	QStringList _possibleMoves;

@@ -4,6 +4,28 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-16 — BL-19 step 3: the games library's UI polish (branch: features/gamesLibraryUi_161126)
+
+### Done
+- **Games page**: filters All · vs Robot · Two players · Unfinished (`ChoiceRow`, objectName `gamesFilter`; "No unfinished games." when a filter shows none); **Export PGN** on every card (`GameCard.exportable`) → the window's file dialog for that game (`ChessGame.exportPgn(gameId)`).
+- **`GamePgn`** (`gamepgn.h/cpp`): one writer for the game on the board and a kept game. New tags: Event ("Casual game vs the robot, level 3 (Club Player)", "Casual two-player game"), the robot's `WhiteElo`/`BlackElo`, `TimeControl` ("300+3", "-"; none for Lichess). `ChessConnector::pgn/pgnFileName/exportPgn` take an optional game id; a replay is written from its record. `GameRecord::setMoves` (moves + fen) for records made outside a game.
+- **Settings → Data "Games kept"** 50/100/200/500 (`AppSettings.gamesKept`, bound to `GameLibrary.keepCount`); a smaller number that would delete games asks first (`gamesKeptConfirm`: "Keep only 50 finished games?", Delete N games). `GameLibrary.finishedCount`. "saved games" → "games" in Settings, the profile export and import texts.
+- **Scenes** `games` (six kept games of Tester on fixed days, seeded in main.cpp; also `@640x560`, `@1400x900`), `games-filter`, `games-empty`; the stale `saved` / `leave-local` names gone from main.cpp's list.
+- **Tests**: `tst_games.qml` (three games played, the filters, the PGN of both kinds and the exported file, Delete, Games kept with Cancel / Delete / more); `GamePgnTest.cpp` (5). Test helpers: `TestRun.addFinishedGames(n)`, `fileUrl`, `readTextFile`; `AppDriver.scrollIntoView(name)`; `ConfirmDialog`'s Cancel is `cancelButton`; `ChoiceRow` buttons are `<objectName>_<index>`.
+
+### Checked
+- Debug: ChessTests 142/142, ChessQtTests 239/239; UI tests 9 files, 0 failed (124 s). Scenes `games*`, `about` (the new row) looked at.
+
+### Learned
+- A move from an empty square in `Game::LoadMoves` hits a Debug assert (abort, a crash dialog on the desktop) instead of the `ChessException` an illegal move throws: a unit test fed it one and crashed the test host twice. The test uses an illegal move from an occupied square now; a damaged `games.json` record with such a move would still abort a Debug build (`openGame`, Export PGN).
+- Git Bash's `sed -i` turns CRLF files into LF: edit with Python (or the Edit tool) instead.
+- The UI tests can't see the app's `AppSettings` (a qrc singleton): check `GameLibrary.keepCount`, which follows it.
+
+### Next
+- The owner's hand tests (plan §5), then step 4 Play from here.
+
+---
+
 ## 2026-11-16 — BL-19 steps 1–2: the games library's backend and first UI (branch: features/gamesLibraryBackend_131126)
 
 Plan: `docs/BL-19-GamesLibraryPlan.md` (the owner's decisions of 2026-11-13).
