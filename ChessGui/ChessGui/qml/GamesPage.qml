@@ -112,7 +112,7 @@ Page {
                         lastMove: modelData.lastMove
                         title: Games.title(modelData, page._levels)
                         playerToMove: !modelData.finished && modelData.kind === "computer" && modelData.playerToMove
-                        waitingText: modelData.finished ? Games.resultWord(modelData) : Games.turnWord(modelData)
+                        waitingText: modelData.finished ? Games.resultWithRating(modelData) : Games.turnWord(modelData)
                         details: Games.details(modelData)
                         actionText: modelData.finished ? "Open" : "Continue"
                         actionIcon: modelData.finished ? "folder-open" : "play"

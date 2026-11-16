@@ -278,4 +278,54 @@ TestCase {
         compare(GameLibrary.game(id).plyCount, 4)
         verify(GameLibrary.remove(id))
     }
+
+    // The player (White) mates the robot: 1. e4 f6 2. d4 g5 3. Qh5#.
+    function mateTheRobot() {
+        app.startComputerGame("e2e4 f7f6 d2d4 g7g5", 0)
+        app.waitBoardIdle()
+        app.clickMove("e2", "e4")
+        tryCompare(ChessConnector, "MoveCount", 2, 5000, "the robot's f6")
+        app.waitBoardIdle()
+        app.clickMove("d2", "d4")
+        tryCompare(ChessConnector, "MoveCount", 4, 5000, "the robot's g5")
+        app.waitBoardIdle()
+        app.clickMove("d1", "h5")
+        tryVerify(() => ChessConnector.GameResult !== "", 3000, "the mate")
+    }
+
+    // The rating vs the robot (step 5): a won game is rated (Home's header, the card's change); none of
+    // the games before was (two players, unfinished, a fork with a takeback). A takeback after the mate
+    // resumes the game and gives its change back; mated again, it isn't rated.
+    function test_9_rating() {
+        if (app.pageName() !== "home")
+            app.leaveToHome()   // test 7 left a replay open
+        compare(GameLibrary.ratedGames, 0, "nothing rated yet")
+        verify(!app.item("homeRating").visible)
+        mateTheRobot()
+        tryCompare(GameLibrary, "ratedGames", 1, 3000)
+        const change = GameLibrary.games[0].ratingChange
+        compare(change, 27, "a win from 1200 against level 3 (1320)")
+        compare(GameLibrary.rating, 1227)
+        app.leaveToHome()
+        compare(app.item("homeRating").text, "Rating 1227?")
+        app.laidOut()
+        keyClick(Qt.Key_O, Qt.ControlModifier)
+        app.waitForPage("library", 5000)
+        tryCompare(app.item("gameCard_0"), "waitingText", "You won · +27")
+        app.clickIn("library", "backButton")
+        app.waitForPage("home", 5000)
+
+        mateTheRobot()
+        tryCompare(GameLibrary, "rating", 1227 + 25, 3000)
+        app.waitBoardIdle()
+        keyClick(Qt.Key_Z, Qt.ControlModifier)   // Qh5# back: the game goes on
+        tryCompare(ChessConnector, "GameResult", "", 3000)
+        tryCompare(GameLibrary, "rating", 1227, 3000, "its change given back")
+        compare(GameLibrary.ratedGames, 1)
+        app.waitBoardIdle()
+        app.clickMove("d1", "h5")
+        tryVerify(() => ChessConnector.GameResult !== "", 3000, "mated again")
+        compare(GameLibrary.rating, 1227, "not rated after a takeback")
+        app.leaveToHome()
+    }
 }

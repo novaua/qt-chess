@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-13 |
-| **Status** | Steps 1–3 merged (#162, #163); step 4 merged (#165); step 4b (the button) on `features/playFromHereButton_161126`; hand tests 1–8 passed (2026-11-16), 9 open; steps 5–8 to do |
+| **Status** | Steps 1–4b merged (#162, #163, #165, #167); step 5 (the rating) on `features/localRating_161126`; hand tests 1–8 passed (2026-11-16), 9 open; steps 6–8 to do |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | BL-19 in `TASKS.md` (the owner's review of the save and game-log capabilities, 2026-11-13) |
 
@@ -125,12 +125,20 @@ Delete are non-game work, so QML calls it directly; anything that puts a game on
 
 ### 3.5 Rating (step 5)
 
-Computed, never stored: `GameLibrary::rating()` walks the finished `rated` records (kind computer, no fork,
-`undoCount == 0`, a result) in `finishedAt` order. The robot's rating is `EngineLevel::DisplayElo()` (levels
-1–2 are human estimates: they count, the display says "estimate"). Standard Elo: start 1200,
-`E = 1/(1+10^((Ropp−R)/400))`, `R' = R + K·(S−E)`, K = 40 for the first 30 rated games, 20 after;
-provisional under 10 games. Shown on the Profile page's Statistics card and in Home's header; a card shows
-"+12" / "−8". A Glicko-2 upgrade stays possible since nothing is stored.
+**Stored as it goes** (the owner's choice, 2026-11-16, over the first plan's rating computed from the kept
+games: games leave the library by the cap and by Delete, and a computed rating would move with them, e.g.
+deleting a lost game would raise it). `LocalRating` (`gamelibrary.h`): the value and the number of rated games,
+in `games.json` (`"rating": { "value", "games" }`, written once a game is rated; exported with the profile).
+`GameLibrary::put` rates a record when it is rateable (kind computer, finished with a result, no fork,
+`undoCount == 0`) and not rated yet: `ratingBefore`, `ratingChange` and `rated` on the record, the rating moved.
+A rated record put back unfinished (a takeback after the result resumed the game) gives its change back; with
+the takeback the game is never rated again. Removing games (the cap, Delete) never changes the rating; old
+saves migrated from before BL-19 aren't rated. The robot's rating is `EngineLevel::DisplayElo()` (levels 1–2
+are human estimates; they count). Standard Elo: start 1200, `E = 1/(1+10^((Ropp−R)/400))`,
+`R' = R + K·(S−E)` (the change rounded), K = 40 for the first 30 rated games, 20 after; provisional under 10
+games ("1227?"). Shown in Home's header ("Rating 1227?"), on the Profile page's Statistics card ("Rating vs the
+robot", provisional: N of 10), on a Games card ("You won · +27"); the PGN tags the player's rating before a
+rated game (`WhiteElo` / `BlackElo`).
 
 ### 3.6 Engine analysis (steps 6–7)
 
@@ -151,8 +159,8 @@ ply. Without an engine the button says so.
 | 1–2 | This plan; `GameRecord`, `GameLibrary`, migration, the cap, `GameLibraryTest.cpp`; `ChessConnector` writes records, `continueGame(id)`, `openGame(id)`; the old slots removed; `GamesPage` (Open / Continue / Delete), Home's Games card, the Continue list with two-player games, no Save button or leave dialog; the UI tests adjusted | `features/gamesLibraryBackend_131126` ✅ |
 | 3 | Library UI polish: filters, Export PGN per card, the PGN tags, Settings "Games kept", scenes `games*` + baselines, `tst_games.qml` | `features/gamesLibraryUi_161126` ✅ (#163) |
 | 4 | Play from here: the `…From` starts, the dialogs' `fromPly`, More menu entries, `forkOf` on the card, scene, tests | `features/playFromHere_161126` ✅ |
-| 4b | The Play from here button (§3.4.2): review only, the review bar's button and its menu, the More menu entries removed, scenes, tests | `features/playFromHereButton_161126` |
-| 5 | Rating: `GameLibrary::rating()`, Profile page + Home header, card deltas, tests | |
+| 4b | The Play from here button (§3.4.2): review only, the review bar's button and its menu, the More menu entries removed, scenes, tests | `features/playFromHereButton_161126` ✅ (#167) |
+| 5 | Rating: `LocalRating` stored as it goes (`GameLibrary::put`), Profile page + Home header, card changes, the PGN's player Elo, tests | `features/localRating_161126` |
 | 6 | Analysis engine: `GameAnalyzer` + worker, FakeUci MultiPV, storage, unit tests, Settings depth | |
 | 7 | Analysis UI: eval bar, judgements, summary, Analyse buttons, scenes, `tst_games` analysis | |
 | 8 | Docs and hand tests: CLAUDE.md, the `run-chess-app` scene list, `BL-19-ManualTests.md`, PROGRESS.md | |

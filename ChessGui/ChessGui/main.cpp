@@ -194,10 +194,11 @@ static void playPremoveScene(ChessConnector* connector, LichessClient* lichess, 
 }
 
 // Scenes "games" and "games-filter" (BL-19): the Games page with kept games of Tester (Bob and Alice
-// are main.cpp's profiles). Fixed days, so the cards read the same on every run.
+// are main.cpp's profiles). Fixed days, so the cards read the same on every run. Also "profile": its two
+// finished robot games are rated (step 5), the Statistics card shows the rating.
 static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 {
-	if (scene != "games" && scene != "games-filter")
+	if (scene != "games" && scene != "games-filter" && scene != "profile")
 		return;
 	struct Kept {
 		const char* kind; int level; bool white; const char* opponent; QDate day; const char* moves;

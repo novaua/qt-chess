@@ -48,6 +48,25 @@ function resultWord(game) {
     return whiteWon ? "White won" : "Black won"
 }
 
+// A rated game's change of the player's rating (step 5): "+12", "−8", "±0"; "" when not rated.
+function ratingChangeText(game) {
+    if (!game.rated)
+        return ""
+    return game.ratingChange > 0 ? "+" + game.ratingChange
+         : game.ratingChange < 0 ? "\u2212" + (-game.ratingChange) : "\u00b10"
+}
+
+// A finished game's result with its rating change: "You won · +12".
+function resultWithRating(game) {
+    const change = ratingChangeText(game)
+    return resultWord(game) + (change !== "" ? " · " + change : "")
+}
+
+// The player's rating vs the robot as Home and the Profile page show it: "1212", "1212?" while provisional.
+function ratingText(rating, provisional) {
+    return rating + (provisional ? "?" : "")
+}
+
 // Whose turn it is in an unfinished game, from the player's side.
 function turnWord(game) {
     if (game.finished)

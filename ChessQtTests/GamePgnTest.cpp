@@ -55,7 +55,7 @@ namespace GamePgnTests
 			Assert::IsTrue(pgn.has_value());
 			const Chess::EngineLevel level(4);
 			Assert::AreEqual(QStringLiteral("Casual game vs the robot, level 4 (%1)").arg(QString::fromUtf8(level.Name())), pgn->event());
-			Assert::AreEqual(0, pgn->whiteElo(), L"the player's Elo: not before the local rating");
+			Assert::AreEqual(0, pgn->whiteElo(), L"the player's Elo: only in a rated game");
 			Assert::AreEqual(level.DisplayElo(), pgn->blackElo(), L"the robot plays Black");
 			Assert::AreEqual(QStringLiteral("300+3"), pgn->timeControl());
 			const QString text = pgn->text();
@@ -63,6 +63,19 @@ namespace GamePgnTests
 			Assert::IsTrue(has(text, "[TimeControl \"300+3\"]"));
 			Assert::IsTrue(has(text, "[Result \"*\"]"), L"unfinished");
 			Assert::IsTrue(has(text, "1. e4 e5 *"), text.toStdWString().c_str());
+		}
+
+		// A rated game (step 5): the player's rating before it.
+		TEST_METHOD(RatedRobotGame_PlayerElo)
+		{
+			GameRecord r = record("computer", true, { "e2e4", "e7e5" });
+			r.rated = true;
+			r.ratingBefore = 1234;
+			r.ratingChange = 12;
+			const auto pgn = GamePgn::ofRecord(r, QStringLiteral("Alice"));
+			Assert::AreEqual(1234, pgn->whiteElo(), L"the player plays White");
+			Assert::AreEqual(Chess::EngineLevel(4).DisplayElo(), pgn->blackElo());
+			Assert::IsTrue(has(pgn->text(), "[WhiteElo \"1234\"]"));
 		}
 
 		TEST_METHOD(DamagedRecord_NoPgn)
