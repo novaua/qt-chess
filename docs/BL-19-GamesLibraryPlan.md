@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-13 |
-| **Status** | Steps 1–2 merged (#162); step 3 coded (branch `features/gamesLibraryUi_161126`); steps 4–8 to do |
+| **Status** | Steps 1–3 merged (#162, #163); hand tests 1–8 passed (2026-11-16), 9 open; steps 4–8 to do |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | BL-19 in `TASKS.md` (the owner's review of the save and game-log capabilities, 2026-11-13) |
 
@@ -125,7 +125,7 @@ ply. Without an engine the button says so.
 | Step | What | Branch |
 |---|---|---|
 | 1–2 | This plan; `GameRecord`, `GameLibrary`, migration, the cap, `GameLibraryTest.cpp`; `ChessConnector` writes records, `continueGame(id)`, `openGame(id)`; the old slots removed; `GamesPage` (Open / Continue / Delete), Home's Games card, the Continue list with two-player games, no Save button or leave dialog; the UI tests adjusted | `features/gamesLibraryBackend_131126` ✅ |
-| 3 | Library UI polish: filters, Export PGN per card, the PGN tags, Settings "Games kept", scenes `games*` + baselines, `tst_games.qml` | `features/gamesLibraryUi_161126` ✅ |
+| 3 | Library UI polish: filters, Export PGN per card, the PGN tags, Settings "Games kept", scenes `games*` + baselines, `tst_games.qml` | `features/gamesLibraryUi_161126` ✅ (#163) |
 | 4 | Play from here: the `…From` starts, the dialogs' `fromPly`, More menu entries, `forkOf` on the card, scene, tests | |
 | 5 | Rating: `GameLibrary::rating()`, Profile page + Home header, card deltas, tests | |
 | 6 | Analysis engine: `GameAnalyzer` + worker, FakeUci MultiPV, storage, unit tests, Settings depth | |
@@ -134,14 +134,14 @@ ply. Without an engine the button says so.
 
 ## 5. Hand tests (the owner, after step 3)
 
-| # | Check | Expected |
-|---|---|---|
-| 1 | Two players: a few moves, Esc | Home at once, no question; Continue shows the game; Games lists it as unfinished |
-| 2 | Continue it, finish it (mate or resign) | The result card; Games shows it finished with the result; Continue no longer offers it |
-| 3 | vs the robot: a few moves, close the app | Next start: Continue offers it; the robot's level and the clock as left |
-| 4 | A profile with the old `chess.save` and `chess.autosave` (a build before BL-19) | Both in Games after the update, the autosave unfinished and continuable, the old files gone |
-| 5 | Open a finished game | A replay from the start; ‹ › step through; the PGN's Result is right (More → Copy PGN) |
-| 6 | Delete a game | Gone after the confirm; the others stay |
-| 7 | Switch user during a two-player game | "Switch user?" says the game is kept; the other profile doesn't see it; back, Continue has it |
-| 8 | Export a profile, import it as new on another Windows user | Its games come along |
-| 9 | Settings → Data "Games kept" 50 with 51 finished games (step 3) | The oldest finished one goes; unfinished ones stay |
+| # | Check | Expected | Result |
+|---|---|---|---|
+| 1 | Two players: a few moves, Esc | Home at once, no question; Continue shows the game; Games lists it as unfinished | ✅ 2026-11-16 |
+| 2 | Continue it, finish it (mate or resign) | The result card; Games shows it finished with the result; Continue no longer offers it | ✅ 2026-11-16 |
+| 3 | vs the robot: a few moves, close the app | Next start: Continue offers it; the robot's level and the clock as left | ✅ 2026-11-16 |
+| 4 | A profile with the old `chess.save` and `chess.autosave` (a build before BL-19) | Both in Games after the update, the autosave unfinished and continuable, the old files gone | ✅ 2026-11-16 |
+| 5 | Open a finished game | A replay from the start; ‹ › step through; the PGN's Result is right (More → Copy PGN) | ✅ 2026-11-16 |
+| 6 | Delete a game | Gone after the confirm; the others stay | ✅ 2026-11-16 |
+| 7 | Switch user during a two-player game | "Switch user?" says the game is kept; the other profile doesn't see it; back, Continue has it | ✅ 2026-11-16 |
+| 8 | Export a profile, import it as new on another Windows user | Its games come along | ✅ 2026-11-16 |
+| 9 | Settings → Data "Games kept" 50 with 51 finished games (step 3) | The oldest finished one goes; unfinished ones stay | open |
