@@ -8,11 +8,46 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
+#include <algorithm>
 #include <memory>
 #include <optional>
 
 class UserManager;
 namespace Chess { class Game; }
+
+// The player's rating vs the robot (BL-19 step 5), standard Elo: it starts at 1200, a rated game moves it
+// by K·(S − E) with E = 1/(1 + 10^((robot − rating)/400)), K = 40 for the first 30 rated games, 20 after;
+// provisional under 10. Stored as it goes (the owner's choice, 2026-11-16): each rated game's change is
+// worked out when it ends and kept on its record, the rating itself in games.json, so removing games
+// (the cap, Delete) never changes it. The robot's rating is its level's EngineLevel::DisplayElo().
+class LocalRating
+{
+public:
+	static constexpr int Start = 1200;
+	static constexpr int ProvisionalGames = 10; // provisional under this many rated games
+	static constexpr int SettledGames = 30;     // K 40 before, 20 from then on
+
+	LocalRating() = default;
+	LocalRating(int value, int games) : _value(value), _games(std::max(0, games)) {}
+
+	int  value() const { return _value; }
+	int  games() const { return _games; }
+	bool provisional() const { return _games < ProvisionalGames; }
+	int  kFactor() const { return _games < SettledGames ? 40 : 20; }
+	// The change a game against `opponentElo` brings: score 1 a win, 0.5 a draw, 0 a loss (rounded).
+	int  changeFor(int opponentElo, double score) const;
+	void apply(int change)  { _value += change; ++_games; }
+	void revert(int change) { _value -= change; _games = std::max(0, _games - 1); }
+
+	QJsonObject toJson() const;
+	static LocalRating fromJson(const QJsonObject& o); // the start rating when there is none
+
+	bool operator==(const LocalRating&) const = default;
+
+private:
+	int _value = Start;
+	int _games = 0;
+};
 
 // One local game of the active profile, as the games library keeps it (BL-19): who, when, the moves
 // in UCI, the result, the clock as it was left. Every game vs the robot or between two players is kept
@@ -44,11 +79,17 @@ struct GameRecord
 	QString   forkOfId;           // Play from here: the game this one continues from, and after how many plies
 	int       forkPly = 0;
 	QJsonObject analysis;         // the engine's analysis, once made (step 6); empty until then
+	bool      rated = false;      // its result moved the player's rating (step 5): by ratingChange, from ratingBefore
+	int       ratingBefore = 0;
+	int       ratingChange = 0;
 
 	int  plyCount() const { return (int)moves.size(); }
 	bool whiteToMove() const { return moves.size() % 2 == 0; }
 	bool playerToMove() const { return whiteToMove() == playerPlaysWhite; }
 	QString lastMove() const { return moves.isEmpty() ? QString() : moves.last(); }
+	// Its result can be rated (step 5): vs the robot, finished, no takeback, not begun from another game.
+	bool rateable() const;
+	double playerScore() const; // 1 the player won, 0.5 a draw, 0 lost
 	// The moves and the position after them (fen), played from the start position; false (and nothing
 	// changed) when one of them can't be played. For records made outside a game: the screenshot
 	// scenes, the UI tests.
@@ -87,6 +128,10 @@ class GameLibrary : public QObject
 	Q_PROPERTY(int finishedCount READ finishedCount NOTIFY gamesChanged)
 	// How many finished games are kept per profile (Settings → Data; AppSettings.gamesKept binds it).
 	Q_PROPERTY(int keepCount READ keepCount WRITE setKeepCount NOTIFY keepCountChanged)
+	// The player's rating vs the robot (LocalRating): Home's header, the Profile page, PGN's Elo.
+	Q_PROPERTY(int rating READ rating NOTIFY ratingChanged)
+	Q_PROPERTY(int ratedGames READ ratedGames NOTIFY ratingChanged)
+	Q_PROPERTY(bool ratingProvisional READ ratingProvisional NOTIFY ratingChanged)
 
 public:
 	static constexpr int DefaultKeepCount = 100;
@@ -107,13 +152,20 @@ public:
 	// How many finished games a keepCount of `keep` would delete, of every profile (Settings asks first).
 	Q_INVOKABLE int finishedBeyond(int keep) const;
 
+	const LocalRating& localRating() const { return _rating; }
+	int  rating() const { return _rating.value(); }
+	int  ratedGames() const { return _rating.games(); }
+	bool ratingProvisional() const { return _rating.provisional(); }
+
 	// The records, newest first.
 	const QList<GameRecord>& records() const { return _records; }
 	QList<GameRecord> unfinished() const;
 	std::optional<GameRecord> find(const QString& id) const;
 
 	// Adds the record (an empty id gets one) or replaces the one with its id; trims the finished games
-	// to keepCount. Returns the id. Nothing is kept without an active profile. The file is written once
+	// to keepCount. A rateable record that just finished is rated (its rated fields set, the rating
+	// moved); a rated one that isn't finished any more (a takeback resumed it) gives its change back.
+	// Returns the id. Nothing is kept without an active profile. The file is written once
 	// the current event is done (a move and the result it brings: one write); flush() writes it now.
 	QString put(GameRecord record);
 	void flush();
@@ -127,12 +179,20 @@ public:
 signals:
 	void gamesChanged();
 	void keepCountChanged();
+	void ratingChanged();
 
 private:
 	enum class FileState { Missing, Read, Damaged, Unreadable };
-	// A games.json: its records, newest first. Unreadable: it is there but couldn't be opened (a lock).
-	static FileState readFile(const QString& path, QList<GameRecord>& records);
-	static bool writeFile(const QString& path, const QList<GameRecord>& records);
+	// A profile's games.json: its records, newest first, and its rating.
+	struct ProfileFile
+	{
+		QList<GameRecord> records;
+		LocalRating rating;
+	};
+	// Unreadable: it is there but couldn't be opened (a lock).
+	static FileState readFile(const QString& path, ProfileFile& file);
+	static bool writeFile(const QString& path, const ProfileFile& file);
+	void rate(GameRecord& record); // put(): rates a game that just finished, or gives a resumed one's change back
 	static bool trimRecords(QList<GameRecord>& records, int keep); // true: some went
 	QStringList profileIds() const;
 
@@ -146,6 +206,7 @@ private:
 	UserManager* _userManager = nullptr;
 	QString _userId;           // the profile whose games these are; "" = none (nothing is kept)
 	QList<GameRecord> _records; // newest first
+	LocalRating _rating;        // the profile's rating vs the robot
 	int _keepCount = DefaultKeepCount;
 	bool _unreadable = false;  // its games.json couldn't be read: never written over (save() reads it again)
 	bool _dirty = false;       // a change not written yet

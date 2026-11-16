@@ -13,7 +13,7 @@ struct GameRecord;
 // the two say the same about the same game.
 //
 // Tags: the seven of the PGN standard (Event, Site, Date, Round, White, Black, Result), then the
-// robot's Elo (WhiteElo or BlackElo; the player's comes with the local rating, BL-19 step 5) and
+// robot's Elo (WhiteElo or BlackElo; the player's in a rated game: the rating before it, BL-19 step 5) and
 // TimeControl ("300+2", "-" for none; left out for a Lichess game: Lichess's own PGN has it).
 class GamePgn
 {
@@ -28,6 +28,7 @@ public:
 	void setResult(const QString& result) { _result = result; } // "1-0", "0-1", "1/2-1/2"; "" while unfinished ("*")
 	void setRobot(int level, bool robotPlaysWhite);  // vs the robot: the Event names the level, its Elo is tagged
 	void setTwoPlayers();                            // two players at this computer
+	void setPlayerElo(int elo, bool playerPlaysWhite); // the player's rating before a rated game (after setRobot)
 	void setLichessGame(const QString& gameId);      // Site: the game on lichess.org
 	void setTimeControl(int limitSec, int incSec);   // a local game's clock; 0 and 0: none
 

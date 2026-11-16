@@ -72,6 +72,14 @@ Page {
                     font: Theme.bodyStrong
                     anchors.verticalCenter: parent.verticalCenter
                 }
+                Label {   // the rating vs the robot (BL-19 step 5), once a game is rated
+                    objectName: "homeRating"
+                    visible: GameLibrary.ratedGames > 0
+                    text: "Rating " + Games.ratingText(GameLibrary.rating, GameLibrary.ratingProvisional)
+                    font: Theme.caption
+                    color: Theme.textSecondary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
                 Label {   // the Lichess blitz rating, once linked
                     visible: text !== ""
                     text: UserManager.lichessConnected && UserManager.lichessRatings.blitz

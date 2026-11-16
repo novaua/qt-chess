@@ -24,9 +24,11 @@ std::optional<GamePgn> GamePgn::ofRecord(const GameRecord& record, const QString
 	            Chess::Game::FormatHistorySan(game->GetGameRecord()));
 	pgn.setDate(record.startedAt.date());
 	pgn.setResult(record.result);
-	if (record.kind == QLatin1String("computer"))
+	if (record.kind == QLatin1String("computer")) {
 		pgn.setRobot(record.level, !record.playerPlaysWhite);
-	else
+		if (record.rated)
+			pgn.setPlayerElo(record.ratingBefore, record.playerPlaysWhite);
+	} else
 		pgn.setTwoPlayers();
 	pgn.setTimeControl(record.clockLimitSec, record.clockIncSec);
 	return pgn;
@@ -38,6 +40,11 @@ void GamePgn::setRobot(int level, bool robotPlaysWhite)
 	_event = QStringLiteral("Casual game vs the robot, level %1 (%2)").arg(robot.Level()).arg(QString::fromUtf8(robot.Name()));
 	_whiteElo = robotPlaysWhite ? robot.DisplayElo() : 0;
 	_blackElo = robotPlaysWhite ? 0 : robot.DisplayElo();
+}
+
+void GamePgn::setPlayerElo(int elo, bool playerPlaysWhite)
+{
+	(playerPlaysWhite ? _whiteElo : _blackElo) = elo;
 }
 
 void GamePgn::setTwoPlayers()

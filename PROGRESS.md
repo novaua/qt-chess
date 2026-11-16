@@ -4,7 +4,27 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
-## 2026-11-16 — BL-19 step 4b: the Play from here button (branch: features/playFromHereButton_161126)
+## 2026-11-16 — BL-19 step 5: the rating vs the robot (branch: features/localRating_161126)
+
+The owner chose **stored as it goes** over the plan's computed rating (2026-11-16): games leave the library (the cap, Delete), and a computed rating would move with them.
+
+### Done
+- **`LocalRating`** (`gamelibrary.h`): Elo from 1200 against the robot's `DisplayElo()`, K 40 for the first 30 rated games then 20, provisional under 10; in `games.json` as `"rating": { value, games }` (only once a game is rated). `readFile` / `writeFile` carry it (`ProfileFile`), so trimming another profile's file keeps its rating; the "can't be read now" merge adds what was rated meanwhile.
+- **`GameLibrary::put` rates** a record that is rateable (`GameRecord::rateable()`: vs the robot, finished with a result, no fork, no takeback) and not rated yet: `rated`, `ratingBefore`, `ratingChange` on the record. A rated record put back unfinished (a takeback resumed it) gives its change back (exact: only the game on the board can be). Migrated old saves aren't rated. Properties `rating`, `ratedGames`, `ratingProvisional`.
+- **UI**: Home's account button "Rating 1227?" (`homeRating`, once a game is rated); the Profile page's Statistics card "Rating vs the robot" (the number, provisional N of 10, or how to get one); a Games card "You won · +27" (`games.js`: `ratingChangeText`, `resultWithRating`, `ratingText`).
+- **PGN**: the player's rating before a rated game as `WhiteElo` / `BlackElo` (`GamePgn::setPlayerElo`).
+- **Scenes**: `profile` gets the `games` scene's kept games (two rated robot games: 1227?).
+- **Tests**: GameLibraryTest +5 (Elo, rated once and from the file, games not rated, a takeback gives it back, removing keeps it), GamePgnTest +1; `tst_games` 9 (a won robot game: Home's header and the card; a takeback after the mate gives the change back, mated again: not rated).
+
+### Next
+- Step 6, the analysis engine.
+
+### Checked
+- Debug: ChessTests 142/142, ChessQtTests 249/249; UI tests 9 files, 0 failed (144 s). Scenes `games`, `profile` looked at.
+
+---
+
+## 2026-11-16 — BL-19 step 4b: the Play from here button (branch: features/playFromHereButton_161126, #167)
 
 The owner's follow-up to #165: Play from here only while reviewing, as its own button (placement and the More menu: the owner's choice, 2026-11-16).
 
@@ -16,7 +36,7 @@ The owner's follow-up to #165: Play from here only while reviewing, as its own b
 - **Tests**: `tst_games` 6 (not at the live position, not in the More menu; the button's menu), 7 (the button in a replay; gone after the mate, back a move earlier).
 
 ### Next
-- Step 5, the rating: the owner chose **stored as it goes** (2026-11-16) over the plan's computed rating: each rated game's change kept on its record, the profile's rating in `games.json`; removing games never changes it; a takeback that resumes a rated game undoes its change.
+- Step 5, the rating (#168).
 
 ---
 

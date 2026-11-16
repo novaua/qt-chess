@@ -2,6 +2,7 @@
 #include "gamelibrary.h"
 
 #include "AppConfig.h"
+#include "EngineLevel.h"
 #include "Game.h"
 #include "UserManager.h"
 
@@ -15,8 +16,43 @@
 #include <QTimer>
 #include <QUuid>
 #include <algorithm>
+#include <cmath>
+
+// ── LocalRating ──────────────────────────────────────────────────────────────
+
+int LocalRating::changeFor(int opponentElo, double score) const
+{
+	const double expected = 1.0 / (1.0 + std::pow(10.0, (opponentElo - _value) / 400.0));
+	return (int)std::lround(kFactor() * (score - expected));
+}
+
+QJsonObject LocalRating::toJson() const
+{
+	return QJsonObject{ { QStringLiteral("value"), _value }, { QStringLiteral("games"), _games } };
+}
+
+LocalRating LocalRating::fromJson(const QJsonObject& o)
+{
+	if (o.isEmpty())
+		return {};
+	return LocalRating(o.value(QStringLiteral("value")).toInt(Start), o.value(QStringLiteral("games")).toInt(0));
+}
 
 // ── GameRecord ───────────────────────────────────────────────────────────────
+
+bool GameRecord::rateable() const
+{
+	return kind == QLatin1String("computer") && finished && forkOfId.isEmpty() && undoCount == 0
+		&& level >= 1 && level <= Chess::EngineLevel::Count
+		&& (result == QLatin1String("1-0") || result == QLatin1String("0-1") || result == QLatin1String("1/2-1/2"));
+}
+
+double GameRecord::playerScore() const
+{
+	if (result == QLatin1String("1/2-1/2"))
+		return 0.5;
+	return (result == QLatin1String("1-0")) == playerPlaysWhite ? 1.0 : 0.0;
+}
 
 QJsonObject GameRecord::toJson() const
 {
@@ -57,6 +93,10 @@ QJsonObject GameRecord::toJson() const
 	}
 	if (!analysis.isEmpty())
 		o[QStringLiteral("analysis")]     = analysis;
+	if (rated) {
+		o[QStringLiteral("ratingBefore")] = ratingBefore;
+		o[QStringLiteral("ratingChange")] = ratingChange;
+	}
 	return o;
 }
 
@@ -88,6 +128,9 @@ GameRecord GameRecord::fromJson(const QJsonObject& o)
 	r.forkOfId         = o.value(QStringLiteral("forkOfId")).toString();
 	r.forkPly          = o.value(QStringLiteral("forkPly")).toInt(0);
 	r.analysis         = o.value(QStringLiteral("analysis")).toObject();
+	r.rated            = o.contains(QStringLiteral("ratingChange"));
+	r.ratingBefore     = o.value(QStringLiteral("ratingBefore")).toInt(0);
+	r.ratingChange     = o.value(QStringLiteral("ratingChange")).toInt(0);
 	return r;
 }
 
@@ -148,6 +191,9 @@ QVariantMap GameRecord::toVariant() const
 		{ QStringLiteral("forkOfId"),         forkOfId },
 		{ QStringLiteral("forkPly"),          forkPly },
 		{ QStringLiteral("analysed"),         !analysis.isEmpty() },
+		{ QStringLiteral("rated"),            rated },
+		{ QStringLiteral("ratingBefore"),     ratingBefore },
+		{ QStringLiteral("ratingChange"),     ratingChange },
 	};
 }
 
@@ -186,9 +232,11 @@ static bool newerFirst(const GameRecord& a, const GameRecord& b)
 }
 
 // The active profile's games. Without one (logged out, deleted) the library is empty and keeps nothing.
-GameLibrary::FileState GameLibrary::readFile(const QString& path, QList<GameRecord>& records)
+GameLibrary::FileState GameLibrary::readFile(const QString& path, ProfileFile& profileFile)
 {
+	auto& records = profileFile.records;
 	records.clear();
+	profileFile.rating = {};
 	if (!QFileInfo::exists(path))
 		return FileState::Missing;
 	QFile file(path);
@@ -198,6 +246,7 @@ GameLibrary::FileState GameLibrary::readFile(const QString& path, QList<GameReco
 	const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
 	if (err.error != QJsonParseError::NoError || !doc.isObject())
 		return FileState::Damaged;
+	profileFile.rating = LocalRating::fromJson(doc.object().value(QStringLiteral("rating")).toObject());
 	for (const auto& g : doc.object().value(QStringLiteral("games")).toArray()) {
 		GameRecord r = GameRecord::fromJson(g.toObject());
 		if (!r.id.isEmpty() && !r.moves.isEmpty())
@@ -207,15 +256,17 @@ GameLibrary::FileState GameLibrary::readFile(const QString& path, QList<GameReco
 	return FileState::Read;
 }
 
-bool GameLibrary::writeFile(const QString& path, const QList<GameRecord>& records)
+bool GameLibrary::writeFile(const QString& path, const ProfileFile& profileFile)
 {
 	QJsonArray games;
-	for (const auto& r : records)
+	for (const auto& r : profileFile.records)
 		games.append(r.toJson());
-	const QJsonObject root{
+	QJsonObject root{
 		{ QStringLiteral("version"), FormatVersion },
 		{ QStringLiteral("games"),   games },
 	};
+	if (profileFile.rating.games() > 0)
+		root[QStringLiteral("rating")] = profileFile.rating.toJson();
 	QSaveFile file(path);
 	if (!file.open(QIODevice::WriteOnly)) {
 		qWarning() << "GameLibrary: can't write" << path << file.errorString();
@@ -245,9 +296,13 @@ void GameLibrary::reload()
 	_userId = userId;
 	_unreadable = false;
 	_records.clear();
+	_rating = {};
 	if (!_userId.isEmpty()) {
-		switch (readFile(filePath(), _records)) {
+		ProfileFile file;
+		switch (readFile(filePath(), file)) {
 		case FileState::Read:
+			_records = file.records;
+			_rating = file.rating;
 			break;
 		case FileState::Damaged:
 			keepAside(filePath());
@@ -264,6 +319,7 @@ void GameLibrary::reload()
 		}
 	}
 	emit gamesChanged();
+	emit ratingChanged();
 }
 
 bool GameLibrary::save()
@@ -272,8 +328,9 @@ bool GameLibrary::save()
 	if (_userId.isEmpty())
 		return false;
 	if (_unreadable) {
-		// Read it again: its games and the ones kept since go in together.
-		QList<GameRecord> onDisk;
+		// Read it again: its games and the ones kept since go in together, and its rating moved by the
+		// games rated since (the rating here started from the start rating: what it moved is the change).
+		ProfileFile onDisk;
 		switch (readFile(filePath(), onDisk)) {
 		case FileState::Unreadable:
 			_dirty = true; // the next change tries again
@@ -283,11 +340,14 @@ bool GameLibrary::save()
 			keepAside(filePath());
 			break;
 		case FileState::Read:
-			for (const auto& r : onDisk)
+			for (const auto& r : onDisk.records)
 				if (std::none_of(_records.begin(), _records.end(), [&](const GameRecord& k) { return k.id == r.id; }))
 					_records.append(r);
 			std::stable_sort(_records.begin(), _records.end(), newerFirst);
 			trim();
+			_rating = LocalRating(onDisk.rating.value() + _rating.value() - LocalRating::Start,
+			                      onDisk.rating.games() + _rating.games());
+			emit ratingChanged();
 			break;
 		case FileState::Missing:
 			break;
@@ -295,7 +355,7 @@ bool GameLibrary::save()
 		_unreadable = false;
 		emit gamesChanged();
 	}
-	return writeFile(filePath(), _records);
+	return writeFile(filePath(), ProfileFile{ _records, _rating });
 }
 
 void GameLibrary::scheduleSave()
@@ -336,9 +396,9 @@ int GameLibrary::finishedBeyond(int keep) const
 	for (const auto& id : profileIds()) {
 		if (id == _userId)
 			continue;
-		QList<GameRecord> records;
-		if (readFile(filePathOf(id), records) == FileState::Read)
-			total += beyond(records);
+		ProfileFile file;
+		if (readFile(filePathOf(id), file) == FileState::Read)
+			total += beyond(file.records);
 	}
 	return total;
 }
@@ -348,9 +408,9 @@ void GameLibrary::trimOtherProfiles()
 	for (const auto& id : profileIds()) {
 		if (id == _userId)
 			continue;
-		QList<GameRecord> records;
-		if (readFile(filePathOf(id), records) == FileState::Read && trimRecords(records, _keepCount))
-			writeFile(filePathOf(id), records);
+		ProfileFile file; // its rating stays as it is
+		if (readFile(filePathOf(id), file) == FileState::Read && trimRecords(file.records, _keepCount))
+			writeFile(filePathOf(id), file);
 	}
 }
 
@@ -421,6 +481,7 @@ QString GameLibrary::put(GameRecord record)
 		record.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
 	if (!record.startedAt.isValid())
 		record.startedAt = QDateTime::currentDateTime();
+	rate(record);
 	const auto it = std::find_if(_records.begin(), _records.end(), [&](const GameRecord& r) { return r.id == record.id; });
 	if (it != _records.end())
 		*it = record;
@@ -431,6 +492,25 @@ QString GameLibrary::put(GameRecord record)
 	scheduleSave();
 	emit gamesChanged();
 	return record.id;
+}
+
+// Once per result: a rated game keeps its change. Only the game on the board is put again after its
+// result, and only a takeback un-finishes it (which also makes it unrateable: undoCount), so giving the
+// change back right then restores the rating exactly.
+void GameLibrary::rate(GameRecord& record)
+{
+	if (record.rated && !record.finished) {
+		_rating.revert(record.ratingChange);
+		record.rated = false;
+		record.ratingBefore = record.ratingChange = 0;
+		emit ratingChanged();
+	} else if (!record.rated && record.rateable()) {
+		record.ratingBefore = _rating.value();
+		record.ratingChange = _rating.changeFor(Chess::EngineLevel(record.level).DisplayElo(), record.playerScore());
+		record.rated = true;
+		_rating.apply(record.ratingChange);
+		emit ratingChanged();
+	}
 }
 
 bool GameLibrary::remove(const QString& id)

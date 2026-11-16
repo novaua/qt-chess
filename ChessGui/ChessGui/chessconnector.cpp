@@ -543,6 +543,8 @@ GamePgn ChessConnector::boardPgn() const
 		pgn.setLichessGame(_onlineGameId);
 	else if (_gameMode == QLatin1String("computer")) {
 		pgn.setRobot(_config.lastLevel, !_config.playerPlaysWhite);
+		if (const auto rec = _library ? _library->find(_recordId) : std::nullopt; rec && rec->rated)
+			pgn.setPlayerElo(rec->ratingBefore, _config.playerPlaysWhite);
 		pgn.setTimeControl(_clockLimitSec, _clockIncSec);
 	}
 	else if (_gameMode == QLatin1String("local")) {

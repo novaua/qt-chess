@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
 import ChessPlusPlus
+import "games.js" as Games
 
 // The active profile: name and avatar (applied right away), the linked Lichess account, the
 // statistics per opponent, and export / delete. Pushed over Home or the game; Back pops it.
@@ -291,6 +292,38 @@ Page {
                       + UserManager.totals.draws + " drawn · " + UserManager.totals.losses + " lost · since "
                       + UserManager.statsCreatedDate
                 Layout.fillWidth: true
+
+                // The rating vs the robot (BL-19 step 5): stored as it goes, kept in the profile's games.
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.bottomMargin: Theme.s2
+                    spacing: Theme.s3
+                    Label {
+                        objectName: "profileRating"
+                        visible: GameLibrary.ratedGames > 0
+                        text: Games.ratingText(GameLibrary.rating, GameLibrary.ratingProvisional)
+                        font: Theme.subtitle
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+                        Label {
+                            text: "Rating vs the robot"
+                            font: Theme.bodyStrong
+                        }
+                        Label {
+                            text: GameLibrary.ratedGames === 0
+                                  ? "No rating yet. Finish a game against the robot without a takeback to get one."
+                                  : GameLibrary.ratingProvisional
+                                  ? "Provisional: " + GameLibrary.ratedGames + " of " + 10 + " rated games so far."
+                                  : GameLibrary.ratedGames + " rated games. Games against the robot without a takeback count."
+                            font: Theme.caption
+                            color: Theme.textSecondary
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
 
                 GridLayout {
                     visible: UserManager.gamesPlayed > 0

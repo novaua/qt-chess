@@ -44,7 +44,7 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   `drag` (the same knight held over f3: faded on g1, dots, f3 outlined; `-Black` too), `drag-off` (the knight dragged off the board, over the bottom player card: drawn over it), `settings` (Settings page, top),
   `about` (Settings scrolled to About: version, licences, shortcuts), `restore` (Settings with the restore
   dialog: two backups, the newest the same as now), `levels`,
-  `profile` (Profile page: Lichess linked with ratings, statistics), `profile-local` (no Lichess),
+  `profile` (Profile page: Lichess linked with ratings, statistics, the rating vs the robot from the `games` scene's two rated robot games: 1227?), `profile-local` (no Lichess),
   `profile-expired` (Lichess sign-in expired: Reconnect), `import` (importing Bob again: the conflict
   dialog), `online` (the Online page with four seeded games, at its end since BL-17: your turn / waiting, a Blitz lobby game to open on lichess.org), `online-empty` (signed in, no games), `online-disconnected` (no Lichess account), `computer` (vs-computer setup dialog), `players`
   (two-player setup dialog), `players-many` (seven opponents: with `-Size 640x560` the dialog scrolls),
