@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-13 |
-| **Status** | Steps 1–6 merged (#162, #163, #165, #167, #168, #169); step 7 (the analysis UI) on `features/analysisUi_161126`; hand tests 1–8 passed (2026-11-16), 9 open; step 8 to do |
+| **Status** | Steps 1–7 merged (#162, #163, #165, #167–#170); step 8 (docs, hand tests) on `docs/bl19ManualTests_161126`; hand tests 1–8 passed (2026-11-16); the rest in [`BL-19-ManualTests.md`](BL-19-ManualTests.md) |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | BL-19 in `TASKS.md` (the owner's review of the save and game-log capabilities, 2026-11-13) |
 
@@ -209,10 +209,13 @@ ply. Without an engine the button says so.
 | 4b | The Play from here button (§3.4.2): review only, the review bar's button and its menu, the More menu entries removed, scenes, tests | `features/playFromHereButton_161126` ✅ (#167) |
 | 5 | Rating: `LocalRating` stored as it goes (`GameLibrary::put`), Profile page + Home header, card changes, the PGN's player Elo, tests | `features/localRating_161126` ✅ (#168) |
 | 6 | Analysis engine: `GameAnalyzer` + worker, FakeUci MultiPV, storage, unit tests, Settings depth | `features/analysisEngine_161126` ✅ (#169) |
-| 7 | Analysis UI: eval bar, judgements, summary, Analyse buttons, scenes, `tst_analysis.qml` | `features/analysisUi_161126` |
-| 8 | Docs and hand tests: CLAUDE.md, the `run-chess-app` scene list, `BL-19-ManualTests.md`, PROGRESS.md | |
+| 7 | Analysis UI: eval bar, judgements, summary, Analyse buttons, scenes, `tst_analysis.qml` | `features/analysisUi_161126` ✅ (#170) |
+| 8 | Docs and hand tests: CLAUDE.md, the `run-chess-app` scene list, `BL-19-ManualTests.md`, PROGRESS.md | `docs/bl19ManualTests_161126` |
 
 ## 5. Hand tests (the owner, after step 3)
+
+Hand test 9 and the checks of steps 4–7 (Play from here, the rating, the analysis with Stockfish) moved to
+[`BL-19-ManualTests.md`](BL-19-ManualTests.md) (scenario 1 is hand test 9).
 
 | # | Check | Expected | Result |
 |---|---|---|---|
@@ -224,4 +227,4 @@ ply. Without an engine the button says so.
 | 6 | Delete a game | Gone after the confirm; the others stay | ✅ 2026-11-16 |
 | 7 | Switch user during a two-player game | "Switch user?" says the game is kept; the other profile doesn't see it; back, Continue has it | ✅ 2026-11-16 |
 | 8 | Export a profile, import it as new on another Windows user | Its games come along | ✅ 2026-11-16 |
-| 9 | Settings → Data "Games kept" 50 with 51 finished games (step 3) | The oldest finished one goes; unfinished ones stay | open |
+| 9 | Settings → Data "Games kept" 50 with 51 finished games (step 3) | The oldest finished one goes; unfinished ones stay | → `BL-19-ManualTests.md` §1 |
