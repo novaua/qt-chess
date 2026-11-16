@@ -11,10 +11,10 @@ AppDialog {
     id: dialog
 
     property string _opponentId: ""   // a profile's id; "" = Guest
-    property var from: ({})           // Play from here: ChessConnector.playFromHere(); {} = a new game
+    property var from: ({})           // Play from here: ChessConnector.PlayFromHere; {} = a new game
     readonly property bool _fromHere: from.gameId !== undefined
 
-    // From the position `position` (playFromHere()): the player takes the side to move.
+    // From the position `position` (PlayFromHere): the player takes the side to move.
     function openFrom(position) {
         from = position
         open()
