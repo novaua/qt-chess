@@ -1193,6 +1193,7 @@ ApplicationWindow {
         gamesKeptConfirm.open()
     }
     Binding { target: GameLibrary; property: "keepCount"; value: AppSettings.gamesKept }
+    Binding { target: ChessConnector; property: "AnalysisDepth"; value: AppSettings.analysisDepth } // BL-19 step 6
 
     ConfirmDialog {
         id: gamesKeptConfirm

@@ -31,6 +31,9 @@ namespace Chess {
 		// The engine's move in UCI notation (e.g. "e7e8q") for the game with these moves
 		// from the start position. maxMoveTime: the robot's clock caps the level's thinking time (0: no cap).
 		std::string FindMove(const MovesHistory& history, std::chrono::milliseconds maxMoveTime = {});
+		// What the engine is told for the position after the first `plies` moves of `history`, in `mode`
+		// (FenWindow: a FEN every FenWindowSize plies and the moves since). The analysis asks the same way.
+		static StartPosMoveRequest MakeRequest(const MovesHistory& history, size_t plies, PositionMode mode);
 		// Stops the engine process; thread-safe.
 		void KillEngine();
 		// A request that is no longer wanted (the game was left): FindMove checks this before and after

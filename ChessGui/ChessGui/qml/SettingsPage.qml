@@ -210,6 +210,21 @@ Page {
                         onClicked: page.levelsHelpRequested()
                     }
                 }
+                SettingRow {
+                    title: "Analysis depth"
+                    description: "How deep the engine looks at each position when it analyses a game. Deeper finds more, and takes longer."
+                    ComboBox {
+                        objectName: "analysisDepthBox"
+                        readonly property var depths: [10, 14, 18]
+                        readonly property var names: ["Fast", "Normal", "Deep"]
+                        model: names
+                        currentIndex: Math.max(0, depths.indexOf(AppSettings.analysisDepth))
+                        displayText: names[currentIndex] + " (depth " + depths[currentIndex] + ")"
+                        onActivated: index => AppSettings.analysisDepth = depths[index]
+                        Accessible.name: "Analysis depth"
+                        Layout.preferredWidth: 180
+                    }
+                }
             }
 
             // ── Data ──

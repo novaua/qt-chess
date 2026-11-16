@@ -28,6 +28,8 @@ SOURCES += main.cpp \
     gameclock.cpp \
     gamelibrary.cpp \
     gamepgn.cpp \
+    gameanalysis.cpp \
+    gameanalyzer.cpp \
     applog.cpp \
     ChessEnginePlayer.cpp \
     AppInfo.cpp \
@@ -79,6 +81,8 @@ HEADERS += \
     gameclock.h \
     gamelibrary.h \
     gamepgn.h \
+    gameanalysis.h \
+    gameanalyzer.h \
     applog.h \
     ChessEnginePlayer.h \
     AppInfo.h \

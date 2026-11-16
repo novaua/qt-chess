@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 
+class GameAnalysis;
 class UserManager;
 namespace Chess { class Game; }
 
@@ -78,7 +79,7 @@ struct GameRecord
 	int       undoCount = 0;      // takebacks (a game with any isn't rated)
 	QString   forkOfId;           // Play from here: the game this one continues from, and after how many plies
 	int       forkPly = 0;
-	QJsonObject analysis;         // the engine's analysis, once made (step 6); empty until then
+	QJsonObject analysis;         // the engine's analysis (GameAnalysis::toJson, step 6); empty until made, dropped when the moves change
 	bool      rated = false;      // its result moved the player's rating (step 5): by ratingChange, from ratingBefore
 	int       ratingBefore = 0;
 	int       ratingChange = 0;
@@ -165,11 +166,16 @@ public:
 	// Adds the record (an empty id gets one) or replaces the one with its id; trims the finished games
 	// to keepCount. A rateable record that just finished is rated (its rated fields set, the rating
 	// moved); a rated one that isn't finished any more (a takeback resumed it) gives its change back.
+	// An analysis made for other moves (GameAnalysis::fits) is dropped.
 	// Returns the id. Nothing is kept without an active profile. The file is written once
 	// the current event is done (a move and the result it brings: one write); flush() writes it now.
 	QString put(GameRecord record);
 	void flush();
 	Q_INVOKABLE bool remove(const QString& id);
+	// The engine's analysis of a kept game (GameAnalyzer), made for these moves: false (nothing kept)
+	// when there is no such game or its moves aren't these any more.
+	bool setAnalysis(const QString& id, const QStringList& moves, const GameAnalysis& analysis);
+	QString userId() const { return _userId; } // the profile whose games these are; "" = none
 	Q_INVOKABLE QVariantMap game(const QString& id) const; // {} when there is none
 
 	// The profile's file. Public for the tests.

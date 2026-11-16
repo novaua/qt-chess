@@ -41,6 +41,31 @@ static GameAptr Replay(const MovesHistory& history, size_t count)
 	return game;
 }
 
+StartPosMoveRequest ChessEnginePlayer::MakeRequest(const MovesHistory& history, size_t plies, PositionMode mode)
+{
+	const int n = static_cast<int>(std::min(plies, history.size()));
+	StartPosMoveRequest req;
+	if (mode == PositionMode::PureFen)
+	{
+		req.Fen = Replay(history, n)->MakeFen();
+	}
+	else if (mode == PositionMode::FenWindow && n > FenWindowSize)
+	{
+		int snapshotAt = (n / FenWindowSize) * FenWindowSize;
+
+		req.Fen = Replay(history, snapshotAt)->MakeFen();
+
+		for (int i = snapshotAt; i < n; ++i)
+			req.Moves.push_back(history[i].ToUciString());
+	}
+	else
+	{
+		for (int i = 0; i < n; ++i)
+			req.Moves.push_back(history[i].ToUciString());
+	}
+	return req;
+}
+
 std::string ChessEnginePlayer::FindMove(const MovesHistory& history, std::chrono::milliseconds maxMoveTime)
 {
 	int n = static_cast<int>(history.size());
@@ -55,26 +80,7 @@ std::string ChessEnginePlayer::FindMove(const MovesHistory& history, std::chrono
 	if (_cancelled && _cancelled())
 		throw std::logic_error("engine request cancelled");
 
-	StartPosMoveRequest req;
-
-	if (_mode == PositionMode::PureFen)
-	{
-		req.Fen = Replay(history, n)->MakeFen();
-	}
-	else if (_mode == PositionMode::FenWindow && n > FenWindowSize)
-	{
-		int snapshotAt = (n / FenWindowSize) * FenWindowSize;
-
-		req.Fen = Replay(history, snapshotAt)->MakeFen();
-
-		for (int i = snapshotAt; i < n; ++i)
-			req.Moves.push_back(history[i].ToUciString());
-	}
-	else
-	{
-		for (const auto& m : history)
-			req.Moves.push_back(m.ToUciString());
-	}
+	const StartPosMoveRequest req = MakeRequest(history, history.size(), _mode);
 
 	if (_level.UsesEngineElo())
 		return _connector->GetEngineMove(req, maxMoveTime.count() > 0 ? std::min(_level.MoveTime(), maxMoveTime)

@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-13 |
-| **Status** | Steps 1–4b merged (#162, #163, #165, #167); step 5 (the rating) on `features/localRating_161126`; hand tests 1–8 passed (2026-11-16), 9 open; steps 6–8 to do |
+| **Status** | Steps 1–5 merged (#162, #163, #165, #167, #168); step 6 (the analysis engine) on `features/analysisEngine_161126`; hand tests 1–8 passed (2026-11-16), 9 open; steps 7–8 to do |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | BL-19 in `TASKS.md` (the owner's review of the save and game-log capabilities, 2026-11-13) |
 
@@ -152,6 +152,29 @@ result card and in More; a `BusyButton` "Analysing… 23/68"; an eval bar beside
 move list (`MoveListModel` roles); a summary row (accuracy, counts per side); "Best was Nf3" for the reviewed
 ply. Without an engine the button says so.
 
+**Step 6 as built** (the engine, no UI yet):
+- `GameAnalysis` (`gameanalysis.h/cpp`): `evals` (one per position 0…n, White's view; a mate in N ±(100000 − N),
+  mated on the board ±100000) and `best` (UCI, "" where the game is over), `depth`. Stored as is on the record
+  (`{ version 1, depth, evals, best }`); win chances, judgements and accuracy are worked out when read. The
+  thresholds are Lichess's: its 0.1 / 0.2 / 0.3 are on winning chances from −1 to 1, so **5 / 10 / 15 points** of
+  the 0–100 win chance (not 10 / 20 / 30 as first written here); a score reads as at most ±1000 cp. Accuracy is
+  lila's game accuracy: the mean of the volatility-weighted mean and the harmonic mean of the moves' accuracies
+  (each `103.1668·e^(−0.04354·drop) − 3.1669 + 1`, 0–100).
+- `GameAnalyzer` + `AnalysisWorker` (`gameanalyzer.h/cpp`): a thread and a fresh full-strength `UciConnector` per
+  analysis (no idle engine left), `GetCandidateMoves(position, 1, depth)` per position, asked as the robot is
+  (`ChessEnginePlayer::MakeRequest`, the FEN window with Settings' UseFen); a mate or stalemate at the end isn't
+  asked. Progress per position; `cancel()` kills the engine and keeps nothing; never waits on the GUI thread (the
+  destructor waits at most 3 s). The result goes on the record only if its moves are still those analysed
+  (`GameLibrary::setAnalysis`); a change of the moves meanwhile (or another profile, or the game deleted) fails
+  it at once. `GameLibrary::put` drops an analysis whose ply count isn't the record's (a takeback, the game went on).
+- `ChessConnector`: `analyseGame(id)` ("" = the game on the board, once kept), `cancelAnalysis()`, `Analysing`,
+  `AnalysisGameId`, `AnalysisDone` / `AnalysisTotal`, `AnalysisDepth`, `analysisFinished` / `analysisFailed`.
+- Settings → Computer **Analysis depth**: Fast (10) / Normal (14) / Deep (18) (`AppSettings.analysisDepth`).
+- FakeUci scores its line: `mate 1` when its move mates, else the material after it (deterministic; still one
+  line at any MultiPV, so the robot's weak levels stay deterministic in the UI tests).
+- Tests: `GameAnalysisTest.cpp` (6 on the numbers, 6 on the analyzer: FakeUci on the scholar's mate, Stockfish,
+  cancel, a change meanwhile, nothing to analyse, the record's side), FakeEngineTests +2.
+
 ## 4. Steps
 
 | Step | What | Branch |
@@ -160,8 +183,8 @@ ply. Without an engine the button says so.
 | 3 | Library UI polish: filters, Export PGN per card, the PGN tags, Settings "Games kept", scenes `games*` + baselines, `tst_games.qml` | `features/gamesLibraryUi_161126` ✅ (#163) |
 | 4 | Play from here: the `…From` starts, the dialogs' `fromPly`, More menu entries, `forkOf` on the card, scene, tests | `features/playFromHere_161126` ✅ |
 | 4b | The Play from here button (§3.4.2): review only, the review bar's button and its menu, the More menu entries removed, scenes, tests | `features/playFromHereButton_161126` ✅ (#167) |
-| 5 | Rating: `LocalRating` stored as it goes (`GameLibrary::put`), Profile page + Home header, card changes, the PGN's player Elo, tests | `features/localRating_161126` |
-| 6 | Analysis engine: `GameAnalyzer` + worker, FakeUci MultiPV, storage, unit tests, Settings depth | |
+| 5 | Rating: `LocalRating` stored as it goes (`GameLibrary::put`), Profile page + Home header, card changes, the PGN's player Elo, tests | `features/localRating_161126` ✅ (#168) |
+| 6 | Analysis engine: `GameAnalyzer` + worker, FakeUci MultiPV, storage, unit tests, Settings depth | `features/analysisEngine_161126` |
 | 7 | Analysis UI: eval bar, judgements, summary, Analyse buttons, scenes, `tst_games` analysis | |
 | 8 | Docs and hand tests: CLAUDE.md, the `run-chess-app` scene list, `BL-19-ManualTests.md`, PROGRESS.md | |
 

@@ -365,6 +365,8 @@
     <ClCompile Include="gameclock.cpp" />
     <ClCompile Include="gamelibrary.cpp" />
     <ClCompile Include="gamepgn.cpp" />
+    <ClCompile Include="gameanalysis.cpp" />
+    <ClCompile Include="gameanalyzer.cpp" />
     <ClCompile Include="applog.cpp" />
     <ClCompile Include="engineworker.cpp" />
     <ClCompile Include="main.cpp" />
@@ -376,6 +378,7 @@
     <ClInclude Include="appservices.h" />
     <ClInclude Include="frametrace.h" />
     <ClInclude Include="gamepgn.h" />
+    <ClInclude Include="gameanalysis.h" />
     <QtMoc Include="AppInfo.h" />
     <QtMoc Include="AvatarProvider.h" />
     <QtMoc Include="UserManager.h" />
@@ -389,6 +392,7 @@
     <QtMoc Include="sceneinput.h" />
     <QtMoc Include="gameclock.h" />
     <QtMoc Include="gamelibrary.h" />
+    <QtMoc Include="gameanalyzer.h" />
     <ClInclude Include="applog.h" />
     <QtMoc Include="engineworker.h" />
     <ClInclude Include="..\..\ChessCore\stdafx.h" />

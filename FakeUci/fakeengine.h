@@ -16,6 +16,9 @@
 //  - otherwise the first legal move in a fixed order (by the UCI text); a scripted move it can't
 //    play is said on stderr.
 // FAKEUCI_DELAY_MS: it "thinks" that long before it answers (a test can leave while it thinks).
+// Its one line's score (BL-19 step 6, the analysis) is "mate 1" when its move mates, else the material
+// after its move from the side to move's view (pawn 100, knight and bishop 300, rook 500, queen 900):
+// an analysis sees a piece taken or left to be taken, and a mate, the same way every time.
 class FakeEngine
 {
 public:
@@ -30,6 +33,8 @@ public:
 	bool Play(const std::string& uciMove); // false: not legal here (the position is unchanged)
 	std::vector<std::string> LegalMoves() const; // in UCI, sorted
 	std::string ChooseMove() const;              // "" when there is none (mate, stalemate)
+	std::string ScoreOf(const std::string& uciMove) const; // the UCI score of a legal move here: "cp 100", "mate 1"
+	int Material() const;                        // the material balance, the side to move's view
 	bool IsLegal(const std::string& uciMove) const;
 	int Ply() const { return _ply; }
 
