@@ -181,12 +181,21 @@ TestCase {
         // Copied: a list property's element read again later is the list's element then.
         const sourceId = GameLibrary.games[0].id
         compare(GameLibrary.games[0].plyCount, 4, "the two-player game kept")
+        // Step 4b: only while reviewing; the More menu doesn't offer it.
+        compare(Object.keys(ChessConnector.PlayFromHere).length, 0, "not at the live position")
+        verify(!app.find("playFromHereButton").visible)
+        app.click("moreButton")
+        const more = app.item("switchUserItem").menu
+        tryVerify(() => more.opened, 3000)
+        verify(app.find("playFromHereRobotItem") === null, "not in the More menu")
+        more.close()
+        tryVerify(() => !more.visible, 3000)
 
         app.click("review_prev")
         app.click("review_prev")
         tryCompare(ChessConnector, "ShownPly", 2, 2000, "after 1... e5")
         TestRun.setEngine("e2e4 e7e5 g1f3 b8c6", 0)
-        app.chooseFromMenu("moreButton", "playFromHereRobotItem")
+        app.chooseFromMenu("playFromHereButton", "playFromHereRobotItem")
         const dialog = app.item("computerDialog")
         tryVerify(() => dialog.opened, 3000, "the vs computer dialog")
         compare(dialog.title, "Play from here vs computer")
@@ -230,7 +239,7 @@ TestCase {
         app.click("nextButton")
         app.click("nextButton")
         tryCompare(ChessConnector, "ShownPly", 2, 2000)
-        app.chooseFromMenu("moreButton", "playFromHereTwoPlayersItem")
+        app.chooseFromMenu("playFromHereButton", "playFromHereTwoPlayersItem")
         const dialog = app.item("twoPlayerDialog")
         tryVerify(() => dialog.opened, 3000, "the two players dialog")
         compare(dialog.title, "Play from here, two players")
@@ -249,10 +258,12 @@ TestCase {
         for (let i = 0; i < 4; ++i)
             app.click("nextButton")
         tryCompare(ChessConnector, "ShownPly", 4, 2000)
-        compare(Object.keys(ChessConnector.playFromHere()).length, 0, "after the mate: none")
+        compare(Object.keys(ChessConnector.PlayFromHere).length, 0, "after the mate: none")
+        verify(!app.find("playFromHereButton").visible, "no button after the mate")
         app.click("prevButton")
         tryCompare(ChessConnector, "ShownPly", 3, 2000)
-        compare(ChessConnector.playFromHere().ply, 3)
+        compare(ChessConnector.PlayFromHere.ply, 3)
+        tryVerify(() => app.find("playFromHereButton").visible, 2000, "the button again")
     }
 
     // A kept game with a move that can't be played: Continue and Open refuse it and say so, and the

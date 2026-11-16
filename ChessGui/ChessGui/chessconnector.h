@@ -67,6 +67,8 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int  PlyCount      READ plyCount      NOTIFY moveHistoryChanged) // moves in the list
 		Q_PROPERTY(QString      GameResult  READ gameResult  NOTIFY gameResultChanged)
 		Q_PROPERTY(bool ReviewMode    READ reviewMode    NOTIFY reviewStateChanged)
+		// BL-19 step 4b: the position shown can be played from (playFromHere()): the Play from here button
+		Q_PROPERTY(QVariantMap PlayFromHere READ playFromHere NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool CanReviewPrev READ canReviewPrev NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
@@ -233,13 +235,14 @@ public slots:
 	// False when there is no such game.
 	Q_INVOKABLE bool continueGame(const QString& gameId);
 	Q_INVOKABLE bool openGame(const QString& gameId);
-	// BL-19 step 4, Play from here: a new game from the position shown, of a kept game (a replay) or
-	// of the local game on the board. playFromHere(): { gameId, ply, move ("12. Nf3"), whiteToMove }
-	// for the position shown, or {} when there is none (a Lichess game, no move yet, the game over
-	// there). The …From starts: that game's first `ply` moves, then the new game goes on from there
-	// (vs the robot or two players, the dialogs' choices); its record is a fork (forkOfId, forkPly),
-	// and those moves can't be taken back. false: no such game or position.
-	Q_INVOKABLE QVariantMap playFromHere() const;
+	// BL-19 step 4, Play from here: a new game from the position shown while reviewing a kept game (a
+	// replay, or the local game on the board stepped back; step 4b). playFromHere() (the PlayFromHere
+	// property): { gameId, ply, move ("12. Nf3"), whiteToMove } for the position shown, or {} when there
+	// is none (not reviewing, a Lichess game, no move yet, the game over there). The …From starts: that
+	// game's first `ply` moves, then the new game goes on from there (vs the robot or two players, the
+	// dialogs' choices); its record is a fork (forkOfId, forkPly), and those moves can't be taken back.
+	// false: no such game or position.
+	QVariantMap playFromHere() const;
 	Q_INVOKABLE bool startComputerGameFrom(const QString& gameId, int ply, int level, int side, int limitSec = 0, int incSec = 0);
 	Q_INVOKABLE bool startLocalGameFrom(const QString& gameId, int ply, bool playerPlaysWhite, const QString& opponentUserId,
 	                                    int limitSec = 0, int incSec = 0);

@@ -2141,8 +2141,10 @@ std::optional<ChessConnector::StartFrom> ChessConnector::startFrom(const QString
 
 QVariantMap ChessConnector::playFromHere() const
 {
-	if (isOnlineGame() || (_gameMode != QLatin1String("replay") && _gameMode != QLatin1String("computer")
-	                       && _gameMode != QLatin1String("local")))
+	// Only while reviewing (step 4b): a replay, or a robot / two-player game stepped back.
+	const bool replay = _gameMode == QLatin1String("replay");
+	const bool local = _gameMode == QLatin1String("computer") || _gameMode == QLatin1String("local");
+	if (isOnlineGame() || !(replay || (local && reviewMode())))
 		return {};
 	const int ply = shownPly();
 	const auto from = startFrom(_recordId, ply);

@@ -5,12 +5,12 @@ import ChessPlusPlus
 import "games.js" as Games
 
 // New game against the robot: the player's side, the level and the clock. Play from here (BL-19):
-// openFrom() starts it from a position of a kept game instead (ChessConnector.playFromHere()).
+// openFrom() starts it from a position of a kept game instead (ChessConnector.PlayFromHere).
 AppDialog {
     id: dialog
 
     property alias level: levelSlider.value   // the levels help can pick one
-    property var from: ({})                   // Play from here: ChessConnector.playFromHere(); {} = a new game
+    property var from: ({})                   // Play from here: ChessConnector.PlayFromHere; {} = a new game
     readonly property bool _fromHere: from.gameId !== undefined
 
     signal levelsHelpRequested()
@@ -23,7 +23,7 @@ AppDialog {
         clock.restore()
         open()
     }
-    // From the position `position` (playFromHere()): the player takes the side to move.
+    // From the position `position` (PlayFromHere): the player takes the side to move.
     function openFrom(position) {
         from = position
         level = ChessConnector.LastLevel

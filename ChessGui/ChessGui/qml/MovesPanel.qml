@@ -9,7 +9,11 @@ ColumnLayout {
     id: panel
 
     property string status        // e.g. "Bob to move", the result
-    property string reviewText    // "Viewing 12. Nf3" while reviewing: shown with Back to live
+    // The review bar: "Viewing 12. Nf3" while reviewing (with Back to live: canGoLive), a replay's
+    // "Move 5 of 40"; with Play from here when the position shown can be played from (BL-19 step 4b).
+    property string reviewText
+    property bool   canGoLive: reviewText !== ""
+    property bool   canPlayFromHere: false
     property bool   showTitle: true
     property bool   resultActions: false   // the game is over and its result card closed
     property bool   canRematch: false
@@ -17,6 +21,7 @@ ColumnLayout {
     signal exportRequested()
     signal rematchRequested()
     signal newGameRequested()
+    signal playFromHereClicked(Item button)   // opens the vs computer / two players menu under it
 
     spacing: 0
 
@@ -125,15 +130,26 @@ ColumnLayout {
         }
     }
 
-    // Reviewing: a slim InfoBar with the way back.
+    // Reviewing: a slim InfoBar with the way back, and Play from here.
     InfoBar {
+        objectName: "reviewBar"
         Layout.fillWidth: true
         Layout.margins: Theme.s2
         Layout.topMargin: Theme.s1
         visible: panel.reviewText !== ""
         closable: false
+        actionsBelow: panel.canPlayFromHere   // two buttons don't fit beside the text
         text: panel.reviewText
         Button {
+            id: fromHereButton
+            objectName: "playFromHereButton"
+            visible: panel.canPlayFromHere
+            text: "Play from here"
+            icon.source: Theme.icon("play")
+            onClicked: panel.playFromHereClicked(fromHereButton)
+        }
+        Button {
+            visible: panel.canGoLive
             text: "Back to live"
             onClicked: ChessConnector.reviewLast()
         }

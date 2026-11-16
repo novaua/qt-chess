@@ -32,7 +32,7 @@ Page {
     signal homeRequested()
     signal newGameRequested()      // the result card: a new game of the same kind
     signal exportPgnRequested()
-    signal playFromHereRequested(var position, bool robot) // position: ChessConnector.playFromHere()
+    signal playFromHereRequested(var position, bool robot) // position: ChessConnector.PlayFromHere
     signal resignRequested()
     signal levelsHelpRequested()
     signal settingsRequested()
@@ -70,6 +70,36 @@ Page {
         moreButton.moreMenu.popup(moreButton, moreButton.width - moreButton.moreMenu.width, moreButton.height)
     }
     function _facePlayer() { chessBoard.angle = ChessConnector.PlayerPlaysWhite ? 0 : 180 }
+
+    // Play from here (BL-19 step 4b): while reviewing a playable position, the review bar's button
+    // opens this menu under it (above it near the window's bottom: the sheet handle). Made on the
+    // first click.
+    readonly property bool canPlayFromHere: ChessConnector.PlayFromHere.gameId !== undefined
+    property Menu fromHereMenu: null
+    function openFromHereMenu(button) {
+        if (!fromHereMenu)
+            fromHereMenu = fromHereMenuComponent.createObject(page)
+        const below = button.mapToItem(page, 0, button.height).y + fromHereMenu.implicitHeight <= page.height
+        fromHereMenu.popup(button, 0, below ? button.height : -fromHereMenu.implicitHeight)
+    }
+    Component {
+        id: fromHereMenuComponent
+        Menu {
+            objectName: "playFromHereMenu"
+            MenuItem {
+                objectName: "playFromHereRobotItem"
+                text: "vs computer…"
+                icon.source: Theme.icon("robot")
+                onTriggered: page.playFromHereRequested(ChessConnector.PlayFromHere, true)
+            }
+            MenuItem {
+                objectName: "playFromHereTwoPlayersItem"
+                text: "Two players…"
+                icon.source: Theme.icon("two-players")
+                onTriggered: page.playFromHereRequested(ChessConnector.PlayFromHere, false)
+            }
+        }
+    }
 
     // BL-11: tells the start's timing that the game is up (created: the page itself is a step). Before
     // the page is in the window (no Window.window yet), once it is.
@@ -267,12 +297,6 @@ Page {
             Component {
                 id: moreMenuComponent
                 Menu {
-                    id: menu
-                    width: 280   // "Play from here, two players…" whole
-                    // Play from here (BL-19): the position shown, when it can be played on (asked as the menu opens).
-                    property var position: ({})
-                    onAboutToShow: position = ChessConnector.playFromHere()
-
                     MenuItem {
                         text: "Copy PGN"
                         icon.source: Theme.icon("copy")
@@ -284,25 +308,6 @@ Page {
                         icon.source: Theme.icon("export")
                         enabled: ChessConnector.PlyCount > 0
                         onTriggered: page.exportPgnRequested()
-                    }
-                    MenuSeparator { visible: page.mode !== "online"; height: visible ? implicitHeight : 0 }
-                    MenuItem {
-                        objectName: "playFromHereRobotItem"
-                        text: "Play from here vs computer…"
-                        icon.source: Theme.icon("robot")
-                        visible: page.mode !== "online"
-                        height: visible ? implicitHeight : 0
-                        enabled: menu.position.gameId !== undefined
-                        onTriggered: page.playFromHereRequested(menu.position, true)
-                    }
-                    MenuItem {
-                        objectName: "playFromHereTwoPlayersItem"
-                        text: "Play from here, two players…"
-                        icon.source: Theme.icon("two-players")
-                        visible: page.mode !== "online"
-                        height: visible ? implicitHeight : 0
-                        enabled: menu.position.gameId !== undefined
-                        onTriggered: page.playFromHereRequested(menu.position, false)
                     }
                     MenuSeparator {}
                     MenuItem {
@@ -350,6 +355,8 @@ Page {
     readonly property string reviewText: !ChessConnector.ReviewMode ? ""
         : ChessConnector.ShownPly === 0 ? "Viewing the start position"
         : "Viewing " + shownMove
+    // The review bar's text: the review's, or a replay's place ("Move 5 of 40"; it has no live end).
+    readonly property string reviewBarText: mode === "replay" ? status : reviewText
 
     readonly property bool canRematch: gameOver && ChessConnector.CanRematch && !rematchPending
     // The game is over and its result card closed: Rematch / New game move to the moves panel.
@@ -514,10 +521,13 @@ Page {
                 active: page._sidePanelMade
                 sourceComponent: MovesPanel {
                     status: page.status
-                    reviewText: page.reviewText
+                    reviewText: page.reviewBarText
+                    canGoLive: page.reviewText !== ""
+                    canPlayFromHere: page.canPlayFromHere
                     resultActions: page._resultHidden
                     canRematch: page.canRematch
                     onExportRequested: page.exportPgnRequested()
+                    onPlayFromHereClicked: button => page.openFromHereMenu(button)
                     onRematchRequested: ChessConnector.rematch()
                     onNewGameRequested: page.newGameRequested()
                 }
@@ -536,7 +546,9 @@ Page {
     Rectangle {
         id: sheet
         visible: !area.wide
-        width: Math.min(page.width - 2 * Theme.s4, Math.max(area.squaresSize, 360))
+        // Wider when the handle's buttons need it (reviewing: Play from here and Back to live).
+        width: Math.min(page.width - 2 * Theme.s4,
+                        Math.max(area.squaresSize, 360, handleRow.implicitWidth - handleStatus.implicitWidth))
         height: page.sheetOpen ? Math.min(page.height * 0.6, 460) : Theme.sheetHandleHeight
         anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom }
         radius: Theme.radiusCard
@@ -566,6 +578,7 @@ Page {
                 color: handle.hovered ? Theme.cardBgHover : "transparent"
             }
             contentItem: RowLayout {
+                id: handleRow
                 spacing: Theme.s2
                 Label {
                     Layout.leftMargin: Theme.s4
@@ -578,12 +591,21 @@ Page {
                     font.features: { "tnum": 1 }
                 }
                 Label {
+                    id: handleStatus
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignRight
                     text: page.reviewText !== "" ? page.reviewText : page.status
                     font: Theme.caption
                     color: Theme.textSecondary
                     elide: Text.ElideRight
+                }
+                Button {
+                    id: handleFromHere
+                    objectName: "playFromHereHandleButton"
+                    visible: page.canPlayFromHere
+                    text: "Play from here"
+                    icon.source: Theme.icon("play")
+                    onClicked: page.openFromHereMenu(handleFromHere)
                 }
                 Button {
                     visible: page.reviewText !== ""

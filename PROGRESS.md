@@ -4,6 +4,22 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-16 — BL-19 step 4b: the Play from here button (branch: features/playFromHereButton_161126)
+
+The owner's follow-up to #165: Play from here only while reviewing, as its own button (placement and the More menu: the owner's choice, 2026-11-16).
+
+### Done
+- **`ChessConnector.PlayFromHere`** (a property now, NOTIFY `reviewStateChanged`): only in a replay or a robot / two-player game stepped back (`ReviewMode`); the live position no longer counts.
+- **The review bar's Play from here button** → a menu (vs computer… / Two players…) → the setup dialogs' `openFrom` as before: in the moves panel's bar (`MovesPanel`, objectName `playFromHereButton`, beside Back to live; the buttons go under the text) and the narrow window's sheet handle (`playFromHereHandleButton`; the sheet widens to fit its buttons). A replay shows the bar too ("Move 9 of 20", no Back to live). One menu for both (`GamePage.openFromHereMenu`, made on the first click; above the button near the window's bottom).
+- **The More menu's two entries removed** (and its 280 width).
+- **Scenes** `replay`, `play-from-here-menu` (also `@640x560`), `review@640x560`.
+- **Tests**: `tst_games` 6 (not at the live position, not in the More menu; the button's menu), 7 (the button in a replay; gone after the mate, back a move earlier).
+
+### Next
+- Step 5, the rating: the owner chose **stored as it goes** (2026-11-16) over the plan's computed rating: each rated game's change kept on its record, the profile's rating in `games.json`; removing games never changes it; a takeback that resumes a rated game undoes its change.
+
+---
+
 ## 2026-11-16 — BL-19 review fixes (branch: bugs/bl19ReviewFixes_161126)
 
 A `/code-review medium` of #162, #163 and #165 found 10 problems; all fixed:

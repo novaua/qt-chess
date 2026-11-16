@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-13 |
-| **Status** | Steps 1–3 merged (#162, #163); step 4 coded (branch `features/playFromHere_161126`); hand tests 1–8 passed (2026-11-16), 9 open; steps 5–8 to do |
+| **Status** | Steps 1–3 merged (#162, #163); step 4 merged (#165); step 4b (the button) on `features/playFromHereButton_161126`; hand tests 1–8 passed (2026-11-16), 9 open; steps 5–8 to do |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | BL-19 in `TASKS.md` (the owner's review of the save and game-log capabilities, 2026-11-13) |
 
@@ -112,6 +112,17 @@ Delete are non-game work, so QML calls it directly; anything that puts a game on
   `forkPly` ("No more moves"); the clock counts only the fork's own moves (it runs after both sides moved).
 - The card says "from move N". Scenes: `play-from-here`; `games` has a fork. Tests: `tst_games` 6–7.
 
+### 3.4.2 The Play from here button (step 4b, the owner's follow-up to #165, 2026-11-16)
+
+- Only **while reviewing** (a replay, or a robot / two-player game stepped back: `ReviewMode`) and only at a playable
+  position (after a move, not mate or stalemate): `ChessConnector.PlayFromHere` (a property now, `{}` otherwise; the
+  live position of a game no longer counts).
+- A **Play from here** button in the review bar, where the eye is while stepping: the moves panel's bar ("Viewing
+  2… Nc6", beside Back to live; a replay shows the bar too, with "Move 2 of 4" and no Back to live) and, in a narrow
+  window, the sheet handle (the sheet widens to fit its buttons). It opens a small menu: vs computer… / Two players…
+  → the setup dialogs' `openFrom(position)` as before.
+- The More menu's two entries are gone (the owner's choice: the button is the one way in).
+
 ### 3.5 Rating (step 5)
 
 Computed, never stored: `GameLibrary::rating()` walks the finished `rated` records (kind computer, no fork,
@@ -140,6 +151,7 @@ ply. Without an engine the button says so.
 | 1–2 | This plan; `GameRecord`, `GameLibrary`, migration, the cap, `GameLibraryTest.cpp`; `ChessConnector` writes records, `continueGame(id)`, `openGame(id)`; the old slots removed; `GamesPage` (Open / Continue / Delete), Home's Games card, the Continue list with two-player games, no Save button or leave dialog; the UI tests adjusted | `features/gamesLibraryBackend_131126` ✅ |
 | 3 | Library UI polish: filters, Export PGN per card, the PGN tags, Settings "Games kept", scenes `games*` + baselines, `tst_games.qml` | `features/gamesLibraryUi_161126` ✅ (#163) |
 | 4 | Play from here: the `…From` starts, the dialogs' `fromPly`, More menu entries, `forkOf` on the card, scene, tests | `features/playFromHere_161126` ✅ |
+| 4b | The Play from here button (§3.4.2): review only, the review bar's button and its menu, the More menu entries removed, scenes, tests | `features/playFromHereButton_161126` |
 | 5 | Rating: `GameLibrary::rating()`, Profile page + Home header, card deltas, tests | |
 | 6 | Analysis engine: `GameAnalyzer` + worker, FakeUci MultiPV, storage, unit tests, Settings depth | |
 | 7 | Analysis UI: eval bar, judgements, summary, Analyse buttons, scenes, `tst_games` analysis | |
