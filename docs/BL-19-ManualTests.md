@@ -85,6 +85,9 @@ Result:
      change it (a game with a takeback isn't rated).
 3. Delete a rated game (Games page → Delete).
    - **Expected**: the rating doesn't change.
+4. Start a robot game as Black and resign right after the robot's first move (before you have moved).
+   - **Expected**: not rated, as an aborted game on lichess.org: the rating and the number of rated games stay
+     the same; its card has no "· ±NN".
 
 Result:
 
