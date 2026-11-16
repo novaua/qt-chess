@@ -90,6 +90,24 @@ GameRecord GameRecord::fromJson(const QJsonObject& o)
 	return r;
 }
 
+bool GameRecord::setMoves(const QStringList& uciMoves)
+{
+	std::vector<std::string> uci;
+	for (const auto& m : uciMoves)
+		uci.push_back(m.toStdString());
+	auto game = std::make_shared<Chess::Game>();
+	try {
+		game->LoadMoves(uci);
+		game->ResumeFromLoad();
+	}
+	catch (const std::exception&) {
+		return false;
+	}
+	moves = uciMoves;
+	fen = QString::fromStdString(game->MakeFen());
+	return true;
+}
+
 QVariantMap GameRecord::toVariant() const
 {
 	return QVariantMap{

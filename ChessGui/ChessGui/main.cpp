@@ -13,6 +13,7 @@
 #include "AvatarProvider.h"
 #include "UserManager.h"
 #include "LichessClient.h"
+#include "gamelibrary.h"
 
 #include <QQuickStyle>
 #include <QQuickWindow>
@@ -93,7 +94,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting", "rejoin",
 	                  "challenge", "challenge-accepting", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
 	                  "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-	                  "opponent-left-error" }.contains(scene))
+	                  "opponent-left-error", "games", "games-empty", "games-filter" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -190,6 +191,50 @@ static void playPremoveScene(ChessConnector* connector, LichessClient* lichess, 
 		else if (*step == 2 && scene != "premove")
 			emit connector->screenshotSceneReady();
 	});
+}
+
+// Scenes "games" and "games-filter" (BL-19): the Games page with kept games of Tester (Bob and Alice
+// are main.cpp's profiles). Fixed days, so the cards read the same on every run.
+static void seedScreenshotGames(GameLibrary* library, const QString& scene)
+{
+	if (scene != "games" && scene != "games-filter")
+		return;
+	struct Kept {
+		const char* kind; int level; bool white; const char* opponent; QDate day; const char* moves;
+		const char* result; const char* resultText; int limitSec, incSec;
+	};
+	const Kept kept[] = {
+		{ "computer", 3, true, "Robot", QDate(2026, 11, 2), "e2e4 e7e5 f1c4 b8c6 d1h5 g8f6 h5f7",
+		  "1-0", "Tester wins by checkmate", 0, 0 },
+		{ "local", 0, true, "Bob", QDate(2026, 11, 4), "f2f3 e7e5 g2g4 d8h4",
+		  "0-1", "Bob wins by checkmate", 0, 0 },
+		{ "computer", 5, false, "Robot", QDate(2026, 11, 7), "e2e4 e7e5 d1h5 b8c6 f1c4 g8f6 h5f7",
+		  "1-0", "Robot wins by checkmate", 300, 3 },
+		{ "local", 0, true, "Alice", QDate(2026, 11, 9),
+		  "e2e3 a7a5 d1h5 a8a6 h5a5 h7h5 h2h4 a6h6 a5c7 f7f6 c7d7 e8f7 d7b7 d8d3 b7b8 d3h7 b8c8 f7g6 c8e6",
+		  "1/2-1/2", "Draw by stalemate", 0, 0 },
+		{ "local", 0, false, "Guest", QDate(2026, 11, 12), "d2d4 d7d5 c2c4", "", "", 300, 3 },
+		{ "computer", 2, true, "Robot", QDate(2026, 11, 14), "e2e4 c7c5 g1f3 d7d6", "", "", 0, 0 },
+	};
+	for (const auto& k : kept) {
+		GameRecord r;
+		r.kind = QString::fromLatin1(k.kind);
+		r.level = k.level;
+		r.playerPlaysWhite = k.white;
+		r.opponentName = QString::fromLatin1(k.opponent);
+		r.startedAt = QDateTime(k.day, QTime(18, 0));
+		r.setMoves(QString::fromLatin1(k.moves).split(' '));
+		r.result = QString::fromLatin1(k.result);
+		r.finished = !r.result.isEmpty();
+		r.resultText = QString::fromLatin1(k.resultText);
+		r.resultRecorded = r.finished;
+		if (r.finished)
+			r.finishedAt = r.startedAt.addSecs(20 * 60);
+		r.clockLimitSec = k.limitSec;
+		r.clockIncSec = k.incSec;
+		r.whiteMs = r.blackMs = k.limitSec * 1000;
+		library->put(r);
+	}
 }
 
 // Scene "rejoin" (BL-18): an unfinished Lichess game joined with its moves (as Continue does). Ready
@@ -347,14 +392,14 @@ int main(int argc, char* argv[])
 	// "login", "menu" and "board" are the older names of "profiles", "home" and "game".
 	static const QStringList screenshotScenes = {
 		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "continue-list", "continue-list-online",
-		"continue-list-robot", "continue-list-starting", "continue-starting", "challenge-accepting", "starting", "game", "leave-online", "leave-local", "drag-off", "settings", "about", "restore", "levels",
+		"continue-list-robot", "continue-list-starting", "continue-starting", "challenge-accepting", "starting", "game", "leave-online", "drag-off", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
 		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge",
 		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
-		"draw-offer", "messages", "saved", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-		"opponent-left-error", "timing", "more-menu", "play"
+		"draw-offer", "messages", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
+		"opponent-left-error", "timing", "more-menu", "play", "games", "games-empty", "games-filter"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
@@ -455,6 +500,8 @@ int main(int argc, char* argv[])
 	}
 
 	services.start(); // after the scene's profiles: the active one's Lichess token
+	if (screenshotMode)
+		seedScreenshotGames(services.gameLibrary(), scene); // Tester's, the active profile's
 	// The online scene's games (no network in screenshot mode): after the token, which resets the list.
 	if (screenshotMode && connector->screenshotScene().contains("ongoingGames"))
 		lichessClient->setOngoingGames(connector->screenshotScene().value("ongoingGames").toList());

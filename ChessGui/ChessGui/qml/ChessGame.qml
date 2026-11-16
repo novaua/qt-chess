@@ -35,6 +35,7 @@ ApplicationWindow {
         || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible || leaveOnlineDialog.visible
         || pgnExportDialog.visible || profileExportDialog.visible || profileImportDialog.visible
         || importConflictDialog.visible || deleteProfileConfirm.visible || disconnectLichessConfirm.visible
+        || gamesKeptConfirm.visible
         || recentFlyout.visible
 
     // ── BL-10: Lichess challenges to the player ─────────────────────────
@@ -286,10 +287,12 @@ ApplicationWindow {
         }
     }
 
-    function exportPgn() {
+    // The game on the board, or a kept game (gameId: a Games card's Export PGN, BL-19).
+    function exportPgn(gameId) {
+        pgnExportDialog.gameId = gameId || ""
         // Encoded: a '#' or '%' in a player's name is not URL syntax.
         pgnExportDialog.selectedFile = pgnExportDialog.currentFolder + "/"
-                                     + encodeURIComponent(ChessConnector.pgnFileName())
+                                     + encodeURIComponent(ChessConnector.pgnFileName(pgnExportDialog.gameId))
         pgnExportDialog.open()
     }
 
@@ -535,6 +538,7 @@ ApplicationWindow {
             onExportRequested:      userId => root.exportProfile(userId)
             onImportRequested:      profileImportDialog.open()
             onRestoreRequested:     restoreBackupDialog.open()
+            onGamesKeptChangeRequested: count => root.setGamesKept(count)
         }
     }
 
@@ -557,6 +561,7 @@ ApplicationWindow {
         id: gamesPage
         GamesPage {
             onBackRequested: root._closePage("library")
+            onExportRequested: gameId => root.exportPgn(gameId)
         }
     }
 
@@ -1164,13 +1169,38 @@ ApplicationWindow {
     ConfirmDialog {
         id: deleteProfileConfirm
         property string userId
-        text: "Its statistics and saved games are deleted too. This can't be undone; export the profile first to keep a copy."
+        text: "Its statistics and games are deleted too. This can't be undone; export the profile first to keep a copy."
         acceptText: "Delete"
         onAccepted: {
             if (userId === UserManager.activeUserId)
                 root.closeProfile()
             UserManager.deleteUser(userId)
         }
+    }
+
+    // Settings → Data "Games kept" (BL-19): a smaller number deletes the oldest finished games, so it asks.
+    function setGamesKept(count) {
+        const gone = GameLibrary.finishedCount - count
+        if (gone <= 0) {
+            AppSettings.gamesKept = count
+            return
+        }
+        gamesKeptConfirm.count = count
+        gamesKeptConfirm.gone = gone
+        gamesKeptConfirm.open()
+    }
+    Binding { target: GameLibrary; property: "keepCount"; value: AppSettings.gamesKept }
+
+    ConfirmDialog {
+        id: gamesKeptConfirm
+        objectName: "gamesKeptConfirm"
+        property int count
+        property int gone
+        title: "Keep only " + count + " finished games?"
+        text: (gone === 1 ? "The oldest finished game is" : "The " + gone + " oldest finished games are")
+              + " deleted for good. Unfinished games stay."
+        acceptText: gone === 1 ? "Delete 1 game" : "Delete " + gone + " games"
+        onAccepted: AppSettings.gamesKept = count
     }
 
     ConfirmDialog {
@@ -1187,12 +1217,13 @@ ApplicationWindow {
 
     FileDialog {
         id: pgnExportDialog
+        property string gameId   // "" = the game on the board
         title: "Export PGN"
         fileMode: FileDialog.SaveFile
         nameFilters: ["PGN files (*.pgn)", "All files (*)"]
         defaultSuffix: "pgn"
         currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
-        onAccepted: ChessConnector.exportPgn(selectedFile)
+        onAccepted: ChessConnector.exportPgn(selectedFile, gameId)
     }
 
     ConfirmDialog {

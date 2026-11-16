@@ -17,6 +17,7 @@ Page {
     signal exportRequested(string userId)
     signal importRequested()
     signal restoreRequested()
+    signal gamesKeptChangeRequested(int count) // the window asks first when games would be deleted
 
     property string _backupMessage
 
@@ -215,8 +216,27 @@ Page {
             SectionCard {
                 title: "Data"
                 subtitle: "Backups hold your profiles and statistics. One is made when the app starts after a change, and the last 3 are kept. "
-                          + "Saved games aren't in backups: export a profile to keep them too."
+                          + "Your games aren't in backups: export a profile to keep them too."
                 Layout.fillWidth: true
+
+                SettingRow {
+                    title: "Games kept"
+                    description: "Every game you play here is kept in Games. When there are more finished games than this, the oldest goes. Unfinished games always stay."
+                    ComboBox {
+                        id: gamesKeptBox
+                        objectName: "gamesKeptBox"
+                        readonly property var counts: [50, 100, 200, 500]
+                        model: counts
+                        currentIndex: counts.indexOf(AppSettings.gamesKept)
+                        displayText: AppSettings.gamesKept + " games"
+                        onActivated: index => {
+                            page.gamesKeptChangeRequested(counts[index])
+                            currentIndex = Qt.binding(() => counts.indexOf(AppSettings.gamesKept)) // a refused change shows the old number again
+                        }
+                        Accessible.name: "Games kept"
+                        Layout.preferredWidth: 140
+                    }
+                }
 
                 SettingRow {
                     title: "Back up profiles"
@@ -243,7 +263,7 @@ Page {
                 }
                 SettingRow {
                     title: "Profiles"
-                    description: "One file per profile with its statistics and saved games, for another PC or as a copy. Never your Lichess sign-in."
+                    description: "One file per profile with its statistics and games, for another PC or as a copy. Never your Lichess sign-in."
                     Button {
                         text: "Export…"
                         icon.source: Theme.icon("export")
@@ -258,7 +278,7 @@ Page {
                 }
                 SettingRow {
                     title: "Data folder"
-                    description: "Profiles, settings, saves and backups."
+                    description: "Profiles, settings, games and backups."
                     Button {
                         text: "Open"
                         icon.source: Theme.icon("folder-open")

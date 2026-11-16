@@ -112,6 +112,20 @@ QtObject {
         test.mouseClick(target)
         pace()
     }
+    // An item in a scrolling page (Settings) scrolled into the window, as the wheel would: a click
+    // lands only on what is shown.
+    function scrollIntoView(name) {
+        const target = item(name)
+        let flick = target.parent
+        while (flick && flick.contentY === undefined)
+            flick = flick.parent
+        test.verify(flick !== null, name + " in a Flickable")
+        const y = target.mapToItem(flick.contentItem, 0, 0).y
+        const maxY = Math.max(0, flick.contentHeight - flick.height)
+        flick.contentY = Math.max(0, Math.min(maxY, y - flick.height / 3))
+        laidOut()
+    }
+
     // The window's layouts done: an item just shown (a bar's buttons in a Flow) is where it will be
     // drawn only after the next polish; a click before that lands where it isn't yet.
     function laidOut() { test.waitForPolish(window, 1000) }

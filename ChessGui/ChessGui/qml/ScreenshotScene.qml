@@ -69,6 +69,13 @@ Item {
                 dialogs.challenge.open()
             }
         }
+        // BL-19: the Games page; main.cpp kept six games of Tester for games and games-filter (none for
+        // games-empty); games-filter shows the unfinished ones.
+        if (name.startsWith("games")) {
+            window.openGames()
+            if (name === "games-filter")
+                pages.currentItem.filter = 3
+        }
         if (name === "computer") dialogs.computer.openNew()
         if (name.startsWith("players")) dialogs.twoPlayer.open()
         if (name === "robot") {
@@ -129,7 +136,6 @@ Item {
                                           + "d7c6 g1e2 e5d3 c2d3 e8f7 d3d4 f8a3 b2a3 f7e7 d1c2 h7h6 c2c6 f6f5 c6h6 e7d7 e2f4 d7e7 a2c2 e7d8 c2c6 d8d7 a3a4 d7e7 f4g6 e7e8 e1f2 e8d8 g6e7 d8d7 e7f5 d7d8",
                                   // The page opens in check: "Check" a second later (in the column, wide).
                                   check: "e2e4 f7f6 d1h5",
-                                  saved: "e2e4 e7e5",
                                   stalemate: "e2e3 a7a5 d1h5 a8a6 h5a5 h7h5 h2h4 a6h6 a5c7 f7f6 c7d7 e8f7 d7b7 d8d3 "
                                            + "b7b8 d3h7 b8c8 f7g6" })[name] ?? ""
             // White's and Black's time: time stands still in this mode, so a scene sets what it shows.

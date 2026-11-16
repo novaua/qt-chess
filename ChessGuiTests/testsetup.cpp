@@ -3,11 +3,13 @@
 #include "AppConfig.h"
 #include "appservices.h"
 #include "fakelichessserver.h"
+#include "gamelibrary.h"
 #include "LichessClient.h"
 #include "UserManager.h"
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
 #include <QDebug>
 #include <QSettings>
 #include <QtQml/qqml.h>
@@ -67,6 +69,35 @@ void TestSetup::setEngine(const QString& moves, int delayMs)
 void TestSetup::linkLichess(const QString& username)
 {
 	_services->userManager()->saveLichessCredentials(QStringLiteral("fake-token"), username);
+}
+
+void TestSetup::addFinishedGames(int count)
+{
+	const QDateTime now = QDateTime::currentDateTime();
+	for (int i = 0; i < count; ++i) {
+		GameRecord r;
+		r.kind = QStringLiteral("local");
+		r.opponentName = QStringLiteral("Guest");
+		r.setMoves({ "f2f3", "e7e5", "g2g4", "d8h4" });
+		r.startedAt = now.addDays(-30 - i);
+		r.finishedAt = r.startedAt.addSecs(60);
+		r.finished = true;
+		r.result = QStringLiteral("0-1");
+		r.resultText = QStringLiteral("Guest wins by checkmate");
+		r.resultRecorded = true;
+		_services->gameLibrary()->put(r);
+	}
+}
+
+QUrl TestSetup::fileUrl(const QString& name) const
+{
+	return QUrl::fromLocalFile(QDir(_dataDir).filePath(name));
+}
+
+QString TestSetup::readTextFile(const QUrl& file) const
+{
+	QFile f(file.toLocalFile());
+	return f.open(QIODevice::ReadOnly | QIODevice::Text) ? QString::fromUtf8(f.readAll()) : QString();
 }
 
 // The singletons are global, so a second test file in this process would see the first one's

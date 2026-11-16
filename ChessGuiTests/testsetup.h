@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QTemporaryDir>
+#include <QUrl>
 #include <memory>
 
 class AppServices;
@@ -42,6 +43,12 @@ public:
 	// the account, the ongoing games and the event stream follow, from FakeLichess. Lichess's sign-in
 	// page itself (LichessAuth) is lichess.org's: not in a test.
 	Q_INVOKABLE void linkLichess(const QString& username);
+	// BL-19: that many finished two-player games (Fool's mate, vs Guest) in the active profile's library,
+	// a day apart and older than any game played in the test: many games without playing them.
+	Q_INVOKABLE void addFinishedGames(int count);
+	// A file in the test's data folder, as a URL (e.g. for Export PGN), and a text file's contents.
+	Q_INVOKABLE QUrl fileUrl(const QString& name) const;
+	Q_INVOKABLE QString readTextFile(const QUrl& file) const;
 
 public slots:
 	void applicationAvailable();

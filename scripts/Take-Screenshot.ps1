@@ -31,7 +31,7 @@
 [CmdletBinding()]
 param(
     # welcome, create-user, profiles, home, continue, continue-online, game, leave-online, review, result, ended, moves, select, drag, drag-off, settings, about, restore, levels,
-    # profile, profile-local, profile-expired, import, online, online-empty, online-disconnected, computer, players, captures, or all
+    # profile, profile-local, profile-expired, import, online, online-empty, online-disconnected, computer, players, captures, games, games-empty, games-filter, or all
     # A scene can name its own window size and side: scene@WxH[@black], e.g. game@1920x1080 (all runs
     # the list in $sizedScenes after the others).
     # (not in all: robot, premove-robot, slides, takeback, timing, play)
@@ -76,7 +76,7 @@ $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue
              'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline',
              'captures', 'check', 'draw-offer', 'home-message', 'messages', 'opponent-left', 'opponent-left-claim', 'opponent-left-turn',
              'opponent-left-error', 'rejoin', 'continue-starting', 'continue-list-starting', 'challenge-accepting', 'starting', 'more-menu',
-             'robot', 'premove-robot'
+             'games', 'games-empty', 'games-filter', 'robot', 'premove-robot'
 # The scenes with the robot play against FakeUci (BL-05 step 3), the game it follows: robot (White)
 # mates with Qh5#; premove-robot: 1... e5 after e4, then Nc6 after the premoved Nf3; play: its first
 # legal moves. -Stockfish: the real engine instead (their pictures then vary).
@@ -85,7 +85,8 @@ $engineScenes = @{ 'robot' = 'e2e4 f7f6 d2d4 g7g5 d1h5'; 'premove-robot' = 'e2e4
 # keep the cards above and below the board.
 $sizedScenes = 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'captures@1400x900', 'review@1400x900',
                'ended@1400x900', 'result@1400x900', 'challenge-ingame@1400x900', 'drag@1400x900@black',
-               'reconnecting@1400x900', 'check@1400x900', 'check@960x1040', 'draw-offer@1400x900', 'draw-offer@640x560', 'messages@1400x900', 'opponent-left@1400x900', 'opponent-left-claim@1400x900', 'opponent-left-claim@640x560', 'opponent-left-turn@640x560', 'messages@640x560', 'continue-list@1400x900', 'continue-list@640x560', 'game@1100x900', 'game@960x1040', 'game@1000x560'
+               'reconnecting@1400x900', 'check@1400x900', 'check@960x1040', 'draw-offer@1400x900', 'draw-offer@640x560', 'messages@1400x900', 'opponent-left@1400x900', 'opponent-left-claim@1400x900', 'opponent-left-claim@640x560', 'opponent-left-turn@640x560', 'messages@640x560', 'continue-list@1400x900', 'continue-list@640x560', 'game@1100x900', 'game@960x1040', 'game@1000x560',
+               'games@640x560', 'games@1400x900'
 if ($Scene -contains 'all') { $Scene = $allScenes + $sizedScenes }
 foreach ($s in $Scene) {
     $s = ($s -split '@')[0]

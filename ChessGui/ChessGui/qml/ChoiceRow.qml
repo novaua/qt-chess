@@ -15,6 +15,7 @@ Row {
         delegate: Button {
             required property var modelData
             required property int index
+            objectName: choiceRow.objectName !== "" ? choiceRow.objectName + "_" + index : ""   // for the UI tests
             text: modelData.label
             checked: index === choiceRow.checkedIndex   // not checkable: a click can't uncheck it
             onClicked: choiceRow.checkedIndex = index

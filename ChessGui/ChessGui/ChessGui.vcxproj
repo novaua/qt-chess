@@ -364,6 +364,7 @@
     <ClCompile Include="sceneinput.cpp" />
     <ClCompile Include="gameclock.cpp" />
     <ClCompile Include="gamelibrary.cpp" />
+    <ClCompile Include="gamepgn.cpp" />
     <ClCompile Include="applog.cpp" />
     <ClCompile Include="engineworker.cpp" />
     <ClCompile Include="main.cpp" />
@@ -374,6 +375,7 @@
     <ClInclude Include="AppConfig.h" />
     <ClInclude Include="appservices.h" />
     <ClInclude Include="frametrace.h" />
+    <ClInclude Include="gamepgn.h" />
     <QtMoc Include="AppInfo.h" />
     <QtMoc Include="AvatarProvider.h" />
     <QtMoc Include="UserManager.h" />

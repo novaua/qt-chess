@@ -27,6 +27,7 @@ SOURCES += main.cpp \
     sceneinput.cpp \
     gameclock.cpp \
     gamelibrary.cpp \
+    gamepgn.cpp \
     applog.cpp \
     ChessEnginePlayer.cpp \
     AppInfo.cpp \
@@ -77,6 +78,7 @@ HEADERS += \
     sceneinput.h \
     gameclock.h \
     gamelibrary.h \
+    gamepgn.h \
     applog.h \
     ChessEnginePlayer.h \
     AppInfo.h \

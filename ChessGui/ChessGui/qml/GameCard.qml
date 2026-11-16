@@ -24,9 +24,11 @@ Rectangle {
     property bool   busy: false         // something is starting: no second click
     property bool   starting: false     // this card's game is the one starting: "Starting…" (BL-16)
     property bool   deletable: false    // a Delete button beside the action (the Games page, BL-19)
+    property bool   exportable: false   // an Export PGN button beside the action (the Games page)
 
     signal activated()
     signal deleteRequested()
+    signal exportRequested()
 
     implicitHeight: column.implicitHeight + 2 * Theme.s3
     radius: Theme.radiusCard
@@ -92,6 +94,14 @@ Rectangle {
                 ToolTip.text: card.actionTip
                 ToolTip.delay: 400
                 onClicked: card.activated()
+            }
+            IconButton {
+                objectName: "exportButton"
+                visible: card.exportable
+                icon.source: Theme.icon("export")
+                tip: "Export PGN"
+                enabled: !card.busy
+                onClicked: card.exportRequested()
             }
             IconButton {
                 objectName: "deleteButton"
