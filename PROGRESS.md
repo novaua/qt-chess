@@ -4,6 +4,23 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-16 — BL-19 step 7: the analysis UI (branch: features/analysisUi_161126)
+
+### Done
+- **`ChessConnector`**: the board game's analysis (`refreshBoardAnalysis`, on its moves, result, record and the analysis's state): `CanAnalyse` (a kept game that is over, or a replay; not one going on: no hints), `AnalysingThisGame`, `Analysis` (accuracy and counts per side), `ShownAnalysis` (the shown position's eval text and White's win chance; the move's mark, judgement and the engine's best in SAN).
+- **`MoveListModel`**: `wMark` / `bMark` (`setMarks`); the move list shows `?!` `?` `??` in Lichess's colours (`Theme.inaccuracy` / `mistake` / `blunder`, `Theme.markColor`).
+- **QML**: Analyse on the result card (2×2 with Rematch, New game, Review moves), in More ("Analyse game" / "Analyse again"), in the moves panel; `AnalysisSummary.qml` (progress with Cancel, then the summary and "Blunder · Best was Bb4"); `EvalBar.qml` left of the squares; the review bar and the sheet handle add the mark; an `analyse` icon; analysisFailed → a critical message.
+- **Scene** `analysis` (main.cpp: a kept game with a made-up analysis; also `@1400x900`, `@640x560`).
+- **Tests**: `tst_analysis.qml` 4 (result card → progress → marks, summary, eval bar, review; cancel; a takeback drops it; a kept game opened), MoveListModelTest +1.
+
+### Checked
+- Debug: ChessTests 144/144, ChessQtTests 262/262; UI tests 10 files, 0 failed (171 s). Scenes `analysis` (three sizes), `result`, `ended@1400x900` looked at; their baselines differ (new).
+
+### Next
+- Step 8: docs and hand tests (plan §5): CLAUDE.md, the `run-chess-app` scene list, `BL-19-ManualTests.md`.
+
+---
+
 ## 2026-11-16 — BL-19 step 6: the analysis engine (branch: features/analysisEngine_161126)
 
 ### Done

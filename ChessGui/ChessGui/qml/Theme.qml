@@ -48,6 +48,10 @@ QtObject {
     readonly property color caution:       highContrast ? _sys.windowText : dark ? "#FCE100" : "#9D5D00"
     readonly property color critical:      highContrast ? _sys.windowText : dark ? "#FF99A4" : "#C42B1C"
     readonly property color criticalBg:    highContrast ? _sys.window : dark ? "#442726" : "#FDE7E9"
+    // The analysis's judgements of a move (BL-19 step 7), lichess.org's blue, orange and red.
+    readonly property color inaccuracy:    highContrast ? _sys.windowText : dark ? "#7CC4F0" : "#1F6FB2"
+    readonly property color mistake:       highContrast ? _sys.windowText : dark ? "#F0B23E" : "#A85F00"
+    readonly property color blunder:       critical
     readonly property color successBg:     highContrast ? _sys.window : dark ? "#393D1B" : "#DFF6DD"   // InfoBar backgrounds (WinUI)
     readonly property color cautionBg:     highContrast ? _sys.window : dark ? "#433519" : "#FFF4CE"
     readonly property color textOnColor:   "#FFFFFF"   // on a saturated fill, e.g. the level badges
@@ -113,6 +117,10 @@ QtObject {
     readonly property int slow:   250
 
     function icon(name) { return "qrc:/icons/" + name + ".svg" }
+    // An analysis mark's colour: "?!" an inaccuracy, "?" a mistake, "??" a blunder.
+    function markColor(mark) {
+        return mark === "??" ? blunder : mark === "?" ? mistake : mark === "?!" ? inaccuracy : textPrimary
+    }
     // Piece image by key: "N" white knight, "n" black knight (the board's own images).
     function piece(key) {
         return key === key.toLowerCase() ? "qrc:/piece/pics/black/" + key.toUpperCase() + ".png"

@@ -69,6 +69,11 @@ Item {
                 dialogs.challenge.open()
             }
         }
+        // BL-19 step 7: main.cpp's analysed game as a replay, at 10… Bxc2?? (a blunder: Best was Bb4).
+        if (name === "analysis") {
+            ChessConnector.openGame(GameLibrary.games[0].id)
+            ChessConnector.reviewTo(20)
+        }
         // BL-19: the Games page; main.cpp kept six games of Tester for games and games-filter (none for
         // games-empty); games-filter shows the unfinished ones.
         if (name.startsWith("games")) {

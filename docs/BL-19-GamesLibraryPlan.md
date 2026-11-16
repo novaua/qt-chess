@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-13 |
-| **Status** | Steps 1–5 merged (#162, #163, #165, #167, #168); step 6 (the analysis engine) on `features/analysisEngine_161126`; hand tests 1–8 passed (2026-11-16), 9 open; steps 7–8 to do |
+| **Status** | Steps 1–6 merged (#162, #163, #165, #167, #168, #169); step 7 (the analysis UI) on `features/analysisUi_161126`; hand tests 1–8 passed (2026-11-16), 9 open; step 8 to do |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | BL-19 in `TASKS.md` (the owner's review of the save and game-log capabilities, 2026-11-13) |
 
@@ -175,6 +175,30 @@ ply. Without an engine the button says so.
 - Tests: `GameAnalysisTest.cpp` (6 on the numbers, 6 on the analyzer: FakeUci on the scholar's mate, Stockfish,
   cancel, a change meanwhile, nothing to analyse, the record's side), FakeEngineTests +2.
 
+**Step 7 as built** (the UI):
+- **Only a game that is over, or a replay** can be analysed (`ChessConnector.CanAnalyse`): the analysis of a game
+  going on would hint the moves (and vs the robot, a rated game). A takeback after the mate drops the analysis
+  (the moves changed) and the game can't be analysed until it is over again.
+- **Analyse**: on the result card (four buttons: two rows of two), in the More menu ("Analyse game", "Analyse
+  again" once there is one; not in a Lichess game), and in the moves panel ("Analyse game" over the review
+  buttons, for a finished game or a replay). Without an engine they are disabled (the panel's says why). It closes
+  the result card and opens the sheet in a narrow window: the progress is in the moves panel ("Analysing… 3 of 8",
+  Cancel; a cancel keeps the analysis there was).
+- **The summary** (`AnalysisSummary.qml`, the moves panel): "Analysis" and the shown position's eval ("+2.5",
+  "#3", "1-0"), a row per side: the player, accuracy %, counts of `?!` `?` `??` in their colours; under them the
+  judged move on the board: "Blunder · Best was Bb4" (the engine's best when another move).
+- **The move list**: `?!` `?` `??` after the move (Lichess's blue, orange, red: `Theme.inaccuracy`, `mistake`,
+  `blunder`; `MoveListModel` roles `wMark` / `bMark`); the review bar and the sheet handle say it too
+  ("Viewing 10… Bxc2??").
+- **The eval bar** (`EvalBar.qml`) left of the squares: White's share is White's win chance, from White's side of
+  the board (turns with it); the eval on hover.
+- `ChessConnector`: `CanAnalyse`, `AnalysingThisGame`, `Analysis` ({ depth, white, black }), `ShownAnalysis`
+  ({ evalText, whitePercent, mark, judgement, best }); failures say "Couldn't analyse the game. …" (a critical
+  message).
+- Scenes: `analysis` (a made-up analysis of a kept game, at 10… Bxc2??; also `@1400x900`, `@640x560`); `result` and
+  `ended` show Analyse. Tests: `tst_analysis.qml` (4: the result card, progress, marks, eval, review; cancel; a
+  takeback drops it; a kept game opened), MoveListModelTest +1.
+
 ## 4. Steps
 
 | Step | What | Branch |
@@ -184,8 +208,8 @@ ply. Without an engine the button says so.
 | 4 | Play from here: the `…From` starts, the dialogs' `fromPly`, More menu entries, `forkOf` on the card, scene, tests | `features/playFromHere_161126` ✅ |
 | 4b | The Play from here button (§3.4.2): review only, the review bar's button and its menu, the More menu entries removed, scenes, tests | `features/playFromHereButton_161126` ✅ (#167) |
 | 5 | Rating: `LocalRating` stored as it goes (`GameLibrary::put`), Profile page + Home header, card changes, the PGN's player Elo, tests | `features/localRating_161126` ✅ (#168) |
-| 6 | Analysis engine: `GameAnalyzer` + worker, FakeUci MultiPV, storage, unit tests, Settings depth | `features/analysisEngine_161126` |
-| 7 | Analysis UI: eval bar, judgements, summary, Analyse buttons, scenes, `tst_games` analysis | |
+| 6 | Analysis engine: `GameAnalyzer` + worker, FakeUci MultiPV, storage, unit tests, Settings depth | `features/analysisEngine_161126` ✅ (#169) |
+| 7 | Analysis UI: eval bar, judgements, summary, Analyse buttons, scenes, `tst_analysis.qml` | `features/analysisUi_161126` |
 | 8 | Docs and hand tests: CLAUDE.md, the `run-chess-app` scene list, `BL-19-ManualTests.md`, PROGRESS.md | |
 
 ## 5. Hand tests (the owner, after step 3)

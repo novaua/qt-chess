@@ -38,6 +38,8 @@
         <file>qml/OnlinePage.qml</file>
         <file>qml/BusyButton.qml</file>
         <file>qml/BusyRing.qml</file>
+        <file>qml/EvalBar.qml</file>
+        <file>qml/AnalysisSummary.qml</file>
         <file>qml/GameCard.qml</file>
         <file>qml/OngoingGameCard.qml</file>
         <file>qml/OngoingGamesRefresh.qml</file>
@@ -137,6 +139,7 @@
         <file alias="sign-out.svg">pics/icons/sign-out.svg</file>
         <file alias="theme.svg">pics/icons/theme.svg</file>
         <file alias="trophy.svg">pics/icons/trophy.svg</file>
+        <file alias="analyse.svg">pics/icons/analyse.svg</file>
         <file alias="two-players.svg">pics/icons/two-players.svg</file>
         <file alias="undo.svg">pics/icons/undo.svg</file>
         <file alias="volume-mute.svg">pics/icons/volume-mute.svg</file>

@@ -121,6 +121,8 @@ DISTFILES += \
     qml/OnlinePage.qml \
     qml/BusyButton.qml \
     qml/BusyRing.qml \
+    qml/EvalBar.qml \
+    qml/AnalysisSummary.qml \
     qml/GameCard.qml \
     qml/OngoingGameCard.qml \
     qml/OngoingGamesRefresh.qml \

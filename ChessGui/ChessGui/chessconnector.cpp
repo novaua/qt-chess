@@ -64,6 +64,11 @@ ChessConnector::ChessConnector(QObject* parent)
 	connect(_analyzer, &GameAnalyzer::progressChanged, this, &ChessConnector::analysisProgressChanged);
 	connect(_analyzer, &GameAnalyzer::finished, this, &ChessConnector::analysisFinished);
 	connect(_analyzer, &GameAnalyzer::failed, this, &ChessConnector::analysisFailed);
+	// BL-19 step 7: what the board's game's analysis shows follows its moves, its record and the review.
+	for (auto changed : { &ChessConnector::moveHistoryChanged, &ChessConnector::gameResultChanged,
+	                      &ChessConnector::gameInfoChanged, &ChessConnector::analysisChanged })
+		connect(this, changed, this, &ChessConnector::refreshBoardAnalysis);
+	connect(this, &ChessConnector::reviewStateChanged, this, &ChessConnector::shownAnalysisChanged);
 	_claimWin = new ClaimWin(this);
 	connect(_claimWin, &ClaimWin::goneChanged, this, &ChessConnector::opponentGoneChanged);
 	connect(_claimWin, &ClaimWin::secondsLeftChanged, this, &ChessConnector::claimWinSecondsChanged);
@@ -1157,6 +1162,127 @@ void ChessConnector::setGameLibrary(GameLibrary* library)
 {
 	_library = library;
 	_analyzer->setLibrary(library);
+	if (_library)
+		connect(_library, &GameLibrary::gamesChanged, this, &ChessConnector::refreshBoardAnalysis);
+}
+
+bool ChessConnector::analysingThisGame() const
+{
+	return _analyzer->running() && !_recordId.isEmpty() && _analyzer->gameId() == _recordId;
+}
+
+namespace {
+	QString markOf(GameAnalysis::Judgement j)
+	{
+		switch (j) {
+		case GameAnalysis::Judgement::Inaccuracy: return QStringLiteral("?!");
+		case GameAnalysis::Judgement::Mistake:    return QStringLiteral("?");
+		case GameAnalysis::Judgement::Blunder:    return QStringLiteral("??");
+		default:                                  return QString();
+		}
+	}
+
+	// As lichess.org: "+0.4", "−1.2", "#3" (White mates in 3), "#−2", and the result once mated.
+	QString evalText(int cp)
+	{
+		const QString minus(QChar(0x2212));
+		if (GameAnalysis::isMate(cp)) {
+			const int n = GameAnalysis::mateIn(cp);
+			if (n == 0)
+				return cp > 0 ? QStringLiteral("1-0") : QStringLiteral("0-1");
+			return n > 0 ? QStringLiteral("#%1").arg(n) : QStringLiteral("#") + minus + QString::number(-n);
+		}
+		if (cp == 0)
+			return QStringLiteral("0.0");
+		return (cp > 0 ? QStringLiteral("+") : minus) + QString::number(std::abs(cp) / 100.0, 'f', 1);
+	}
+}
+
+// The board's game's analysis, when its record has one for the moves it has now; also whether it can be
+// analysed. The move list's marks with it.
+void ChessConnector::refreshBoardAnalysis()
+{
+	GameAnalysis analysis;
+	QStringList moves;
+	const bool kept = _library && !_recordId.isEmpty() && !isOnlineGame();
+	if (kept)
+		if (const auto rec = _library->find(_recordId)) {
+			analysis = GameAnalysis::fromJson(rec->analysis);
+			moves = rec->moves;
+			if (!analysis.fits(moves) || analysis.plyCount() != plyCount())
+				analysis = {};
+		}
+	const bool can = kept && plyCount() > 0 && !analysingThisGame()
+		&& (_gameMode == QLatin1String("replay") || !_gameResult.isEmpty()); // not a game going on: no hints
+	const bool changed = !(analysis == _boardAnalysis) || (!analysis.isEmpty() && moves != _analysisMoves);
+	if (!changed && can == _canAnalyse)
+		return;
+	_boardAnalysis = analysis;
+	_analysisMoves = analysis.isEmpty() ? QStringList() : moves;
+	_canAnalyse = can;
+	if (changed) {
+		QStringList marks;
+		for (int ply = 0; ply < analysis.plyCount(); ++ply)
+			marks.append(markOf(analysis.judgement(ply)));
+		_moveList->setMarks(marks);
+	}
+	emit boardAnalysisChanged();
+	emit shownAnalysisChanged();
+}
+
+QVariantMap ChessConnector::boardAnalysis() const
+{
+	if (_boardAnalysis.isEmpty())
+		return {};
+	using J = GameAnalysis::Judgement;
+	auto side = [this](bool white) {
+		const double accuracy = _boardAnalysis.accuracy(white);
+		return QVariantMap{
+			{ QStringLiteral("accuracy"),     accuracy < 0 ? -1 : qRound(accuracy) },
+			{ QStringLiteral("inaccuracies"), _boardAnalysis.count(white, J::Inaccuracy) },
+			{ QStringLiteral("mistakes"),     _boardAnalysis.count(white, J::Mistake) },
+			{ QStringLiteral("blunders"),     _boardAnalysis.count(white, J::Blunder) },
+		};
+	};
+	return QVariantMap{
+		{ QStringLiteral("depth"), _boardAnalysis.depth() },
+		{ QStringLiteral("white"), side(true) },
+		{ QStringLiteral("black"), side(false) },
+	};
+}
+
+QVariantMap ChessConnector::shownAnalysis() const
+{
+	if (_boardAnalysis.isEmpty())
+		return {};
+	const int position = std::clamp(shownPly(), 0, _boardAnalysis.plyCount());
+	const int cp = _boardAnalysis.eval(position);
+	QVariantMap shown{
+		{ QStringLiteral("evalText"),     evalText(cp) },
+		{ QStringLiteral("whitePercent"), GameAnalysis::winPercent(cp) },
+		{ QStringLiteral("mark"),         QString() },
+		{ QStringLiteral("judgement"),    QString() },
+		{ QStringLiteral("best"),         QString() },
+	};
+	if (position > 0) {
+		const auto judgement = _boardAnalysis.judgement(position - 1);
+		const QString name = GameAnalysis::judgementName(judgement);
+		shown[QStringLiteral("mark")] = markOf(judgement);
+		shown[QStringLiteral("judgement")] = name.isEmpty() ? name : name.left(1).toUpper() + name.mid(1);
+		const QString best = _boardAnalysis.bestMove(position - 1);
+		if (!name.isEmpty() && !best.isEmpty() && best != _analysisMoves.value(position - 1))
+			shown[QStringLiteral("best")] = sanOf(position - 1, best);
+	}
+	return shown;
+}
+
+QString ChessConnector::sanOf(int position, const QString& uciMove) const
+{
+	const auto game = GameRecord::play(_analysisMoves.mid(0, position));
+	if (!game || !GameRecord::playOn(*game, { uciMove }))
+		return {};
+	const auto san = Chess::Game::FormatHistorySan(game->GetGameRecord());
+	return san.empty() ? QString() : QString::fromStdString(san.back());
 }
 
 void ChessConnector::setAnalysisDepth(int depth)

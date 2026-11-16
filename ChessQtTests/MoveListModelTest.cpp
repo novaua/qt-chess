@@ -250,8 +250,29 @@ namespace MoveListModelTests
 		TEST_METHOD(RoleNames)
 		{
 			const auto names = _model.roleNames();
-			for (const char* name : { "n", "wPly", "wPiece", "wText", "bPly", "bPiece", "bText" })
+			for (const char* name : { "n", "wPly", "wPiece", "wText", "bPly", "bPiece", "bText", "wMark", "bMark" })
 				Assert::IsTrue(names.values().contains(QByteArray(name)), QString(name).toStdWString().c_str());
+		}
+
+		// BL-19 step 7: the analysis's marks, by ply; every row changes once, the same marks again nothing.
+		TEST_METHOD(MarksChangeEveryRowOnce)
+		{
+			start({ "e4", "e5", "Qh5", "Nc6", "Bc4", "Nf6", "Qxf7#" });
+			_model.setMarks({ "", "?!", "", "", "", "??", "" });
+			Assert::AreEqual(1, _signals.dataChanged);
+			Assert::AreEqual(0, _signals.changedFirst);
+			Assert::AreEqual(3, _signals.changedLast);
+			Assert::AreEqual(QString("?!"), role(_model, 0, MoveListModel::BlackMarkRole).toString());
+			Assert::AreEqual(QString("??"), role(_model, 2, MoveListModel::BlackMarkRole).toString());
+			Assert::AreEqual(QString(), role(_model, 3, MoveListModel::WhiteMarkRole).toString());
+			Assert::AreEqual(QString(), role(_model, 3, MoveListModel::BlackMarkRole).toString(), L"no Black move there");
+
+			_model.setMarks({ "", "?!", "", "", "", "??", "" });
+			Assert::AreEqual(1, _signals.dataChanged, L"the same marks: nothing");
+			_model.setMarks({});
+			Assert::AreEqual(2, _signals.dataChanged);
+			Assert::AreEqual(QString(), role(_model, 2, MoveListModel::BlackMarkRole).toString());
+			assertModelOk();
 		}
 	};
 }

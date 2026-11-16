@@ -70,6 +70,14 @@ Page {
         moreButton.moreMenu.popup(moreButton, moreButton.width - moreButton.moreMenu.width, moreButton.height)
     }
     function _facePlayer() { chessBoard.angle = ChessConnector.PlayerPlaysWhite ? 0 : 180 }
+    // BL-19 step 7: the engine analyses the game; its progress and then the summary are in the moves
+    // panel (the sheet opens in a narrow window), so the result card goes.
+    function analyse() {
+        if (!ChessConnector.analyseGame(""))
+            return
+        _resultCardClosed = true
+        sheetOpen = !area.wide
+    }
 
     // Play from here (BL-19 step 4b): while reviewing a playable position, the review bar's button
     // opens this menu under it (above it near the window's bottom: the sheet handle). Made on the
@@ -309,6 +317,15 @@ Page {
                         enabled: ChessConnector.PlyCount > 0
                         onTriggered: page.exportPgnRequested()
                     }
+                    MenuItem {
+                        objectName: "analyseMenuItem"
+                        visible: page.mode !== "online"
+                        height: visible ? implicitHeight : 0
+                        text: ChessConnector.Analysis.depth !== undefined ? "Analyse again" : "Analyse game"
+                        icon.source: Theme.icon("analyse")
+                        enabled: ChessConnector.CanAnalyse && AppInfo.engineState !== "missing"
+                        onTriggered: page.analyse()
+                    }
                     MenuSeparator {}
                     MenuItem {
                         text: "Computer levels"
@@ -354,7 +371,7 @@ Page {
     // Reviewing earlier moves of the game (a saved game has no live end, so not there).
     readonly property string reviewText: !ChessConnector.ReviewMode ? ""
         : ChessConnector.ShownPly === 0 ? "Viewing the start position"
-        : "Viewing " + shownMove
+        : "Viewing " + shownMove + (ChessConnector.ShownAnalysis.mark ?? "")
     // The review bar's text: the review's, or a replay's place ("Move 5 of 40"; it has no live end).
     readonly property string reviewBarText: mode === "replay" ? status : reviewText
 
@@ -482,6 +499,8 @@ Page {
                 width: Math.min(area.squaresSize - 2 * Theme.s5, 440)
                 resultText: ChessConnector.ResultText
                 canRematch: page.canRematch
+                canAnalyse: ChessConnector.CanAnalyse && AppInfo.engineState !== "missing"
+                onAnalyseRequested: page.analyse()
                 onRematchRequested: ChessConnector.rematch()
                 onNewGameRequested: page.newGameRequested()
                 onReviewRequested: {
@@ -491,6 +510,19 @@ Page {
                 }
                 onCloseRequested: page._resultCardClosed = true
             }
+        }
+
+        // The analysis's evaluation of the position shown (BL-19 step 7), left of the squares: in the gap
+        // before the player column, or in the page's margin.
+        EvalBar {
+            visible: ChessConnector.Analysis.depth !== undefined
+            x: area.boardX - 13
+            y: area.boardY + area.inset
+            width: 10
+            height: area.squaresSize
+            whitePercent: ChessConnector.ShownAnalysis.whitePercent ?? 50
+            evalText: ChessConnector.ShownAnalysis.evalText ?? ""
+            whiteAtBottom: chessBoard.angle === 0
         }
 
         SideCard {
@@ -586,7 +618,7 @@ Page {
                     font: Theme.bodyStrong
                 }
                 Label {
-                    text: page.shownMove
+                    text: page.shownMove + (ChessConnector.ShownAnalysis.mark ?? "")
                     font.pixelSize: Theme.body.pixelSize
                     font.features: { "tnum": 1 }
                 }
