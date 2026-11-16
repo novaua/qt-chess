@@ -4,6 +4,17 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-16 — BL-19 step 8: docs and hand tests (branch: docs/bl19ManualTests_161126)
+
+### Done
+- **`docs/BL-19-ManualTests.md`**: 9 scenarios for the owner, on a throwaway data folder (`--data-dir`): "Games kept" with 51 finished games (plan §5's open test 9; a PowerShell script adds 50 finished games to `games.json` as text, checked: the app reads all of them), Play from here with Stockfish, the rating, analysing a real game (and how long it takes), depth / Cancel / leaving / closing, no engine, not during a game, export and import, dark and high contrast.
+- The plan's §5 points there; the `run-chess-app` skill lists the `analysis` scene. CLAUDE.md was kept up to date by steps 6–7.
+
+### Next
+- The owner runs `BL-19-ManualTests.md`; BL-19 is done when they pass. Follow-up (not in scope): log the Lichess games played here.
+
+---
+
 ## 2026-11-16 — BL-19 step 7: the analysis UI (branch: features/analysisUi_161126)
 
 ### Done
