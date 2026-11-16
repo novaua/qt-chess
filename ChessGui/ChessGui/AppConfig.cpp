@@ -47,6 +47,13 @@ QString AppConfig::savedGameFilePath(const QString& userId)
 	return dir + "/chess.save";
 }
 
+QString AppConfig::gamesFilePath(const QString& userId)
+{
+	QString dir = appDataDir() + "/users/" + userId;
+	QDir().mkpath(dir);
+	return dir + "/games.json";
+}
+
 AppConfig AppConfig::load()
 {
 	AppConfig cfg;

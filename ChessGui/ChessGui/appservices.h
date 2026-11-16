@@ -6,6 +6,7 @@
 class AppInfo;
 class AvatarProvider;
 class ChessConnector;
+class GameLibrary;
 class LichessClient;
 class UserManager;
 
@@ -26,12 +27,13 @@ public:
 	UserManager* userManager() const { return _userManager; }
 	LichessClient* lichessClient() const { return _lichessClient; }
 	AppInfo* appInfo() const { return _appInfo; }
+	GameLibrary* gameLibrary() const { return _gameLibrary; }
 
 	// The active profile's Lichess token to the client, the account, the ongoing games, the event
 	// stream. After the profiles are loaded (and a screenshot scene's are seeded): it reads the active one.
 	void start();
 
-	// `import ChessPlusPlus`: the five services as singletons, and LayoutGate. Once per process.
+	// `import ChessPlusPlus`: the six services as singletons, and LayoutGate. Once per process.
 	void registerQmlTypes() const;
 
 private:
@@ -42,6 +44,7 @@ private:
 	UserManager* _userManager;
 	LichessClient* _lichessClient;
 	AppInfo* _appInfo;
+	GameLibrary* _gameLibrary; // BL-19: the active profile's kept games
 	QString _lastToken;
 	// The context of the connections that call back into this object: they go when it does (last
 	// member, so first destroyed), while the services, children of the app, live on a little longer.

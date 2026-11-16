@@ -69,7 +69,7 @@ TestCase {
     // Continue: the game as it was; the last move isn't marked (the setting).
     function test_4_run2_continueTheGame() {
         onlyInRun(2)
-        compare(ChessConnector.CanContinue, true, "the game kept")
+        compare(GameLibrary.unfinishedCount, 1, "the game kept")
         TestRun.setEngine(line, 0)
         app.click("continueCard")
         app.waitForPage("game", 10000)

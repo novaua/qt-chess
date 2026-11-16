@@ -7,6 +7,7 @@
 #include "LichessClient.h"
 #include "UserManager.h"
 #include "chessconnector.h"
+#include "gamelibrary.h"
 #include "layoutgate.h"
 
 #include <QTimer>
@@ -18,10 +19,13 @@ AppServices::AppServices(QObject* owner, bool offline)
 	, _userManager(new UserManager(owner))
 	, _lichessClient(new LichessClient(owner))
 	, _appInfo(new AppInfo(owner))
+	, _gameLibrary(new GameLibrary(owner))
 {
 	_connector->setAvatarProvider(_avatarProvider);
 	_connector->setUserManager(_userManager);
 	_connector->setLichessClient(_lichessClient);
+	_connector->setGameLibrary(_gameLibrary);
+	_gameLibrary->setUserManager(_userManager); // the active profile's games (and the old saves migrated)
 	_lichessClient->setOffline(offline);
 }
 
@@ -59,6 +63,7 @@ void AppServices::registerQmlTypes() const
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "UserManager", _userManager);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "LichessClient", _lichessClient);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "AppInfo", _appInfo);
+	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "GameLibrary", _gameLibrary); // BL-19
 	qmlRegisterType<LayoutGate>("ChessPlusPlus", 1, 0, "LayoutGate"); // BL-11
 }
 

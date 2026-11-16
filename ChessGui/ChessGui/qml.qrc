@@ -42,6 +42,8 @@
         <file>qml/OngoingGameCard.qml</file>
         <file>qml/OngoingGamesRefresh.qml</file>
         <file>qml/ContinueGamesPage.qml</file>
+        <file>qml/GamesPage.qml</file>
+        <file>qml/games.js</file>
         <file>qml/lichess.js</file>
         <file>qml/LevelsHelpDialog.qml</file>
         <file>qml/PlayerCard.qml</file>

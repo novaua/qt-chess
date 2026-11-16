@@ -68,9 +68,14 @@ namespace Chess
 		const MovesHistory &GetGameRecord() const;
 		HistoryPlayerAptr MakePlayer();
 
-		bool Save(const std::string &path); // false: the file couldn't be written
+		// The binary save files of versions before the games library (BL-19): read only to migrate them
+		// (GameLibrary). Save: false when the file couldn't be written.
+		bool Save(const std::string &path);
 		void Load(const std::string &path);
 		void ResumeFromLoad();
+		// A game record (the games library): the moves in UCI ("e2e4", "e7e8q") become the loaded history,
+		// as Load() makes it; the board is back at the start position after. Throws at an illegal move.
+		void LoadMoves(const std::vector<std::string>& uciMoves);
 
 		void DoMove(BoardPosition from, BoardPosition to);
 		void DoMove(const Move &move);

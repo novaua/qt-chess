@@ -46,6 +46,8 @@ class UserManager : public QObject
     Q_PROPERTY(QVariantList backups          READ backups          NOTIFY backupsChanged)
 
 public:
+    // The two save slots of versions before the games library (BL-19): read once to migrate them
+    // into GameLibrary, then cleared. Nothing writes them any more.
     struct GameSaveInfo {
         bool    isSinglePlayer    = false;
         bool    playerPlaysWhite  = true;
@@ -114,6 +116,7 @@ public:
     GameSaveInfo savedGameInfo() const;
     void         setSavedGameInfo(const GameSaveInfo& info);
     void         clearAutoSaveInfo();
+    void         clearSavedGameInfo();
 
     void saveLichessCredentials(const QString& plainToken, const QString& username);
     void setLichessAccount(const QString& username, const QVariantMap& ratings); // after /api/account

@@ -77,7 +77,7 @@ TestCase {
         verify(Date.now() - robotStarted < thinkMs,
                "Home before the robot would have answered (" + (Date.now() - robotStarted) + " ms after it began)")
         compare(ChessConnector.InGame, false)
-        tryCompare(ChessConnector, "CanContinue", true, 3000, "the game kept for Continue")
+        tryCompare(GameLibrary, "unfinishedCount", 1, 3000, "the game kept for Continue")
         wait(thinkMs + 500)   // when the answer would have come
         compare(ChessConnector.InGame, false, "still on Home")
     }

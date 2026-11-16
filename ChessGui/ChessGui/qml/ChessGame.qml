@@ -33,10 +33,9 @@ ApplicationWindow {
         || computerDialog.visible || twoPlayerDialog.visible
         || challengeDialog.visible || createUserDialog.visible
         || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible || leaveOnlineDialog.visible
-        || leaveLocalConfirm.visible
         || pgnExportDialog.visible || profileExportDialog.visible || profileImportDialog.visible
         || importConflictDialog.visible || deleteProfileConfirm.visible || disconnectLichessConfirm.visible
-        || acceptChallengeConfirm.visible || recentFlyout.visible
+        || recentFlyout.visible
 
     // ── BL-10: Lichess challenges to the player ─────────────────────────
     // The bar shows the oldest one not hidden. The finished game's rematch offer has its own bar.
@@ -59,14 +58,8 @@ ApplicationWindow {
         return text
     }
 
-    // A two-player game with unsaved moves: ask before leaving it. A robot game is autosaved, a Lichess
-    // game goes on at Lichess.
+    // A local game on the board is kept for Continue (BL-19), a Lichess game goes on at Lichess.
     function acceptChallenge(id) {
-        if (ChessConnector.leaveLosesGame()) {
-            acceptChallengeConfirm.challengeId = id
-            acceptChallengeConfirm.open()
-            return
-        }
         ChessConnector.acceptChallenge(id)
     }
 
@@ -118,10 +111,9 @@ ApplicationWindow {
                 // First: whatever happens below, the frame comes and the page is built (an error after
                 // _startingGame once left the notice up and no page: the game "hung").
                 ChessConnector.waitForStartFrame(root)
-                // A dialog still open at the start (the challenge waiting for the opponent, the
-                // accept confirmation) goes at once: its fade would stay on the screen under the notice.
-                for (const d of [challengeDialog, acceptChallengeConfirm])
-                    d.closeAtOnce()
+                // A dialog still open at the start (the challenge waiting for the opponent) goes at
+                // once: its fade would stay on the screen under the notice.
+                challengeDialog.closeAtOnce()
             }
             return
         }
@@ -135,7 +127,7 @@ ApplicationWindow {
 
     // The pages pushed over Home or the game, by objectName: Back or Esc pops them.
     readonly property var _pushedPages: ({ profile: profilePage, settings: settingsPage, online: onlinePage,
-                                           games: continuePage })
+                                           games: continuePage, library: gamesPage })
     readonly property bool _onPushedPage: _pushedPages[_page] !== undefined
     function _openPage(name) {
         if (_page !== name)
@@ -151,6 +143,7 @@ ApplicationWindow {
     function closeSettings() { _closePage("settings") }
     function openOnline()    { _openPage("online") }
     function closeOnline()   { _closePage("online") }
+    function openGames()     { _openPage("library") }   // BL-19: every kept local game
 
     // BL-17: Home's Continue. The only unfinished game opens directly (ChessConnector decides);
     // otherwise the list of them all.
@@ -197,8 +190,8 @@ ApplicationWindow {
         deleteProfileConfirm.open()
     }
 
-    // Home button / Escape. A running Lichess game asks first, and so does a two-player game whose
-    // moves would be lost (not autosaved); a rematch challenge still waiting for the opponent is withdrawn.
+    // Home button / Escape. A running Lichess game asks first; a local game is kept as it is (BL-19);
+    // a rematch challenge still waiting for the opponent is withdrawn.
     function leaveGame() {
         if (_resigning) {                 // Home again while the resignation is on its way: now
             _quitAfterLeave = false
@@ -206,9 +199,6 @@ ApplicationWindow {
         } else if (_onlineRunning) {
             leaveOnlineDialog.quitting = false
             leaveOnlineDialog.open()
-        } else if (ChessConnector.leaveLosesGame()) {
-            leaveLocalConfirm.quitting = false
-            leaveLocalConfirm.open()
         } else {
             _doLeaveGame()
         }
@@ -239,34 +229,13 @@ ApplicationWindow {
     // The game ended while the warning was open: it no longer goes on without us.
     on_OnlineRunningChanged: if (!_onlineRunning) leaveOnlineDialog.close()
 
-    // The two-player warning's answers: Leave / Quit, after a save if asked. A save that failed stays
-    // in the game ("Couldn't save the game"): leaving would lose the moves after all.
-    function _leaveLocal(quit, save) {
-        if (save && !ChessConnector.saveGame())
-            return
-        if (quit) {
-            _quitConfirmed = true
-            root.close()
-        } else {
-            _doLeaveGame()
-        }
-    }
-
-    // Closing the window during a running Lichess game asks the same as Home (Leave quits); so does
-    // a two-player game with unsaved moves.
+    // Closing the window during a running Lichess game asks the same as Home (Leave quits). A local
+    // game is kept as it is (ChessConnector's destructor): nothing to ask.
     onClosing: event => {
         if (_quitConfirmed || _screenshotMode)
             return
-        if (!(_onlineRunning || _resigning)) {
-            if (ChessConnector.leaveLosesGame()) {
-                event.accepted = false
-                resignConfirm.close()
-                switchUserConfirm.close()
-                leaveLocalConfirm.quitting = true
-                leaveLocalConfirm.open()
-            }
+        if (!(_onlineRunning || _resigning))
             return
-        }
         event.accepted = false
         if (_resigning) {                 // quit when the resignation is through
             _quitAfterLeave = true
@@ -278,10 +247,9 @@ ApplicationWindow {
         leaveOnlineDialog.open()
     }
 
-    // A two-player game asks only when it has unsaved moves (ChessConnector.leaveLosesGame()), as Home does.
+    // A running game asks first (it is kept, or goes on at Lichess); a finished one or a replay doesn't.
     function switchUser() {
-        if (_inGame && !_gameOver && _mode !== "replay"
-                && (_mode !== "local" || ChessConnector.leaveLosesGame()))
+        if (_inGame && !_gameOver && _mode !== "replay")
             switchUserConfirm.open()
         else
             _doSwitchUser()
@@ -586,12 +554,20 @@ ApplicationWindow {
     }
 
     Component {
+        id: gamesPage
+        GamesPage {
+            onBackRequested: root._closePage("library")
+        }
+    }
+
+    Component {
         id: homePage
         HomePage {
             onComputerGameRequested:  computerDialog.openNew()
             onTwoPlayerGameRequested: twoPlayerDialog.open()
             onOnlineGameRequested:    root.playOnline()
             onContinueRequested:      root.continueGames()
+            onGamesRequested:         root.openGames()
             continueBusy:             ChessConnector.StartingOnlineGame
             onSettingsRequested:      root.openSettings()
             onProfileRequested:       root.openProfile()
@@ -1010,9 +986,6 @@ ApplicationWindow {
             if (AppSettings.musicEnabled)
                 sndWin.play()
         }
-        function onSavedOk()           { root.notify("Game saved", "success") }
-        function onSaveFailed()        { root.notify("Couldn't save the game", "critical") }
-        function onNoSavedGame()       { root.notify("There is no saved game yet. Use Save during a game to keep one.") }
         function onNoMoreMovesNotify() { root.notify("No more moves") }
         function onPgnCopied()         { root.notify("PGN copied to the clipboard", "success") }
         function onMovesTakenBack(plies) { root.notify(plies === 1 ? "Move taken back" : plies + " moves taken back") }
@@ -1223,16 +1196,6 @@ ApplicationWindow {
     }
 
     ConfirmDialog {
-        id: acceptChallengeConfirm
-        objectName: "acceptChallengeConfirm"
-        property string challengeId
-        title: "Leave this game?"
-        text: "This two-player game's moves aren't saved. The Lichess game starts instead."
-        acceptText: "Accept challenge"
-        onAccepted: ChessConnector.acceptChallenge(challengeId)
-    }
-
-    ConfirmDialog {
         id: resignConfirm
         title: "Resign this game?"
         text: _mode === "online" ? "The game ends as a loss on Lichess." : ""
@@ -1245,29 +1208,11 @@ ApplicationWindow {
         objectName: "switchUserConfirm"
         title: "Switch user?"
         text: _mode === "online" ? "You leave the Lichess game; it keeps running on lichess.org. You can come back from Continue or Play online."
-            : _mode === "local"  ? "This two-player game's moves aren't saved: save it first (Save game) to replay it later."
-                                 : "The game is saved, so you can continue it later."
+                                 : "The game is kept as it is: this profile can continue it later from Continue or Games."
         acceptText: "Switch user"
         onAccepted: root._doSwitchUser()
     }
 
-    // Leaving or closing during a two-player game with unsaved moves (ChessConnector.leaveLosesGame()).
-    ConfirmDialog {
-        id: leaveLocalConfirm
-        objectName: "leaveLocalConfirm"
-        property bool quitting: false   // opened by closing the window: Leave quits the app
-        title: quitting ? "Quit without saving?" : "Leave without saving?"
-        text: "Two-player games aren't kept, so this game's moves will be lost. Save it to replay it "
-              + "later from Home → Open saved game"
-              + (ChessConnector.CanLoad ? " (it replaces the game saved there now)." : ".")
-        // The safe answer is the default (Enter): save, then leave.
-        acceptText: quitting ? "Save and quit" : "Save and leave"
-        actionText: quitting ? "Quit" : "Leave"
-        cancelText: "Stay"
-        width: 460
-        onAccepted:        root._leaveLocal(quitting, true)
-        onActionRequested: root._leaveLocal(quitting, false)
-    }
 
     LeaveOnlineDialog {
         id: leaveOnlineDialog
@@ -1314,17 +1259,17 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+O"
         enabled: _page === "home" && !_dialogOpen
-        onActivated: ChessConnector.loadGame()   // says so itself when there is none (onNoSavedGame)
+        onActivated: root.openGames()
     }
     Shortcut {
         sequence: "F"
         enabled: _onGamePage && !_dialogOpen
         onActivated: stack.currentItem.flipBoard()
     }
-    Shortcut {
+    Shortcut {   // every local game is kept on its own (BL-19): Ctrl+S exports the PGN
         sequence: "Ctrl+S"
-        enabled: _onGamePage && (_mode === "computer" || _mode === "local") && !_dialogOpen
-        onActivated: ChessConnector.saveGame()
+        enabled: _onGamePage && ChessConnector.PlyCount > 0 && !_dialogOpen
+        onActivated: root.exportPgn()
     }
     Shortcut {
         sequence: "Ctrl+Z"

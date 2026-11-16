@@ -2,10 +2,11 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// An unfinished game as a card, like Lichess's "current games" (LI-04, BL-17): the position from the
-// player's side, who, whose turn, a line of details and Continue. A click on the board continues too.
-// On the Online page (the Lichess games) and in the Continue list (the robot's game and the Lichess
-// ones). Its width comes from the layout (Layout.preferredWidth); the board fills it.
+// A game as a card, like Lichess's "current games" (LI-04, BL-17): the position from the player's
+// side, who, whose turn (or the result), a line of details and Continue (or Open). A click on the board
+// does the same. On the Online page (the Lichess games), in the Continue list (the kept local games
+// and the Lichess ones) and on the Games page (every kept game, BL-19). Its width comes from the layout
+// (Layout.preferredWidth); the board fills it.
 Rectangle {
     id: card
 
@@ -22,8 +23,10 @@ Rectangle {
     property string actionTip: ""       // e.g. why it opens lichess.org
     property bool   busy: false         // something is starting: no second click
     property bool   starting: false     // this card's game is the one starting: "Starting…" (BL-16)
+    property bool   deletable: false    // a Delete button beside the action (the Games page, BL-19)
 
     signal activated()
+    signal deleteRequested()
 
     implicitHeight: column.implicitHeight + 2 * Theme.s3
     radius: Theme.radiusCard
@@ -74,17 +77,30 @@ Rectangle {
             elide: Text.ElideRight
             Layout.fillWidth: true
         }
-        BusyButton {
-            idleText: card.actionText
-            idleIcon: Theme.icon(card.actionIcon)
-            busy: card.starting
-            highlighted: card.playable && card.playerToMove
-            enabled: !card.busy && !card.starting
+        RowLayout {
+            spacing: Theme.s2
             Layout.fillWidth: true
-            ToolTip.visible: hovered && card.actionTip !== ""
-            ToolTip.text: card.actionTip
-            ToolTip.delay: 400
-            onClicked: card.activated()
+            BusyButton {
+                objectName: "actionButton"
+                idleText: card.actionText
+                idleIcon: Theme.icon(card.actionIcon)
+                busy: card.starting
+                highlighted: card.playable && card.playerToMove
+                enabled: !card.busy && !card.starting
+                Layout.fillWidth: true
+                ToolTip.visible: hovered && card.actionTip !== ""
+                ToolTip.text: card.actionTip
+                ToolTip.delay: 400
+                onClicked: card.activated()
+            }
+            IconButton {
+                objectName: "deleteButton"
+                visible: card.deletable
+                icon.source: Theme.icon("delete")
+                tip: "Delete"
+                enabled: !card.busy
+                onClicked: card.deleteRequested()
+            }
         }
     }
 }
