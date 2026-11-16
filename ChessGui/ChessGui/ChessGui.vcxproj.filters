@@ -260,6 +260,12 @@
     <None Include="qml\BusyRing.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\EvalBar.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\AnalysisSummary.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\GameCard.qml">
       <Filter>Source Files\Qml</Filter>
     </None>

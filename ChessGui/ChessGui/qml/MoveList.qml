@@ -41,6 +41,7 @@ ListView {
         property int    ply
         property string piece
         property string san
+        property string mark   // the analysis's "?!", "?", "??" (BL-19 step 7)
 
         readonly property bool current: ply === list.shownPly
 
@@ -51,6 +52,7 @@ ListView {
         hoverEnabled: true
         focusPolicy: Qt.NoFocus   // ←/→ stay with the window's review shortcuts
         Accessible.name: moveNumber + (ply % 2 === 1 ? ". " : "… ") + piece.toUpperCase() + san
+                         + (mark === "??" ? ", blunder" : mark === "?" ? ", mistake" : mark === "?!" ? ", inaccuracy" : "")
 
         background: Rectangle {
             radius: 4
@@ -93,6 +95,14 @@ ListView {
                 font.features: { "tnum": 1 }
                 color: Theme.textPrimary
             }
+            Label {
+                visible: cell.mark !== ""
+                anchors.verticalCenter: parent.verticalCenter
+                text: cell.mark
+                font.pixelSize: Theme.body.pixelSize
+                font.weight: Font.Bold
+                color: Theme.markColor(cell.mark)
+            }
         }
         onClicked: ChessConnector.reviewTo(ply)
     }
@@ -106,6 +116,8 @@ ListView {
         required property int bPly
         required property string bPiece
         required property string bText
+        required property string wMark
+        required property string bMark
 
         width: list.width
         height: 30
@@ -128,6 +140,7 @@ ListView {
             ply:   row.wPly
             piece: row.wPiece
             san:   row.wText
+            mark:  row.wMark
         }
         MoveCell {
             anchors.verticalCenter: parent.verticalCenter
@@ -137,6 +150,7 @@ ListView {
             ply:   row.bPly
             piece: row.bPiece
             san:   row.bText
+            mark:  row.bMark
         }
     }
 }

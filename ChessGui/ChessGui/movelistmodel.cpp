@@ -47,6 +47,8 @@ QVariant MoveListModel::data(const QModelIndex& index, int role) const
 	case BlackPlyRole:   return blackPly;
 	case BlackPieceRole: return blackPly ? piece(blackPly) : QString();
 	case BlackTextRole:  return blackPly ? text(blackPly) : QString();
+	case WhiteMarkRole:  return mark(whitePly);
+	case BlackMarkRole:  return blackPly ? mark(blackPly) : QString();
 	default:             return {};
 	}
 }
@@ -61,7 +63,18 @@ QHash<int, QByteArray> MoveListModel::roleNames() const
 		{ BlackPlyRole,   "bPly" },
 		{ BlackPieceRole, "bPiece" },
 		{ BlackTextRole,  "bText" },
+		{ WhiteMarkRole,  "wMark" },
+		{ BlackMarkRole,  "bMark" },
 	};
+}
+
+void MoveListModel::setMarks(const QStringList& marks)
+{
+	if (marks == _marks)
+		return;
+	_marks = marks;
+	if (rowCount() > 0)
+		emit dataChanged(index(0), index(rowCount() - 1), { WhiteMarkRole, BlackMarkRole });
 }
 
 void MoveListModel::show(const std::vector<std::string>& san)

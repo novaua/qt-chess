@@ -66,6 +66,14 @@ ColumnLayout {
         color: Theme.divider
     }
 
+    // The engine's analysis of the game (BL-19 step 7): Analyse game, its progress, then the summary.
+    AnalysisSummary {
+        Layout.fillWidth: true
+        Layout.leftMargin: Theme.s3
+        Layout.rightMargin: Theme.s3
+        Layout.topMargin: Theme.s2
+    }
+
     RowLayout {
         Layout.alignment: Qt.AlignHCenter
         Layout.topMargin: Theme.s1

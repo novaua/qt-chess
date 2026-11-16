@@ -10,6 +10,9 @@ Rectangle {
 
     property string resultText
     property bool   canRematch: false
+    property bool   canAnalyse: false   // BL-19 step 7: a kept game, the engine there
+
+    signal analyseRequested()
 
     signal rematchRequested()
     signal newGameRequested()
@@ -60,7 +63,9 @@ Rectangle {
         GridLayout {
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: columns === 1
-            columns: card.width >= 400 ? 3 : 1
+            // Three in a row; four in two rows of two.
+            readonly property int buttons: (card.canRematch ? 1 : 0) + 2 + (card.canAnalyse ? 1 : 0)
+            columns: card.width >= 400 ? (buttons === 4 ? 2 : buttons) : 1
             columnSpacing: Theme.s2
             rowSpacing: Theme.s2
 
@@ -87,6 +92,14 @@ Rectangle {
                 icon.source: Theme.icon("first")
                 Layout.fillWidth: true
                 onClicked: card.reviewRequested()
+            }
+            Button {
+                objectName: "analyseResultButton"
+                visible: card.canAnalyse
+                text: "Analyse"
+                icon.source: Theme.icon("analyse")
+                Layout.fillWidth: true
+                onClicked: card.analyseRequested()
             }
         }
     }

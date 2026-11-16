@@ -29,6 +29,7 @@
 #include "LichessClient.h"
 #include "gamelibrary.h"
 #include "gameanalyzer.h"
+#include "gameanalysis.h"
 #include "gamepgn.h"
 
 class ChessConnector : public QObject
@@ -111,6 +112,17 @@ class ChessConnector : public QObject
 		Q_PROPERTY(QString AnalysisGameId READ analysisGameId NOTIFY analysisChanged)
 		Q_PROPERTY(int     AnalysisDone   READ analysisDone   NOTIFY analysisProgressChanged)
 		Q_PROPERTY(int     AnalysisTotal  READ analysisTotal  NOTIFY analysisProgressChanged)
+		// BL-19 step 7, the analysis of the game on the board. CanAnalyse: a kept game that is over (or a
+		// replay) with a move, not being analysed now. AnalysingThisGame: the running analysis is of it.
+		// Analysis: {} without one, else { depth, white, black } with each side's { accuracy (-1: no
+		// move), inaccuracies, mistakes, blunders }. ShownAnalysis: the position on the board, {} without
+		// an analysis, else { evalText ("+0.4", "#3", "1-0"), whitePercent (White's win chance 0-100), and
+		// for the move that led there: mark ("?!", "?", "??", ""), judgement ("Blunder"), best (its SAN
+		// when the move was judged and the engine's was another) }.
+		Q_PROPERTY(bool        CanAnalyse        READ canAnalyse        NOTIFY boardAnalysisChanged)
+		Q_PROPERTY(bool        AnalysingThisGame READ analysingThisGame NOTIFY analysisChanged)
+		Q_PROPERTY(QVariantMap Analysis          READ boardAnalysis     NOTIFY boardAnalysisChanged)
+		Q_PROPERTY(QVariantMap ShownAnalysis     READ shownAnalysis     NOTIFY shownAnalysisChanged)
 		// --screenshot mode: { scene, moves, black, dark, width, height }; empty in a normal run
 		Q_PROPERTY(QVariantMap ScreenshotScene READ screenshotScene CONSTANT)
 public:
@@ -175,6 +187,10 @@ public:
 	QString analysisGameId() const { return _analyzer->running() ? _analyzer->gameId() : QString(); }
 	int  analysisDone() const { return _analyzer->running() ? _analyzer->done() : 0; }
 	int  analysisTotal() const { return _analyzer->running() ? _analyzer->total() : 0; }
+	bool canAnalyse() const { return _canAnalyse; }
+	bool analysingThisGame() const;
+	QVariantMap boardAnalysis() const;
+	QVariantMap shownAnalysis() const;
 	int selectedSquare() const { return _selectedSquare; }
 	int movableColor() const;
 	int premoveFrom() const { return reviewMode() ? -1 : _premoveFrom; }
@@ -240,6 +256,8 @@ signals:
 	void analysisDepthChanged();
 	void analysisChanged();
 	void analysisProgressChanged();
+	void boardAnalysisChanged();
+	void shownAnalysisChanged();
 	void analysisFinished(const QString& gameId);                       // kept on the game's record
 	void analysisFailed(const QString& gameId, const QString& message); // the engine failed, or the game changed
 
@@ -455,6 +473,11 @@ private:
 	bool _gameOver = false;
 	GameLibrary* _library = nullptr;
 	GameAnalyzer* _analyzer = nullptr; // a child: made in the constructor
+	GameAnalysis _boardAnalysis;       // of the game on the board, for its moves now (refreshBoardAnalysis)
+	QStringList  _analysisMoves;       // the moves it is of
+	bool         _canAnalyse = false;
+	void refreshBoardAnalysis();
+	QString sanOf(int position, const QString& uciMove) const; // a move in the position after `position` of _analysisMoves
 	QString   _recordId;      // the library record of the game on the board; "" until its first move (or in a replay: the game shown)
 	QDateTime _recordStarted; // when that game began (the record's startedAt)
 	int       _undoCount = 0; // takebacks in this game (the record's; such a game isn't rated)

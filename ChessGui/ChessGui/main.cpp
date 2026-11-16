@@ -14,6 +14,7 @@
 #include "UserManager.h"
 #include "LichessClient.h"
 #include "gamelibrary.h"
+#include "gameanalysis.h"
 
 #include <QQuickStyle>
 #include <QQuickWindow>
@@ -94,7 +95,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting", "rejoin",
 	                  "challenge", "challenge-accepting", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
 	                  "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-	                  "opponent-left-error", "games", "games-empty", "games-filter" }.contains(scene))
+	                  "opponent-left-error", "games", "games-empty", "games-filter", "analysis" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -198,6 +199,27 @@ static void playPremoveScene(ChessConnector* connector, LichessClient* lichess, 
 // finished robot games are rated (step 5), the Statistics card shows the rating.
 static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 {
+	if (scene == "analysis") {
+		// BL-19 step 7: a game with the engine's analysis, made up so it reads the same every run: 3… Qa5?!,
+		// 8. Nd5? and 10… Bxc2?? (the scene shows that one: "Best was Bb4").
+		GameRecord r;
+		r.kind = QStringLiteral("local");
+		r.opponentName = QStringLiteral("Bob");
+		r.startedAt = QDateTime(QDate(2026, 11, 15), QTime(18, 0));
+		const QStringList moves = QStringLiteral("e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 "
+		                                         "c1d2 c7c6 c3d5 a5d8 d5f6 d8f6 d1e2 f5c2").split(' ');
+		r.setMoves(moves);
+		QStringList best = moves;
+		best[5] = QStringLiteral("d5d8");
+		best[14] = QStringLiteral("e1g1");
+		best[19] = QStringLiteral("f8b4");
+		best.append(QString());
+		const QList<int> evals = { 20, 30, 40, 45, 40, 50, 120, 110, 115, 100, 105, 95, 100, 90, 85,
+		                           -30, -20, -25, -20, -30, 250 };
+		r.analysis = GameAnalysis(14, evals, best).toJson();
+		library->put(r);
+		return;
+	}
 	if (scene != "games" && scene != "games-filter" && scene != "profile")
 		return;
 	struct Kept {
@@ -408,7 +430,7 @@ int main(int argc, char* argv[])
 		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-		"opponent-left-error", "timing", "more-menu", "play", "games", "games-empty", "games-filter", "play-from-here", "play-from-here-menu", "replay"
+		"opponent-left-error", "timing", "more-menu", "play", "games", "games-empty", "games-filter", "play-from-here", "play-from-here-menu", "replay", "analysis"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();

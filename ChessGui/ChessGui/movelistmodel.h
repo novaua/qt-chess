@@ -1,5 +1,6 @@
 #pragma once
 #include <QAbstractListModel>
+#include <QStringList>
 #include <string>
 #include <vector>
 
@@ -14,10 +15,12 @@ class MoveListModel : public QAbstractListModel
 public:
 	// Ply = moves on the board after that move (for reviewTo); piece = "N"/"n" etc., or "" for pawns
 	// and castling; text = the SAN without the piece letter. No black move yet: bPly 0, bText "".
+	// mark: the analysis's judgement of the move (BL-19 step 7): "?!", "?", "??" or "".
 	enum Roles {
 		NumberRole = Qt::UserRole + 1, // n: the move number
 		WhitePlyRole, WhitePieceRole, WhiteTextRole,
 		BlackPlyRole, BlackPieceRole, BlackTextRole,
+		WhiteMarkRole, BlackMarkRole,
 	};
 
 	explicit MoveListModel(QObject* parent = nullptr);
@@ -28,11 +31,15 @@ public:
 
 	// Show these moves (SAN, from the first).
 	void show(const std::vector<std::string>& san);
+	// The analysis's marks, one per ply from the first ("" for none); empty: no analysis.
+	void setMarks(const QStringList& marks);
 
 private:
 	static int rowsFor(size_t plies) { return (int)(plies + 1) / 2; }
 	QString piece(int ply) const; // of _san[ply - 1]
 	QString text(int ply) const;
+	QString mark(int ply) const { return _marks.value(ply - 1); }
 
 	std::vector<std::string> _san;
+	QStringList _marks;
 };
