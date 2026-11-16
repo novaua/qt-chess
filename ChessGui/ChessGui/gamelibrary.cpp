@@ -44,7 +44,7 @@ LocalRating LocalRating::fromJson(const QJsonObject& o)
 bool GameRecord::rateable() const
 {
 	return kind == QLatin1String("computer") && finished && forkOfId.isEmpty() && undoCount == 0
-		&& level >= 1 && level <= Chess::EngineLevel::Count
+		&& plyCount() >= 2 && level >= 1 && level <= Chess::EngineLevel::Count
 		&& (result == QLatin1String("1-0") || result == QLatin1String("0-1") || result == QLatin1String("1/2-1/2"));
 }
 
@@ -346,14 +346,19 @@ bool GameLibrary::save()
 					_records.append(r);
 			std::stable_sort(_records.begin(), _records.end(), newerFirst);
 			trim();
-			_rating = LocalRating(onDisk.rating.value() + _rating.value() - LocalRating::Start,
-			                      onDisk.rating.games() + _rating.games());
+			_rating = onDisk.rating;
 			emit ratingChanged();
 			break;
 		case FileState::Missing:
 			break;
 		}
 		_unreadable = false;
+		// The games that finished meanwhile, rated now that the rating they move is known.
+		for (const QString& id : std::exchange(_rateLater, {})) {
+			const auto it = std::find_if(_records.begin(), _records.end(), [&](const GameRecord& r) { return r.id == id; });
+			if (it != _records.end())
+				rate(*it);
+		}
 		emit gamesChanged();
 	}
 	return writeFile(filePath(), ProfileFile{ _records, _rating });
@@ -502,6 +507,15 @@ QString GameLibrary::put(GameRecord record)
 // change back right then restores the rating exactly.
 void GameLibrary::rate(GameRecord& record)
 {
+	if (_unreadable) {
+		// The rating isn't known while games.json can't be read (it shows the start rating): a change
+		// worked out from that would be wrong. Rated when the file is read again (save()).
+		if (!record.rated && record.rateable() && !_rateLater.contains(record.id))
+			_rateLater.append(record.id);
+		else if (!record.finished)
+			_rateLater.removeAll(record.id);
+		return;
+	}
 	if (record.rated && !record.finished) {
 		_rating.revert(record.ratingChange);
 		record.rated = false;

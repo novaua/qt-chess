@@ -1,15 +1,29 @@
 #include "stdafx.h"
 #include "gameanalysis.h"
 
+#include <QCryptographicHash>
 #include <QJsonArray>
 #include <algorithm>
 #include <cmath>
 
-GameAnalysis::GameAnalysis(int depth, QList<int> evals, QStringList best)
-	: _depth(depth), _evals(std::move(evals)), _best(std::move(best))
+GameAnalysis::GameAnalysis(int depth, QList<int> evals, QStringList best, const QStringList& moves)
+	: _depth(depth), _evals(std::move(evals)), _best(std::move(best)), _movesKey(movesKey(moves))
 {
 	while (_best.size() < _evals.size())
 		_best.append(QString());
+}
+
+QString GameAnalysis::movesKey(const QStringList& moves)
+{
+	if (moves.isEmpty())
+		return {};
+	return QString::fromLatin1(QCryptographicHash::hash(moves.join(' ').toLatin1(), QCryptographicHash::Sha1)
+	                           .toHex().left(16));
+}
+
+bool GameAnalysis::fits(const QStringList& moves) const
+{
+	return !isEmpty() && plyCount() == moves.size() && _movesKey == movesKey(moves);
 }
 
 double GameAnalysis::winPercent(int cpWhite)
@@ -125,6 +139,7 @@ QJsonObject GameAnalysis::toJson() const
 		{ QStringLiteral("depth"),   _depth },
 		{ QStringLiteral("evals"),   evals },
 		{ QStringLiteral("best"),    QJsonArray::fromStringList(_best) },
+		{ QStringLiteral("moves"),   _movesKey },
 	};
 }
 
@@ -140,5 +155,7 @@ GameAnalysis GameAnalysis::fromJson(const QJsonObject& o)
 		best.append(v.toString());
 	if (evals.size() < 2 || best.size() != evals.size())
 		return {};
-	return GameAnalysis(o.value(QStringLiteral("depth")).toInt(), evals, best);
+	GameAnalysis analysis(o.value(QStringLiteral("depth")).toInt(), evals, best);
+	analysis._movesKey = o.value(QStringLiteral("moves")).toString(); // none: it fits no moves
+	return analysis;
 }

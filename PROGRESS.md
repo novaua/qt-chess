@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-16 — BL-19 review fixes of #167–#170 (branch: bugs/bl19AnalysisReviewFixes_161126)
+
+A `/code-review medium` of #167–#170 found 10 problems; all fixed (the owner: "fix them all, Lichess rule for aborted games"):
+1. **`AnalysingThisGame`** followed only the analyzer: after a rematch / new game the old game's "Analysing… N of M" and Cancel stayed. Now worked out in `refreshBoardAnalysis` with the board's record (NOTIFY `boardAnalysisChanged`).
+2. **Deleting the analysed game or switching profile** showed a critical "couldn't analyse" message: now it stops quietly (a takeback meanwhile too).
+3. The failure message doubled its sentence: one sentence now ("The chess engine couldn't analyse the game.").
+4. **Another game's Analyse** stopped the running analysis without a word: `GameAnalyzer::interrupted` → "The other game's analysis stopped: one game is analysed at a time."
+5. **`games.json` that can't be read**: the rating showed and rated from 1200. Now a game that ends then waits (`_rateLater`) and is rated from the real rating once the file is read; the merge takes the file's rating.
+6. **The analysis matched by ply count only**: it now keeps a key of its moves (`GameAnalysis::movesKey`, `"moves"` in the JSON); other moves of the same length (Alt+S) drop it.
+7. The moves panel's **Analyse game** didn't close the result card: it goes through `GamePage.analyse()` as the card's.
+8. **Aborted games**: a robot game resigned before both sides moved isn't rated (as lichess.org; `GameRecord::rateable`, the owner's choice).
+9. The summary and the best moves' SAN are worked out once per analysis (`_analysisSummary`, `_bestSan`), not on every read / review step.
+10. The Profile page's "N of 10" reads `GameLibrary.provisionalGames`.
+
+Tests: GameLibraryTest +1 (a game ended while the file can't be read), rating tests with both sides' moves and an aborted game; GameAnalysisTest +1 (another game interrupts), the change-meanwhile test now quiet (and a delete), the same-length other moves; `tst_analysis` +1 (the panel's Analyse closes the card; a rematch shows no old progress, the old analysis is kept). Debug: ChessTests 144/144, ChessQtTests 264/264; UI tests 10 files, 0 failed.
+
+---
+
 ## 2026-11-16 — BL-19 step 8: docs and hand tests (branch: docs/bl19ManualTests_161126)
 
 ### Done

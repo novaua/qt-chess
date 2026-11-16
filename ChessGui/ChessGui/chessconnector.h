@@ -120,7 +120,7 @@ class ChessConnector : public QObject
 		// for the move that led there: mark ("?!", "?", "??", ""), judgement ("Blunder"), best (its SAN
 		// when the move was judged and the engine's was another) }.
 		Q_PROPERTY(bool        CanAnalyse        READ canAnalyse        NOTIFY boardAnalysisChanged)
-		Q_PROPERTY(bool        AnalysingThisGame READ analysingThisGame NOTIFY analysisChanged)
+		Q_PROPERTY(bool        AnalysingThisGame READ analysingThisGame NOTIFY boardAnalysisChanged)
 		Q_PROPERTY(QVariantMap Analysis          READ boardAnalysis     NOTIFY boardAnalysisChanged)
 		Q_PROPERTY(QVariantMap ShownAnalysis     READ shownAnalysis     NOTIFY shownAnalysisChanged)
 		// --screenshot mode: { scene, moves, black, dark, width, height }; empty in a normal run
@@ -188,8 +188,8 @@ public:
 	int  analysisDone() const { return _analyzer->running() ? _analyzer->done() : 0; }
 	int  analysisTotal() const { return _analyzer->running() ? _analyzer->total() : 0; }
 	bool canAnalyse() const { return _canAnalyse; }
-	bool analysingThisGame() const;
-	QVariantMap boardAnalysis() const;
+	bool analysingThisGame() const { return _analysingThisGame; }
+	QVariantMap boardAnalysis() const { return _analysisSummary; }
 	QVariantMap shownAnalysis() const;
 	int selectedSquare() const { return _selectedSquare; }
 	int movableColor() const;
@@ -259,7 +259,8 @@ signals:
 	void boardAnalysisChanged();
 	void shownAnalysisChanged();
 	void analysisFinished(const QString& gameId);                       // kept on the game's record
-	void analysisFailed(const QString& gameId, const QString& message); // the engine failed, or the game changed
+	void analysisFailed(const QString& gameId, const QString& message); // the engine failed: a sentence to show
+	void analysisInterrupted(const QString& gameId);                    // another game's analysis stopped it (one at a time)
 
 public slots:
 	// One call per user action (CLAUDE.md "Key Conventions"). A Lichess game starts and ends
@@ -475,8 +476,12 @@ private:
 	GameAnalyzer* _analyzer = nullptr; // a child: made in the constructor
 	GameAnalysis _boardAnalysis;       // of the game on the board, for its moves now (refreshBoardAnalysis)
 	QStringList  _analysisMoves;       // the moves it is of
+	QVariantMap  _analysisSummary;     // boardAnalysis(): worked out once per analysis
+	QStringList  _bestSan;             // per ply: the engine's best in SAN where the move was judged and another
 	bool         _canAnalyse = false;
+	bool         _analysingThisGame = false; // the running analysis is of the game on the board
 	void refreshBoardAnalysis();
+	static QVariantMap summaryOf(const GameAnalysis& analysis); // boardAnalysis()'s map
 	QString sanOf(int position, const QString& uciMove) const; // a move in the position after `position` of _analysisMoves
 	QString   _recordId;      // the library record of the game on the board; "" until its first move (or in a replay: the game shown)
 	QDateTime _recordStarted; // when that game began (the record's startedAt)

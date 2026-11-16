@@ -315,7 +315,7 @@ Page {
                             text: GameLibrary.ratedGames === 0
                                   ? "No rating yet. Finish a game against the robot without a takeback to get one."
                                   : GameLibrary.ratingProvisional
-                                  ? "Provisional: " + GameLibrary.ratedGames + " of " + 10 + " rated games so far."
+                                  ? "Provisional: " + GameLibrary.ratedGames + " of " + GameLibrary.provisionalGames + " rated games so far."
                                   : GameLibrary.ratedGames + " rated games. Games against the robot without a takeback count."
                             font: Theme.caption
                             color: Theme.textSecondary

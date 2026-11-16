@@ -560,6 +560,7 @@ Page {
                     canRematch: page.canRematch
                     onExportRequested: page.exportPgnRequested()
                     onPlayFromHereClicked: button => page.openFromHereMenu(button)
+                    onAnalyseRequested: page.analyse()
                     onRematchRequested: ChessConnector.rematch()
                     onNewGameRequested: page.newGameRequested()
                 }
@@ -669,6 +670,7 @@ Page {
             sourceComponent: MovesPanel {
                 showTitle: false   // the handle says "Moves", the status and the review
                 onExportRequested: page.exportPgnRequested()
+                onAnalyseRequested: page.analyse()
             }
         }
     }

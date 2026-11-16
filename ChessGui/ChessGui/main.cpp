@@ -216,7 +216,7 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 		best.append(QString());
 		const QList<int> evals = { 20, 30, 40, 45, 40, 50, 120, 110, 115, 100, 105, 95, 100, 90, 85,
 		                           -30, -20, -25, -20, -30, 250 };
-		r.analysis = GameAnalysis(14, evals, best).toJson();
+		r.analysis = GameAnalysis(14, evals, best, moves).toJson();
 		library->put(r);
 		return;
 	}
