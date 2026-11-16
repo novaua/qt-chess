@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-16 — BL-19 review fixes (branch: bugs/bl19ReviewFixes_161126)
+
+A `/code-review medium` of #162, #163 and #165 found 10 problems; all fixed:
+1. **Migration**: an old autosave of a Lichess game (`isSinglePlayer` false) isn't migrated (those versions never offered it); it used to become an unfinished two-player game in Continue.
+2. **"Games kept" is every profile's**: the confirm counts every profile's games beyond it (`GameLibrary::finishedBeyond`), and `setKeepCount` trims the other profiles' files at once (they were cut later, without a word). Text: "N finished games are deleted for good: the oldest beyond 50 of each profile on this computer."
+3. **A `games.json` that can't be opened now** (a lock) was taken as missing and the next move wrote over it with one game: now it is never written over; the next write reads it again and merges (`_unreadable`).
+4. **Continue of a damaged record** went on from the moves before the bad one and saved only those: `continueGame` / `openGame` check the moves first (`GameRecord::play`) and refuse with a message (`keptGameFailed`).
+5. **An old save that can't be read** was deleted: kept as `.damaged`.
+6. The Continue list's "your turn in N" counted two-player games; now as the cards: robot games on the player's move and Lichess games.
+7. **Writes**: `put` / `remove` write once the current event is done (a move and its result: one write); `flush()`, the destructor and a profile change write at once.
+8. The opponent profile's lookup: `UserManager::nameOf` / `avatarOf` (new) in `startLocalGame` and `continueGame`.
+9. `GameRecord::play` replays once (`Restart` + `playOn`), and `playOn` is the connector's `replayMoves` too; a move from an empty square is refused instead of asserting (the Debug abort found in step 3).
+10. `openGame` calls `beginGame`: the previous game's fork, takebacks and Lichess rematch don't carry into a replay.
+
+Tests: GameLibraryTest +4 (a file that can't be read, old saves that can't be migrated, keepCount over profiles, `play` / `playOn`), 3 adjusted for the deferred write; `tst_games` test 8 (a damaged game: Continue and Open refuse, the record unchanged; `TestRun.addDamagedGame`). Debug: ChessTests 142/142, ChessQtTests 243/243, UI tests 9 files 0 failed.
+
+---
+
 ## 2026-11-16 — BL-19 step 4: Play from here (branch: features/playFromHere_161126)
 
 ### Done

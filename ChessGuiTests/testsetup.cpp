@@ -89,6 +89,16 @@ void TestSetup::addFinishedGames(int count)
 	}
 }
 
+QString TestSetup::addDamagedGame()
+{
+	GameRecord r;
+	r.kind = QStringLiteral("local");
+	r.opponentName = QStringLiteral("Guest");
+	r.moves = QStringList{ "e2e4", "e7e5", "e4e6", "g8f6" }; // e4-e6: the pawn on e5 is in the way
+	r.startedAt = QDateTime::currentDateTime().addDays(-60);
+	return _services->gameLibrary()->put(r);
+}
+
 QUrl TestSetup::fileUrl(const QString& name) const
 {
 	return QUrl::fromLocalFile(QDir(_dataDir).filePath(name));

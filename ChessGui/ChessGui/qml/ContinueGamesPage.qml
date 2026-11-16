@@ -18,7 +18,10 @@ Page {
     readonly property var _local: GameLibrary.unfinishedGames
     readonly property var _games: UserManager.lichessConnected ? LichessClient.ongoingGames : []
     readonly property int _count: _local.length + _games.length
-    readonly property int _myTurnCount: _local.filter(g => g.playerToMove).length + _games.filter(g => g.isMyTurn).length
+    // "Your turn" as the cards say it: a game vs the robot on the player's move (a two-player game is
+    // both players' at this computer), a Lichess game on theirs.
+    readonly property int _myTurnCount: _local.filter(g => g.kind === "computer" && g.playerToMove).length
+                                        + _games.filter(g => g.isMyTurn).length
     readonly property var _levels: ChessConnector.Levels
 
     // Pushed, or shown again: a fresh list (an opponent may have moved or ended a game).

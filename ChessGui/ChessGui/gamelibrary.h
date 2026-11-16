@@ -56,6 +56,9 @@ struct GameRecord
 	// The moves played from the start position on a game of their own (a position to look at: its SAN,
 	// its FEN, whether it is over); null when one of them can't be played.
 	static std::shared_ptr<Chess::Game> play(const QStringList& uciMoves);
+	// The moves played on `game` as it stands; false at the first one that can't be played (a move
+	// from an empty square too, which the game itself only asserts), the ones before it stay played.
+	static bool playOn(Chess::Game& game, const QStringList& uciMoves);
 
 	QJsonObject toJson() const;
 	static GameRecord fromJson(const QJsonObject& o);
@@ -90,6 +93,7 @@ public:
 	static constexpr int FormatVersion = 1;
 
 	explicit GameLibrary(QObject* parent = nullptr);
+	~GameLibrary() override; // a change still waiting is written
 
 	void setUserManager(UserManager* um); // follows the active profile from now on (and loads its games)
 
@@ -99,16 +103,20 @@ public:
 	int unfinishedCount() const;
 	int finishedCount() const { return count() - unfinishedCount(); }
 	int keepCount() const { return _keepCount; }
-	void setKeepCount(int count);
+	void setKeepCount(int count); // every profile's games: the finished ones beyond it go, now
+	// How many finished games a keepCount of `keep` would delete, of every profile (Settings asks first).
+	Q_INVOKABLE int finishedBeyond(int keep) const;
 
 	// The records, newest first.
 	const QList<GameRecord>& records() const { return _records; }
 	QList<GameRecord> unfinished() const;
 	std::optional<GameRecord> find(const QString& id) const;
 
-	// Adds the record (an empty id gets one) or replaces the one with its id; writes the file; trims
-	// the finished games to keepCount. Returns the id. Nothing is kept without an active profile.
+	// Adds the record (an empty id gets one) or replaces the one with its id; trims the finished games
+	// to keepCount. Returns the id. Nothing is kept without an active profile. The file is written once
+	// the current event is done (a move and the result it brings: one write); flush() writes it now.
 	QString put(GameRecord record);
+	void flush();
 	Q_INVOKABLE bool remove(const QString& id);
 	Q_INVOKABLE QVariantMap game(const QString& id) const; // {} when there is none
 
@@ -121,13 +129,25 @@ signals:
 	void keepCountChanged();
 
 private:
+	enum class FileState { Missing, Read, Damaged, Unreadable };
+	// A games.json: its records, newest first. Unreadable: it is there but couldn't be opened (a lock).
+	static FileState readFile(const QString& path, QList<GameRecord>& records);
+	static bool writeFile(const QString& path, const QList<GameRecord>& records);
+	static bool trimRecords(QList<GameRecord>& records, int keep); // true: some went
+	QStringList profileIds() const;
+
 	void reload();
 	bool save();
-	void trim(); // the oldest finished games beyond keepCount
+	void scheduleSave();
+	void trim() { trimRecords(_records, _keepCount); }
+	void trimOtherProfiles(); // their files, as setKeepCount trims the active one's
 	void migrateOldSaves(); // chess.autosave / chess.save + their GameSaveInfo → records (once)
 
 	UserManager* _userManager = nullptr;
 	QString _userId;           // the profile whose games these are; "" = none (nothing is kept)
 	QList<GameRecord> _records; // newest first
 	int _keepCount = DefaultKeepCount;
+	bool _unreadable = false;  // its games.json couldn't be read: never written over (save() reads it again)
+	bool _dirty = false;       // a change not written yet
+	bool _saveQueued = false;  // scheduleSave(): the write is on its way
 };

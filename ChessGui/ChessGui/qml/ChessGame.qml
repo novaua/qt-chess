@@ -1003,6 +1003,7 @@ ApplicationWindow {
         // BL-17: an unfinished Lichess game couldn't be rejoined (e.g. it ended meanwhile), from Home,
         // the Continue list or the Online page.
         function onGameStartFailed(message) { root.notify("Couldn't continue the game: " + message, "critical") }
+        function onKeptGameFailed(message)  { root.notify(message, "critical") }   // BL-19: a damaged kept game
     }
 
     // Lichess challenge setup: the dialogs and the pending challenge. The game itself starts and
@@ -1180,8 +1181,9 @@ ApplicationWindow {
     }
 
     // Settings → Data "Games kept" (BL-19): a smaller number deletes the oldest finished games, so it asks.
+    // The setting is every profile's: the count is too.
     function setGamesKept(count) {
-        const gone = GameLibrary.finishedCount - count
+        const gone = GameLibrary.finishedBeyond(count)
         if (gone <= 0) {
             AppSettings.gamesKept = count
             return
@@ -1198,8 +1200,8 @@ ApplicationWindow {
         property int count
         property int gone
         title: "Keep only " + count + " finished games?"
-        text: (gone === 1 ? "The oldest finished game is" : "The " + gone + " oldest finished games are")
-              + " deleted for good. Unfinished games stay."
+        text: (gone === 1 ? "1 finished game is" : gone + " finished games are")
+              + " deleted for good: the oldest beyond " + count + " of each profile on this computer. Unfinished games stay."
         acceptText: gone === 1 ? "Delete 1 game" : "Delete " + gone + " games"
         onAccepted: AppSettings.gamesKept = count
     }

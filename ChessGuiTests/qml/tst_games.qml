@@ -254,4 +254,17 @@ TestCase {
         tryCompare(ChessConnector, "ShownPly", 3, 2000)
         compare(ChessConnector.playFromHere().ply, 3)
     }
+
+    // A kept game with a move that can't be played: Continue and Open refuse it and say so, and the
+    // record stays as it was (Continue used to go on from the moves before it and save only those).
+    function test_8_damagedGame() {
+        const id = TestRun.addDamagedGame()
+        verify(!ChessConnector.continueGame(id), "not continued")
+        app.waitMessage("Couldn't continue the game: one of its moves can't be played.")
+        compare(GameLibrary.game(id).plyCount, 4, "all its moves still there")
+        verify(!ChessConnector.openGame(id), "not opened")
+        app.waitMessage("Couldn't open the game: one of its moves can't be played.")
+        compare(GameLibrary.game(id).plyCount, 4)
+        verify(GameLibrary.remove(id))
+    }
 }

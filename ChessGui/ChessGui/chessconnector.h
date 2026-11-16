@@ -177,6 +177,7 @@ signals:
 	void IsOnPlayerModeChanged();
 	void startingOnlineGameChanged();
 	void gameStartFailed(QString message); // continueOnlineGame(): Lichess didn't give the game
+	void keptGameFailed(QString message);  // continueGame() / openGame(): the kept record can't be played (BL-19)
 	void lastLevelChanged();
 
 	void checkNotify();

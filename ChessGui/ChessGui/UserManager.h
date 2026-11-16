@@ -110,6 +110,7 @@ public:
     void recordResult(const QString& userId, int outcome, const QString& opponentKey, const QString& opponentName);
     QMap<QString, Record> statsOf(const QString& userId) const;
     QString nameOf(const QString& userId) const;
+    QString avatarOf(const QString& userId) const; // "" when there is no such profile
 
     GameSaveInfo autoSaveInfo()  const;
     void         setAutoSaveInfo(const GameSaveInfo& info);

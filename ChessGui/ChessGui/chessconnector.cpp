@@ -1260,19 +1260,11 @@ void ChessConnector::startLocalGame(bool playerPlaysWhite, const QString& oppone
 	_startTiming.begin(QStringLiteral("two players"));
 	_clockLimitSec = limitSec;
 	_clockIncSec = incSec;
-	QString name = QStringLiteral("Guest");
-	QString avatar;
-	QString opponentId;
-	if (_userManager) {
-		for (const auto& u : _userManager->users()) {
-			const auto user = u.toMap();
-			if (!opponentUserId.isEmpty() && user.value(QStringLiteral("id")).toString() == opponentUserId) {
-				name       = user.value(QStringLiteral("name")).toString();
-				avatar     = user.value(QStringLiteral("avatarName")).toString();
-				opponentId = opponentUserId;
-			}
-		}
-	}
+	// Another profile, or a Guest (no id, or a profile that is gone).
+	const QString profileName = _userManager && !opponentUserId.isEmpty() ? _userManager->nameOf(opponentUserId) : QString();
+	const QString name = profileName.isEmpty() ? QStringLiteral("Guest") : profileName;
+	const QString avatar = profileName.isEmpty() ? QString() : _userManager->avatarOf(opponentUserId);
+	const QString opponentId = profileName.isEmpty() ? QString() : opponentUserId;
 	setPlayerPlaysWhite(playerPlaysWhite);
 	startNewGame();
 	if (_avatarProvider) {
@@ -2048,15 +2040,8 @@ void ChessConnector::replayMoves(const QStringList& uciMoves)
 {
 	_resuming = true;
 	const auto resumed = qScopeGuard([this] { _resuming = false; });
-	for (const auto& m : uciMoves) {
-		try {
-			_game->DoMove(Chess::Move::Parse(m.toStdString()));
-		}
-		catch (const std::exception& ex) {
-			qWarning() << "Kept move" << m << "can't be played:" << ex.what();
-			break;
-		}
-	}
+	if (!GameRecord::playOn(*_game, uciMoves))
+		qWarning() << "replayMoves: a kept move can't be played; the game stops before it";
 }
 
 // An unfinished kept game goes on: vs the robot at the game's own level (lastLevel may have changed
@@ -2067,18 +2052,23 @@ bool ChessConnector::continueGame(const QString& gameId)
 	const auto rec = _library ? _library->find(gameId) : std::nullopt;
 	if (!rec || rec->finished || rec->moves.isEmpty())
 		return false;
+	// All of its moves, or the game isn't touched: going on from fewer would keep only those (the record
+	// is written again with the next move).
+	if (!GameRecord::play(rec->moves)) {
+		qWarning() << "continueGame: a kept move of" << gameId << "can't be played";
+		emit keptGameFailed(QStringLiteral("Couldn't continue the game: one of its moves can't be played."));
+		return false;
+	}
 	const bool robot = rec->kind == QLatin1String("computer");
 	_startTiming.begin(robot ? QStringLiteral("continue vs Robot") : QStringLiteral("continue two players"));
 
 	QString opponentName = rec->opponentName.isEmpty() ? (robot ? QStringLiteral("Robot") : QStringLiteral("Guest")) : rec->opponentName;
 	QString opponentId;
 	if (!robot && !rec->opponentUserId.isEmpty() && _userManager) {
-		for (const auto& u : _userManager->users()) {
-			const auto user = u.toMap();
-			if (user.value(QStringLiteral("id")).toString() == rec->opponentUserId) {
-				opponentName = user.value(QStringLiteral("name")).toString();
-				opponentId = rec->opponentUserId;
-			}
+		const QString profileName = _userManager->nameOf(rec->opponentUserId);
+		if (!profileName.isEmpty()) { // still there (perhaps renamed); else the name it had, as a Guest
+			opponentName = profileName;
+			opponentId = rec->opponentUserId;
 		}
 	}
 
@@ -2208,9 +2198,14 @@ bool ChessConnector::openGame(const QString& gameId)
 	const auto rec = _library ? _library->find(gameId) : std::nullopt;
 	if (!rec || rec->moves.isEmpty())
 		return false;
+	if (!GameRecord::play(rec->moves)) {
+		qWarning() << "openGame: a kept move of" << gameId << "can't be played";
+		emit keptGameFailed(QStringLiteral("Couldn't open the game: one of its moves can't be played."));
+		return false;
+	}
 	_startTiming.begin(QStringLiteral("open a kept game"));
-	_gate->clear();
-	cancelPremove();
+	beginGame(false); // nothing of the game before carries over (its fork, takebacks, a Lichess rematch)
+	_wasVsComputer = rec->kind == QLatin1String("computer");
 	_clock->stop();
 	stopEngineThread();
 	resetMoveHistoryCache();
