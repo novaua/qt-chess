@@ -61,8 +61,8 @@ public:
 	int     done() const { return _evals.size(); } // positions searched so far
 	int     total() const { return _total; }       // positions to search: the moves + 1
 
-	// Starts analysing a kept game; one already running stops first. False (nothing started) when there
-	// is no such game, it has no move, or its moves can't be played.
+	// Starts analysing a kept game; one already running stops first (interrupted() when it was of another
+	// game). False (nothing started) when there is no such game, it has no move, or its moves can't be played.
 	bool start(const QString& gameId);
 	void cancel(); // nothing is kept; no signal but runningChanged
 
@@ -70,7 +70,8 @@ signals:
 	void runningChanged();
 	void progressChanged();
 	void finished(const QString& gameId);                          // kept on the record
-	void failed(const QString& gameId, const QString& message);    // the engine failed, or the game changed
+	void failed(const QString& gameId, const QString& message);    // the engine failed; a sentence to show
+	void interrupted(const QString& gameId);                       // start() of another game stopped this one's
 
 private:
 	void onPositionDone(int request, int position, int evalWhite, const QString& bestMove);

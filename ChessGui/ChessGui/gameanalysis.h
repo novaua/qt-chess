@@ -24,15 +24,16 @@ public:
 
 	GameAnalysis() = default;
 	// evals: one per position, the start position first (so one more than the moves); best: as many
-	// ("" where the game is over).
-	GameAnalysis(int depth, QList<int> evals, QStringList best);
+	// ("" where the game is over); moves: the game's, which it is of (kept as a key: fits()).
+	GameAnalysis(int depth, QList<int> evals, QStringList best, const QStringList& moves = {});
 
 	bool isEmpty() const { return _evals.isEmpty(); }
 	int  depth() const { return _depth; }
 	int  plyCount() const { return isEmpty() ? 0 : (int)_evals.size() - 1; }
-	// Made for these moves: as many plies (every change of a kept game's moves is written, so a count
-	// that differs is a game that changed since; GameLibrary::put drops it then).
-	bool fits(const QStringList& moves) const { return !isEmpty() && plyCount() == moves.size(); }
+	// Made for these moves: the same moves (their key), not only as many. GameLibrary::put drops one that
+	// doesn't fit (a takeback, the game went on, moves typed in over it).
+	bool fits(const QStringList& moves) const;
+	static QString movesKey(const QStringList& moves); // a short hash of the moves; "" for none
 
 	int     eval(int position) const { return _evals.value(position); }     // White's view, centipawns or a mate
 	QString bestMove(int position) const { return _best.value(position); }  // UCI; "" when the game is over there
@@ -65,4 +66,5 @@ private:
 	int _depth = 0;
 	QList<int> _evals;
 	QStringList _best;
+	QString _movesKey;
 };

@@ -22,6 +22,7 @@ ColumnLayout {
     signal rematchRequested()
     signal newGameRequested()
     signal playFromHereClicked(Item button)   // opens the vs computer / two players menu under it
+    signal analyseRequested()
 
     spacing: 0
 
@@ -68,6 +69,7 @@ ColumnLayout {
 
     // The engine's analysis of the game (BL-19 step 7): Analyse game, its progress, then the summary.
     AnalysisSummary {
+        onAnalyseRequested: panel.analyseRequested()
         Layout.fillWidth: true
         Layout.leftMargin: Theme.s3
         Layout.rightMargin: Theme.s3

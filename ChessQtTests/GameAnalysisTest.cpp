@@ -93,7 +93,8 @@ namespace GameAnalysisTests
 
 		TEST_METHOD(Json_RoundTrip_AndWhatIsntOne)
 		{
-			const GameAnalysis a(18, { 20, 35, GameAnalysis::MateCp - 1, GameAnalysis::MateCp }, { "e2e4", "e7e5", "d1h5", "" });
+			const GameAnalysis a(18, { 20, 35, GameAnalysis::MateCp - 1, GameAnalysis::MateCp }, { "e2e4", "e7e5", "d1h5", "" },
+			                     { "e2e4", "e7e5", "d1h5" });
 			const GameAnalysis back = GameAnalysis::fromJson(a.toJson());
 			Assert::IsTrue(back == a);
 			Assert::AreEqual(18, back.depth());
@@ -101,6 +102,10 @@ namespace GameAnalysisTests
 			Assert::AreEqual(QString(), back.bestMove(3));
 			Assert::IsTrue(back.fits({ "e2e4", "e7e5", "d1h5" }));
 			Assert::IsFalse(back.fits({ "e2e4", "e7e5" }));
+			Assert::IsFalse(back.fits({ "d2d4", "d7d5", "c2c4" }), L"as many moves, other ones");
+			QJsonObject noKey = a.toJson();
+			noKey.remove(QStringLiteral("moves"));
+			Assert::IsFalse(GameAnalysis::fromJson(noKey).fits({ "e2e4", "e7e5", "d1h5" }), L"of no moves: fits none");
 
 			QJsonObject later = a.toJson();
 			later[QStringLiteral("version")] = GameAnalysis::FormatVersion + 1;
@@ -248,19 +253,44 @@ namespace GameAnalysisTests
 			Assert::IsTrue(_library->find(id)->analysis.isEmpty());
 		}
 
-		TEST_METHOD(TheGameChangesMeanwhile_Failed_NothingKept)
+		// The player changed the game (a takeback) or deleted it meanwhile: it stops at once, without a
+		// failure to report (review of #167-#170).
+		TEST_METHOD(TheGameChangesMeanwhile_StoppedQuietly_NothingKept)
 		{
 			qputenv("FAKEUCI_DELAY_MS", "200");
 			const QString id = keep(ScholarsMate.mid(0, 4), false);
 			QSignalSpy failed(_analyzer.get(), &GameAnalyzer::failed);
 			Assert::IsTrue(_analyzer->start(id));
 			auto record = *_library->find(id);
-			record.setMoves(ScholarsMate.mid(0, 5)); // the game goes on
+			record.setMoves(ScholarsMate.mid(0, 3)); // a takeback
 			_library->put(record);
-			Assert::AreEqual(1, (int)failed.count(), L"at once");
-			Assert::IsFalse(_analyzer->running());
+			Assert::IsFalse(_analyzer->running(), L"at once");
 			QTest::qWait(300);
+			Assert::AreEqual(0, (int)failed.count());
 			Assert::IsTrue(_library->find(id)->analysis.isEmpty());
+
+			Assert::IsTrue(_analyzer->start(id));
+			Assert::IsTrue(_library->remove(id));
+			Assert::IsFalse(_analyzer->running(), L"deleted");
+			QTest::qWait(300);
+			Assert::AreEqual(0, (int)failed.count());
+		}
+
+		// One at a time: another game's start stops the one running, and says so.
+		TEST_METHOD(AnotherGame_InterruptsTheRunningOne)
+		{
+			qputenv("FAKEUCI_DELAY_MS", "200");
+			const QString first = keep(ScholarsMate);
+			const QString second = keep(ScholarsMate.mid(0, 4), false);
+			QSignalSpy interrupted(_analyzer.get(), &GameAnalyzer::interrupted);
+			Assert::IsTrue(_analyzer->start(first));
+			Assert::IsTrue(_analyzer->start(first), L"the same game again");
+			Assert::AreEqual(0, (int)interrupted.count(), L"not another game's");
+			Assert::IsTrue(_analyzer->start(second));
+			Assert::AreEqual(1, (int)interrupted.count());
+			Assert::AreEqual(first, interrupted.at(0).at(0).toString());
+			Assert::AreEqual(second, _analyzer->gameId());
+			_analyzer->cancel();
 		}
 
 		TEST_METHOD(NothingToAnalyse_NotStarted)
@@ -281,7 +311,7 @@ namespace GameAnalysisTests
 		TEST_METHOD(Library_AnalysisOnlyForItsMoves)
 		{
 			const QString id = keep(ScholarsMate.mid(0, 2), false);
-			const GameAnalysis a(10, { 20, 30, 20 }, { "e2e4", "e7e5", "g1f3" });
+			const GameAnalysis a(10, { 20, 30, 20 }, { "e2e4", "e7e5", "g1f3" }, ScholarsMate.mid(0, 2));
 			Assert::IsFalse(_library->setAnalysis(id, ScholarsMate.mid(0, 3), a), L"other moves");
 			Assert::IsFalse(_library->setAnalysis(QStringLiteral("nope"), ScholarsMate.mid(0, 2), a));
 			Assert::IsTrue(_library->setAnalysis(id, ScholarsMate.mid(0, 2), a));
@@ -292,6 +322,14 @@ namespace GameAnalysisTests
 			_library->put(record);
 			Assert::IsTrue(analysisOf(id) == a);
 
+			record.setMoves({ "d2d4", "d7d5" }); // other moves, as many (typed in over it)
+			_library->put(record);
+			Assert::IsTrue(_library->find(id)->analysis.isEmpty(), L"dropped: not of these moves");
+
+			record.setMoves(ScholarsMate.mid(0, 2));
+			_library->put(record);
+			Assert::IsTrue(_library->setAnalysis(id, ScholarsMate.mid(0, 2), a));
+			record = *_library->find(id);
 			record.setMoves(ScholarsMate.mid(0, 1)); // a takeback
 			_library->put(record);
 			Assert::IsTrue(_library->find(id)->analysis.isEmpty());

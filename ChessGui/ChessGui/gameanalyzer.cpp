@@ -101,6 +101,7 @@ bool GameAnalyzer::start(const QString& gameId)
 	if (!game)
 		return false; // a damaged record
 
+	const QString interruptedId = running() && _gameId != gameId ? _gameId : QString();
 	stopThread();
 	_gameId = gameId;
 	_userId = _library->userId();
@@ -139,6 +140,8 @@ bool GameAnalyzer::start(const QString& gameId)
 		Qt::QueuedConnection);
 	emit runningChanged();
 	emit progressChanged();
+	if (!interruptedId.isEmpty())
+		emit interrupted(interruptedId);
 	return true;
 }
 
@@ -181,11 +184,11 @@ void GameAnalyzer::onFinished(int request)
 		return;
 	stopThread();
 	emit runningChanged();
-	const GameAnalysis analysis(_runDepth, _evals, _best);
+	const GameAnalysis analysis(_runDepth, _evals, _best, _moves);
 	if (_library && _library->userId() == _userId && _library->setAnalysis(_gameId, _moves, analysis))
 		emit finished(_gameId);
 	else
-		emit failed(_gameId, QStringLiteral("The game changed while it was analysed."));
+		emit failed(_gameId, QStringLiteral("The game changed while it was analysed, so its analysis wasn't kept."));
 }
 
 void GameAnalyzer::onFailed(int request, const QString& message)
@@ -193,18 +196,20 @@ void GameAnalyzer::onFailed(int request, const QString& message)
 	if (request != _request)
 		return;
 	qWarning().noquote() << "Analysis of" << _gameId << "failed:" << message;
-	fail(QStringLiteral("The engine couldn't analyse the game."));
+	fail(QStringLiteral("The chess engine couldn't analyse the game."));
 }
 
-// The game's moves changed (a takeback, the game went on), it was deleted, or the profile changed:
-// its analysis would be of another game.
+// The game's moves changed (a takeback), it was deleted, or the profile changed: its analysis would be
+// of another game, or of none. The player did that: it stops without a word (no failure to report).
 void GameAnalyzer::onLibraryChanged()
 {
 	if (!running() || !_library)
 		return;
 	const auto record = _library->find(_gameId);
-	if (_library->userId() != _userId || !record || record->moves != _moves)
-		fail(QStringLiteral("The game changed while it was analysed."));
+	if (_library->userId() != _userId || !record || record->moves != _moves) {
+		qInfo().noquote() << "Analysis of" << _gameId << "stopped: the game changed, was deleted or the profile changed";
+		cancel();
+	}
 }
 
 void GameAnalyzer::fail(const QString& message)

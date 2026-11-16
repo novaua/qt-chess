@@ -14,6 +14,8 @@ ColumnLayout {
     readonly property bool analysed: analysis.depth !== undefined
     readonly property bool engineFound: AppInfo.engineState !== "missing"
 
+    signal analyseRequested()   // GamePage.analyse(): also closes the result card
+
     visible: ChessConnector.AnalysingThisGame || analysed || ChessConnector.CanAnalyse
     spacing: Theme.s1
 
@@ -31,7 +33,7 @@ ColumnLayout {
             icon.source: Theme.icon("analyse")
             ToolTip.visible: hovered && !enabled
             ToolTip.text: "The analysis needs the chess engine (Settings → Computer)."
-            onClicked: ChessConnector.analyseGame("")
+            onClicked: summary.analyseRequested()
         }
     }
 

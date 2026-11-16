@@ -130,7 +130,9 @@ games: games leave the library by the cap and by Delete, and a computed rating w
 deleting a lost game would raise it). `LocalRating` (`gamelibrary.h`): the value and the number of rated games,
 in `games.json` (`"rating": { "value", "games" }`, written once a game is rated; exported with the profile).
 `GameLibrary::put` rates a record when it is rateable (kind computer, finished with a result, no fork,
-`undoCount == 0`) and not rated yet: `ratingBefore`, `ratingChange` and `rated` on the record, the rating moved.
+`undoCount == 0`, and both sides moved: a game resigned before that is aborted, as on lichess.org; the owner's
+choice after the review of #167–#170) and not rated yet. While `games.json` can't be read the rating isn't
+known: a game that ends then is rated once the file is read again. Rated: `ratingBefore`, `ratingChange` and `rated` on the record, the rating moved.
 A rated record put back unfinished (a takeback after the result resumed the game) gives its change back; with
 the takeback the game is never rated again. Removing games (the cap, Delete) never changes the rating; old
 saves migrated from before BL-19 aren't rated. The robot's rating is `EngineLevel::DisplayElo()` (levels 1–2
@@ -165,8 +167,10 @@ ply. Without an engine the button says so.
   (`ChessEnginePlayer::MakeRequest`, the FEN window with Settings' UseFen); a mate or stalemate at the end isn't
   asked. Progress per position; `cancel()` kills the engine and keeps nothing; never waits on the GUI thread (the
   destructor waits at most 3 s). The result goes on the record only if its moves are still those analysed
-  (`GameLibrary::setAnalysis`); a change of the moves meanwhile (or another profile, or the game deleted) fails
-  it at once. `GameLibrary::put` drops an analysis whose ply count isn't the record's (a takeback, the game went on).
+  (`GameLibrary::setAnalysis`); a change of the moves meanwhile (or another profile, or the game deleted) stops
+  it at once, quietly (the player did it). The analysis keeps a key of its moves (`"moves"`, a short hash):
+  `GameLibrary::put` drops it when the record's moves aren't those (a takeback, the game went on, moves typed in
+  over it). Starting another game's analysis stops the running one and says so (`interrupted`).
 - `ChessConnector`: `analyseGame(id)` ("" = the game on the board, once kept), `cancelAnalysis()`, `Analysing`,
   `AnalysisGameId`, `AnalysisDone` / `AnalysisTotal`, `AnalysisDepth`, `analysisFinished` / `analysisFailed`.
 - Settings → Computer **Analysis depth**: Fast (10) / Normal (14) / Deep (18) (`AppSettings.analysisDepth`).
@@ -193,7 +197,7 @@ ply. Without an engine the button says so.
 - **The eval bar** (`EvalBar.qml`) left of the squares: White's share is White's win chance, from White's side of
   the board (turns with it); the eval on hover.
 - `ChessConnector`: `CanAnalyse`, `AnalysingThisGame`, `Analysis` ({ depth, white, black }), `ShownAnalysis`
-  ({ evalText, whitePercent, mark, judgement, best }); failures say "Couldn't analyse the game. …" (a critical
+  ({ evalText, whitePercent, mark, judgement, best }); failures say "The chess engine couldn't analyse the game." (a critical
   message).
 - Scenes: `analysis` (a made-up analysis of a kept game, at 10… Bxc2??; also `@1400x900`, `@640x560`); `result` and
   `ended` show Analyse. Tests: `tst_analysis.qml` (4: the result card, progress, marks, eval, review; cancel; a

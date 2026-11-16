@@ -454,7 +454,7 @@ namespace GameLibraryTests
 		{
 			const QString user = addUser("Alice");
 			QSignalSpy changed(_library.get(), &GameLibrary::ratingChanged);
-			const QString id = _library->put(makeRecord("computer", true, { "e2e4" })); // White (the player) won
+			const QString id = _library->put(makeRecord("computer", true, { "e2e4", "e7e5" })); // White (the player) won
 			Assert::AreEqual(1227, _library->rating());
 			Assert::AreEqual(1, _library->ratedGames());
 			Assert::AreEqual(1, (int)changed.count());
@@ -467,7 +467,7 @@ namespace GameLibraryTests
 			Assert::AreEqual(1227, _library->rating());
 			Assert::AreEqual(1, _library->ratedGames());
 
-			GameRecord lost = makeRecord("computer", true, { "d2d4" });
+			GameRecord lost = makeRecord("computer", true, { "d2d4", "d7d5" });
 			lost.result = QStringLiteral("1-0");
 			lost.playerPlaysWhite = false;
 			_library->put(lost);
@@ -487,15 +487,19 @@ namespace GameLibraryTests
 		TEST_METHOD(GamesThatArentRated)
 		{
 			addUser("Alice");
-			_library->put(makeRecord("local", true, { "e2e4" }));
-			_library->put(makeRecord("computer", false, { "e2e4" }));
-			GameRecord undone = makeRecord("computer", true, { "e2e4" });
+			_library->put(makeRecord("local", true, { "e2e4", "e7e5" }));
+			_library->put(makeRecord("computer", false, { "e2e4", "e7e5" }));
+			GameRecord undone = makeRecord("computer", true, { "e2e4", "e7e5" });
 			undone.undoCount = 1;
 			_library->put(undone);
-			GameRecord fork = makeRecord("computer", true, { "e2e4" });
+			GameRecord fork = makeRecord("computer", true, { "e2e4", "e7e5" });
 			fork.forkOfId = QStringLiteral("other");
 			fork.forkPly = 1;
 			_library->put(fork);
+			// As lichess.org: a game ended before both sides moved is aborted, not rated (review of #167-#170).
+			GameRecord aborted = makeRecord("computer", true, { "e2e4" });
+			aborted.result = QStringLiteral("0-1"); // the player resigned after 1. e4
+			_library->put(aborted);
 			Assert::AreEqual(1200, _library->rating());
 			Assert::AreEqual(0, _library->ratedGames());
 			for (const auto& r : _library->records())
@@ -510,8 +514,8 @@ namespace GameLibraryTests
 		TEST_METHOD(ATakebackGivesTheChangeBack)
 		{
 			addUser("Alice");
-			_library->put(makeRecord("computer", true, { "e2e4" }, QDateTime::currentDateTime().addDays(-1)));
-			const QString id = _library->put(makeRecord("computer", true, { "e2e4", "e7e5" }));
+			_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-1)));
+			const QString id = _library->put(makeRecord("computer", true, { "e2e4", "e7e5", "g1f3" }));
 			Assert::AreEqual(1200 + 27 + 25, _library->rating());
 			GameRecord resumed = *_library->find(id);
 			resumed.finished = false;
@@ -529,18 +533,48 @@ namespace GameLibraryTests
 			Assert::AreEqual(1227, _library->rating(), L"finished again after a takeback: not rated");
 		}
 
+		// While games.json can't be read the rating isn't known (it shows the start rating): a robot game that
+		// ends then is rated once the file is read again, from the real rating (review of #167-#170).
+		TEST_METHOD(AGameEndedWhileTheFileCantBeReadIsRatedLater)
+		{
+			const QString user = addUser("Alice");
+			_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-1)));
+			_library->flush();
+			Assert::AreEqual(1227, _library->rating());
+			Assert::IsTrue(QFile::rename(GameLibrary::filePathOf(user), GameLibrary::filePathOf(user) + ".held"));
+			Assert::IsTrue(QDir().mkdir(GameLibrary::filePathOf(user)));
+			makeLibrary();
+			Assert::AreEqual(0, _library->ratedGames(), L"not known now");
+
+			const QString id = _library->put(makeRecord("computer", true, { "d2d4", "d7d5" }));
+			Assert::IsFalse(_library->find(id)->rated, L"not from the start rating");
+			Assert::AreEqual(0, _library->ratedGames());
+			_library->flush();
+
+			Assert::IsTrue(QDir().rmdir(GameLibrary::filePathOf(user)));
+			Assert::IsTrue(QFile::rename(GameLibrary::filePathOf(user) + ".held", GameLibrary::filePathOf(user)));
+			_library->flush(); // read again, merged, written
+			const auto rated = _library->find(id);
+			Assert::IsTrue(rated->rated, L"rated now");
+			Assert::AreEqual(1227, rated->ratingBefore, L"from the real rating");
+			Assert::AreEqual(1227 + 25, _library->rating());
+			Assert::AreEqual(2, _library->ratedGames());
+			makeLibrary();
+			Assert::AreEqual(1227 + 25, _library->rating(), L"in the file");
+		}
+
 		// Removing games, by hand or by the cap, never changes the rating; another profile's file keeps
 		// its own when the cap trims it.
 		TEST_METHOD(RemovingGamesKeepsTheRating)
 		{
 			const QString alice = addUser("Alice");
 			for (int i = 0; i < 3; ++i)
-				_library->put(makeRecord("computer", true, { "e2e4" }, QDateTime::currentDateTime().addDays(-10 + i)));
+				_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-10 + i)));
 			const int aliceRating = _library->rating();
 			Assert::AreEqual(3, _library->ratedGames());
 			const QString bob = addUser("Bob");
 			Assert::AreEqual(1200, _library->rating(), L"Bob's own");
-			const QString lost = _library->put(makeRecord("computer", true, { "d2d4" }));
+			const QString lost = _library->put(makeRecord("computer", true, { "d2d4", "d7d5" }));
 			const int bobRating = _library->rating();
 			Assert::IsTrue(_library->remove(lost));
 			Assert::AreEqual(bobRating, _library->rating(), L"Delete");

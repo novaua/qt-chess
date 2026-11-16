@@ -88,7 +88,8 @@ struct GameRecord
 	bool whiteToMove() const { return moves.size() % 2 == 0; }
 	bool playerToMove() const { return whiteToMove() == playerPlaysWhite; }
 	QString lastMove() const { return moves.isEmpty() ? QString() : moves.last(); }
-	// Its result can be rated (step 5): vs the robot, finished, no takeback, not begun from another game.
+	// Its result can be rated (step 5): vs the robot, finished, no takeback, not begun from another game,
+	// and both sides moved (as lichess.org: a game resigned or left before that is aborted, not rated).
 	bool rateable() const;
 	double playerScore() const; // 1 the player won, 0.5 a draw, 0 lost
 	// The moves and the position after them (fen), played from the start position; false (and nothing
@@ -133,6 +134,8 @@ class GameLibrary : public QObject
 	Q_PROPERTY(int rating READ rating NOTIFY ratingChanged)
 	Q_PROPERTY(int ratedGames READ ratedGames NOTIFY ratingChanged)
 	Q_PROPERTY(bool ratingProvisional READ ratingProvisional NOTIFY ratingChanged)
+	// The rating is provisional under this many rated games (LocalRating::ProvisionalGames).
+	Q_PROPERTY(int provisionalGames READ provisionalGames CONSTANT)
 
 public:
 	static constexpr int DefaultKeepCount = 100;
@@ -157,6 +160,7 @@ public:
 	int  rating() const { return _rating.value(); }
 	int  ratedGames() const { return _rating.games(); }
 	bool ratingProvisional() const { return _rating.provisional(); }
+	static int provisionalGames() { return LocalRating::ProvisionalGames; }
 
 	// The records, newest first.
 	const QList<GameRecord>& records() const { return _records; }
@@ -215,6 +219,7 @@ private:
 	LocalRating _rating;        // the profile's rating vs the robot
 	int _keepCount = DefaultKeepCount;
 	bool _unreadable = false;  // its games.json couldn't be read: never written over (save() reads it again)
+	QStringList _rateLater;    // games that finished while it couldn't be read: rated once its rating is known
 	bool _dirty = false;       // a change not written yet
 	bool _saveQueued = false;  // scheduleSave(): the write is on its way
 };

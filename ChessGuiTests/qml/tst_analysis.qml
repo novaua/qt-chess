@@ -130,4 +130,28 @@ TestCase {
         compare(app.item("ply6").mark, "??")
         app.leaveToHome()
     }
+
+    // The moves panel's Analyse closes the result card as the card's own does; a rematch while it runs:
+    // the new game shows no progress of the old one's analysis, which goes on and is kept (review of
+    // #167-#170).
+    function test_5_panelButtonAndRematch() {
+        TestRun.setEngine("f2f3 e7e5 g2g4 d8h4", 300)
+        app.startTwoPlayerGame()
+        for (const [from, to] of [["f2", "f3"], ["e7", "e5"], ["g2", "g4"], ["d8", "h4"]])
+            app.clickMove(from, to)
+        tryVerify(() => app.find("resultCard")?.visible, 5000, "the result card")
+        const foolsMate = GameLibrary.games[0].id
+        app.click("analyseButton")   // the moves panel's, beside the card
+        tryVerify(() => ChessConnector.AnalysingThisGame, 3000)
+        verify(!app.item("resultCard").visible, "the card goes, as with its own Analyse")
+
+        ChessConnector.rematch()
+        tryCompare(ChessConnector, "MoveCount", 0, 5000, "the rematch: a new game")
+        verify(ChessConnector.Analysing, "the old game's analysis goes on")
+        verify(!ChessConnector.AnalysingThisGame, "not of the new game")
+        verify(!app.item("analysisProgress").visible)
+        tryVerify(() => !ChessConnector.Analysing, 15000, "done")
+        verify(GameLibrary.game(foolsMate).analysed, "kept on its record")
+        app.leaveToHome()
+    }
 }
