@@ -232,6 +232,16 @@ public slots:
 	// False when there is no such game.
 	Q_INVOKABLE bool continueGame(const QString& gameId);
 	Q_INVOKABLE bool openGame(const QString& gameId);
+	// BL-19 step 4, Play from here: a new game from the position shown, of a kept game (a replay) or
+	// of the local game on the board. playFromHere(): { gameId, ply, move ("12. Nf3"), whiteToMove }
+	// for the position shown, or {} when there is none (a Lichess game, no move yet, the game over
+	// there). The …From starts: that game's first `ply` moves, then the new game goes on from there
+	// (vs the robot or two players, the dialogs' choices); its record is a fork (forkOfId, forkPly),
+	// and those moves can't be taken back. false: no such game or position.
+	Q_INVOKABLE QVariantMap playFromHere() const;
+	Q_INVOKABLE bool startComputerGameFrom(const QString& gameId, int ply, int level, int side, int limitSec = 0, int incSec = 0);
+	Q_INVOKABLE bool startLocalGameFrom(const QString& gameId, int ply, bool playerPlaysWhite, const QString& opponentUserId,
+	                                    int limitSec = 0, int incSec = 0);
 	// BL-17: Home's Continue. The only unfinished game starts: the one kept local game, or the one
 	// Lichess game (when it can be played here). False with none, two or more, or while the Lichess
 	// list is loading: the Continue list shows them then.
@@ -419,7 +429,12 @@ private:
 	QDateTime _recordStarted; // when that game began (the record's startedAt)
 	int       _undoCount = 0; // takebacks in this game (the record's; such a game isn't rated)
 	QString   _forkOfId;      // Play from here: the game this one continues from (step 4)
-	int       _forkPly = 0;
+	int       _forkPly = 0;   // ... after its first _forkPly moves, which stay (no takeback, no clock)
+	struct StartFrom { QString gameId; int ply = 0; QStringList moves; };
+	std::optional<StartFrom> _startFrom; // the …From starts: what the next new game begins with
+	std::optional<StartFrom> startFrom(const QString& gameId, int ply) const; // nothing: no such position
+	void applyStartFrom();    // a new game just restarted: the fork's first moves on the board
+	int  clockPly() const;    // the moves of this game the clock counts (a fork's first ones aren't)
 	QString   _replayResult;  // the kept game's result while it is replayed (the PGN's Result tag)
 	bool      _loadingRecord = false; // openGame replays the moves: the mate at their end isn't a game end now
 	bool _wasVsComputer = false;

@@ -15,17 +15,9 @@ GamePgn::GamePgn(const QString& white, const QString& black, std::vector<std::st
 
 std::optional<GamePgn> GamePgn::ofRecord(const GameRecord& record, const QString& playerName)
 {
-	std::vector<std::string> uci;
-	for (const auto& m : record.moves)
-		uci.push_back(m.toStdString());
-	auto game = std::make_shared<Chess::Game>();
-	try {
-		game->LoadMoves(uci);
-		game->ResumeFromLoad();
-	}
-	catch (const std::exception&) {
+	const auto game = GameRecord::play(record.moves);
+	if (!game)
 		return std::nullopt;
-	}
 	const QString opponent = record.opponentName.isEmpty() ? QStringLiteral("Guest") : record.opponentName;
 	GamePgn pgn(record.playerPlaysWhite ? playerName : opponent,
 	            record.playerPlaysWhite ? opponent : playerName,

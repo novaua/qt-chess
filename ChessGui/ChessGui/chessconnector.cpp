@@ -411,7 +411,7 @@ void ChessConnector::moveOnBoard()
 		setResult(QStringLiteral("1/2-1/2 Draw by stalemate"), QStringLiteral("Draw by stalemate"));
 		return;
 	}
-	_clock->moveMade(!_game->IsWhiteMove(), _game->GetMoveCount());
+	_clock->moveMade(!_game->IsWhiteMove(), clockPly());
 }
 
 QStringList& ChessConnector::PossibleMoves()
@@ -1295,6 +1295,7 @@ void ChessConnector::startNewGame()
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) setResult({}, {});
 	_game->Restart();
+	applyStartFrom();
 	startClock();
 	EmitMoveCountUpdates();
 	emit newGameStarted(false);
@@ -1331,6 +1332,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_player = nullptr;
 	_reviewIndex = -1;
 	_game->EndGame();
+	applyStartFrom();
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) setResult({}, {});
 	startClock();
@@ -1339,7 +1341,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_startTiming.step("setup");
 	_engineAutoPlay = true;
 	startEngineThread(Chess::EngineLevel(level));
-	if (!_config.playerPlaysWhite) {
+	if (_game->IsWhiteMove() != _config.playerPlaysWhite) { // Play from here: the side to move may be either
 		askEngineMove();
 	}
 	_startTiming.step("start engine");
@@ -1368,6 +1370,7 @@ QVariantList ChessConnector::levels() const
 void ChessConnector::applyMoves(const QString& movesStr)
 {
 	playMoves(movesStr.split(' ', Qt::SkipEmptyParts));
+	updateRecord(); // typed-in moves (Alt+S) are the game's too: kept like played ones (BL-19)
 }
 
 // Plays the moves on the game, up to the first one that can't be played, then updates the move
@@ -1618,7 +1621,7 @@ void ChessConnector::onLichessMoveListReplaced(const QString& uciMoves, bool mov
 		++common;
 	for (int i = int(ours.size()); i > common; --i) {
 		if (moveRefused) // the increment moveMade() gave it; other lists come with Lichess's exact times
-			_clock->moveTakenBack(!_game->IsWhiteMove(), _game->GetMoveCount());
+			_clock->moveTakenBack(!_game->IsWhiteMove(), clockPly());
 		_game->UndoMove();
 	}
 	buildFullHistoryCache(); // before playMoves(), which only appends to it
@@ -1632,7 +1635,7 @@ void ChessConnector::onLichessMoveListReplaced(const QString& uciMoves, bool mov
 	else
 		EmitMoveCountUpdates();
 	if (moveRefused) // no state follows
-		_clock->setTurn(_game->IsWhiteMove(), _game->GetMoveCount());
+		_clock->setTurn(_game->IsWhiteMove(), clockPly());
 	_gate->moveShown(); // the pieces slide back: the next move waits for it
 
 	// A refused move has its own message (LichessClient's networkError).
@@ -1774,7 +1777,7 @@ void ChessConnector::movePrev()
 				dropRobotAnswer();
 			if (_promotionPending) return;
 			cancelPremove(); // it was for the position being taken back
-			int count = _game->GetMoveCount();
+			int count = _game->GetMoveCount() - _forkPly; // Play from here: the game's first moves stay
 			if (count == 0) {
 				// Nothing to take back. If the answer just dropped was the robot's first move (or
 				// its re-asked first move), ask again; otherwise the robot would never move.
@@ -1789,7 +1792,7 @@ void ChessConnector::movePrev()
 			int movesToUndo = (robotToMove || count < 2) ? 1 : 2;
 			for (int i = 0; i < movesToUndo; i++) {
 				if (i > 0 || !_gameOver) // the move that ended the game got no increment
-					_clock->moveTakenBack(!_game->IsWhiteMove(), _game->GetMoveCount());
+					_clock->moveTakenBack(!_game->IsWhiteMove(), clockPly());
 				_game->UndoMove();
 			}
 			// Taking back the last moves of a finished game (mate or resign) resumes it.
@@ -1799,7 +1802,7 @@ void ChessConnector::movePrev()
 				if (!_gameResult.isEmpty()) setResult({}, {});
 			}
 			_clock->resume();
-			_clock->setTurn(_game->IsWhiteMove(), _game->GetMoveCount());
+			_clock->setTurn(_game->IsWhiteMove(), clockPly());
 			buildFullHistoryCache();
 			clearPossibleMoves();
 			EmitMoveCountUpdates();
@@ -1986,8 +1989,8 @@ void ChessConnector::updateRecord()
 	if (_gameMode != QLatin1String("computer") && _gameMode != QLatin1String("local"))
 		return;
 	const auto& record = _game->GetGameRecord();
-	if (record.empty() && _recordId.isEmpty())
-		return;
+	if ((int)record.size() <= _forkPly && _recordId.isEmpty())
+		return; // no move of its own yet (a fork: past the moves it began with)
 	GameRecord r;
 	if (!_recordId.isEmpty())
 		if (const auto kept = _library->find(_recordId))
@@ -2113,7 +2116,7 @@ bool ChessConnector::continueGame(const QString& gameId)
 	startClock();
 	if (_clock->enabled()) {
 		_clock->pause();
-		_clock->setSnapshot(rec->whiteMs, rec->blackMs, _game->IsWhiteMove(), _game->GetMoveCount() >= 2);
+		_clock->setSnapshot(rec->whiteMs, rec->blackMs, _game->IsWhiteMove(), clockPly() >= 2);
 	}
 
 	buildFullHistoryCache();
@@ -2130,6 +2133,73 @@ bool ChessConnector::continueGame(const QString& gameId)
 	}
 	setGameMode(robot ? QStringLiteral("computer") : QStringLiteral("local"), opponentName, opponentId);
 	return true;
+}
+
+// Play from here (BL-19 step 4): the kept game's first `ply` moves, when they can be played and the
+// game isn't over after them.
+std::optional<ChessConnector::StartFrom> ChessConnector::startFrom(const QString& gameId, int ply) const
+{
+	const auto rec = _library ? _library->find(gameId) : std::nullopt;
+	if (!rec || ply < 1 || ply > rec->plyCount())
+		return std::nullopt;
+	const QStringList moves = rec->moves.mid(0, ply);
+	const auto game = GameRecord::play(moves);
+	if (!game || game->IsCheckMate() || game->IsStalemate())
+		return std::nullopt;
+	return StartFrom{ rec->id, ply, moves };
+}
+
+QVariantMap ChessConnector::playFromHere() const
+{
+	if (isOnlineGame() || (_gameMode != QLatin1String("replay") && _gameMode != QLatin1String("computer")
+	                       && _gameMode != QLatin1String("local")))
+		return {};
+	const int ply = shownPly();
+	const auto from = startFrom(_recordId, ply);
+	if (!from)
+		return {};
+	return QVariantMap{
+		{ QStringLiteral("gameId"),      from->gameId },
+		{ QStringLiteral("ply"),         ply },
+		{ QStringLiteral("move"),        shownMove() },
+		{ QStringLiteral("whiteToMove"), ply % 2 == 0 },
+	};
+}
+
+bool ChessConnector::startComputerGameFrom(const QString& gameId, int ply, int level, int side, int limitSec, int incSec)
+{
+	_startFrom = startFrom(gameId, ply);
+	if (!_startFrom)
+		return false;
+	startComputerGame(level, side, limitSec, incSec); // the moves go on the board after its restart
+	return true;
+}
+
+bool ChessConnector::startLocalGameFrom(const QString& gameId, int ply, bool playerPlaysWhite, const QString& opponentUserId,
+                                        int limitSec, int incSec)
+{
+	_startFrom = startFrom(gameId, ply);
+	if (!_startFrom)
+		return false;
+	startLocalGame(playerPlaysWhite, opponentUserId, limitSec, incSec);
+	return true;
+}
+
+void ChessConnector::applyStartFrom()
+{
+	if (!_startFrom)
+		return;
+	const StartFrom from = std::move(*_startFrom);
+	_startFrom.reset();
+	replayMoves(from.moves);
+	_forkOfId = from.gameId;
+	_forkPly = _game->GetMoveCount();
+	buildFullHistoryCache();
+}
+
+int ChessConnector::clockPly() const
+{
+	return std::max(0, _game->GetMoveCount() - _forkPly);
 }
 
 // A kept game as a replay: the board at the start position, then its moves one by one (HistoryPlayer).

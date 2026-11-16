@@ -76,7 +76,7 @@ $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue
              'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline',
              'captures', 'check', 'draw-offer', 'home-message', 'messages', 'opponent-left', 'opponent-left-claim', 'opponent-left-turn',
              'opponent-left-error', 'rejoin', 'continue-starting', 'continue-list-starting', 'challenge-accepting', 'starting', 'more-menu',
-             'games', 'games-empty', 'games-filter', 'robot', 'premove-robot'
+             'games', 'games-empty', 'games-filter', 'play-from-here', 'robot', 'premove-robot'
 # The scenes with the robot play against FakeUci (BL-05 step 3), the game it follows: robot (White)
 # mates with Qh5#; premove-robot: 1... e5 after e4, then Nc6 after the premoved Nf3; play: its first
 # legal moves. -Stockfish: the real engine instead (their pictures then vary).

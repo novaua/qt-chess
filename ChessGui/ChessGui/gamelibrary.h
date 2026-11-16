@@ -8,9 +8,11 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
+#include <memory>
 #include <optional>
 
 class UserManager;
+namespace Chess { class Game; }
 
 // One local game of the active profile, as the games library keeps it (BL-19): who, when, the moves
 // in UCI, the result, the clock as it was left. Every game vs the robot or between two players is kept
@@ -51,6 +53,9 @@ struct GameRecord
 	// changed) when one of them can't be played. For records made outside a game: the screenshot
 	// scenes, the UI tests.
 	bool setMoves(const QStringList& uciMoves);
+	// The moves played from the start position on a game of their own (a position to look at: its SAN,
+	// its FEN, whether it is over); null when one of them can't be played.
+	static std::shared_ptr<Chess::Game> play(const QStringList& uciMoves);
 
 	QJsonObject toJson() const;
 	static GameRecord fromJson(const QJsonObject& o);
