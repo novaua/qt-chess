@@ -125,6 +125,8 @@
     <ClCompile Include="..\ChessGui\ChessGui\gameclock.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gamelibrary.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gamepgn.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\gameanalysis.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\gameanalyzer.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\applog.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\engineworker.cpp" />
   </ItemGroup>
@@ -143,6 +145,7 @@
     <QtMoc Include="..\ChessGui\ChessGui\sceneinput.h" />
     <QtMoc Include="..\ChessGui\ChessGui\gameclock.h" />
     <QtMoc Include="..\ChessGui\ChessGui\gamelibrary.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\gameanalyzer.h" />
     <QtMoc Include="..\ChessGui\ChessGui\engineworker.h" />
     <ClInclude Include="..\ChessGui\ChessGui\appservices.h" />
     <ClInclude Include="..\ChessQtTests\FakeLichess.h" />

@@ -207,6 +207,32 @@ std::string FakeEngine::ChooseMove() const
 	return legal.empty() ? std::string() : legal.front();
 }
 
+int FakeEngine::Material() const
+{
+	static const int values[] = { 0, 300, 300, 500, 900, 0, 100 }; // by PieceTypes: EMPTY, KNIGHT … PAWN
+	int balance = 0;
+	for (int square = 0; square < 64; ++square) {
+		const Piece piece = _state.Board->At(square);
+		if (piece.Color == PieceColors::Empty)
+			continue;
+		const int value = values[piece.Type];
+		balance += piece.Color == _side ? value : -value;
+	}
+	return balance;
+}
+
+std::string FakeEngine::ScoreOf(const std::string& uciMove) const
+{
+	FakeEngine after(*this); // its own board: Play changes it
+	after._state = { std::make_shared<Board>(*_state.Board), std::make_shared<MovesHistory>(*_state.History),
+	                 std::make_shared<BoardPositionsCache>() };
+	if (!after.Play(uciMove))
+		return "cp 0";
+	if (after.LegalMoves().empty())
+		return GameChecks(after._state).IsInCheck(after._side) ? "mate 1" : "cp 0";
+	return "cp " + std::to_string(-after.Material()); // the other side moves there
+}
+
 void FakeEngine::OnPosition(const std::string& args)
 {
 	// "startpos [moves …]" or "fen <6 fields> [moves …]"
@@ -237,8 +263,9 @@ void FakeEngine::OnGo(std::ostream& out)
 		out << "bestmove (none)" << std::endl;
 		return;
 	}
-	// One candidate, as GetCandidateMoves (MultiPV) reads it.
-	out << "info depth 1 multipv 1 score cp 0 pv " << move << std::endl;
+	// One candidate, as GetCandidateMoves (MultiPV) reads it (also for MultiPV > 1: the robot's weak
+	// levels pick among the candidates at random, and the UI tests need its one move).
+	out << "info depth 1 multipv 1 score " << ScoreOf(move) << " pv " << move << std::endl;
 	out << "bestmove " << move << std::endl;
 }
 

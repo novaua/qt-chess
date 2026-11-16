@@ -28,6 +28,7 @@
 #include "UserManager.h"
 #include "LichessClient.h"
 #include "gamelibrary.h"
+#include "gameanalyzer.h"
 #include "gamepgn.h"
 
 class ChessConnector : public QObject
@@ -102,6 +103,14 @@ class ChessConnector : public QObject
 		// it or it is dropped (cancelOnlineStart, another profile); "" when none. One for the bar and the Online page.
 		Q_PROPERTY(QString AcceptingChallengeId READ acceptingChallengeId NOTIFY acceptingChallengeChanged)
 		Q_PROPERTY(GameClock* Clock READ clock CONSTANT) // the game's clocks; Clock.enabled false: none
+		// BL-19 step 6, the engine's analysis of a kept game (GameAnalyzer): one at a time, in the background.
+		// AnalysisDepth: Settings → Computer (AppSettings.analysisDepth binds it). AnalysisDone of
+		// AnalysisTotal positions searched while Analysing.
+		Q_PROPERTY(int     AnalysisDepth  READ analysisDepth  WRITE setAnalysisDepth NOTIFY analysisDepthChanged)
+		Q_PROPERTY(bool    Analysing      READ analysing      NOTIFY analysisChanged)
+		Q_PROPERTY(QString AnalysisGameId READ analysisGameId NOTIFY analysisChanged)
+		Q_PROPERTY(int     AnalysisDone   READ analysisDone   NOTIFY analysisProgressChanged)
+		Q_PROPERTY(int     AnalysisTotal  READ analysisTotal  NOTIFY analysisProgressChanged)
 		// --screenshot mode: { scene, moves, black, dark, width, height }; empty in a normal run
 		Q_PROPERTY(QVariantMap ScreenshotScene READ screenshotScene CONSTANT)
 public:
@@ -160,6 +169,12 @@ public:
 	QVariantMap screenshotScene() const { return _screenshotScene; }
 	GameClock* clock() const { return _clock; }
 	QAbstractItemModel* pieces() const { return _pieces; }
+	int  analysisDepth() const { return _analyzer->depth(); }
+	void setAnalysisDepth(int depth);
+	bool analysing() const { return _analyzer->running(); }
+	QString analysisGameId() const { return _analyzer->running() ? _analyzer->gameId() : QString(); }
+	int  analysisDone() const { return _analyzer->running() ? _analyzer->done() : 0; }
+	int  analysisTotal() const { return _analyzer->running() ? _analyzer->total() : 0; }
 	int selectedSquare() const { return _selectedSquare; }
 	int movableColor() const;
 	int premoveFrom() const { return reviewMode() ? -1 : _premoveFrom; }
@@ -222,6 +237,11 @@ signals:
 	void acceptingChallengeChanged();
 	void screenshotSceneSetUp(); // the takeback scene: QML is done, C++ plays the rest (main.cpp)
 	void boardIdle();            // the page has settled and no move waits to be shown (BL-14)
+	void analysisDepthChanged();
+	void analysisChanged();
+	void analysisProgressChanged();
+	void analysisFinished(const QString& gameId);                       // kept on the game's record
+	void analysisFailed(const QString& gameId, const QString& message); // the engine failed, or the game changed
 
 public slots:
 	// One call per user action (CLAUDE.md "Key Conventions"). A Lichess game starts and ends
@@ -254,6 +274,11 @@ public slots:
 	// the game page, or gameStartFailed. False without a linked account.
 	Q_INVOKABLE bool continueOnlineGame(const QString& gameId);
 	Q_INVOKABLE void cancelOnlineStart(); // drop a rejoin under way (Back from its page)
+	// BL-19 step 6: the engine analyses a kept game ("": the game on the board, once kept) in the
+	// background; a running analysis stops first. analysisFinished when it is on the record, else
+	// analysisFailed. False (nothing started) without such a game or a move.
+	Q_INVOKABLE bool analyseGame(const QString& gameId = QString());
+	Q_INVOKABLE void cancelAnalysis();
 	void setUseFen(bool v);
 	Q_INVOKABLE void applyMoves(const QString& movesStr);
 	Q_INVOKABLE void setScreenshotClock(int whiteMs, int blackMs); // --screenshot: the times to show; the side to move runs
@@ -429,6 +454,7 @@ private:
 	std::optional<std::pair<QString, bool>> _listAfterPromotion; // Lichess's moves that came meanwhile (and moveRefused)
 	bool _gameOver = false;
 	GameLibrary* _library = nullptr;
+	GameAnalyzer* _analyzer = nullptr; // a child: made in the constructor
 	QString   _recordId;      // the library record of the game on the board; "" until its first move (or in a replay: the game shown)
 	QDateTime _recordStarted; // when that game began (the record's startedAt)
 	int       _undoCount = 0; // takebacks in this game (the record's; such a game isn't rated)

@@ -58,6 +58,12 @@ ChessConnector::ChessConnector(QObject* parent)
 	connect(_gate, &MoveGate::releaseBatch, this, &ChessConnector::playOnlineMoves);
 	connect(_gate, &MoveGate::idle, this, &ChessConnector::boardIdle);
 	_clock = new GameClock(this);
+	_analyzer = new GameAnalyzer(this);
+	connect(_analyzer, &GameAnalyzer::runningChanged, this, &ChessConnector::analysisChanged);
+	connect(_analyzer, &GameAnalyzer::runningChanged, this, &ChessConnector::analysisProgressChanged);
+	connect(_analyzer, &GameAnalyzer::progressChanged, this, &ChessConnector::analysisProgressChanged);
+	connect(_analyzer, &GameAnalyzer::finished, this, &ChessConnector::analysisFinished);
+	connect(_analyzer, &GameAnalyzer::failed, this, &ChessConnector::analysisFailed);
 	_claimWin = new ClaimWin(this);
 	connect(_claimWin, &ClaimWin::goneChanged, this, &ChessConnector::opponentGoneChanged);
 	connect(_claimWin, &ClaimWin::secondsLeftChanged, this, &ChessConnector::claimWinSecondsChanged);
@@ -1150,6 +1156,29 @@ void ChessConnector::setUserManager(UserManager* um)
 void ChessConnector::setGameLibrary(GameLibrary* library)
 {
 	_library = library;
+	_analyzer->setLibrary(library);
+}
+
+void ChessConnector::setAnalysisDepth(int depth)
+{
+	const int before = _analyzer->depth();
+	_analyzer->setDepth(depth);
+	if (_analyzer->depth() != before)
+		emit analysisDepthChanged();
+}
+
+bool ChessConnector::analyseGame(const QString& gameId)
+{
+	const QString id = gameId.isEmpty() ? _recordId : gameId;
+	if (id.isEmpty())
+		return false;
+	_analyzer->setPositionMode(_config.useFen ? Chess::PositionMode::FenWindow : Chess::PositionMode::StartPos);
+	return _analyzer->start(id);
+}
+
+void ChessConnector::cancelAnalysis()
+{
+	_analyzer->cancel();
 }
 
 void ChessConnector::setLichessClient(LichessClient* lc)

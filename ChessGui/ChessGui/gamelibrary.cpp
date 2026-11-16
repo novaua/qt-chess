@@ -4,6 +4,7 @@
 #include "AppConfig.h"
 #include "EngineLevel.h"
 #include "Game.h"
+#include "gameanalysis.h"
 #include "UserManager.h"
 
 #include <QDebug>
@@ -481,6 +482,8 @@ QString GameLibrary::put(GameRecord record)
 		record.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
 	if (!record.startedAt.isValid())
 		record.startedAt = QDateTime::currentDateTime();
+	if (!record.analysis.isEmpty() && !GameAnalysis::fromJson(record.analysis).fits(record.moves))
+		record.analysis = {}; // the moves changed since (a takeback, the game went on)
 	rate(record);
 	const auto it = std::find_if(_records.begin(), _records.end(), [&](const GameRecord& r) { return r.id == record.id; });
 	if (it != _records.end())
@@ -519,6 +522,17 @@ bool GameLibrary::remove(const QString& id)
 	if (it == _records.end())
 		return false;
 	_records.erase(it);
+	scheduleSave();
+	emit gamesChanged();
+	return true;
+}
+
+bool GameLibrary::setAnalysis(const QString& id, const QStringList& moves, const GameAnalysis& analysis)
+{
+	const auto it = std::find_if(_records.begin(), _records.end(), [&](const GameRecord& r) { return r.id == id; });
+	if (it == _records.end() || it->moves != moves || !analysis.fits(moves))
+		return false;
+	it->analysis = analysis.toJson();
 	scheduleSave();
 	emit gamesChanged();
 	return true;

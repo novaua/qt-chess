@@ -105,6 +105,12 @@
     <ProjectReference Include="..\UciConnector\UciConnector.vcxproj">
       <Project>{bb742a5a-2729-45f2-90c1-2fa70de41600}</Project>
     </ProjectReference>
+    <!-- Built with the tests, not linked: the engine GameAnalysisTest analyses with (BL-19 step 6) -->
+    <ProjectReference Include="..\FakeUci\FakeUci.vcxproj">
+      <Project>{56bebe5a-cb12-4dbf-8858-ae02439334bf}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BoardPiecesTest.cpp" />
@@ -121,6 +127,7 @@
     <ClCompile Include="UserManagerTest.cpp" />
     <ClCompile Include="GameLibraryTest.cpp" />
     <ClCompile Include="GamePgnTest.cpp" />
+    <ClCompile Include="GameAnalysisTest.cpp" />
     <!-- UserManager and what it needs, from the app (it has no library of its own) -->
     <ClCompile Include="..\ChessGui\ChessGui\AppConfig.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\AvatarProvider.cpp" />
@@ -128,6 +135,8 @@
     <!-- The games library (BL-19) -->
     <ClCompile Include="..\ChessGui\ChessGui\gamelibrary.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gamepgn.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\gameanalysis.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\gameanalyzer.cpp" />
     <!-- The engine player and its thread worker -->
     <ClCompile Include="..\ChessGui\ChessGui\ChessEnginePlayer.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\engineworker.cpp" />
@@ -152,6 +161,7 @@
     <QtMoc Include="..\ChessGui\ChessGui\engineworker.h" />
     <QtMoc Include="..\ChessGui\ChessGui\UserManager.h" />
     <QtMoc Include="..\ChessGui\ChessGui\gamelibrary.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\gameanalyzer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

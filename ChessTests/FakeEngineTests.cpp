@@ -110,6 +110,28 @@ public:
         Assert::AreEqual(std::string(), engine.ChooseMove());
     }
 
+    // BL-19 step 6: the score an analysis reads, the mover's material after its move, or a mate.
+    TEST_METHOD(Score_MaterialAfterItsMove)
+    {
+        FakeEngine engine({}, 0);
+        for (const char* move : { "e2e4", "d7d5" })
+            Assert::IsTrue(engine.Play(move));
+        Assert::AreEqual(0, engine.Material());
+        Assert::AreEqual(std::string("cp 100"), engine.ScoreOf("e4d5"));
+        Assert::AreEqual(std::string("cp 0"), engine.ScoreOf("a2a3"));
+        Assert::AreEqual(2, engine.Ply()); // the position is as it was
+        Assert::AreEqual(0, engine.Material());
+    }
+
+    TEST_METHOD(Score_MateIsMateOne)
+    {
+        FakeEngine engine({ "f2f3", "e7e5", "g2g4", "d8h4" }, 0);
+        std::istringstream in("position startpos moves f2f3 e7e5 g2g4\ngo depth 14\nquit\n");
+        std::ostringstream out;
+        engine.Run(in, out);
+        Assert::IsTrue(out.str().find("info depth 1 multipv 1 score mate 1 pv d8h4") != std::string::npos);
+    }
+
     TEST_METHOD(Protocol_AsTheAppTalksToIt)
     {
         FakeEngine engine({ "e2e4", "c7c5" }, 0);

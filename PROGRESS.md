@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-16 — BL-19 step 6: the analysis engine (branch: features/analysisEngine_161126)
+
+### Done
+- **`GameAnalysis`** (`gameanalysis.h/cpp`): per position 0…n the eval (White's view; mate in N ±(100000 − N)) and the engine's best move; stored on the record as `{ version, depth, evals, best }`. Win chance (Lichess's curve, ±1000 cp ceiling), the mover's drop, judgements at **5 / 10 / 15 points** (Lichess's 0.1 / 0.2 / 0.3 of its −1…1 winning chances; the plan's 10 / 20 / 30 was a misreading, corrected there), lila's game accuracy (weighted + harmonic mean).
+- **`GameAnalyzer` / `AnalysisWorker`** (`gameanalyzer.h/cpp`): a thread and a full-strength `UciConnector` per analysis, positions asked as the robot asks (`ChessEnginePlayer::MakeRequest`, factored out of `FindMove`); the final mate / stalemate isn't asked; progress; cancel (kills the engine, keeps nothing). Kept only when the record still has the analysed moves (`GameLibrary::setAnalysis`); a change meanwhile fails it at once. `GameLibrary::put` drops a stale analysis (ply count differs).
+- **`ChessConnector`**: `analyseGame(id)` (`""` = the game on the board), `cancelAnalysis()`, `Analysing`, `AnalysisGameId`, `AnalysisDone`/`AnalysisTotal`, `AnalysisDepth`, `analysisFinished`/`analysisFailed`. No UI uses them yet (step 7).
+- **Settings → Computer "Analysis depth"**: Fast (10) / Normal (14) / Deep (18), `AppSettings.analysisDepth`.
+- **FakeUci** scores its one line: `mate 1` when its move mates, else the material after it.
+- **Tests**: `GameAnalysisTest.cpp` 12 (numbers; FakeUci on the scholar's mate; Stockfish; cancel; a change meanwhile; nothing to analyse; the record's side), FakeEngineTests +2. ChessQtTests now builds FakeUci (not linked).
+
+### Checked
+- Debug: ChessTests 144/144, ChessQtTests 261/261; UI tests 9 files, 0 failed (151 s). Scene `settings` looked at (its baseline differs: the new row).
+
+### Next
+- Step 7, the analysis UI (plan §3.6): Analyse on the result card and in More, progress, the eval bar, `?!` `?` `??` in the move list, the summary, "Best was …".
+
+---
+
 ## 2026-11-16 — BL-19 step 5: the rating vs the robot (branch: features/localRating_161126)
 
 The owner chose **stored as it goes** over the plan's computed rating (2026-11-16): games leave the library (the cap, Delete), and a computed rating would move with them.

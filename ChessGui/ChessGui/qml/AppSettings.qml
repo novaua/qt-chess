@@ -25,6 +25,9 @@ Settings {
     property int  clockLimitSec:      0     // the last new game's time control; 0 and 0: no clock
     property int  clockIncSec:        0
 
+    // Computer
+    property int  analysisDepth:      14    // the engine's search depth per position of an analysis (ChessConnector.AnalysisDepth, BL-19)
+
     // Data
     property int  gamesKept:          100   // finished games kept per profile (GameLibrary.keepCount, BL-19)
 
