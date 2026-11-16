@@ -15,4 +15,6 @@ public:
 	static QString configFilePath();
 	static QString autoSaveFilePath(const QString& userId = QString());
 	static QString savedGameFilePath(const QString& userId = QString());
+	// BL-19: the profile's games library (GameLibrary), users/<id>/games.json.
+	static QString gamesFilePath(const QString& userId);
 };

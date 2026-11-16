@@ -58,9 +58,6 @@ ChessConnector::ChessConnector(QObject* parent)
 	connect(_gate, &MoveGate::idle, this, &ChessConnector::boardIdle);
 	_clock = new GameClock(this);
 	_claimWin = new ClaimWin(this);
-	// The autosave changed (saved, continued, another user): its card is read again. Connected
-	// first, so QML reads the new one.
-	connect(this, &ChessConnector::canContinueChanged, this, [this] { _continueGameInfo.reset(); });
 	connect(_claimWin, &ClaimWin::goneChanged, this, &ChessConnector::opponentGoneChanged);
 	connect(_claimWin, &ClaimWin::secondsLeftChanged, this, &ChessConnector::claimWinSecondsChanged);
 	connect(_claimWin, &ClaimWin::canClaimChanged, this, &ChessConnector::canClaimVictoryChanged);
@@ -90,7 +87,7 @@ ChessConnector::ChessConnector(QObject* parent)
 			{
 				if (!_resuming) // a joined game that ended in mate: its page shows the result
 					emit checkMateNotify();
-				if (_player) return;
+				if (_player || _loadingRecord) return;
 				const bool whiteMated = _game->IsWhiteMove(); // the side to move is mated
 				endGameWithLoser(whiteMated, whiteMated ? MateResultBlack : MateResultWhite,
 					sideName(!whiteMated) + QStringLiteral(" wins by checkmate"));
@@ -389,6 +386,7 @@ void ChessConnector::onHumanMoveDone()
 	EmitMoveCountUpdates();
 	_gate->playerMoveShown(); // the player's move is on the board: the robot's answer waits for it
 	moveOnBoard();
+	updateRecord();
 
 	if (!_onlineGameId.isEmpty() && _lichessClient) {
 		const auto& rec = _game->GetGameRecord();
@@ -535,7 +533,8 @@ QString ChessConnector::pgn() const
 	                                         : QStringLiteral("????.??.??");
 	const QString site = isOnlineGame() ? QStringLiteral("https://lichess.org/") + _onlineGameId
 	                                    : QStringLiteral("Chess++");
-	const QString result = _gameResult.isEmpty() ? QStringLiteral("*") : _gameResult.section(' ', 0, 0);
+	const QString gameResult = _gameMode == QLatin1String("replay") ? _replayResult : _gameResult.section(' ', 0, 0);
+	const QString result = gameResult.isEmpty() ? QStringLiteral("*") : gameResult;
 	auto tag = [](const char* name, const QString& value) {
 		return Chess::PgnTag{ name, value.toStdString() };
 	};
@@ -592,6 +591,8 @@ void ChessConnector::setResult(const QString& result, const QString& text)
 		setOpponentGone(false);
 	}
 	emit gameResultChanged();
+	if (!result.isEmpty())
+		updateRecord(); // finished: the result and when
 }
 
 void ChessConnector::setPendingOffer(const QString& offer)
@@ -687,63 +688,24 @@ QString ChessConnector::gameTitle() const
 	if (_gameMode == QLatin1String("online"))
 		return QStringLiteral("Lichess") + Dot + QStringLiteral("vs ") + _opponentName;
 	if (_gameMode == QLatin1String("replay"))
-		return QStringLiteral("Saved game") + Dot + sideName(true) + QStringLiteral(" vs ") + sideName(false);
+		return sideName(true) + QStringLiteral(" vs ") + sideName(false)
+			+ (_gameDate.isValid() ? Dot + _gameDate.toString(QStringLiteral("d MMM yyyy")) : QString());
 	if (_gameMode == QLatin1String("local"))
 		return sideName(true) + QStringLiteral(" vs ") + sideName(false);
 	return {};
 }
 
-QString ChessConnector::continueDescription() const
-{
-	if (!_userManager || !canContinue())
-		return {};
-	const auto info = _userManager->autoSaveInfo();
-	return vsRobotTitle(info.computerLevel > 0 ? info.computerLevel : _config.lastLevel);
-}
-
-// Read once per autosave; an unreadable one is empty, and canContinue() false: Home and the
-// Continue list agree that there is no robot game (BL-17 review).
-QVariantMap ChessConnector::continueGameInfo() const
-{
-	if (!hasAutoSave())
-		return {};
-	if (_continueGameInfo)
-		return *_continueGameInfo;
-	_continueGameInfo = QVariantMap{};
-	auto game = std::make_shared<Chess::Game>();
-	try {
-		game->Load(autoSavePath().toStdString());
-		game->ResumeFromLoad();
-	}
-	catch (const std::exception& e) {
-		qWarning() << "continueGameInfo: can't read the autosave:" << e.what();
-		return {};
-	}
-	const auto info = _userManager ? _userManager->autoSaveInfo() : UserManager::GameSaveInfo{};
-	const auto squareName = [](Chess::BoardPosition square) {
-		return QString::fromStdString(Chess::BoardPositionToString(square));
-	};
-	const auto& record = game->GetGameRecord();
-	_continueGameInfo = QVariantMap{
-		{ "level", info.computerLevel > 0 ? info.computerLevel : _config.lastLevel },
-		{ "playerPlaysWhite", info.playerPlaysWhite },
-		{ "playerToMove", game->IsWhiteMove() == info.playerPlaysWhite },
-		{ "fen", QString::fromStdString(game->MakeFen()) },
-		{ "lastMove", record.empty() ? QString() : squareName(record.back().From.Position) + squareName(record.back().To.Position) },
-	};
-	return *_continueGameInfo;
-}
-
+// BL-17/BL-19: the one unfinished game, local (the library) or on Lichess, starts at once.
 bool ChessConnector::continueOnlyGame()
 {
-	const bool robot = canContinue();
+	const QList<GameRecord> local = _library ? _library->unfinished() : QList<GameRecord>{};
 	const bool linked = _lichessClient && _userManager && _userManager->lichessConnected();
 	if (linked && _lichessClient->ongoingGamesLoading())
-		return false; // the list shows the robot's game at once, the Lichess ones when they come
+		return false; // the list shows the local games at once, the Lichess ones when they come
 	const QVariantList online = linked ? _lichessClient->ongoingGames() : QVariantList{};
-	if (robot && online.isEmpty())
-		return continueGame();
-	if (!robot && online.size() == 1 && online.first().toMap().value(QStringLiteral("canPlayHere")).toBool())
+	if (local.size() == 1 && online.isEmpty())
+		return continueGame(local.first().id);
+	if (local.isEmpty() && online.size() == 1 && online.first().toMap().value(QStringLiteral("canPlayHere")).toBool())
 		return continueOnlineGame(online.first().toMap().value(QStringLiteral("gameId")).toString());
 	return false;
 }
@@ -935,12 +897,9 @@ bool ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite,
 void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsWhite,
 	const QString& opponentName, const QString& opponentAvatar, const QStringList& moves)
 {
-	// A Lichess game replaces a robot game (BL-10: a challenge accepted during it): kept for
+	// A Lichess game replaces a local game (BL-10: a challenge accepted during it): kept for
 	// Continue, as when leaving it for Home.
-	if (canAutoSave()) {
-		autoSaveGame();
-		emit canContinueChanged();
-	}
+	keepGameOnLeave();
 	const QString opponent = opponentName.isEmpty() ? QStringLiteral("Anonymous") : opponentName;
 	// BL-18: a game joined in progress (two moves or more: a rejoin) is on the board before setGameMode()
 	// opens its page, so the first frame shows its position. Zero or one move: a new game, whose
@@ -1163,13 +1122,15 @@ void ChessConnector::respondRematch(bool accept)
 void ChessConnector::setUserManager(UserManager* um)
 {
 	_userManager = um;
-	// Saves are per user: Continue and Open saved game change with the user.
-	connect(_userManager, &UserManager::activeUserChanged, this, &ChessConnector::canContinueChanged);
-	connect(_userManager, &UserManager::activeUserChanged, this, &ChessConnector::canLoadChanged);
 	connect(_userManager, &UserManager::activeUserChanged, this, &ChessConnector::gameInfoChanged); // a renamed profile: the title
 	// A rejoin belongs to the profile and the Lichess account that started it.
 	connect(_userManager, &UserManager::activeUserChanged, this, &ChessConnector::checkOnlineStart);
 	connect(_userManager, &UserManager::lichessChanged, this, &ChessConnector::checkOnlineStart);
+}
+
+void ChessConnector::setGameLibrary(GameLibrary* library)
+{
+	_library = library;
 }
 
 void ChessConnector::setLichessClient(LichessClient* lc)
@@ -1226,6 +1187,12 @@ void ChessConnector::beginGame(bool online)
 	setFlaggedKing(-1);
 	_resultRecorded = false;
 	_resignAfterEngineMove = false;
+	_recordId.clear(); // a new game: its record is made at its first move (updateRecord)
+	_recordStarted = QDateTime::currentDateTime();
+	_undoCount = 0;
+	_forkOfId.clear();
+	_forkPly = 0;
+	_replayResult.clear();
 	if (_lastGameOnline == online) return;
 	_lastGameOnline = online;
 	emit canRematchChanged();
@@ -1303,20 +1270,16 @@ void ChessConnector::startNewGame()
 	_wasVsComputer = false;
 	beginGame(false);
 	resetMoveHistoryCache();
-	deleteAutoSave();
-	_startTiming.step("save");
 	stopEngineThread();
 	_startTiming.step("stop engine");
 	_promotionPending = false;
 	_player = nullptr;
 	_reviewIndex = -1;
 	_gameOver = false;
-	_savedPlies = 0;
 	if (!_gameResult.isEmpty()) setResult({}, {});
 	_game->Restart();
 	startClock();
 	EmitMoveCountUpdates();
-	emit canContinueChanged();
 	emit newGameStarted(false);
 	_startTiming.step("setup");
 
@@ -1344,7 +1307,6 @@ void ChessConnector::startNewGameWithComputer(int level)
 		emit lastLevelChanged();
 	}
 	_config.save();
-	deleteAutoSave();
 	_startTiming.step("save");
 	stopEngineThread();
 	_startTiming.step("stop engine");
@@ -1356,7 +1318,6 @@ void ChessConnector::startNewGameWithComputer(int level)
 	if (!_gameResult.isEmpty()) setResult({}, {});
 	startClock();
 	EmitMoveCountUpdates();
-	emit canContinueChanged();
 	emit newGameStarted(true);
 	_startTiming.step("setup");
 	_engineAutoPlay = true;
@@ -1574,6 +1535,7 @@ void ChessConnector::playRobotMove(const QString& move)
 	appendMoveToHistory();
 	EmitMoveCountUpdates();
 	moveOnBoard();
+	updateRecord();
 	_gate->moveShown(true);
 	if (_resignAfterEngineMove) {
 		_resignAfterEngineMove = false;
@@ -1750,12 +1712,6 @@ bool ChessConnector::isBoardIdle() const
 	return _gate->isIdle();
 }
 
-// A two-player game has no undo (Ctrl+Z only reviews), so more moves than saved means unsaved ones.
-bool ChessConnector::leaveLosesGame() const
-{
-	return _gameMode == QLatin1String("local") && !_gameOver && plyCount() > _savedPlies;
-}
-
 void ChessConnector::onEngineMoveError(int request, const QString& message, const QString& details)
 {
 	if (request != _engineRequest) {
@@ -1776,94 +1732,6 @@ void ChessConnector::onEngineMoveError(int request, const QString& message, cons
 		_resignAfterEngineMove = false;
 		resignGame();
 	}
-}
-
-QString ChessConnector::autoSavePath() const
-{
-	return AppConfig::autoSaveFilePath(_userManager ? _userManager->activeUserId() : QString());
-}
-
-QString ChessConnector::savedGamePath() const
-{
-	return AppConfig::savedGameFilePath(_userManager ? _userManager->activeUserId() : QString());
-}
-
-bool fileExists(QString path) {
-	QFileInfo checkFile(path);
-
-	if (checkFile.exists() && checkFile.isFile()) {
-		return true;
-	}
-	else {
-		return false;
-	}
-}
-
-bool ChessConnector::saveGame()
-{
-	if (_userManager) {
-		UserManager::GameSaveInfo info;
-		info.isSinglePlayer = _engineWorker != nullptr;
-		info.playerPlaysWhite = _config.playerPlaysWhite;
-		info.opponentName = _opponentName;
-		info.opponentUserId = _opponentUserId;
-		info.startDate = _gameDate;
-		info.computerLevel = info.isSinglePlayer ? _config.lastLevel : 0;
-		if (_avatarProvider) {
-			info.playerAvatarName = _avatarProvider->playerRawName();
-			info.opponentAvatarName = _avatarProvider->opponentRawName();
-		}
-		_userManager->setSavedGameInfo(info);
-	}
-	if (!_game->Save(savedGamePath().toStdString())) {
-		qWarning() << "saveGame: can't write" << savedGamePath();
-		emit saveFailed();
-		emit canLoadChanged(); // the old saved game may be gone: the file was opened for writing
-		return false;
-	}
-	_savedPlies = plyCount();
-	emit savedOk();
-	emit canLoadChanged();
-	return true;
-}
-
-bool ChessConnector::loadGame()
-{
-	auto success = false;
-	try {
-		if (fileExists(savedGamePath()))
-		{
-			_gate->clear(); // a held move belongs to the game being left
-			cancelPremove();
-			_clock->stop();
-			const auto info = _userManager ? _userManager->savedGameInfo() : UserManager::GameSaveInfo{};
-			_config.playerPlaysWhite = info.playerPlaysWhite;
-			emit playerPlaysWhiteChanged();
-			if (_avatarProvider)
-				_avatarProvider->restore(info.playerAvatarName, info.opponentAvatarName, info.isSinglePlayer);
-			_promotionPending = false;
-			_game->Load(savedGamePath().toStdString());
-			_game->Restart();
-			_player = _game->MakePlayer();
-			_gameDate = info.startDate; // invalid for saves made before it was kept
-			buildFullHistoryCache();
-			emit IsOnPlayerModeChanged();
-			EmitMoveCountUpdates();
-			setGameMode(QStringLiteral("replay"), opponentNameOf(info));
-			success = true;
-		}
-	}
-	catch (ChessException& ex)
-	{
-		qDebug() << "Exception caught while loading game " << ex.what();
-	}
-
-	if (!success)
-	{
-		emit noSavedGame();
-	}
-
-	return success;
 }
 
 void ChessConnector::moveNext()
@@ -1918,6 +1786,8 @@ void ChessConnector::movePrev()
 			buildFullHistoryCache();
 			clearPossibleMoves();
 			EmitMoveCountUpdates();
+			++_undoCount;
+			updateRecord();
 			_gate->moveShown(); // the undo slides the pieces back: the next answer waits for it
 			// E.g. the robot's own first move was taken back: let it play again.
 			if (_game->IsWhiteMove() != _config.playerPlaysWhite) {
@@ -2057,8 +1927,7 @@ void ChessConnector::endGame()
 	setPendingOffer({});
 	setOpponentGone(false);
 	setReconnecting(false);
-	if (canAutoSave())
-		autoSaveGame();
+	keepGameOnLeave(); // an unfinished local game stays in the library as it is: Continue offers it
 	_clock->stop();
 	if (!_onlineGameId.isEmpty()) {
 		if (_lichessClient) _lichessClient->stopStream();
@@ -2078,142 +1947,225 @@ void ChessConnector::endGame()
 	EmitMoveCountUpdates();
 	emit IsOnPlayerModeChanged();
 	clearPossibleMoves();
-	emit canContinueChanged();
+	_recordId.clear();
+	_replayResult.clear();
 	setGameMode({}, {});
 }
 
 void ChessConnector::switchUser()
 {
-	endGame(); // autosaves the game for the user who played it
+	endGame(); // keeps the game for the user who played it
 	if (_userManager)
 		_userManager->logout();
 }
 
-QString ChessConnector::opponentNameOf(const UserManager::GameSaveInfo& info) const
+// BL-19: the library's record of the game on the board. Made at its first move (a game without one
+// isn't kept), then written with every move, takeback, the result and when it is left; Lichess games
+// and replays have none.
+void ChessConnector::updateRecord()
 {
-	if (!info.opponentName.isEmpty())
-		return info.opponentName;
-	return info.isSinglePlayer ? QStringLiteral("Robot") : QStringLiteral("Guest"); // saved before names were kept
+	if (!_library || isOnlineGame())
+		return;
+	if (_gameMode != QLatin1String("computer") && _gameMode != QLatin1String("local"))
+		return;
+	const auto& record = _game->GetGameRecord();
+	if (record.empty() && _recordId.isEmpty())
+		return;
+	GameRecord r;
+	if (!_recordId.isEmpty())
+		if (const auto kept = _library->find(_recordId))
+			r = *kept;
+	r.id = _recordId;
+	r.kind = _wasVsComputer ? QStringLiteral("computer") : QStringLiteral("local");
+	r.finished = !_gameResult.isEmpty();
+	r.startedAt = _recordStarted;
+	if (!r.finished)
+		r.finishedAt = QDateTime();
+	else if (!r.finishedAt.isValid())
+		r.finishedAt = QDateTime::currentDateTime();
+	r.playerPlaysWhite = _config.playerPlaysWhite;
+	r.opponentName = _opponentName;
+	r.opponentUserId = _opponentUserId;
+	r.level = _wasVsComputer ? _config.lastLevel : 0;
+	if (_avatarProvider) {
+		r.playerAvatar = _avatarProvider->playerRawName();
+		r.opponentAvatar = _avatarProvider->opponentRawName();
+	}
+	if (_clock->enabled()) {
+		r.clockLimitSec = _clockLimitSec;
+		r.clockIncSec = _clockIncSec;
+		r.whiteMs = _clock->remainingMs(true);
+		r.blackMs = _clock->remainingMs(false);
+	} else {
+		r.clockLimitSec = r.clockIncSec = 0;
+		r.whiteMs = r.blackMs = 0;
+	}
+	r.moves.clear();
+	for (const auto& m : record)
+		r.moves.append(QString::fromStdString(m.ToUciString()));
+	r.fen = QString::fromStdString(_game->MakeFen());
+	r.result = r.finished ? _gameResult.section(' ', 0, 0) : QString();
+	r.resultText = r.finished ? _resultText : QString();
+	r.resultRecorded = _resultRecorded;
+	r.undoCount = _undoCount;
+	r.forkOfId = _forkOfId;
+	r.forkPly = _forkPly;
+	_recordId = _library->put(r);
 }
 
-// The autosaved game vs the robot (the only kind there is: canAutoSave()).
-bool ChessConnector::continueGame()
+// Leaving (Home, switch user, closing the app): the game as it stands. A pawn still waiting for its
+// piece hasn't moved yet.
+void ChessConnector::keepGameOnLeave()
 {
-	if (!canContinue())
+	if (_promotionPending && _game->GetMoveCount() > 0) {
+		_promotionPending = false;
+		_game->UndoMove();
+	}
+	updateRecord();
+}
+
+void ChessConnector::replayMoves(const QStringList& uciMoves)
+{
+	_resuming = true;
+	const auto resumed = qScopeGuard([this] { _resuming = false; });
+	for (const auto& m : uciMoves) {
+		try {
+			_game->DoMove(Chess::Move::Parse(m.toStdString()));
+		}
+		catch (const std::exception& ex) {
+			qWarning() << "Kept move" << m << "can't be played:" << ex.what();
+			break;
+		}
+	}
+}
+
+// An unfinished kept game goes on: vs the robot at the game's own level (lastLevel may have changed
+// since: another profile), or two players with the opponent's profile when it still exists (else as
+// Guest, under the name it had). The times as they were left, paused until the page is open (pageOpened).
+bool ChessConnector::continueGame(const QString& gameId)
+{
+	const auto rec = _library ? _library->find(gameId) : std::nullopt;
+	if (!rec || rec->finished || rec->moves.isEmpty())
 		return false;
-	_startTiming.begin(QStringLiteral("continue vs Robot"));
-	resetMoveHistoryCache();
-	const auto info = _userManager ? _userManager->autoSaveInfo() : UserManager::GameSaveInfo{};
-	_wasVsComputer = true;
-	beginGame(false);
-	_gameDate = info.startDate; // maybe an earlier day; invalid in older autosaves
-	_resultRecorded = info.resultRecorded; // mated, undone and left: the mate counted already
-	// The robot plays the game's own level; lastLevel may have changed since (another profile).
-	if (info.computerLevel > 0 && info.computerLevel != _config.lastLevel) {
-		_config.lastLevel = info.computerLevel;
-		emit lastLevelChanged();
+	const bool robot = rec->kind == QLatin1String("computer");
+	_startTiming.begin(robot ? QStringLiteral("continue vs Robot") : QStringLiteral("continue two players"));
+
+	QString opponentName = rec->opponentName.isEmpty() ? (robot ? QStringLiteral("Robot") : QStringLiteral("Guest")) : rec->opponentName;
+	QString opponentId;
+	if (!robot && !rec->opponentUserId.isEmpty() && _userManager) {
+		for (const auto& u : _userManager->users()) {
+			const auto user = u.toMap();
+			if (user.value(QStringLiteral("id")).toString() == rec->opponentUserId) {
+				opponentName = user.value(QStringLiteral("name")).toString();
+				opponentId = rec->opponentUserId;
+			}
+		}
 	}
 
-	_config.playerPlaysWhite = info.playerPlaysWhite;
+	resetMoveHistoryCache();
+	_wasVsComputer = robot;
+	beginGame(false);
+	_recordId = rec->id;
+	_recordStarted = rec->startedAt;
+	_undoCount = rec->undoCount;
+	_forkOfId = rec->forkOfId;
+	_forkPly = rec->forkPly;
+	_gameDate = rec->startedAt.date();
+	_resultRecorded = rec->resultRecorded; // mated, undone and left: the mate counted already
+	if (robot && rec->level > 0 && rec->level != _config.lastLevel) {
+		_config.lastLevel = rec->level;
+		emit lastLevelChanged();
+	}
+	_config.playerPlaysWhite = rec->playerPlaysWhite;
 	emit playerPlaysWhiteChanged();
-
 	if (_avatarProvider)
-		_avatarProvider->restore(info.playerAvatarName, info.opponentAvatarName, true);
+		_avatarProvider->restore(rec->playerAvatar, rec->opponentAvatar, robot);
 
 	stopEngineThread();
 	_startTiming.step("stop engine");
 	_promotionPending = false;
-	_game->Load(autoSavePath().toStdString());
-	{
-		_resuming = true;
-		const auto resumed = qScopeGuard([this] { _resuming = false; });
-		_game->ResumeFromLoad();
-	}
+	_player = nullptr;
+	_reviewIndex = -1;
+	_game->Restart();
+	replayMoves(rec->moves);
 	_gameOver = false;
+	if (!_gameResult.isEmpty()) setResult({}, {});
 
-	// The times as they were left, paused until the page is open (pageOpened). Unlike on Lichess a
-	// local game can be left.
-	_clockLimitSec = info.clockLimitSec;
-	_clockIncSec = info.clockIncSec;
+	_clockLimitSec = rec->clockLimitSec;
+	_clockIncSec = rec->clockIncSec;
 	startClock();
 	if (_clock->enabled()) {
 		_clock->pause();
-		_clock->setSnapshot(info.whiteMs, info.blackMs, _game->IsWhiteMove(), _game->GetMoveCount() >= 2);
+		_clock->setSnapshot(rec->whiteMs, rec->blackMs, _game->IsWhiteMove(), _game->GetMoveCount() >= 2);
 	}
 
-	deleteAutoSave();
 	buildFullHistoryCache();
 	_startTiming.step("load");
-	emit canContinueChanged();
 	EmitMoveCountUpdates();
+	emit IsOnPlayerModeChanged();
 
-	_engineAutoPlay = true;
-	startEngineThread(Chess::EngineLevel(_config.lastLevel));
-	if (_game->IsWhiteMove() != _config.playerPlaysWhite && !_promotionPending) {
-		askEngineMove();
+	if (robot) {
+		_engineAutoPlay = true;
+		startEngineThread(Chess::EngineLevel(_config.lastLevel));
+		if (_game->IsWhiteMove() != _config.playerPlaysWhite && !_promotionPending)
+			askEngineMove();
+		_startTiming.step("start engine");
 	}
-	_startTiming.step("start engine");
-	setGameMode(QStringLiteral("computer"), opponentNameOf(info));
+	setGameMode(robot ? QStringLiteral("computer") : QStringLiteral("local"), opponentName, opponentId);
 	return true;
 }
 
-// An autosave of a two-player or Lichess game (kept by older versions) is not offered.
-bool ChessConnector::hasAutoSave() const
+// A kept game as a replay: the board at the start position, then its moves one by one (HistoryPlayer).
+bool ChessConnector::openGame(const QString& gameId)
 {
-	return fileExists(autoSavePath()) && (!_userManager || _userManager->autoSaveInfo().isSinglePlayer);
-}
-
-bool ChessConnector::canContinue() const
-{
-	return hasAutoSave() && !continueGameInfo().isEmpty(); // readable too
-}
-
-bool ChessConnector::canAutoSave()
-{
-	return _wasVsComputer && _onlineGameId.isEmpty() && !_player && !_gameOver && _game->GetMoveCount() > 0;
-}
-
-bool ChessConnector::canLoad() const
-{
-	return fileExists(savedGamePath());
-}
-
-void ChessConnector::autoSaveGame()
-{
-	_game->Save(autoSavePath().toStdString());
-	if (_userManager) {
-		UserManager::GameSaveInfo info;
-		info.isSinglePlayer = true;
-		info.playerPlaysWhite = _config.playerPlaysWhite;
-		info.opponentName = _opponentName;
-		info.opponentUserId = _opponentUserId;
-		info.computerLevel = _config.lastLevel;
-		info.resultRecorded = _resultRecorded;
-		info.startDate = _gameDate;
-		if (_clock->enabled()) {
-			info.clockLimitSec = _clockLimitSec;
-			info.clockIncSec = _clockIncSec;
-			info.whiteMs = _clock->remainingMs(true);
-			info.blackMs = _clock->remainingMs(false);
-		}
-		if (_avatarProvider) {
-			info.playerAvatarName = _avatarProvider->playerRawName();
-			info.opponentAvatarName = _avatarProvider->opponentRawName();
-		}
-		_userManager->setAutoSaveInfo(info);
+	const auto rec = _library ? _library->find(gameId) : std::nullopt;
+	if (!rec || rec->moves.isEmpty())
+		return false;
+	_startTiming.begin(QStringLiteral("open a kept game"));
+	_gate->clear();
+	cancelPremove();
+	_clock->stop();
+	stopEngineThread();
+	resetMoveHistoryCache();
+	_config.playerPlaysWhite = rec->playerPlaysWhite;
+	emit playerPlaysWhiteChanged();
+	if (_avatarProvider)
+		_avatarProvider->restore(rec->playerAvatar, rec->opponentAvatar, rec->kind == QLatin1String("computer"));
+	_promotionPending = false;
+	_player = nullptr;
+	std::vector<std::string> uci;
+	for (const auto& m : rec->moves)
+		uci.push_back(m.toStdString());
+	try {
+		_resuming = true;
+		_loadingRecord = true;
+		const auto done = qScopeGuard([this] { _resuming = false; _loadingRecord = false; });
+		_game->LoadMoves(uci);
 	}
-}
-
-void ChessConnector::deleteAutoSave()
-{
-	QFile::remove(autoSavePath());
-	if (_userManager) _userManager->clearAutoSaveInfo();
+	catch (const std::exception& ex) {
+		qWarning() << "openGame: the kept moves can't be played:" << ex.what();
+		_game->Restart();
+		return false;
+	}
+	_player = _game->MakePlayer();
+	_gameDate = rec->startedAt.date();
+	_replayResult = rec->result;
+	_recordId = rec->id;
+	_gameOver = false;
+	_reviewIndex = -1;
+	setFlaggedKing(-1);
+	if (!_gameResult.isEmpty()) setResult({}, {});
+	buildFullHistoryCache();
+	_startTiming.step("load");
+	emit IsOnPlayerModeChanged();
+	EmitMoveCountUpdates();
+	setGameMode(QStringLiteral("replay"), rec->opponentName, rec->opponentUserId);
+	return true;
 }
 
 ChessConnector::~ChessConnector()
 {
-	if (canAutoSave()) // closing the app during a game vs the robot: Continue offers it next time
-		autoSaveGame();
+	keepGameOnLeave(); // closing the app during a local game: Continue offers it next time
 
 	stopEngineThread();
 	waitForStoppedEngines();

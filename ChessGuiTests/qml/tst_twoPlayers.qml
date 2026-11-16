@@ -64,43 +64,41 @@ TestCase {
         compare(app.item("ply1").san, "e4")
     }
 
-    // Leaving a two-player game with unsaved moves asks first (the BL-04 hand test): Esc and Stay keep
-    // the game, Save and leave saves it; a game without moves, or saved since its last move, doesn't ask.
-    function test_3_leaveAsksWhenUnsaved() {
-        const dialog = app.item("leaveLocalConfirm")
-        compare(ChessConnector.MoveCount, 1, "e4 from test 2, not saved")
+    // Leaving a two-player game keeps it (BL-19): Esc goes Home at once, the game is in the library
+    // and Continue brings it back as it was; a game without moves isn't kept.
+    function test_3_leavingKeepsTheGame() {
+        compare(ChessConnector.MoveCount, 1, "e4 from test 2")
         app.laidOut()
         keyClick(Qt.Key_Escape)
-        tryVerify(() => dialog.opened, 3000, "Esc: \"Leave without saving?\"")
-        keyClick(Qt.Key_Escape)   // Stay
-        app.waitClosed(dialog)
-        compare(app.pageName(), "game", "still in the game")
-        compare(ChessConnector.MoveCount, 1)
-
-        app.click("homeButton")
-        tryVerify(() => dialog.opened, 3000, "Home: \"Leave without saving?\"")
-        keyClick(Qt.Key_Return)   // the default: Save and leave
         app.waitForPage("home", 5000)
-        app.waitClosed(dialog)
-        compare(ChessConnector.CanLoad, true, "the game saved")
+        compare(GameLibrary.count, 2, "the game kept (with test 1's finished one)")
+        compare(GameLibrary.unfinishedCount, 1, "unfinished")
+        compare(GameLibrary.games[1].finished, true, "the Fool's mate of test 1, finished")
+        compare(GameLibrary.games[1].result, "0-1")
+        const kept = GameLibrary.games[0]
+        compare(kept.kind, "local")
+        compare(kept.plyCount, 1)
+        compare(kept.lastMove, "e2e4")
+        compare(kept.opponentName, "Guest")
+        verify(app.item("continueCard").visible, "Continue offers it")
 
-        // A new game without moves: Home at once.
+        // A new game without moves: not kept.
         app.startTwoPlayerGame()
-        verify(!ChessConnector.leaveLosesGame(), "no moves yet")
         app.click("homeButton")
         app.waitForPage("home", 5000)
-        verify(!dialog.visible, "nothing asked")
+        compare(GameLibrary.count, 2, "nothing new")
 
-        // A move, then Save game: Home at once.
-        app.startTwoPlayerGame()
-        app.clickMove("d2", "d4")
-        tryCompare(ChessConnector, "MoveCount", 1, 3000, "d4")
-        verify(ChessConnector.leaveLosesGame(), "d4 not saved")
-        app.click("saveButton")
-        app.waitMessage("Game saved")
-        verify(!ChessConnector.leaveLosesGame(), "saved")
-        app.click("homeButton")
-        app.waitForPage("home", 5000)
-        verify(!dialog.visible, "nothing asked")
+        // Continue: the position as it was, Black to move; then it goes on.
+        app.click("continueCard")
+        app.waitForPage("game", 10000)
+        tryCompare(ChessConnector, "MoveCount", 1, 3000)
+        compare(ChessConnector.GameMode, "local")
+        app.waitBoardIdle()
+        compare(app.pieceAt("e4").toUpperCase(), "P", "the pawn on e4")
+        tryCompare(ChessConnector, "MovableColor", 2, 2000, "Black to move")
+        app.clickMove("e7", "e5")
+        tryCompare(ChessConnector, "MoveCount", 2, 3000, "e5")
+        compare(GameLibrary.games[0].plyCount, 2, "the record follows the game")
+        compare(GameLibrary.count, 2, "the same record, not a new one")
     }
 }

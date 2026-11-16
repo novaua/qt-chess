@@ -2,34 +2,29 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import ChessPlusPlus
+import "games.js" as Games
 
-// Every unfinished game (BL-17), from Home's Continue when there are two or more: the robot's
-// autosaved game first (upper left), then the Lichess games, most urgent first (as on the Online
-// page). Pushed over Home; Back pops it. A game that starts replaces it by the game page
-// (ChessGame.qml route()); a rejoin that fails says so over the command bar (gameStartFailed).
+// Every unfinished game (BL-17), from Home's Continue when there are two or more: the local games
+// first (the games library, BL-19: vs the robot and two players, newest first), then the Lichess
+// games, most urgent first (as on the Online page). Pushed over Home; Back pops it. A game that
+// starts replaces it by the game page (ChessGame.qml route()); a rejoin that fails says so over the
+// command bar (gameStartFailed).
 Page {
     id: page
     objectName: "games"
 
     signal backRequested()
 
-    readonly property bool _hasRobot: ChessConnector.CanContinue
-    readonly property var _robot: ChessConnector.ContinueGame   // {} without one
+    readonly property var _local: GameLibrary.unfinishedGames
     readonly property var _games: UserManager.lichessConnected ? LichessClient.ongoingGames : []
-    readonly property int _count: (_hasRobot ? 1 : 0) + _games.length
-    readonly property int _myTurnCount: (_hasRobot && _robot.playerToMove ? 1 : 0) + _games.filter(g => g.isMyTurn).length
+    readonly property int _count: _local.length + _games.length
+    readonly property int _myTurnCount: _local.filter(g => g.playerToMove).length + _games.filter(g => g.isMyTurn).length
     readonly property var _levels: ChessConnector.Levels
 
     // Pushed, or shown again: a fresh list (an opponent may have moved or ended a game).
     StackView.onActivated: refreshRow.refresh()
     // Back while a rejoin is under way: dropped, so no game starts unexpectedly.
     StackView.onRemoved: ChessConnector.cancelOnlineStart()
-
-    function _robotDetails() {
-        const level = _levels.find(l => l.level === _robot.level)
-        return "Level " + _robot.level + (level ? " · " + level.name : "")
-               + " · you play " + (_robot.playerPlaysWhite ? "White" : "Black")
-    }
 
     background: Rectangle { color: Theme.windowBg }
 
@@ -82,20 +77,24 @@ Page {
                 rowSpacing: Theme.s3
                 Layout.fillWidth: true
 
-                // The robot's game: the board as it was left, from the player's side.
-                GameCard {
-                    objectName: "robotGameCard"
-                    visible: page._hasRobot
-                    Layout.preferredWidth: grid.cardWidth
-                    fen: page._robot.fen ?? ""
-                    flipped: page._hasRobot && !page._robot.playerPlaysWhite
-                    lastMove: page._robot.lastMove ?? ""
-                    title: "Robot"
-                    playerToMove: page._hasRobot && page._robot.playerToMove
-                    waitingText: "Robot's turn"
-                    details: page._hasRobot ? page._robotDetails() : ""
-                    busy: ChessConnector.StartingOnlineGame
-                    onActivated: ChessConnector.continueGame()
+                // The local games: the board as it was left, from the player's side.
+                Repeater {
+                    model: page._local
+                    delegate: GameCard {
+                        required property var modelData
+                        required property int index
+                        objectName: "localGameCard_" + index
+                        Layout.preferredWidth: grid.cardWidth
+                        fen: modelData.fen
+                        flipped: !modelData.playerPlaysWhite
+                        lastMove: modelData.lastMove
+                        title: Games.title(modelData, page._levels)
+                        playerToMove: modelData.kind === "computer" && modelData.playerToMove
+                        waitingText: Games.turnWord(modelData)
+                        details: Games.details(modelData)
+                        busy: ChessConnector.StartingOnlineGame
+                        onActivated: ChessConnector.continueGame(modelData.id)
+                    }
                 }
 
                 Repeater {

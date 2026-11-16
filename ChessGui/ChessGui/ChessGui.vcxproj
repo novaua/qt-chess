@@ -363,6 +363,7 @@
     <ClCompile Include="layoutgate.cpp" />
     <ClCompile Include="sceneinput.cpp" />
     <ClCompile Include="gameclock.cpp" />
+    <ClCompile Include="gamelibrary.cpp" />
     <ClCompile Include="applog.cpp" />
     <ClCompile Include="engineworker.cpp" />
     <ClCompile Include="main.cpp" />
@@ -385,6 +386,7 @@
     <QtMoc Include="layoutgate.h" />
     <QtMoc Include="sceneinput.h" />
     <QtMoc Include="gameclock.h" />
+    <QtMoc Include="gamelibrary.h" />
     <ClInclude Include="applog.h" />
     <QtMoc Include="engineworker.h" />
     <ClInclude Include="..\..\ChessCore\stdafx.h" />

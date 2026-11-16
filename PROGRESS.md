@@ -4,6 +4,27 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-16 — BL-19 steps 1–2: the games library's backend and first UI (branch: features/gamesLibraryBackend_131126)
+
+Plan: `docs/BL-19-GamesLibraryPlan.md` (the owner's decisions of 2026-11-13).
+
+### Done
+- **`GameRecord` / `GameLibrary`** (`gamelibrary.h/cpp`, QML singleton): every local game (vs the robot, two players) kept from its first move in `users/<id>/games.json`, newest first; follows the active profile; the last 100 finished games kept, unfinished ones never removed on their own; a damaged file is kept aside; the old `chess.save` / `chess.autosave` migrated once, then cleared. `ChessQtTests/GameLibraryTest.cpp` (13 tests); export/import carries `games.json`.
+- **`ChessConnector`** writes the record with every move, takeback, result and when the game is left; `continueGame(id)` (the robot at its level or two players, the clock as left), `openGame(id)` (a replay). The Save button, "Open saved game", the autosave slot and the "Leave without saving?" dialog (#161) are gone: leaving a local game never asks.
+- **QML**: Home's **Games** card (Ctrl+O) → `GamesPage` (Open / Continue / Delete, `games.js`); the Continue list shows every unfinished local game before the Lichess ones; `GameCard` for a kept game.
+- UI tests adjusted (`tst_twoPlayers` test 3 now: leaving keeps the game, Continue has it; `tst_board`, `tst_profiles`, `tst_restart`, `tst_robot`, `AppDriver`).
+
+### Checked
+- Debug build clean; ChessTests 142/142, ChessQtTests 234/234; UI tests 8 files, 0 failed (120 s).
+- Screenshots `-Scene all` (Debug) against the baselines: the changes are the expected ones (Home's Games card for "Open saved game", the cards' new subtitles, About's build date). Settings' shortcut list still said "Ctrl+O Open the saved game" / "Ctrl+S Save the game": now "Your games (Home)" / "Export the game as PGN".
+- **Not this branch:** the Lichess scenes at 640x560 (`opponent-left-turn`, `messages`, `draw-offer`) time out waiting for `boardIdle`, on `develop` too (checked in a worktree, Debug); `draw-offer@640x560` passed once in the full run, so it is timing.
+
+### Next
+- BL-19 step 3 on its own branch: library UI polish (filters, Export PGN per card, PGN tags, Settings "Games kept", scenes `games*` + baselines, `tst_games.qml`). Then the owner's hand tests (plan §5).
+- The Lichess scenes at 640x560 that never see the board idle (above): find why, separately.
+
+---
+
 ## 2026-11-12 — BL-04 hand test and its two fixes (branch: bugs/bl04HandTestFixes_121126)
 
 The owner ran BL-04's hand test (plan §5 rows 2, 3, 7, 11–14; results in `TASKS.md`). Two findings, both fixed:

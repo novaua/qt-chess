@@ -37,9 +37,9 @@ Item {
             else                      UserManager.createUser("Tester", "wizard")
         }
         // A second profile to play against: same names and avatars every time.
-        var gameScene = ["game", "leave-online", "leave-local", "drag-off", "continue", "continue-list", "continue-list-robot", "continue-list-starting", "review", "result", "ended", "moves", "select", "drag", "slides",
+        var gameScene = ["game", "leave-online", "drag-off", "continue", "continue-list", "continue-list-robot", "continue-list-starting", "review", "result", "ended", "moves", "select", "drag", "slides",
                          "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate",
-                         "captures", "check", "saved", "more-menu"].includes(name)
+                         "captures", "check", "more-menu"].includes(name)
         if ((gameScene || name.startsWith("players")) && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -77,7 +77,7 @@ Item {
             ChessConnector.startComputerGame(5, 1)   // the robot starts on move 1 ...
             ChessConnector.applyMoves(shot.moves || "e2e4 f7f6 d2d4 g7g5")
             ChessConnector.endGame()                  // ... and that answer is dropped
-            ChessConnector.continueGame()
+            ChessConnector.continueGame(GameLibrary.unfinishedGames[0].id)
         }
         if (name === "timing") {
             // BL-11 measurement, not a screenshot (not in all; run with -KeepLog and read the
@@ -116,7 +116,7 @@ Item {
             var middlegame = "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 c1d2 c7c6 "
                            + "c3d5 a5d8 d5f6 d8f6 d1e2 f5c2"
             var defaultMoves = ({ continue: "e2e4 e7e5", "continue-list": "e2e4 e7e5", "continue-list-robot": "e2e4 e7e5", "continue-list-starting": "e2e4 e7e5", review: middlegame, moves: middlegame, select: "e2e4 e7e5", drag: "e2e4 e7e5",
-                                  slides: "e2e4 e7e5", "leave-online": "e2e4 e7e5", "leave-local": "e2e4 e7e5", "drag-off": "e2e4 e7e5",
+                                  slides: "e2e4 e7e5", "leave-online": "e2e4 e7e5", "drag-off": "e2e4 e7e5",
                                   result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4",
                                   clock: "e2e4 e7e5 g1f3", "clock-low": "e2e4 e7e5 g1f3", "clock-flag": "e2e4 e7e5",
                                   "clock-continue": "e2e4 e7e5", "clock-promotion": "a2a4 b7b5 a4b5 a7a6 b5a6 c8b7 a6b7 d8c8",
@@ -150,7 +150,7 @@ Item {
             if (robot)
                 ChessConnector.endGame()   // autosaved: Home offers to continue it
             if (name === "clock-continue")
-                ChessConnector.continueGame()
+                ChessConnector.continueGame(GameLibrary.unfinishedGames[0].id)
             if (name === "stalemate")
                 ChessConnector.movePiece(58, 44)   // Qe6: played like the player's move, so the game sees it
             if (name === "clock-promotion") {
@@ -165,14 +165,10 @@ Item {
                 pages.currentItem._resultCardClosed = true   // Rematch / New game in the moves panel
             if (name === "leave-online")
                 dialogs.leaveOnline.open()   // the dialog only: an online game needs Lichess
-            if (name === "saved")
-                ChessConnector.saveGame()   // "Game saved" over the command bar, centred on the board
             if (name === "more-menu")
                 pages.currentItem.openMoreMenu()   // made on its first opening (BL-11)
             if (name === "select")
                 ChessConnector.figureSelected(6)   // the g1 knight: tinted square, dots on its moves
-            if (name === "leave-local")
-                window.leaveGame()   // a two-player game with unsaved moves: "Leave without saving?"
             if (name === "drag-off") {
                 // The g1 knight dragged off the board, over the bottom player card: over it, not under.
                 ChessConnector.figureSelected(6)
@@ -332,7 +328,7 @@ Item {
             // The player's 1. e4, and leaving before the robot answers (its answer is dropped): the
             // same autosave every run, the robot to move when it is continued.
             case 1: ChessConnector.movePiece(12, 28); ChessConnector.endGame(); break
-            case 2: ChessConnector.continueGame(); break
+            case 2: ChessConnector.continueGame(GameLibrary.unfinishedGames[0].id); break
             case 3: ChessConnector.endGame(); break
             case 4: ChessConnector.startLocalGame(true, bob ? bob.id : ""); break
             case 5: ChessConnector.endGame(); break

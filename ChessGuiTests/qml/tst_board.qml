@@ -72,17 +72,21 @@ TestCase {
         compare(ChessConnector.MovableColor, 2, "Black to move")
     }
 
-    // Save, Home, "Open saved game": a replay of the three moves, from the start position; the ›
-    // button steps through them to the saved position (in check).
-    function test_4_saveAndReplay() {
-        app.click("saveButton")
-        app.waitMessage("Game saved")
-        tryCompare(ChessConnector, "CanLoad", true, 2000)
-
+    // Home, then Games (BL-19): the game is kept, unfinished, with its three moves; Open from its card
+    // is a replay from the start position, and the › button steps through them to the kept position (in check).
+    function test_4_keptGameReplay() {
         app.leaveToHome()
-        app.click("openSavedCard")
+        compare(GameLibrary.count, 1, "the game kept")
+        compare(GameLibrary.unfinishedCount, 1, "unfinished")
+        compare(GameLibrary.games[0].plyCount, 3)
+        app.click("gamesCard")
+        app.waitForPage("library", 5000)
+        tryVerify(() => app.find("gameCard_0") !== null, 3000, "its card")
+        compare(app.item("gameCard_0").actionText, "Continue", "unfinished: Continue")
+        // A replay of an unfinished game: the connector's openGame, as the Games page offers for a finished one.
+        verify(ChessConnector.openGame(GameLibrary.games[0].id))
         app.waitForPage("game", 10000)
-        tryCompare(ChessConnector, "PlyCount", 3, 3000, "the saved moves in the list")
+        tryCompare(ChessConnector, "PlyCount", 3, 3000, "the kept moves in the list")
         compare(ChessConnector.ShownPly, 0, "the replay starts at the start position")
         app.waitPiece("e2", "P")
         app.waitPiece("d1", "Q")

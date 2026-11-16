@@ -151,15 +151,9 @@ QtObject {
                        "the message \"" + text + "\" (shown: \"" + (bar.showing ? bar.text : "") + "\")")
     }
 
-    // From a game (two players, the robot): the Home button, then Home. A two-player game with unsaved
-    // moves asks first ("Leave without saving?"): Leave (its second action; Save and leave is the default).
+    // From a game (two players, the robot): the Home button, then Home. The game is kept as it is (BL-19).
     function leaveToHome() {
-        const asks = ChessConnector.leaveLosesGame()
         click("homeButton")
-        if (asks) {
-            clickIn("leaveLocalConfirm", "actionButton")
-            waitClosed(item("leaveLocalConfirm"))
-        }
         waitForPage("home", 5000)
     }
 

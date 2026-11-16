@@ -2,6 +2,7 @@
 #define CHESSCONNECTOR_H
 
 #include <QDate>
+#include <QDateTime>
 #include <QObject>
 #include <QStringList>
 #include <QUrl>
@@ -26,6 +27,7 @@
 #include "AvatarProvider.h"
 #include "UserManager.h"
 #include "LichessClient.h"
+#include "gamelibrary.h"
 
 class ChessConnector : public QObject
 {
@@ -45,8 +47,6 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool PremoveDots READ premoveDots NOTIFY PossibleMovesChanged) // the dots are where a premove may go
 		Q_PROPERTY(int IsWhiteMove READ IsWhiteMove NOTIFY IsWhiteMoveChanged)
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
-		Q_PROPERTY(bool CanContinue READ canContinue NOTIFY canContinueChanged)
-		Q_PROPERTY(bool CanLoad READ canLoad NOTIFY canLoadChanged)
 		Q_PROPERTY(int LastLevel    READ lastLevel    NOTIFY lastLevelChanged)
 		Q_PROPERTY(QVariantList Levels READ levels CONSTANT)
 		Q_PROPERTY(int LastMoveFrom READ lastMoveFrom NOTIFY lastMoveChanged)
@@ -72,7 +72,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool CanRematch    READ canRematch    NOTIFY canRematchChanged)
 		Q_PROPERTY(int  FlaggedKing   READ flaggedKing   NOTIFY flaggedKingChanged) // square of a king that resigned / lost on time, or -1
 		Q_PROPERTY(int  CheckedKing   READ checkedKing   NOTIFY lastMoveChanged)    // square of the king in check on the board, or -1
-		// The game on screen: "" (none: Home), "computer", "local" (two players), "replay" (saved game), "online"
+		// The game on screen: "" (none: Home), "computer", "local" (two players), "replay" (a kept game, BL-19), "online"
 		Q_PROPERTY(bool    InGame    READ inGame    NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString GameMode  READ gameMode  NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString GameTitle READ gameTitle NOTIFY gameInfoChanged) // e.g. "vs Robot · Level 3", "Alice vs Bob"
@@ -90,10 +90,6 @@ class ChessConnector : public QObject
 		// CanClaimVictory: now, and on the opponent's turn, the only time Lichess takes the claim (ClaimWin).
 		Q_PROPERTY(int  ClaimWinSeconds READ claimWinSeconds NOTIFY claimWinSecondsChanged)
 		Q_PROPERTY(bool CanClaimVictory READ canClaimVictory NOTIFY canClaimVictoryChanged)
-		Q_PROPERTY(QString ContinueDescription READ continueDescription NOTIFY canContinueChanged) // the autosaved game, e.g. "vs Bob"
-		// BL-17: the autosaved robot game for its card in the Continue list: { level, playerPlaysWhite,
-		// playerToMove, fen, lastMove (UCI) }; empty without one (CanContinue false).
-		Q_PROPERTY(QVariantMap ContinueGame READ continueGameInfo NOTIFY canContinueChanged)
 		// BL-17: an unfinished Lichess game is being rejoined (continueOnlineGame) until its game
 		// starts, it fails (gameStartFailed) or it is dropped (cancelOnlineStart, another profile).
 		Q_PROPERTY(bool StartingOnlineGame READ startingOnlineGame NOTIFY startingOnlineGameChanged)
@@ -112,13 +108,12 @@ public:
 	void setAvatarProvider(AvatarProvider* ap) { _avatarProvider = ap; }
 	void setUserManager(UserManager* um);
 	void setLichessClient(LichessClient* lc);
+	void setGameLibrary(GameLibrary* library); // BL-19: where the local games are kept
 	void setScreenshotScene(const QVariantMap& scene);
 
 	int MoveCount();
 	int IsWhiteMove();
 	int IsOnPlayerMode();
-	bool canContinue() const;
-	bool canLoad() const;
 	int lastLevel()        const { return _config.lastLevel; }
 	QVariantList levels()  const; // computer levels 1-5: { level, name, elo, eloEstimated, rating, hint }
 	int  lastMoveFrom()   const;
@@ -153,8 +148,6 @@ public:
 	bool    canAcceptChallenge() const { return !(isOnlineGame() && _gameResult.isEmpty() && _onlineRealTime); }
 	int     claimWinSeconds() const { return _claimWin->secondsLeft(); }
 	bool    canClaimVictory() const { return _claimWin->canClaim(); }
-	QString continueDescription() const;
-	QVariantMap continueGameInfo() const;
 	bool startingOnlineGame() const { return !startingGameId().isEmpty(); }
 	QString startingGameId() const { return _lichessClient ? _lichessClient->rejoiningGameId() : QString(); }
 	QString acceptingChallengeId() const { return _lichessClient ? _lichessClient->acceptingChallengeId() : QString(); }
@@ -181,10 +174,8 @@ signals:
 	void moveCountChanged();
 	void IsWhiteMoveChanged();
 	void IsOnPlayerModeChanged();
-	void canContinueChanged();
 	void startingOnlineGameChanged();
 	void gameStartFailed(QString message); // continueOnlineGame(): Lichess didn't give the game
-	void canLoadChanged();
 	void lastLevelChanged();
 
 	void checkNotify();
@@ -217,9 +208,6 @@ signals:
 	void pawnPromotionNotify(int index, int side);
 	void pawnPromotionCancelled(); // the time ran out while the piece was being chosen
 
-	void noSavedGame();
-	void savedOk();
-	void saveFailed();
 	void noMoreMovesNotify();
 	void pgnCopied();
 	void pgnExported(bool ok, const QString& path);
@@ -237,8 +225,13 @@ public slots:
 	// limitSec, incSec: the time control; 0 and 0: no clock.
 	Q_INVOKABLE void startComputerGame(int level, int side, int limitSec = 0, int incSec = 0); // side: 0 White, 1 Black, 2 Random
 	Q_INVOKABLE void startLocalGame(bool playerPlaysWhite, const QString& opponentUserId, int limitSec = 0, int incSec = 0); // "" = Guest
-	Q_INVOKABLE bool continueGame();
-	// BL-17: Home's Continue. The only unfinished game starts: the robot's autosave, or the one
+	// BL-19: a kept game (GameLibrary). continueGame: an unfinished one goes on, vs the robot at its
+	// level or between two players (the opponent's profile, or Guest when it is gone), with its clock
+	// as it was left. openGame: any kept game as a replay ("replay" mode: ‹ › step through its moves).
+	// False when there is no such game.
+	Q_INVOKABLE bool continueGame(const QString& gameId);
+	Q_INVOKABLE bool openGame(const QString& gameId);
+	// BL-17: Home's Continue. The only unfinished game starts: the one kept local game, or the one
 	// Lichess game (when it can be played here). False with none, two or more, or while the Lichess
 	// list is loading: the Continue list shows them then.
 	Q_INVOKABLE bool continueOnlyGame();
@@ -263,11 +256,7 @@ public slots:
 	Q_INVOKABLE void setMoveTiming(int slideMs);
 	// The gate: the page has settled, it shows the live position, and no move waits to be shown.
 	Q_INVOKABLE bool isBoardIdle() const;
-	// Leaving now loses moves: an unfinished two-player game with moves not saved since (Save game).
-	// Only the robot's games are autosaved; ChessGame.qml asks before it leaves such a game.
-	Q_INVOKABLE bool leaveLosesGame() const;
-
-	void endGame();              // leave the game for Home (autosaves an unfinished local game)
+	void endGame();              // leave the game for Home (an unfinished local game is kept as it is: Continue offers it)
 	// The leave warning's Resign: resign the Lichess game, then endGame() once Lichess has ended it
 	// (so the loss counts), or after a few seconds without an answer. A finished game: endGame().
 	Q_INVOKABLE void resignAndLeave();
@@ -277,9 +266,6 @@ public slots:
 	Q_INVOKABLE bool movePiece(int from, int to); // a drop: plays it if legal, else false (the piece goes back)
 	Q_INVOKABLE void cancelPremove(); // a right click or Esc: no premove, no premove dots
 	void pawnPromote(int index, const QString& piece);
-
-	bool saveGame(); // false: not written ("Couldn't save the game"), the moves still count as unsaved
-	bool loadGame();
 
 	void moveNext();
 	void movePrev();
@@ -341,8 +327,7 @@ private:
 	void dropRobotAnswer();    // on its way or waiting in the gate: nothing waits for it any more
 	QString sideName(bool white) const; // who plays that colour
 	QStringList capturedPieces(Chess::PieceColors capturedColor) const;
-	const Chess::MovesHistory& shownHistory() const; // the saved game in replay, else the game record
-	QString opponentNameOf(const UserManager::GameSaveInfo& info) const;
+	const Chess::MovesHistory& shownHistory() const; // the kept game in replay, else the game record
 	void makeMove(int from, int to, Chess::PieceTypes promoteTo = Chess::EMPTY); // EMPTY: the player picks the piece
 	bool canPlayerMove() const; // the player may move a piece now (not the robot's turn, not reviewing, ...)
 	bool canPremove() const;    // the player may pick a premove now: the robot's or the Lichess opponent's turn
@@ -383,11 +368,11 @@ private:
 	void askEngineMove(); // the robot's turn: start the engine on a copy of the moves
 	void beginGame(bool online); // resets per-game end state; online: rematch goes to Lichess
 	void setFlaggedKing(int square);
-	bool canAutoSave(); // an unfinished game vs the robot: the only kind Continue can resume
-	void autoSaveGame();
-	void deleteAutoSave();
-	QString autoSavePath()  const;
-	QString savedGamePath() const;
+	// BL-19: the game on the board into its record in the library (made at its first move, updated
+	// with every move, the result and when it is left); not for Lichess games or a replay.
+	void updateRecord();
+	void keepGameOnLeave(); // updateRecord() for a game being left: a promotion still being chosen doesn't stand
+	void replayMoves(const QStringList& uciMoves); // on the game, quietly (no check sounds), up to the first that can't be played
 
 private:
 	QStringList _possibleMoves;
@@ -424,7 +409,14 @@ private:
 	bool _promotionPending = false; // a pawn is on the last rank, waiting for pawnPromote()
 	std::optional<std::pair<QString, bool>> _listAfterPromotion; // Lichess's moves that came meanwhile (and moveRefused)
 	bool _gameOver = false;
-	int _savedPlies = 0; // the game's moves when it was last saved (Save game); 0 for a new game
+	GameLibrary* _library = nullptr;
+	QString   _recordId;      // the library record of the game on the board; "" until its first move (or in a replay: the game shown)
+	QDateTime _recordStarted; // when that game began (the record's startedAt)
+	int       _undoCount = 0; // takebacks in this game (the record's; such a game isn't rated)
+	QString   _forkOfId;      // Play from here: the game this one continues from (step 4)
+	int       _forkPly = 0;
+	QString   _replayResult;  // the kept game's result while it is replayed (the PGN's Result tag)
+	bool      _loadingRecord = false; // openGame replays the moves: the mate at their end isn't a game end now
 	bool _wasVsComputer = false;
 	bool _resuming = false; // Continue replays the saved moves: their checks were heard already
 	bool _lastGameOnline = false; // the current/last game is a Lichess game: rematch goes online
@@ -447,11 +439,8 @@ private:
 
 	MoveListModel* _moveList = nullptr;
 	std::vector<std::string> _sanCache; // SAN of shownHistory(), for the PGN
-	QDate _gameDate;                    // when the game started; invalid for a saved or continued game
+	QDate _gameDate;                    // when the game started (a kept game: its record's day)
 	QVariantMap  _screenshotScene;
-	bool hasAutoSave() const; // the file of a robot game; canContinue() also needs it readable
-	// continueGameInfo(), read from the autosave once (empty: unreadable); reset by canContinueChanged.
-	mutable std::optional<QVariantMap> _continueGameInfo;
 	QString _onlineStartUserId; // the profile that started continueOnlineGame(): another one drops it
 	void checkOnlineStart();    // the profile or its Lichess account changed: a rejoin of the other's is dropped
 };

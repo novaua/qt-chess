@@ -119,10 +119,13 @@
     <ClCompile Include="LichessChallengeTest.cpp" />
     <ClCompile Include="UciConnectorTest.cpp" />
     <ClCompile Include="UserManagerTest.cpp" />
+    <ClCompile Include="GameLibraryTest.cpp" />
     <!-- UserManager and what it needs, from the app (it has no library of its own) -->
     <ClCompile Include="..\ChessGui\ChessGui\AppConfig.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\AvatarProvider.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\UserManager.cpp" />
+    <!-- The games library (BL-19) -->
+    <ClCompile Include="..\ChessGui\ChessGui\gamelibrary.cpp" />
     <!-- The engine player and its thread worker -->
     <ClCompile Include="..\ChessGui\ChessGui\ChessEnginePlayer.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\engineworker.cpp" />
@@ -146,6 +149,7 @@
     <QtMoc Include="..\ChessGui\ChessGui\gameclock.h" />
     <QtMoc Include="..\ChessGui\ChessGui\engineworker.h" />
     <QtMoc Include="..\ChessGui\ChessGui\UserManager.h" />
+    <QtMoc Include="..\ChessGui\ChessGui\gamelibrary.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

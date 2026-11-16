@@ -155,6 +155,15 @@ namespace Chess
 		}
 	}
 
+	void Game::LoadMoves(const std::vector<std::string>& uciMoves)
+	{
+		Restart(_whiteFirst);
+		for (const auto& uci : uciMoves)
+			DoMove(Move::Parse(uci));
+		_loadedHistory = *_historyAptr;
+		Restart(_whiteFirst);
+	}
+
 	void Game::ResumeFromLoad()
 	{
 		{

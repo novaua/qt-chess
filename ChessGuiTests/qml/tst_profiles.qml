@@ -28,7 +28,7 @@ TestCase {
         app.addProfile("Alice")
         compare(UserManager.userCount, 2)
         compare(UserManager.activeUserName, "Alice")
-        compare(ChessConnector.CanContinue, false, "Alice has no game yet")
+        compare(GameLibrary.unfinishedCount, 0, "Alice has no game yet")
     }
 
     // Alice plays 1. e4 e5 vs the robot, then Switch user from the game's menu: it asks first
@@ -55,7 +55,7 @@ TestCase {
     function test_3_theOtherProfile() {
         app.pickProfile("Tester")
         compare(UserManager.activeUserName, "Tester")
-        compare(ChessConnector.CanContinue, false, "Alice's game isn't Tester's")
+        compare(GameLibrary.unfinishedCount, 0, "Alice's game isn't Tester's")
         verify(!app.item("continueCard").visible)
     }
 
@@ -64,7 +64,7 @@ TestCase {
         app.switchUserFromHome()
         app.pickProfile("Alice")
         compare(UserManager.activeUserName, "Alice")
-        tryCompare(ChessConnector, "CanContinue", true, 3000, "her game kept")
+        tryCompare(GameLibrary, "unfinishedCount", 1, 3000, "her game kept")
         TestRun.setEngine(line, 0)
         app.click("continueCard")
         app.waitForPage("game", 10000)

@@ -241,12 +241,6 @@ Page {
             onClicked: page.flipBoard()
         }
         IconButton {
-            visible: page.mode === "computer" || page.mode === "local"
-            objectName: "saveButton"
-            icon.source: Theme.icon("save"); tip: "Save game (Ctrl+S)"
-            onClicked: ChessConnector.saveGame()
-        }
-        IconButton {
             visible: page.mode === "online" && !page.gameOver
             enabled: ChessConnector.CanOfferDraw // Lichess allows one offer per 10 moves
             icon.source: Theme.icon("draw"); tip: "Offer draw"

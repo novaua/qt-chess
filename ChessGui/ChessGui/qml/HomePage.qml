@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import ChessPlusPlus
+import "games.js" as Games
 
 // Home: who is playing (account menu), Continue, and the ways to start a game. Each card opens a
 // setup dialog or starts right away; ChessGame.qml owns the dialogs and answers the signals.
@@ -13,6 +14,7 @@ Page {
     signal twoPlayerGameRequested()
     signal onlineGameRequested()
     signal continueRequested()      // BL-17: the one unfinished game, or the list of them all (ChessGame.continueGames)
+    signal gamesRequested()         // BL-19: the Games page (every kept local game)
     signal settingsRequested()
     signal profileRequested()
     signal switchUserRequested()
@@ -22,18 +24,19 @@ Page {
 
     readonly property var _levels: ChessConnector.Levels
 
-    // BL-17: every unfinished game, the robot's autosaved one and the Lichess ones (LI-04). Continue
-    // opens the only one directly, else the list of them all.
+    // BL-17: every unfinished game, the kept local ones (BL-19: vs the robot and two players) and the
+    // Lichess ones (LI-04). Continue opens the only one directly, else the list of them all.
     readonly property var _onlineGames: UserManager.lichessConnected ? LichessClient.ongoingGames : []
+    readonly property var _localGames: GameLibrary.unfinishedGames
     readonly property int _myTurnCount: _onlineGames.filter(g => g.isMyTurn).length
-    readonly property int _pendingCount: (ChessConnector.CanContinue ? 1 : 0) + _onlineGames.length
+    readonly property int _pendingCount: _localGames.length + _onlineGames.length
     readonly property string _continueText: {
         const n = _onlineGames.length
         const games = n + (n === 1 ? " Lichess game" : " Lichess games")
         const turn = _myTurnCount === 0 ? "waiting for " + (n === 1 ? "your opponent" : "your opponents")
                    : n === 1 ? "your turn" : "your turn in " + _myTurnCount
-        if (ChessConnector.CanContinue)
-            return ChessConnector.ContinueDescription + (n > 0 ? " · " + games + (_myTurnCount > 0 ? ", " + turn : "") : "")
+        if (_localGames.length > 0)
+            return Games.continueText(_localGames, _levels) + (n > 0 ? " · " + games + (_myTurnCount > 0 ? ", " + turn : "") : "")
         return n === 0 ? "" : games + " · " + turn
     }
 
@@ -147,11 +150,11 @@ Page {
                 visible: page._pendingCount > 0
                 // Busy only when it rejoins the game itself (the one game, on Lichess): with two or
                 // more it opens the list, whatever is starting elsewhere.
-                readonly property bool _rejoining: page.continueBusy && page._pendingCount === 1 && !ChessConnector.CanContinue
+                readonly property bool _rejoining: page.continueBusy && page._pendingCount === 1 && page._localGames.length === 0
                 enabled: !_rejoining
                 busy: _rejoining
                 text: page._pendingCount > 1 ? "Continue a game"
-                    : ChessConnector.CanContinue ? "Continue game" : "Continue online game"
+                    : page._localGames.length > 0 ? "Continue game" : "Continue online game"
                 description: _rejoining ? "Connecting to Lichess…" : page._continueText
                 icon.source: Theme.icon("play")
                 Layout.fillWidth: true
@@ -198,15 +201,18 @@ Page {
                     onClicked: page.onlineGameRequested()
                 }
                 HomeCard {
-                    objectName: "openSavedCard"
-                    text: "Open saved game"
+                    // BL-19: the games library; every local game is kept from its first move.
+                    objectName: "gamesCard"
+                    text: "Games"
                     shortcut: "Ctrl+O"
-                    description: ChessConnector.CanLoad ? "Replay the game you saved"
-                                                        : "No saved game yet: use Save during a game"
-                    dimmed: !ChessConnector.CanLoad
+                    description: GameLibrary.count === 0 ? "Your games are kept here as you play them"
+                               : GameLibrary.count + (GameLibrary.count === 1 ? " game" : " games")
+                                 + (GameLibrary.unfinishedCount > 0 ? " · " + GameLibrary.unfinishedCount + " unfinished" : "")
+                                 + " · replay or continue"
+                    dimmed: GameLibrary.count === 0
                     icon.source: Theme.icon("folder-open")
                     Layout.fillWidth: true; Layout.fillHeight: true; Layout.preferredWidth: 1
-                    onClicked: ChessConnector.loadGame()
+                    onClicked: page.gamesRequested()
                 }
             }
         }

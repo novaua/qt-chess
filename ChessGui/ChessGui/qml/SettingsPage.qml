@@ -362,14 +362,14 @@ Page {
                     Repeater {
                         model: [
                             ["Ctrl+N", "New game vs the computer; after a game, a new one like it"],
-                            ["Ctrl+O", "Open the saved game (Home)"],
+                            ["Ctrl+O", "Your games (Home)"],
                             ["Tab  Space", "Move between buttons and cards, and press one"],
                             ["Esc", "Back; in a game, close the move sheet or go Home"],
                             ["← →", "Previous or next move"],
                             ["Home  End", "First move or the live position"],
                             ["F", "Turn the board around"],
                             ["Ctrl+Z", "Take back a move"],
-                            ["Ctrl+S", "Save the game"],
+                            ["Ctrl+S", "Export the game as PGN"],
                             ["F1", "Computer levels"],
                             ["Ctrl+M", "Recent messages"],
                             ["Ctrl+,", "Settings"],

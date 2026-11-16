@@ -20,7 +20,8 @@
 
 static const QString kExportFormat = QStringLiteral("chessplusplus-profile");
 // The per-user files an export carries (AppConfig::autoSaveFilePath / savedGameFilePath).
-static const QStringList kProfileFiles = { QStringLiteral("chess.autosave"), QStringLiteral("chess.save") };
+// games.json is the games library (BL-19); the two binary saves are those of older exports, migrated on import.
+static const QStringList kProfileFiles = { QStringLiteral("games.json"), QStringLiteral("chess.autosave"), QStringLiteral("chess.save") };
 
 UserManager::UserManager(QObject* parent)
     : QObject(parent)
@@ -438,6 +439,14 @@ void UserManager::clearAutoSaveInfo()
     auto* u = activeUser();
     if (!u) return;
     u->autoSave = GameSaveInfo{};
+    save();
+}
+
+void UserManager::clearSavedGameInfo()
+{
+    auto* u = activeUser();
+    if (!u) return;
+    u->savedGame = GameSaveInfo{};
     save();
 }
 
