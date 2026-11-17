@@ -4,6 +4,15 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-17 — LI-01A Chess960 plan (branch: docs/li01aChess960Plan_171126)
+
+The owner split LI-01: **LI-01A Chess960** (local first: vs the robot and two players; then Lichess as stage 2) and **LI-01B Crazyhouse** (later). Plan: `docs/LI-01A-Chess960Plan.md`. The owner's choices: castling as on Lichess (king onto its rook, or onto its destination when that isn't an ordinary king move); 960 games not rated; a random position "Chess960 #N", Rematch keeps it.
+
+### Next
+- Stage 1 step 1: the rules in ChessCore (`StartPosition`, `Board::DoCastling`, castling for any set-up; 960 castling as king onto own rook, standard keeps `e1g1`), `ChessTests/Chess960Tests.cpp`.
+
+---
+
 ## 2026-11-17 — BL-19 follow-ups: best-move arrows, no fork of a game going on (branch: features/reviewBestMove_171126)
 
 The owner's two small asks on the game review:
