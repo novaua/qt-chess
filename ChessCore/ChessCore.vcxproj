@@ -155,6 +155,7 @@
     <ClInclude Include="BoardDiff.h" />
     <ClInclude Include="San.h" />
     <ClInclude Include="Serializer.h" />
+    <ClInclude Include="StartPosition.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
@@ -170,6 +171,7 @@
     <ClCompile Include="Piece.cpp" />
     <ClCompile Include="BoardDiff.cpp" />
     <ClCompile Include="San.cpp" />
+    <ClCompile Include="StartPosition.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

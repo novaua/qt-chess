@@ -3,6 +3,7 @@
 #include <ostream>
 #include <functional>
 #include "Piece.h"
+#include "StartPosition.h"
 
 namespace Chess {
 
@@ -42,7 +43,7 @@ namespace Chess {
 		Board();
 		~Board();
 
-		void Initialize();
+		void Initialize(const StartPosition& start = StartPosition());
 
 		const std::vector<PieceColors>& color() const
 		{
@@ -63,6 +64,10 @@ namespace Chess {
 
 		// Does non-empty Piece move without chess basic rules validation. However it does capturing check.
 		HistoryMove DoMove(const Move& move);
+		// Castling in one step (LI-01A): both pieces lifted, then both placed, so the king and the rook
+		// may swap squares or one of them stay. One snapshot: UndoLastMove() and BeforeLastMove() see
+		// the position before it. Also its takeback (the same squares the other way).
+		void DoCastling(BoardPosition kingFrom, BoardPosition kingTo, BoardPosition rookFrom, BoardPosition rookTo);
 		void UndoLastMove();
 
 		BoardAptr BeforeLastMove() const;

@@ -29,12 +29,13 @@ std::string Chess::FormatMoveSan(const HistoryMove& m,
 	auto piece = m.From.Piece;
 	const Board& boardBefore = *boardAfter.BeforeLastMove();
 
-	if (m.IsCastlingMove())
-		return ((int)toPos % 8 > (int)fromPos % 8) ? "O-O" : "O-O-O";
-
 	std::string result;
 
-	if (piece.Type == PAWN) {
+	if (m.IsCastlingMove()) {
+		// By the rook that castled, not the king's way: in Chess960 the king may not move at all.
+		result = m.Castling().Kingside ? "O-O" : "O-O-O";
+	}
+	else if (piece.Type == PAWN) {
 		bool isCapture = m.IsCapturingMove() || m.IsEnPassantMove();
 		result = isCapture
 			? std::string(1, BoardPositionToString(fromPos)[0]) + "x" + BoardPositionToString(toPos)

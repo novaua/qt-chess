@@ -8,7 +8,8 @@ using namespace Chess;
 
 bool HistoryMove::IsCapturingMove() const
 {
-	return (To.Piece.Type != EMPTY);
+	// A Chess960 castling's target is the mover's own rook: not a capture.
+	return To.Piece.Type != EMPTY && To.Piece.Color != From.Piece.Color;
 }
 
 bool HistoryMove::IsPawnPromotionMove() const
@@ -31,8 +32,33 @@ Piece HistoryMove::CapturedPiece() const {
 }
 
 bool HistoryMove::IsCastlingMove() const {
-	return From.Piece.Type == KING
-		&& std::abs((int)To.Position % 8 - (int)From.Position % 8) == 2;
+	if (From.Piece.Type != KING)
+		return false;
+	if (To.Piece.Type == ROOK && To.Piece.Color == From.Piece.Color)
+		return true; // Chess960: the king onto its own rook
+	return std::abs((int)To.Position % 8 - (int)From.Position % 8) == 2;
+}
+
+CastlingSquares HistoryMove::Castling() const {
+	assert(IsCastlingMove());
+	if (To.Piece.Type == ROOK && To.Piece.Color == From.Piece.Color)
+		return CastlingSquares::Of(From.Position, To.Position);
+	// Standard chess: the rook in the corner the king went towards.
+	const int rank = From.Position / 8;
+	const bool kingside = To.Position > From.Position;
+	return CastlingSquares::Of(From.Position, (BoardPosition)(rank * 8 + (kingside ? 7 : 0)));
+}
+
+CastlingSquares CastlingSquares::Of(BoardPosition kingFrom, BoardPosition rookFrom) {
+	const int rank = kingFrom / 8;
+	const bool kingside = rookFrom > kingFrom;
+	return {
+		kingFrom,
+		(BoardPosition)(rank * 8 + (kingside ? 6 : 2)),
+		rookFrom,
+		(BoardPosition)(rank * 8 + (kingside ? 5 : 3)),
+		kingside
+	};
 }
 
 Move HistoryMove::ToMove() const
@@ -231,11 +257,6 @@ bool MoveGeneration::IsValidCapturingMove(const Board& board, Move move, PieceCo
 
 std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState& gameState, BoardPosition pieceOffset, PieceColors side)
 {
-	if (gameState.History->empty())
-	{
-		return{};
-	}
-
 	std::vector<Move> result;
 
 	const Board& board = *gameState.Board;
@@ -245,14 +266,13 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState& gameSta
 	auto oppositeMoveDirection = oppositeSide == PieceColors::Dark ? -1 : 1;
 	auto imThePiece = board.At(pieceOffset);
 
-	auto attackCache = gameState.Cache->GetAttackMap(gameState.Board, oppositeSide);
-
-	// check if the last opposite side move was made by Peasant
-	auto lastMove = *history.crbegin();
-	if (imThePiece.Type == PAWN && lastMove.From.Piece.Type == PAWN && lastMove.From.Piece.Color == oppositeSide
-		&& lastMove.To.Position - lastMove.From.Position == 16 * oppositeMoveDirection)
+	// En passant: the last move was the other side's pawn two squares forward (none before the first
+	// move). Castling may come at once: Chess960's king and rook may start side by side (f1, g1).
+	const HistoryMove* lastMove = history.empty() ? nullptr : &history.back();
+	if (imThePiece.Type == PAWN && lastMove && lastMove->From.Piece.Type == PAWN && lastMove->From.Piece.Color == oppositeSide
+		&& lastMove->To.Position - lastMove->From.Position == 16 * oppositeMoveDirection)
 	{
-		auto peaceOneRankMove = lastMove.From.Position + 8 * oppositeMoveDirection;
+		auto peaceOneRankMove = lastMove->From.Position + 8 * oppositeMoveDirection;
 		assert(0 <= peaceOneRankMove && peaceOneRankMove < 64 && "Out of the board!");
 
 		// check if the previous rank field is under attack
@@ -261,66 +281,119 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState& gameSta
 			result.push_back({ pieceOffset, (BoardPosition)peaceOneRankMove, true });
 		}
 	}
-	else if (imThePiece.Type == KING && !IsEverMoved(imThePiece, history) && !IsUnderAttack(*attackCache, pieceOffset))
+	else if (imThePiece.Type == KING)
 	{
-		static const int rookOffsets[] = { -4, 3 };
-		static const int stepsDirection[] = { -1, 1 };
-
-		static const std::function<bool(int, int)> lessCheck[] =
+		// Castling (LI-01A, any set-up): the king and that side's rook haven't moved; every square the
+		// two pass or land on is free but for themselves; the king isn't in check and passes and lands
+		// on no attacked square. Whether the king is in check after it (a rook that shielded it moved
+		// away, Chess960) is the simulation's, ExcludeCheckMoves.
+		const int rank = side == PieceColors::Light ? 0 : 7;
+		const auto kingFrom = (BoardPosition)(rank * 8 + gameState.Start.KingFile());
+		BoardAttackMapAptr attacks;
+		for (bool kingside : { true, false })
 		{
-			{ [](int l, int r) {return r < l; } },
-			{ std::less<int>() }
-		};
+			if (pieceOffset != kingFrom || !HasCastlingRight(gameState, side, kingside))
+				continue;
+			const auto squares = CastlingSquares::Of(kingFrom, (BoardPosition)(rank * 8 + gameState.Start.RookFile(kingside)));
 
-		std::set<BoardPosition> allMovesToSet;
-		for (int i = 0; i < 2; ++i)
-		{
-			auto boardOpened = true;
-			for (int p = stepsDirection[i]; lessCheck[i](p, rookOffsets[i]); p += stepsDirection[i])
-			{
-				auto emptyOffset = pieceOffset + p;
-				if (board.color()[emptyOffset] != PieceColors::Empty)
-				{
-					boardOpened = false;
-				}
-			}
+			auto isFree = [&](int from, int to) {
+				for (int sq = std::min(from, to); sq <= std::max(from, to); ++sq)
+					if (sq != squares.KingFrom && sq != squares.RookFrom && board.At(sq).Type != EMPTY)
+						return false;
+				return true;
+			};
+			if (!isFree(squares.KingFrom, squares.KingTo) || !isFree(squares.RookFrom, squares.RookTo))
+				continue;
 
-			if (boardOpened)
-			{
-				auto pos = BoardPosition(pieceOffset + rookOffsets[i]);
-				auto rook = board.At(pos);
-				if (!IsEverMoved({ pos, rook }, history))
-				{
-					if (allMovesToSet.empty())
-					{
-						// ToDo: This does not include pawn moves
-						for (auto mv : GenerateAllBasicMoves(board, oppositeSide))
-						{
-							allMovesToSet.insert(mv.To);
-						}
-					}
+			if (!attacks)
+				attacks = gameState.Cache->GetAttackMap(gameState.Board, oppositeSide);
+			auto attacked = false;
+			for (int sq = std::min(squares.KingFrom, squares.KingTo); sq <= std::max(squares.KingFrom, squares.KingTo); ++sq)
+				attacked = attacked || IsUnderAttack(*attacks, (BoardPosition)sq);
+			if (attacked)
+				continue;
 
-					auto kingPathIsUnderAttack = false;
-					int notUnderAtack[] = { pieceOffset + stepsDirection[i], pieceOffset + 2 * stepsDirection[i] };
-					for (auto p : notUnderAtack)
-					{
-						if (allMovesToSet.find(BoardPosition(p)) != allMovesToSet.end())
-						{
-							kingPathIsUnderAttack = true;
-							break;
-						}
-					}
-
-					if (!kingPathIsUnderAttack)
-					{
-						result.push_back({ pieceOffset, BoardPosition(pieceOffset + 2 * stepsDirection[i]) });
-					}
-				}
-			}
+			// The game's form: Chess960 the king onto its rook, standard chess the king's own square.
+			result.push_back({ squares.KingFrom, gameState.Start.IsChess960() ? squares.RookFrom : squares.KingTo, false });
 		}
 	}
 
 	return result;
+}
+
+bool MoveGeneration::HasCastlingRight(const GameState& gameState, PieceColors side, bool kingside)
+{
+	const auto& start = gameState.Start;
+	const int rookFile = start.RookFile(kingside);
+	if (rookFile < 0)
+		return false;
+	const int rank = side == PieceColors::Light ? 0 : 7;
+	const auto kingSquare = (BoardPosition)(rank * 8 + start.KingFile());
+	const auto rookSquare = (BoardPosition)(rank * 8 + rookFile);
+	const Board& board = *gameState.Board;
+	if (!(board.At(kingSquare) == Piece{ KING, side }) || !(board.At(rookSquare) == Piece{ ROOK, side }))
+		return false;
+
+	for (const auto& move : *gameState.History)
+	{
+		if (move.From.Piece.IsEmpty())
+			continue; // a placeholder (FakeUci after a FEN), not a move
+		if (move.From.Piece == Piece{ KING, side })
+			return false;
+		if (move.From.Position == rookSquare || move.To.Position == rookSquare)
+			return false; // the rook moved, or was taken there
+	}
+	return true;
+}
+
+bool MoveGeneration::IsCastling(const GameState& gameState, const Move& move, CastlingSquares& squares)
+{
+	const Board& board = *gameState.Board;
+	const auto king = board.At(move.From);
+	if (king.Type != KING)
+		return false;
+
+	if (gameState.Start.IsChess960())
+	{
+		const auto target = board.At(move.To);
+		if (target.Type != ROOK || target.Color != king.Color)
+			return false;
+		squares = CastlingSquares::Of(move.From, move.To);
+		return true;
+	}
+
+	const int rank = move.From / 8;
+	if (move.From % 8 != gameState.Start.KingFile() || move.To / 8 != rank || std::abs(move.To % 8 - move.From % 8) != 2)
+		return false;
+	const bool kingside = move.To > move.From;
+	squares = CastlingSquares::Of(move.From, (BoardPosition)(rank * 8 + gameState.Start.RookFile(kingside)));
+	return true;
+}
+
+HistoryMove MoveGeneration::Play(const GameState& gameState, const Move& move, std::vector<BoardPosition>* changed)
+{
+	Board& board = *gameState.Board;
+	CastlingSquares castling;
+	if (IsCastling(gameState, move, castling))
+	{
+		auto historyMove = HistoryMove::FromMove(move, board.At(move.From), board.At(move.To));
+		board.DoCastling(castling.KingFrom, castling.KingTo, castling.RookFrom, castling.RookTo);
+		if (changed)
+			changed->insert(changed->end(), { castling.KingFrom, castling.RookFrom, castling.KingTo, castling.RookTo });
+		return historyMove;
+	}
+
+	if (changed)
+		changed->insert(changed->end(), { move.From, move.To });
+	Move complemental;
+	if (AddComplementalMove(board, move, complemental))
+	{
+		// En passant: the pawn taken moves onto the target square first (not in the history).
+		board.DoMove(complemental);
+		if (changed)
+			changed->insert(changed->end(), { complemental.From, complemental.To });
+	}
+	return board.DoMove(move);
 }
 
 std::vector<Move> MoveGeneration::GenerateMoves(const GameState& gameState, BoardPosition pieceOffset, PieceColors side)
@@ -347,7 +420,13 @@ void MoveGeneration::ExcludeCheckMoves(const GameState& gameState, std::vector<M
 
 	for (const auto& move : moves)
 	{
-		simBoard->DoMove(move);
+		// A castling with its rook (a rook that shielded the king may move away, Chess960); en passant
+		// as before, its taken pawn left on the board.
+		CastlingSquares castling;
+		if (IsCastling(simState, move, castling))
+			simBoard->DoCastling(castling.KingFrom, castling.KingTo, castling.RookFrom, castling.RookTo);
+		else
+			simBoard->DoMove(move);
 		if (!check.IsInCheck(side))
 		{
 			newMoves.push_back(move);
@@ -409,49 +488,6 @@ bool MoveGeneration::AddComplementalMove(const Board& board, const Move& move, M
 		//returning the other side pawn one step back
 		complemental = { pawnRemovePosition, move.To, false };
 		return true;
-	}
-
-	auto dt = move.From - move.To;
-	auto dtByModule = dt < 0 ? dt * -1 : dt;
-
-	if (!move.Capturing && pieceMovesFrom.Type == KING && dtByModule == 2)
-	{
-		// Castling
-		static int  rookMovesTable[] = { -4, 3, 3, -2 };
-		int ptr = (dt < 0) ? 2 : 0;
-
-		auto rookPos = (BoardPosition)(move.From + rookMovesTable[ptr++]);
-		auto rook = board.At(rookPos);
-		assert(rook.Type == ROOK && rook.Color == pieceMovesFrom.Color && "Rook and King are expected of the same side");
-
-		complemental = { rookPos, (BoardPosition)(rookPos + rookMovesTable[ptr]) };
-		return true;
-	}
-
-	return false;
-}
-
-bool MoveGeneration::IsEverMoved(const PositionPiece& positionPiece, const MovesHistory& history)
-{
-	for (auto move : history)
-	{
-		if (move.From.Piece == positionPiece.Piece && move.From.Position == positionPiece.Position)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool MoveGeneration::IsEverMoved(const Piece& piece, const MovesHistory& history)
-{
-	for (auto move : history)
-	{
-		if (move.From.Piece == piece)
-		{
-			return true;
-		}
 	}
 
 	return false;

@@ -17,6 +17,10 @@ namespace Chess
 		MovesHistoryAptr History;
 
 		BoardPositionsCacheAptr Cache;
+
+		// The set-up the game began with (LI-01A): where castling's king and rooks start, and in which
+		// form a castling is written (Chess960: the king onto its own rook).
+		StartPosition Start;
 	};
 
 	typedef std::shared_ptr<GameState> GameStateAptr;
@@ -46,13 +50,20 @@ namespace Chess
 		static void Validate(const GameState& gameState, Move& move, PieceColors side);
 		static void Validate(const GameState& gameState, const Move& move, PieceColors side);
 
-		static bool IsEverMoved(const PositionPiece& positionPiece, const MovesHistory& history);
-		static bool IsEverMoved(const Piece& piece, const MovesHistory& history);
-
 		static bool IsUnderAttack(const BoardAttackMap& attackCache, const BoardPosition& positionPiece);
 
-		//Translates En Passant and Castling moves to two physical move
+		// En passant as two physical moves: the pawn taken is first moved onto the target square.
 		static bool AddComplementalMove(const Board& board, const Move& move, Move& complemental);
+
+		// Castling (LI-01A). A side may still castle on that side while its king and that rook stand
+		// on their start squares, the king has never moved and no move went from or to the rook's square.
+		static bool HasCastlingRight(const GameState& gameState, PieceColors side, bool kingside);
+		// The move is a castling of this game (standard: the king from its start two files over;
+		// Chess960: the king onto its own rook): its squares in `squares`.
+		static bool IsCastling(const GameState& gameState, const Move& move, CastlingSquares& squares);
+		// A validated move played on the state's board, castling and en passant included (the history
+		// is the caller's). `changed`: the squares it changed.
+		static HistoryMove Play(const GameState& gameState, const Move& move, std::vector<BoardPosition>* changed = nullptr);
 
 		static std::vector<PositionPiece> GetPositionsOf(const Board& board, PieceTypes type, PieceColors side);
 	};

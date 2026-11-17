@@ -58,7 +58,7 @@ namespace Chess
 		return *_historyAptr;
 	}
 
-	void Game::Restart(bool whiteFirst)
+	void Game::Restart(bool whiteFirst, const StartPosition& start)
 	{
 		{
 			std::lock_guard<std::mutex> lg(_lock);
@@ -67,8 +67,9 @@ namespace Chess
 			_checkMate = false;
 			*_historyAptr = {};
 			_captured = {};
+			_gameState.Start = start;
 
-			_boardAptr->Initialize();
+			_boardAptr->Initialize(start);
 		};
 
 		NotifyFullBoardReinit();
@@ -76,7 +77,7 @@ namespace Chess
 
 	void Game::EndGame()
 	{
-		Restart(_whiteFirst);
+		Restart(_whiteFirst, _gameState.Start);
 	}
 
 	HistoryPlayerAptr Game::MakePlayer()
@@ -157,11 +158,12 @@ namespace Chess
 
 	void Game::LoadMoves(const std::vector<std::string>& uciMoves)
 	{
-		Restart(_whiteFirst);
+		const auto start = _gameState.Start;
+		Restart(_whiteFirst, start);
 		for (const auto& uci : uciMoves)
 			DoMove(Move::Parse(uci));
 		_loadedHistory = *_historyAptr;
-		Restart(_whiteFirst);
+		Restart(_whiteFirst, start);
 	}
 
 	void Game::ResumeFromLoad()
@@ -171,7 +173,7 @@ namespace Chess
 			_checkMate = false;
 			*_historyAptr = {};
 			_captured = {};
-			_boardAptr->Initialize();
+			_boardAptr->Initialize(_gameState.Start);
 		}
 		NotifyFullBoardReinit();
 
@@ -195,18 +197,9 @@ namespace Chess
 			move.PromotedTo.Color = side;
 		}
 
-		Move complementalMove;
-		std::vector<BoardPosition> changedPositions = { move.From, move.To };
-		if (MoveGeneration::AddComplementalMove(*_boardAptr, move, complementalMove))
-		{
-			// This is an inline generated move so not added to history
-			// applies for Castling and En Passant
-			_boardAptr->DoMove(complementalMove);
-			changedPositions.push_back(complementalMove.From);
-			changedPositions.push_back(complementalMove.To);
-		}
-
-		auto historyMove = _boardAptr->DoMove(move);
+		// Castling moves its rook too, en passant takes the pawn beside: neither is a move of the history.
+		std::vector<BoardPosition> changedPositions;
+		auto historyMove = MoveGeneration::Play(_gameState, move, &changedPositions);
 
 		historyMove.Id = GetMoveCount();
 
@@ -268,12 +261,13 @@ namespace Chess
 		DoMove({ from, to });
 	}
 
-	std::vector<std::string> Game::FormatHistorySan(const MovesHistory& history)
+	std::vector<std::string> Game::FormatHistorySan(const MovesHistory& history, const StartPosition& start)
 	{
 		std::vector<std::string> result;
 		result.reserve(history.size());
 
 		Game game;
+		game.Restart(true, start);
 		bool mate = false;
 		game.RegisterGameActionsListeners([&mate](const EventBase& event) {
 			if (event.GetType() == EtCheckMate)
@@ -301,6 +295,16 @@ namespace Chess
 
 		const auto from = topMove.From.Position;
 		const auto to = topMove.To.Position;
+
+		// Castling: the king and the rook go back to their squares, in one step (they may have swapped).
+		if (topMove.IsCastlingMove())
+		{
+			const auto c = topMove.Castling();
+			_boardAptr->DoCastling(c.KingTo, c.KingFrom, c.RookTo, c.RookFrom);
+			NotifyBoardChangesListeners({ c.KingFrom, c.RookFrom, c.KingTo, c.RookTo });
+			return;
+		}
+
 		std::vector<BoardPosition> changedPositions = { from, to };
 
 		// The piece goes back; a promoted one as the pawn it was.
@@ -308,17 +312,6 @@ namespace Chess
 		if (topMove.IsPawnPromotionMove())
 			undoMove.PromotedTo = topMove.From.Piece;
 		_boardAptr->DoMove(undoMove);
-
-		// Castling: the rook goes back to its corner too.
-		if (topMove.IsCastlingMove())
-		{
-			const bool kingside = to > from;
-			const auto rookFrom = (BoardPosition)(kingside ? to - 1 : to + 1);
-			const auto rookTo = (BoardPosition)(kingside ? to + 1 : to - 2);
-			_boardAptr->DoMove(Move{ rookFrom, rookTo });
-			changedPositions.push_back(rookFrom);
-			changedPositions.push_back(rookTo);
-		}
 
 		// placing removed item
 		if (topMove.IsCapturingMove())
@@ -470,22 +463,33 @@ namespace Chess
 				for (int dr = -1; dr <= 1; ++dr)
 					if ((df != 0 || dr != 0) && onBoard(file + df, rank + dr))
 						add(file + df, rank + dr);
-			// Castling: the king and that rook haven't moved, and none of our pieces stands between.
-			const int home = own == PieceColors::Light ? e1 : e8;
-			auto castling = [&](bool kingside) {
-				const int rookAt = kingside ? home + 3 : home - 4;
-				const Piece rook = board.At(rookAt);
-				if (rook.Type != ROOK || rook.Color != own)
-					return;
-				for (int sq = std::min(home, rookAt) + 1; sq < std::max(home, rookAt); ++sq)
-					if (board.At(sq).Color == own)
-						return;
-				targets.push_back(BoardPosition(kingside ? home + 2 : home - 2));
-			};
-			if (index == home && CanCastleKingside(own))
-				castling(true);
-			if (index == home && CanCastleQueenside(own))
-				castling(false);
+			// Castling: the king and that rook haven't moved, and none of our other pieces stands where
+			// the two go or between. The king's square, and in Chess960 also the rook's (the king onto
+			// its rook, as the move is written there).
+			const int backRank = own == PieceColors::Light ? 0 : 56;
+			const int home = backRank + _gameState.Start.KingFile();
+			for (bool kingside : { true, false }) {
+				if (index != home || !MoveGeneration::HasCastlingRight(_gameState, own, kingside))
+					continue;
+				const auto c = CastlingSquares::Of((BoardPosition)home,
+					(BoardPosition)(backRank + _gameState.Start.RookFile(kingside)));
+				auto blocked = [&](int from, int to) {
+					for (int sq = std::min(from, to); sq <= std::max(from, to); ++sq)
+						if (sq != c.KingFrom && sq != c.RookFrom && board.At(sq).Color == own)
+							return true;
+					return false;
+				};
+				if (blocked(c.KingFrom, c.KingTo) || blocked(c.RookFrom, c.RookTo))
+					continue;
+				auto addOnce = [&](BoardPosition sq) {
+					if (std::find(targets.begin(), targets.end(), sq) == targets.end())
+						targets.push_back(sq);
+				};
+				if (_gameState.Start.IsChess960())
+					addOnce(c.RookFrom);
+				if (c.KingTo != c.KingFrom)
+					addOnce(c.KingTo);
+			}
 			break;
 		}
 		default:
@@ -512,34 +516,30 @@ namespace Chess
 		}
 	}
 
-	bool Game::CanCastleKingside(PieceColors c) const
+	// X-FEN: K / Q for the outermost rook on that side, which Stockfish and Lichess read in standard
+	// chess and Chess960 alike; the rook's file letter when another rook of ours stands further out
+	// on the back rank (the castling rook isn't the outermost one).
+	std::string Game::CastlingFen() const
 	{
-		BoardPosition kingPos = (c == PieceColors::Light) ? e1 : e8;
-		BoardPosition rookPos = (c == PieceColors::Light) ? h1 : h8;
-		int start = (c == PieceColors::Light) ? 0 : 1;
-
-		for (int i = start; i < (int)_historyAptr->size(); i += 2)
+		std::string field;
+		for (auto side : { PieceColors::Light, PieceColors::Dark })
 		{
-			auto from = (*_historyAptr)[i].From.Position;
-			if (from == kingPos || from == rookPos)
-				return false;
+			const bool white = side == PieceColors::Light;
+			const int rank = white ? 0 : 56;
+			for (bool kingside : { true, false })
+			{
+				if (!MoveGeneration::HasCastlingRight(_gameState, side, kingside))
+					continue;
+				const int rookFile = _gameState.Start.RookFile(kingside);
+				bool outermost = true;
+				for (int f = kingside ? rookFile + 1 : rookFile - 1; 0 <= f && f < 8; f += kingside ? 1 : -1)
+					if (_boardAptr->At(rank + f) == Piece{ ROOK, side })
+						outermost = false;
+				const char letter = outermost ? (kingside ? 'K' : 'Q') : (char)('A' + rookFile);
+				field += white ? letter : (char)std::tolower((unsigned char)letter);
+			}
 		}
-		return true;
-	}
-
-	bool Game::CanCastleQueenside(PieceColors c) const
-	{
-		BoardPosition kingPos = (c == PieceColors::Light) ? e1 : e8;
-		BoardPosition rookPos = (c == PieceColors::Light) ? a1 : a8;
-		int start = (c == PieceColors::Light) ? 0 : 1;
-
-		for (int i = start; i < (int)_historyAptr->size(); i += 2)
-		{
-			auto from = (*_historyAptr)[i].From.Position;
-			if (from == kingPos || from == rookPos)
-				return false;
-		}
-		return true;
+		return field.empty() ? "-" : field;
 	}
 
 	BoardPosition Game::ElPasantPosition()
@@ -612,13 +612,7 @@ namespace Chess
 
 		fen += IsWhiteMove() ? " w" : " b";
 
-		// Castling availability — standard FEN: individual letters, "-" when none
-		std::string castling;
-		if (CanCastleKingside(PieceColors::Light))  castling += "K";
-		if (CanCastleQueenside(PieceColors::Light)) castling += "Q";
-		if (CanCastleKingside(PieceColors::Dark))   castling += "k";
-		if (CanCastleQueenside(PieceColors::Dark))  castling += "q";
-		fen += " " + (castling.empty() ? "-" : castling);
+		fen += " " + CastlingFen();
 
 		fen += " " + BoardPositionToString(ElPasantPosition());
 

@@ -19,6 +19,19 @@ namespace Chess
 		static Move Parse(const std::string& strMove);
 	};
 
+	// Where a castling's king and rook go (LI-01A): the king to the g file and the rook to the f file
+	// (O-O), or the king to c and the rook to d (O-O-O), whatever squares they start on.
+	struct CastlingSquares
+	{
+		BoardPosition KingFrom;
+		BoardPosition KingTo;
+		BoardPosition RookFrom;
+		BoardPosition RookTo;
+		bool Kingside;
+
+		static CastlingSquares Of(BoardPosition kingFrom, BoardPosition rookFrom);
+	};
+
 	struct PositionPiece
 	{
 		BoardPosition Position;
@@ -38,11 +51,14 @@ namespace Chess
 
 		Piece PromotedTo;
 
-		bool IsCapturingMove() const;
+		bool IsCapturingMove() const; // a piece of the other side was on the target square
+
 
 		bool IsPawnPromotionMove() const;
 
+		// Both forms: the king two files over (standard chess, e1g1) or onto its own rook (Chess960, e1h1).
 		bool IsCastlingMove() const;
+		CastlingSquares Castling() const; // a castling's squares (only for IsCastlingMove())
 
 		bool IsEnPassantMove() const;
 
