@@ -4,6 +4,16 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-17 — BL-19 follow-ups: best-move arrows, no fork of a game going on (branch: features/reviewBestMove_171126)
+
+The owner's two small asks on the game review:
+1. **The best move on the board**: on a judged move (?!, ?, ??) whose engine move was another, two arrows: the move played in its mark's colour (lichess.org's blue / orange / red) and the engine's best in green, both from the position before it (`MoveArrows.qml`, over the pieces, turns with the board). `ShownAnalysis` gives `playedFrom/To`, `bestFrom/To` (squares, -1 without). "Best was Bb4" in the summary is green to match. Arrows only where the text says "Best was" (judged moves), as lichess.org's review.
+2. **Play from here not from a game going on**: a robot / two-player game stepped back offers it only once it is over (`playFromHere()` checks the result; `PlayFromHereChanged` follows the review and the result). Replays (also of an unfinished kept game) as before. Scenes `play-from-here` and `play-from-here-menu` now use the replay.
+
+Tests: `tst_analysis` +1 (`test_6_bestMoveArrows`), `tst_games` test 6 (none during the game, offered after resigning, still reviewing). Release: UI tests 10 files, 0 failed. Looked at: scenes `analysis` (narrow, wide 1400x900, Black), `play-from-here-menu`.
+
+---
+
 ## 2026-11-16 — BL-19 review fixes of #167–#170 (branch: bugs/bl19AnalysisReviewFixes_161126)
 
 A `/code-review medium` of #167–#170 found 10 problems; all fixed (the owner: "fix them all, Lichess rule for aborted games"):

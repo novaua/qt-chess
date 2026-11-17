@@ -218,6 +218,9 @@
     <None Include="qml\MarkerRow.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\MoveArrows.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\NavigationLayer.qml">
       <Filter>Source Files\Qml</Filter>
     </None>

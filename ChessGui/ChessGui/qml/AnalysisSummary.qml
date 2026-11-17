@@ -130,12 +130,14 @@ ColumnLayout {
         }
         SideRow { white: true }
         SideRow { white: false }
-        // The move on the board, when it was judged.
+        // The move on the board, when it was judged; "Best was …" green, as its arrow on the board.
         Label {
             objectName: "shownJudgement"
             Layout.fillWidth: true
             visible: (summary.shown.judgement ?? "") !== ""
-            text: (summary.shown.judgement ?? "") + (summary.shown.best ? " · Best was " + summary.shown.best : "")
+            textFormat: Text.StyledText
+            text: (summary.shown.judgement ?? "")
+                  + (summary.shown.best ? " · <font color='" + Theme.success + "'>Best was " + summary.shown.best + "</font>" : "")
             font: Theme.caption
             color: Theme.markColor(summary.shown.mark ?? "")
             wrapMode: Text.WordWrap

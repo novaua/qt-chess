@@ -168,9 +168,11 @@ Item {
                 ChessConnector.movePiece(49, 56)   // bxa8: the piece picker opens ...
                 ChessConnector.setScreenshotClock(0, 120000)   // ... and the time runs out: the pawn goes back
             }
-            if (name === "review" || name === "play-from-here" || name === "play-from-here-menu")
+            if (name === "review")
                 ChessConnector.reviewTo(9)
-            if (name === "replay") {   // BL-19 step 4b: the game just played opened as a replay, after 5. Nf3
+            // BL-19 step 4b: the game just played opened as a replay, after 5. Nf3 (Play from here: not
+            // from a game going on).
+            if (name === "replay" || name === "play-from-here" || name === "play-from-here-menu") {
                 ChessConnector.openGame(GameLibrary.games[0].id)
                 ChessConnector.reviewTo(9)
             }

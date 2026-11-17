@@ -59,6 +59,7 @@
         <file>qml/ChessGame.qml</file>
         <file>qml/MarkerColumn.qml</file>
         <file>qml/MarkerRow.qml</file>
+        <file>qml/MoveArrows.qml</file>
         <file>qml/NavigationLayer.qml</file>
         <file>qml/PawnPromotionOptions.qml</file>
     </qresource>

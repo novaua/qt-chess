@@ -88,6 +88,11 @@ Rectangle {
                 }
             }
 
+            // The analysis's arrows of a judged move (the move played, the engine's best), over the pieces.
+            MoveArrows {
+                anchors.fill: chessBoxes
+            }
+
             // The files and ranks around the squares (the default), or on them (Settings → Board coordinates):
             // only the shown set is made.
             Loader {   // over the squares; the labels go outside its edges

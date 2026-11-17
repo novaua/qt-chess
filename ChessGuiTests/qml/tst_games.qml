@@ -169,9 +169,11 @@ TestCase {
     }
 
     // Play from here (BL-19 step 4) vs the robot: a two-player game 1. e4 e5 2. Nf3 Nc6, reviewed back
-    // to 1... e5; More → Play from here vs computer: the dialog says where, the player takes White (to
-    // move), the board has the two moves; Nf3 and the robot's Nc6 (FakeUci follows the same game). The
-    // fork is a record of its own (forkOfId, forkPly 2); a takeback stops at the moves it began with.
+    // to 1... e5: not while the game goes on; once White resigns, Play from here vs computer: the dialog
+    // says where, the player takes White (to move), the board has the two moves; Nf3 and the robot's Nc6
+    // (FakeUci follows the same game). The fork is a record of its own (forkOfId, forkPly 2); a takeback
+    // stops at the moves it began with.
+    property string resignedId   // test 6's game, resigned: not a Fool's mate for test 7
     function test_6_playFromHereVsRobot() {
         app.startTwoPlayerGame()
         for (const [from, to] of [["e2", "e4"], ["e7", "e5"], ["g1", "f3"], ["b8", "c6"]])
@@ -180,6 +182,7 @@ TestCase {
         app.waitBoardIdle()
         // Copied: a list property's element read again later is the list's element then.
         const sourceId = GameLibrary.games[0].id
+        resignedId = sourceId
         compare(GameLibrary.games[0].plyCount, 4, "the two-player game kept")
         // Step 4b: only while reviewing; the More menu doesn't offer it.
         compare(Object.keys(ChessConnector.PlayFromHere).length, 0, "not at the live position")
@@ -194,6 +197,13 @@ TestCase {
         app.click("review_prev")
         app.click("review_prev")
         tryCompare(ChessConnector, "ShownPly", 2, 2000, "after 1... e5")
+        // The game goes on: no fork of it (the owner, 2026-11-17).
+        compare(Object.keys(ChessConnector.PlayFromHere).length, 0, "not while the game goes on")
+        verify(!app.find("playFromHereButton").visible, "no button while the game goes on")
+        ChessConnector.resignGame()
+        tryVerify(() => ChessConnector.GameResult !== "", 3000, "White resigned")
+        tryVerify(() => ChessConnector.PlayFromHere.ply === 2, 2000, "over: the position reviewed")
+        compare(ChessConnector.ShownPly, 2, "still reviewing")
         TestRun.setEngine("e2e4 e7e5 g1f3 b8c6", 0)
         app.chooseFromMenu("playFromHereButton", "playFromHereRobotItem")
         const dialog = app.item("computerDialog")
@@ -232,7 +242,7 @@ TestCase {
     // dialog takes the side to move; the game goes on from there with the two moves; left without a
     // move of its own, it isn't kept.
     function test_7_playFromHereTwoPlayers() {
-        const keptId = GameLibrary.games.find(g => g.finished).id
+        const keptId = GameLibrary.games.find(g => g.finished && g.id !== resignedId).id
         const count = GameLibrary.count
         verify(ChessConnector.openGame(keptId))
         app.waitForPage("game", 10000)

@@ -70,7 +70,7 @@ class ChessConnector : public QObject
 		Q_PROPERTY(QString      GameResult  READ gameResult  NOTIFY gameResultChanged)
 		Q_PROPERTY(bool ReviewMode    READ reviewMode    NOTIFY reviewStateChanged)
 		// BL-19 step 4b: the position shown can be played from (playFromHere()): the Play from here button
-		Q_PROPERTY(QVariantMap PlayFromHere READ playFromHere NOTIFY reviewStateChanged)
+		Q_PROPERTY(QVariantMap PlayFromHere READ playFromHere NOTIFY playFromHereChanged)
 		Q_PROPERTY(bool CanReviewPrev READ canReviewPrev NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
@@ -118,7 +118,9 @@ class ChessConnector : public QObject
 		// move), inaccuracies, mistakes, blunders }. ShownAnalysis: the position on the board, {} without
 		// an analysis, else { evalText ("+0.4", "#3", "1-0"), whitePercent (White's win chance 0-100), and
 		// for the move that led there: mark ("?!", "?", "??", ""), judgement ("Blunder"), best (its SAN
-		// when the move was judged and the engine's was another) }.
+		// when the move was judged and the engine's was another), and the board's arrows with best:
+		// playedFrom / playedTo (the move played) and bestFrom / bestTo (the engine's), the squares
+		// 0 = a1 … 63 = h8, -1 without them }.
 		Q_PROPERTY(bool        CanAnalyse        READ canAnalyse        NOTIFY boardAnalysisChanged)
 		Q_PROPERTY(bool        AnalysingThisGame READ analysingThisGame NOTIFY boardAnalysisChanged)
 		Q_PROPERTY(QVariantMap Analysis          READ boardAnalysis     NOTIFY boardAnalysisChanged)
@@ -258,6 +260,7 @@ signals:
 	void analysisProgressChanged();
 	void boardAnalysisChanged();
 	void shownAnalysisChanged();
+	void playFromHereChanged();
 	void analysisFinished(const QString& gameId);                       // kept on the game's record
 	void analysisFailed(const QString& gameId, const QString& message); // the engine failed: a sentence to show
 	void analysisInterrupted(const QString& gameId);                    // another game's analysis stopped it (one at a time)
@@ -275,9 +278,10 @@ public slots:
 	Q_INVOKABLE bool continueGame(const QString& gameId);
 	Q_INVOKABLE bool openGame(const QString& gameId);
 	// BL-19 step 4, Play from here: a new game from the position shown while reviewing a kept game (a
-	// replay, or the local game on the board stepped back; step 4b). playFromHere() (the PlayFromHere
-	// property): { gameId, ply, move ("12. Nf3"), whiteToMove } for the position shown, or {} when there
-	// is none (not reviewing, a Lichess game, no move yet, the game over there). The …From starts: that
+	// replay, or the local game on the board stepped back once it is over; step 4b). playFromHere() (the
+	// PlayFromHere property): { gameId, ply, move ("12. Nf3"), whiteToMove } for the position shown, or {}
+	// when there is none (not reviewing, a game still going on, a Lichess game, no move yet, the game over
+	// there). The …From starts: that
 	// game's first `ply` moves, then the new game goes on from there (vs the robot or two players, the
 	// dialogs' choices); its record is a fork (forkOfId, forkPly), and those moves can't be taken back.
 	// false: no such game or position.
