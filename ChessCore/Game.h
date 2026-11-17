@@ -62,7 +62,9 @@ namespace Chess
 		Piece GetPieceAt(int index) const;
 		const Board& GetCurrentBoard() const { return *_boardAptr; }
 
-		void Restart(bool whiteFirst = true);
+		// A new game from `start` (the standard set-up unless one is given: a Chess960 game names its own).
+		void Restart(bool whiteFirst = true, const StartPosition& start = StartPosition());
+		const StartPosition& GetStartPosition() const { return _gameState.Start; }
 		void EndGame();
 
 		const MovesHistory &GetGameRecord() const;
@@ -92,14 +94,13 @@ namespace Chess
 
 		std::string MakeFen();
 
-		// SAN of every move of a game from the start position, with '+' and '#'
+		// SAN of every move of a game from its start position, with '+' and '#'
 		// (replays the game to find the mate).
-		static std::vector<std::string> FormatHistorySan(const MovesHistory& history);
+		static std::vector<std::string> FormatHistorySan(const MovesHistory& history, const StartPosition& start = StartPosition());
 
 		~Game();
 	private:
-		bool CanCastleKingside(PieceColors c) const;
-		bool CanCastleQueenside(PieceColors c) const;
+		std::string CastlingFen() const; // FEN's castling field: "KQkq" (X-FEN), "-" when none
 
 		void AssureMove(BoardPosition from, BoardPosition to);
 		bool CanMoveFrom(BoardPosition from);

@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-17 — LI-01A step 1: Chess960 rules in ChessCore (branch: features/chess960Rules_171126)
+
+### Done
+- **`StartPosition`** (`ChessCore/StartPosition.h/cpp`): standard or Chess960 #0–959 (Scharnagl, as lichess.org; #518 standard), `Random()`, `FromFen` (start positions only), `Fen()`, king and castling-rook files.
+- **Castling for any set-up**, one rule (plan §3.3): king and rook unmoved (no move from or to the rook's square), every square they pass or land on free but for themselves, the king's squares not attacked; the move's form is the game's (Chess960: the king onto its own rook, `f1g1`; standard keeps `e1g1`). Castling may come on the first move (#3: king f1, rook g1).
+- **`Board::DoCastling`**: both pieces in one step (swap, or one stays); `MoveGeneration::Play` plays every move (castling, en passant) for `Game`, FakeUci and the check simulation, which now moves the rook too (a rook that shielded its king, #379). `Game::UndoMove` takes castling back in one step.
+- `HistoryMove`: a castling onto its own rook isn't a capture; `Castling()` gives the squares. SAN by the rook that castled (and castling now gets `+` / `#`). FEN castling X-FEN. Premove targets: the rook's square in Chess960 and the king's square. `IsEverMoved` (unused) removed.
+- `Game::Restart(whiteFirst, start)`, `GetStartPosition()`; `LoadMoves`, `ResumeFromLoad`, `EndGame` keep the start; `FormatHistorySan(history, start)`. Everything else still starts standard (steps 2–3 pass the start on).
+- **Tests** `ChessTests/Chess960Tests.cpp` (19): numbering, all 960 valid and read back from their FEN, FromFen, the named cases (swap, king stays, O-O-O from b1 and its blocked rook square, an attacked square, a moved rook, the shielding rook, the form decided by the game, LoadMoves, Restart, premove targets, BoardDiff). **60 random games checked ply by ply against python-chess** (`scripts/make_chess960_reference.py` → `Chess960Reference.h`: legal-move counts, final FEN, castling SAN, then every takeback): 1920 plies, 88 castlings, all agree.
+
+### Checked
+- Debug: ChessTests 163/163, ChessQtTests 264/264; UI tests 10 files, 0 failed. Release: ChessTests 163/163.
+
+### Next
+- Step 2, the engine (plan §3.6): `UCI_Chess960`, the start FEN in every request, the analysis, FakeUci.
+
+---
+
 ## 2026-11-17 — LI-01A Chess960 plan (branch: docs/li01aChess960Plan_171126)
 
 The owner split LI-01: **LI-01A Chess960** (local first: vs the robot and two players; then Lichess as stage 2) and **LI-01B Crazyhouse** (later). Plan: `docs/LI-01A-Chess960Plan.md`. The owner's choices: castling as on Lichess (king onto its rook, or onto its destination when that isn't an ordinary king move); 960 games not rated; a random position "Chess960 #N", Rematch keeps it.

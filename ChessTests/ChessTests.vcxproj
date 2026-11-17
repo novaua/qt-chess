@@ -158,6 +158,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="Chess960Reference.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
@@ -175,6 +176,7 @@
     <ClCompile Include="UndoTests.cpp" />
     <ClCompile Include="MatingMaterialTests.cpp" />
     <ClCompile Include="PremoveTests.cpp" />
+    <ClCompile Include="Chess960Tests.cpp" />
     <ClCompile Include="FakeEngineTests.cpp" />
     <!-- FakeUci's engine (BL-05 step 3): plain C++ on ChessCore, tested here -->
     <ClCompile Include="..\FakeUci\fakeengine.cpp">

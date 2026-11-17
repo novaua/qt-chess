@@ -29,7 +29,7 @@ vstest.console.exe x64\Debug\ChessTests.dll
 vstest.console.exe x64\Debug\ChessQtTests.dll
 ```
 
-- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`, `MatingMaterialTests.cpp`, `PremoveTests.cpp`, `FakeEngineTests.cpp`). Plain C++, no Qt.
+- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`, `MatingMaterialTests.cpp`, `PremoveTests.cpp`, `FakeEngineTests.cpp`, `Chess960Tests.cpp` (LI-01A: the start positions, castling from any set-up, and 60 random games checked ply by ply against python-chess: `Chess960Reference.h`, made by `python scripts\make_chess960_reference.py`)). Plain C++, no Qt.
 - `ChessQtTests/` — the Qt parts: `UciConnectorTest.cpp` (UCI protocol), `ChessEnginePlayerTest.cpp`, `LichessClientTest.cpp`, `BoardPiecesTest.cpp`,
   `MoveListModelTest.cpp`, `UserManagerTest.cpp`, `GameClockTest.cpp`, `ClaimWinTest.cpp`, `GameLibraryTest.cpp` (the games library, BL-19), `GamePgnTest.cpp` (a kept game's PGN), `GameAnalysisTest.cpp` (the engine's analysis of a kept game, BL-19 step 6; FakeUci, built with the tests, and one test on Stockfish). Needs Qt's `bin` on `PATH`; the engine tests need Stockfish.
   `LichessClientTest.cpp`'s `LichessReconnectTests`, `LichessStreamTest.cpp` and `LichessChallengeTest.cpp` play against `FakeLichess` (`FakeLichess.h`), a `QTcpServer` on 127.0.0.1 (no Lichess).
@@ -79,7 +79,8 @@ All chess logic, isolated in the `Chess::` namespace. Key types:
 - `Board` — 64-square state; owns piece positions
 - `Game` — orchestrates turns, validates moves, fires events to listeners (observer pattern via `EventBase`/`PawnPromotionEvent`); `GetPremoveTargets` for premoves (LI-05)
 - `Move` / `HistoryMove` — move representation (from/to squares, capture flag, promotion)
-- `MoveGeneration` — generates pseudo-legal and legal moves including castling and en passant
+- `MoveGeneration` — generates pseudo-legal and legal moves including castling and en passant; `Play` plays a validated move on the board (castling with its rook, en passant), `HasCastlingRight`, `IsCastling`
+- `StartPosition` (`StartPosition.h`, LI-01A) — the set-up a game starts from: standard, or Chess960 #0–959 (Scharnagl, as lichess.org numbers them; #518 is the standard one), `Random()`, `FromFen` (a start position only), `Fen()`. `Game::Restart(whiteFirst, start)` (standard when none is given), `GetStartPosition()`; `LoadMoves`, `EndGame` and `FormatHistorySan(history, start)` keep it. Castling for any set-up: in a Chess960 game it is written as the king onto its own rook (`f1g1`, `b1a1`; Stockfish's `UCI_Chess960` and Lichess), a standard game keeps `e1g1`; `Board::DoCastling` moves both pieces in one step (they may swap, or one stay), `HistoryMove::Castling()` gives the squares, a castling is never a capture; FEN castling is X-FEN (`KQkq`, a file letter only when ambiguous)
 - `ChessEnginePlayer` — wraps `UciConnector` to produce computer moves
 - `Serializer` — the binary save format of versions before BL-19 (`Game::Save` / `Load`), read only to migrate the two old save slots; `Game::LoadMoves` replays a UCI move list into the loaded history (a kept game's replay)
 - `BoardDiff` (`BoardDiff.h`) — which piece went where between two positions (moved, removed, added), for the board's piece animations

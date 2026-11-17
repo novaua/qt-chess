@@ -127,10 +127,7 @@ bool FakeEngine::Play(const std::string& uciMove)
 	if (uciMove.size() > 4)
 		move.PromotedTo = Piece{ PieceOf(uciMove[4]), _side };
 	MoveGeneration::Validate(_state, move, _side);
-	Move complemental;
-	if (MoveGeneration::AddComplementalMove(*_state.Board, move, complemental))
-		_state.Board->DoMove(complemental);
-	_state.History->push_back(_state.Board->DoMove(move));
+	_state.History->push_back(MoveGeneration::Play(_state, move));
 	_side = OppositeSideOf(_side);
 	++_ply;
 	return true;

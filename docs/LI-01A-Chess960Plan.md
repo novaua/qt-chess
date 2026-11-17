@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-17 |
-| **Status** | Plan; stage 1 steps 1–5 not started |
+| **Status** | Stage 1: step 1 (the rules) on `features/chess960Rules_171126`; steps 2–5 not started |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | LI-01A in `TASKS.md` (LI-01 split by the owner, 2026-11-17: A Chess960, B Crazyhouse) |
 | **Rules** | <https://lichess.org/variant/chess960> |

@@ -33,7 +33,7 @@ namespace Chess {
 		Initialize();
 	}
 
-	void Board::Initialize()
+	void Board::Initialize(const StartPosition& start)
 	{
 		_color = {};
 
@@ -52,17 +52,14 @@ namespace Chess {
 			_color.push_back(PieceColors::Dark);
 		}
 
-		_piece =
+		_piece.assign(BpMax, EMPTY);
+		for (int file = 0; file < 8; ++file)
 		{
-			ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK,
-			PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,
-			EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-			EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-			EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-			EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-			PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN,
-			ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK
-		};
+			_piece[a1 + file] = start.At(file);
+			_piece[a2 + file] = PAWN;
+			_piece[a7 + file] = PAWN;
+			_piece[a8 + file] = start.At(file);
+		}
 
 		_previousBoard = std::make_shared<Board>(*this);
 	}
@@ -117,6 +114,20 @@ namespace Chess {
 		Place(move.To, fromPiece);
 
 		return historyMove;
+	}
+
+	void Board::DoCastling(BoardPosition kingFrom, BoardPosition kingTo, BoardPosition rookFrom, BoardPosition rookTo)
+	{
+		*_previousBoard = *this;
+
+		const auto king = At(kingFrom);
+		const auto rook = At(rookFrom);
+		assert(king.Type == KING && rook.Type == ROOK && king.Color == rook.Color && "A castling moves a king and its rook");
+
+		Place(kingFrom, {});
+		Place(rookFrom, {});
+		Place(kingTo, king);
+		Place(rookTo, rook);
 	}
 
 	void Board::UndoLastMove()
