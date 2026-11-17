@@ -15,13 +15,14 @@ GamePgn::GamePgn(const QString& white, const QString& black, std::vector<std::st
 
 std::optional<GamePgn> GamePgn::ofRecord(const GameRecord& record, const QString& playerName)
 {
-	const auto game = GameRecord::play(record.moves);
+	const auto game = record.replay();
 	if (!game)
 		return std::nullopt;
 	const QString opponent = record.opponentName.isEmpty() ? QStringLiteral("Guest") : record.opponentName;
 	GamePgn pgn(record.playerPlaysWhite ? playerName : opponent,
 	            record.playerPlaysWhite ? opponent : playerName,
-	            Chess::Game::FormatHistorySan(game->GetGameRecord()));
+	            Chess::Game::FormatHistorySan(game->GetGameRecord(), game->GetStartPosition()));
+	pgn.setStartPosition(game->GetStartPosition());
 	pgn.setDate(record.startedAt.date());
 	pgn.setResult(record.result);
 	if (record.kind == QLatin1String("computer")) {
@@ -65,6 +66,11 @@ void GamePgn::setTimeControl(int limitSec, int incSec)
 	                                          : QStringLiteral("-");
 }
 
+void GamePgn::setStartPosition(const Chess::StartPosition& start)
+{
+	_chess960Fen = start.IsChess960() ? QString::fromStdString(start.Fen()) : QString();
+}
+
 QString GamePgn::text() const
 {
 	const QString result = _result.isEmpty() ? QStringLiteral("*") : _result;
@@ -80,12 +86,18 @@ QString GamePgn::text() const
 		tag("Black",  _black),
 		tag("Result", result),
 	};
+	if (!_chess960Fen.isEmpty())
+		tags.push_back(tag("Variant", QStringLiteral("Chess960")));
 	if (_whiteElo > 0)
 		tags.push_back(tag("WhiteElo", QString::number(_whiteElo)));
 	if (_blackElo > 0)
 		tags.push_back(tag("BlackElo", QString::number(_blackElo)));
 	if (!_timeControl.isEmpty())
 		tags.push_back(tag("TimeControl", _timeControl));
+	if (!_chess960Fen.isEmpty()) {
+		tags.push_back(tag("SetUp", QStringLiteral("1")));
+		tags.push_back(tag("FEN", _chess960Fen));
+	}
 	return QString::fromStdString(Chess::FormatPgn(tags, _san, result.toStdString()));
 }
 

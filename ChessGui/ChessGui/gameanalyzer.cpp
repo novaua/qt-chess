@@ -98,7 +98,7 @@ bool GameAnalyzer::start(const QString& gameId)
 	const auto record = _library->find(gameId);
 	if (!record || record->moves.isEmpty())
 		return false;
-	const auto game = GameRecord::play(record->moves);
+	const auto game = record->replay();
 	if (!game)
 		return false; // a damaged record
 

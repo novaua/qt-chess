@@ -43,7 +43,7 @@ LocalRating LocalRating::fromJson(const QJsonObject& o)
 
 bool GameRecord::rateable() const
 {
-	return kind == QLatin1String("computer") && finished && forkOfId.isEmpty() && undoCount == 0
+	return kind == QLatin1String("computer") && finished && forkOfId.isEmpty() && undoCount == 0 && !chess960()
 		&& plyCount() >= 2 && level >= 1 && level <= Chess::EngineLevel::Count
 		&& (result == QLatin1String("1-0") || result == QLatin1String("0-1") || result == QLatin1String("1/2-1/2"));
 }
@@ -77,6 +77,10 @@ QJsonObject GameRecord::toJson() const
 		o[QStringLiteral("clockIncSec")]   = clockIncSec;
 		o[QStringLiteral("whiteMs")]       = whiteMs;
 		o[QStringLiteral("blackMs")]       = blackMs;
+	}
+	if (chess960()) {
+		o[QStringLiteral("variant")]      = QStringLiteral("chess960");
+		o[QStringLiteral("startFen")]     = startFen;
 	}
 	o[QStringLiteral("moves")]            = QJsonArray::fromStringList(moves);
 	o[QStringLiteral("fen")]              = fen;
@@ -119,6 +123,11 @@ GameRecord GameRecord::fromJson(const QJsonObject& o)
 	r.clockIncSec      = o.value(QStringLiteral("clockIncSec")).toInt(0);
 	r.whiteMs          = o.value(QStringLiteral("whiteMs")).toInteger(0);
 	r.blackMs          = o.value(QStringLiteral("blackMs")).toInteger(0);
+	if (o.value(QStringLiteral("variant")).toString() == QLatin1String("chess960")) {
+		const auto start = Chess::StartPosition::FromFen(o.value(QStringLiteral("startFen")).toString().toStdString());
+		if (start)
+			r.setStartPosition(*start);
+	}
 	for (const auto& m : o.value(QStringLiteral("moves")).toArray())
 		r.moves.append(m.toString());
 	r.fen              = o.value(QStringLiteral("fen")).toString();
@@ -151,16 +160,34 @@ bool GameRecord::playOn(Chess::Game& game, const QStringList& uciMoves)
 	return true;
 }
 
-std::shared_ptr<Chess::Game> GameRecord::play(const QStringList& uciMoves)
+std::shared_ptr<Chess::Game> GameRecord::play(const QStringList& uciMoves, const Chess::StartPosition& start)
 {
 	auto game = std::make_shared<Chess::Game>();
-	game->Restart();
+	game->Restart(true, start);
 	return playOn(*game, uciMoves) ? game : nullptr;
+}
+
+std::shared_ptr<Chess::Game> GameRecord::replay(int plies) const
+{
+	return play(plies < 0 ? moves : moves.mid(0, plies), startPosition());
+}
+
+Chess::StartPosition GameRecord::startPosition() const
+{
+	if (startFen.isEmpty())
+		return Chess::StartPosition();
+	const auto start = Chess::StartPosition::FromFen(startFen.toStdString());
+	return start ? *start : Chess::StartPosition();
+}
+
+void GameRecord::setStartPosition(const Chess::StartPosition& start)
+{
+	startFen = start.IsChess960() ? QString::fromStdString(start.Fen()) : QString();
 }
 
 bool GameRecord::setMoves(const QStringList& uciMoves)
 {
-	const auto game = play(uciMoves);
+	const auto game = play(uciMoves, startPosition());
 	if (!game)
 		return false;
 	moves = uciMoves;
@@ -184,6 +211,8 @@ QVariantMap GameRecord::toVariant() const
 		{ QStringLiteral("clockLimitSec"),    clockLimitSec },
 		{ QStringLiteral("clockIncSec"),      clockIncSec },
 		{ QStringLiteral("plyCount"),         plyCount() },
+		{ QStringLiteral("chess960"),         chess960() },
+		{ QStringLiteral("startPosition"),    chess960() ? startPosition().Number() : -1 },
 		{ QStringLiteral("lastMove"),         lastMove() },
 		{ QStringLiteral("fen"),              fen },
 		{ QStringLiteral("result"),           result },

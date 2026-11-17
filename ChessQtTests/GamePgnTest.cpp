@@ -46,6 +46,25 @@ namespace GamePgnTests
 			Assert::AreEqual(QStringLiteral("Bob vs Alice 2026-11-14.pgn"), pgn->fileName());
 		}
 
+		// LI-01A: as lichess.org writes a Chess960 game: Variant, SetUp and the start FEN; castling O-O.
+		TEST_METHOD(Chess960_VariantSetUpAndFen)
+		{
+			GameRecord r = record("local", true, {});
+			r.setStartPosition(Chess::StartPosition::Chess960(3));
+			r.moves = { "f1g1", "f8g8" };
+			const auto pgn = GamePgn::ofRecord(r, QStringLiteral("Alice"));
+			Assert::IsTrue(pgn.has_value());
+			const QString text = pgn->text();
+			Assert::IsTrue(has(text, "[Variant \"Chess960\"]"), text.toStdWString().c_str());
+			Assert::IsTrue(has(text, "[SetUp \"1\"]"));
+			Assert::IsTrue(has(text, "[FEN \"bqnnrkrb/pppppppp/8/8/8/8/PPPPPPPP/BQNNRKRB w KQkq - 0 1\"]"));
+			Assert::IsTrue(has(text, "1. O-O O-O *"), text.toStdWString().c_str());
+
+			const auto standard = GamePgn::ofRecord(record("local", true, { "e2e4" }), QStringLiteral("Alice"));
+			Assert::IsFalse(has(standard->text(), "Variant"));
+			Assert::IsFalse(has(standard->text(), "FEN"));
+		}
+
 		TEST_METHOD(RobotGame_EventLevelEloAndClock)
 		{
 			GameRecord r = record("computer", true, { "e2e4", "e7e5" });

@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "StartPosition.h"
 
 struct GameRecord;
 
@@ -14,7 +15,8 @@ struct GameRecord;
 //
 // Tags: the seven of the PGN standard (Event, Site, Date, Round, White, Black, Result), then the
 // robot's Elo (WhiteElo or BlackElo; the player's in a rated game: the rating before it, BL-19 step 5) and
-// TimeControl ("300+2", "-" for none; left out for a Lichess game: Lichess's own PGN has it).
+// TimeControl ("300+2", "-" for none; left out for a Lichess game: Lichess's own PGN has it). A Chess960
+// game (LI-01A) adds Variant "Chess960", SetUp "1" and its start FEN, as lichess.org writes them.
 class GamePgn
 {
 public:
@@ -31,6 +33,7 @@ public:
 	void setPlayerElo(int elo, bool playerPlaysWhite); // the player's rating before a rated game (after setRobot)
 	void setLichessGame(const QString& gameId);      // Site: the game on lichess.org
 	void setTimeControl(int limitSec, int incSec);   // a local game's clock; 0 and 0: none
+	void setStartPosition(const Chess::StartPosition& start); // a Chess960 one is tagged
 
 	QString event() const { return _event; }
 	QString timeControl() const { return _timeControl; }
@@ -51,4 +54,5 @@ private:
 	QString _timeControl; // "" = no tag
 	int _whiteElo = 0;    // 0 = no tag
 	int _blackElo = 0;
+	QString _chess960Fen; // "" = the standard game
 };
