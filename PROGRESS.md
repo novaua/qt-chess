@@ -4,6 +4,23 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-17 — LI-01A step 4: the Chess960 UI (branch: features/chess960Ui_171126)
+
+### Done
+- **`VariantPicker.qml`** (new): the Variant row of `ComputerGameDialog` and `TwoPlayerDialog`, Standard / Chess960 (a random one of the 960), with a line on what Chess960 is and how to castle ("Not rated." vs the robot). The choice is remembered (`AppSettings.chess960`); the result card's **New game** (and Ctrl+N in a game) offers the game's own variant; no row in Play from here (the fork keeps its start). `TwoPlayerDialog.openNew(chess960)` like the computer dialog's.
+- **"Chess960 #N"** in `ChessConnector.GameTitle` (the command bar, the window title, the messages' source) for every mode; `restartGame` also emits `gameInfoChanged` when the position changes.
+- **Cards**: `games.js` `details()` begins with "Chess960 #N" (the Games page, the Continue list).
+- **Scenes**: `chess960` (#3's start), `chess960-select` (the king selected: a dot on its rook), `chess960-castled` (the f1/g1 swap), `computer-960` (the dialog with Chess960 chosen); sized `chess960@1400x900`, `chess960-castled@640x560`. `games` / `games-filter` / `profile` keep a 7th game, an unfinished #3 vs Bob (the Games pictures change).
+- **`tst_chess960`** +3 (11): Two players with Chess960 chosen in the dialog (a random number, the title, remembered, New game offers it again), vs computer with Standard chosen again, no Variant row in Play from here.
+
+### Checked
+- Debug: UI tests 11 files, 0 failed (`tst_chess960` 11/11). Screenshots of the new scenes looked at.
+
+### Next
+- Step 5 (plan §4): `LI-01A-ManualTests.md` (Stockfish 960 at levels 1 and 5, both castlings, Takeback, Continue, replay, Analyse, the PGN pasted into lichess.org's analysis board), CLAUDE.md, `TASKS.md`.
+
+---
+
 ## 2026-11-17 — LI-01A step 3: Chess960 games kept, continued, replayed; castling input (branch: features/chess960Library_171126)
 
 ### Done

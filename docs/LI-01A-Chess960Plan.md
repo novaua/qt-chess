@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-17 |
-| **Status** | Stage 1: step 1 (the rules) merged (#175); step 2 (the engine) merged (#176); step 3 (the library, the connector, castling input, `tst_chess960`) on `features/chess960Library_171126`; steps 4–5 not started |
+| **Status** | Stage 1: step 1 (the rules) merged (#175); step 2 (the engine) merged (#176); step 3 (the library, the connector, castling input, `tst_chess960`) merged (#177); step 4 (the UI) on `features/chess960Ui_171126`; step 5 not started |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | LI-01A in `TASKS.md` (LI-01 split by the owner, 2026-11-17: A Chess960, B Crazyhouse) |
 | **Rules** | <https://lichess.org/variant/chess960> |
@@ -146,8 +146,9 @@ Castling on one side is legal when:
 
 - `ComputerGameDialog` and `TwoPlayerDialog`: a **Variant** row, Standard / Chess960 (`ChoiceRow`), remembered in
   `AppSettings`. It is hidden in Play from here, which keeps the game's start.
-- Game page: "Chess960 #N" with the players. The result card's **New game** reopens the dialog with Chess960
-  chosen (a new position); **Rematch** keeps the position.
+- Game page: "Chess960 #N" with the players (done in step 4 as part of `ChessConnector.GameTitle`: the command
+  bar and the window title). The result card's **New game** reopens the dialog with Chess960 chosen (a new
+  position); **Rematch** keeps the position.
 - `GameCard` / `games.js`: "Chess960" in a card's description, on the Games page and in the Continue list.
 - The board preview (`BoardPreview`) reads the record's `fen`: no change.
 

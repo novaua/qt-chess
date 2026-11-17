@@ -729,16 +729,20 @@ static QString vsRobotTitle(int level)
 
 QString ChessConnector::gameTitle() const
 {
+	QString title;
 	if (_gameMode == QLatin1String("computer"))
-		return vsRobotTitle(_config.lastLevel);
-	if (_gameMode == QLatin1String("online"))
-		return QStringLiteral("Lichess") + Dot + QStringLiteral("vs ") + _opponentName;
-	if (_gameMode == QLatin1String("replay"))
-		return sideName(true) + QStringLiteral(" vs ") + sideName(false)
+		title = vsRobotTitle(_config.lastLevel);
+	else if (_gameMode == QLatin1String("online"))
+		title = QStringLiteral("Lichess") + Dot + QStringLiteral("vs ") + _opponentName;
+	else if (_gameMode == QLatin1String("replay"))
+		title = sideName(true) + QStringLiteral(" vs ") + sideName(false)
 			+ (_gameDate.isValid() ? Dot + _gameDate.toString(QStringLiteral("d MMM yyyy")) : QString());
-	if (_gameMode == QLatin1String("local"))
-		return sideName(true) + QStringLiteral(" vs ") + sideName(false);
-	return {};
+	else if (_gameMode == QLatin1String("local"))
+		title = sideName(true) + QStringLiteral(" vs ") + sideName(false);
+	else
+		return {};
+	// LI-01A: a Chess960 game names its position, as lichess.org does ("Chess960 #518" too)
+	return chess960() ? title + Dot + QStringLiteral("Chess960 #%1").arg(startPositionNumber()) : title;
 }
 
 // BL-17/BL-19: the one unfinished game, local (the library) or on Lichess, starts at once.
@@ -916,8 +920,10 @@ void ChessConnector::restartGame(const Chess::StartPosition& start)
 {
 	const bool changed = !(start == _game->GetStartPosition());
 	_game->Restart(true, start);
-	if (changed)
+	if (changed) {
 		emit startPositionChanged();
+		emit gameInfoChanged(); // the title names a Chess960 position
+	}
 }
 
 bool ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite, const QStringList& joinedMoves)

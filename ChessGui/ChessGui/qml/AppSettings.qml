@@ -24,6 +24,7 @@ Settings {
     property bool highlightLastMove:  true
     property int  clockLimitSec:      0     // the last new game's time control; 0 and 0: no clock
     property int  clockIncSec:        0
+    property bool chess960:           false // the last new game's variant: Chess960 (LI-01A), else standard
 
     // Computer
     property int  analysisDepth:      14    // the engine's search depth per position of an analysis (ChessConnector.AnalysisDepth, BL-19)

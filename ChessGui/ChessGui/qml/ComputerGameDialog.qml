@@ -4,8 +4,9 @@ import QtQuick.Layouts
 import ChessPlusPlus
 import "games.js" as Games
 
-// New game against the robot: the player's side, the level and the clock. Play from here (BL-19):
-// openFrom() starts it from a position of a kept game instead (ChessConnector.PlayFromHere).
+// New game against the robot: the player's side, the level, the variant (LI-01A) and the clock. Play from
+// here (BL-19): openFrom() starts it from a position of a kept game instead (ChessConnector.PlayFromHere),
+// whose start it keeps (no Variant row).
 AppDialog {
     id: dialog
 
@@ -16,10 +17,12 @@ AppDialog {
     signal levelsHelpRequested()
 
     // Open with the last game's choices; open() keeps the current ones (back from the levels help).
-    function openNew() {
+    // chess960: the variant to offer (the result card's New game: the game's own); else the last one chosen.
+    function openNew(chess960) {
         from = ({})
         level = ChessConnector.LastLevel
         side.checkedIndex = ChessConnector.PlayerPlaysWhite ? 0 : 1
+        variant.choose(chess960 ?? AppSettings.chess960)
         clock.restore()
         open()
     }
@@ -39,10 +42,13 @@ AppDialog {
 
     onAccepted: {
         clock.remember()
-        if (_fromHere)
+        if (_fromHere) {
             ChessConnector.startComputerGameFrom(from.gameId, from.ply, Math.round(levelSlider.value), side.checkedIndex, clock.limitSec, clock.incSec)
-        else
-            ChessConnector.startComputerGame(Math.round(levelSlider.value), side.checkedIndex, clock.limitSec, clock.incSec)
+        } else {
+            variant.remember()
+            ChessConnector.startComputerGame(Math.round(levelSlider.value), side.checkedIndex, clock.limitSec, clock.incSec,
+                                             variant.startPosition)
+        }
     }
 
     ColumnLayout {
@@ -102,6 +108,15 @@ AppDialog {
             color: Theme.textSecondary
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
+        }
+
+        VariantPicker {
+            id: variant
+            objectName: "computerVariant"
+            visible: !dialog._fromHere
+            rateable: true
+            Layout.fillWidth: true
+            Layout.topMargin: Theme.s2
         }
 
         Label {

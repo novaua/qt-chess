@@ -277,9 +277,9 @@ ApplicationWindow {
     // reached from Home (a challenge made in a game would count as a rematch).
     function newGameLikeThis() {
         if (_mode === "computer") {
-            computerDialog.openNew()
+            computerDialog.openNew(ChessConnector.Chess960)   // the same variant (a Chess960 game: a new position)
         } else if (_mode === "local") {
-            twoPlayerDialog.open()
+            twoPlayerDialog.openNew(ChessConnector.Chess960)
         } else {
             var wasOnline = _mode === "online"
             leaveGame()
@@ -569,7 +569,7 @@ ApplicationWindow {
         id: homePage
         HomePage {
             onComputerGameRequested:  computerDialog.openNew()
-            onTwoPlayerGameRequested: twoPlayerDialog.open()
+            onTwoPlayerGameRequested: twoPlayerDialog.openNew()
             onOnlineGameRequested:    root.playOnline()
             onContinueRequested:      root.continueGames()
             onGamesRequested:         root.openGames()

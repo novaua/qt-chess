@@ -94,12 +94,12 @@ Manual checks, no code (do any time):
 
 Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows, chat), BL-10 (challenges as notifications).
 
-- [ ] LI-01A Chess960 (Fischer Random) [Hard] — plan: [`docs/LI-01A-Chess960Plan.md`](docs/LI-01A-Chess960Plan.md) (the owner split LI-01 on 2026-11-17: A Chess960, B Crazyhouse; rules: <https://lichess.org/variant/chess960>). **Plan done; stage 1 not started.**
+- [ ] LI-01A Chess960 (Fischer Random) [Hard] — plan: [`docs/LI-01A-Chess960Plan.md`](docs/LI-01A-Chess960Plan.md) (the owner split LI-01 on 2026-11-17: A Chess960, B Crazyhouse; rules: <https://lichess.org/variant/chess960>). **Stage 1: steps 1–4 done, step 5 (docs, hand tests) next.**
   - [ ] **Stage 1, local**: vs the robot and two players, kept in the games library. The owner's choices: castling as on Lichess (the king onto its rook, or onto its destination when that isn't an ordinary king move); 960 games aren't rated; a random position "Chess960 #N", Rematch keeps it, New game draws a new one. Steps (plan §4):
     - [x] 1 ChessCore rules: `StartPosition`, `Board::DoCastling`, castling for any set-up (king onto own rook in 960, `e1g1` kept in standard), SAN/FEN (branch `features/chess960Rules_171126`; checked against python-chess)
     - [x] 2 The engine: `UCI_Chess960`, the start FEN in every request, the analysis, FakeUci (branch `features/chess960Engine_171126`)
     - [x] 3 The games library and `ChessConnector`: `variant` / `startFen` on the record, PGN tags, start / rematch / continue / replay / fork, the castling input (branch `features/chess960Library_171126`; `tst_chess960`)
-    - [ ] 4 The UI: the setup dialogs' Variant row, "Chess960 #N" on the game page and the cards, scenes, `tst_chess960`
+    - [x] 4 The UI: the setup dialogs' Variant row (`VariantPicker`, remembered; New game offers the game's own), "Chess960 #N" in the game's title and on the cards, scenes `chess960`, `chess960-select`, `chess960-castled`, `computer-960`, `tst_chess960` +3 (branch `features/chess960Ui_171126`)
     - [ ] 5 Docs and hand tests (`LI-01A-ManualTests.md`)
   - [ ] **Stage 2, on Lichess** (a plan of its own, plan §6): start from `gameFull.initialFen`, allow `chess960` in `playableHere` and the challenge form (`OnlinePage.qml`, standard only until then), accept 960 challenges, the `chess960` rating pool in `parseRatings` and the profile, rejoin.
 - [ ] LI-01B Crazyhouse [Hard], **needs a plan first; not started** (after LI-01A). Chess-logic work in `ChessCore`, not only the Lichess dialog. The plan should cover:

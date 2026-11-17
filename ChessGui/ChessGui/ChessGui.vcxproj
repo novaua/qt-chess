@@ -464,6 +464,7 @@
     <None Include="qml\LeaveOnlineDialog.qml" />
     <None Include="qml\ChoiceRow.qml" />
     <None Include="qml\TimeControlPicker.qml" />
+    <None Include="qml\VariantPicker.qml" />
     <None Include="qml\ComputerGameDialog.qml" />
     <None Include="qml\TwoPlayerDialog.qml" />
     <None Include="qml\HomePage.qml" />
