@@ -426,6 +426,39 @@ namespace GameLibraryTests
 			Assert::AreEqual(1, game.GetMoveCount(), L"the moves before it stay");
 		}
 
+		// LI-01A: a Chess960 game keeps its start position (variant, startFen in games.json) and is replayed
+		// from it: #3 BQNNRKRB, O-O as the king onto its rook (f1g1). A standard record has neither field.
+		TEST_METHOD(Chess960_KeptWithItsStartPosition)
+		{
+			addUser("Alice");
+			GameRecord r = makeRecord("local", false, {});
+			r.setStartPosition(Chess::StartPosition::Chess960(3));
+			Assert::IsTrue(r.chess960());
+			Assert::IsTrue(r.setMoves({ "f1g1", "f8g8", "e2e4" }), L"played from #3");
+			Assert::IsTrue(r.fen.startsWith(QStringLiteral("bqnnrrkb/pppppppp/8/8/4P3/8/PPPP1PPP/BQNNRRKB b")), r.fen.toStdWString().c_str());
+			const QString id = _library->put(r);
+
+			const QJsonObject json = _library->find(id)->toJson();
+			Assert::AreEqual(QStringLiteral("chess960"), json.value("variant").toString());
+			Assert::AreEqual(QString::fromStdString(Chess::StartPosition::Chess960(3).Fen()), json.value("startFen").toString());
+			const GameRecord read = GameRecord::fromJson(json);
+			Assert::IsTrue(read.chess960());
+			Assert::AreEqual(3, read.startPosition().Number());
+			const auto game = read.replay();
+			Assert::IsTrue(game != nullptr, L"its moves play from its start");
+			Assert::AreEqual(3, game->GetMoveCount());
+			Assert::IsTrue(read.replay(1)->GetPieceAt(Chess::g1).Type == Chess::KING, L"the first move: O-O");
+			const QVariantMap card = read.toVariant();
+			Assert::IsTrue(card.value("chess960").toBool());
+			Assert::AreEqual(3, card.value("startPosition").toInt());
+
+			Assert::IsTrue(GameRecord::play({ "f1g1" }) == nullptr, L"not a move of the standard game");
+			const GameRecord standard = makeRecord("local", false, { "e2e4" });
+			Assert::IsFalse(standard.toJson().contains("variant"));
+			Assert::IsFalse(standard.toJson().contains("startFen"));
+			Assert::AreEqual(-1, standard.toVariant().value("startPosition").toInt());
+		}
+
 		// ── The rating vs the robot (step 5) ──
 
 		// Elo from 1200 against level 3 (1320): E = 0.334; K 40 under 30 games, 20 from then on.
@@ -496,6 +529,11 @@ namespace GameLibraryTests
 			fork.forkOfId = QStringLiteral("other");
 			fork.forkPly = 1;
 			_library->put(fork);
+			// LI-01A: a Chess960 game isn't rated (the owner's choice).
+			GameRecord chess960 = makeRecord("computer", true, { "f1g1", "f8g8" });
+			chess960.setStartPosition(Chess::StartPosition::Chess960(3));
+			Assert::IsFalse(chess960.rateable());
+			_library->put(chess960);
 			// As lichess.org: a game ended before both sides moved is aborted, not rated (review of #167-#170).
 			GameRecord aborted = makeRecord("computer", true, { "e2e4" });
 			aborted.result = QStringLiteral("0-1"); // the player resigned after 1. e4

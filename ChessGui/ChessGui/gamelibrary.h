@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <memory>
 #include <optional>
+#include "StartPosition.h"
 
 class GameAnalysis;
 class UserManager;
@@ -71,7 +72,8 @@ struct GameRecord
 	int       clockIncSec = 0;
 	qint64    whiteMs = 0;        // the times left when the game was left (unfinished with a clock)
 	qint64    blackMs = 0;
-	QStringList moves;            // UCI, e.g. "e2e4", "e7e8q"
+	QString   startFen;           // a Chess960 game's start position (LI-01A); "" = the standard game
+	QStringList moves;            // UCI, e.g. "e2e4", "e7e8q"; a Chess960 castling is the king onto its rook
 	QString   fen;                // the position after the last move: the card's board preview
 	QString   result;             // "1-0", "0-1", "1/2-1/2"; "" while unfinished
 	QString   resultText;         // e.g. "Alice wins by checkmate"
@@ -84,21 +86,28 @@ struct GameRecord
 	int       ratingBefore = 0;
 	int       ratingChange = 0;
 
+	bool chess960() const { return !startFen.isEmpty(); }
+	Chess::StartPosition startPosition() const; // the standard one unless startFen is a Chess960 start
+	void setStartPosition(const Chess::StartPosition& start);
 	int  plyCount() const { return (int)moves.size(); }
 	bool whiteToMove() const { return moves.size() % 2 == 0; }
 	bool playerToMove() const { return whiteToMove() == playerPlaysWhite; }
 	QString lastMove() const { return moves.isEmpty() ? QString() : moves.last(); }
 	// Its result can be rated (step 5): vs the robot, finished, no takeback, not begun from another game,
 	// and both sides moved (as lichess.org: a game resigned or left before that is aborted, not rated).
+	// Never a Chess960 game (the owner's choice, LI-01A).
 	bool rateable() const;
 	double playerScore() const; // 1 the player won, 0.5 a draw, 0 lost
-	// The moves and the position after them (fen), played from the start position; false (and nothing
+	// The moves and the position after them (fen), played from its start position; false (and nothing
 	// changed) when one of them can't be played. For records made outside a game: the screenshot
 	// scenes, the UI tests.
 	bool setMoves(const QStringList& uciMoves);
-	// The moves played from the start position on a game of their own (a position to look at: its SAN,
-	// its FEN, whether it is over); null when one of them can't be played.
-	static std::shared_ptr<Chess::Game> play(const QStringList& uciMoves);
+	// Its first `plies` moves (all: -1) played from its start position: play(moves, startPosition()).
+	std::shared_ptr<Chess::Game> replay(int plies = -1) const;
+	// The moves played from `start` on a game of their own (a position to look at: its SAN, its FEN,
+	// whether it is over); null when one of them can't be played.
+	static std::shared_ptr<Chess::Game> play(const QStringList& uciMoves,
+	                                         const Chess::StartPosition& start = Chess::StartPosition());
 	// The moves played on `game` as it stands; false at the first one that can't be played (a move
 	// from an empty square too, which the game itself only asserts), the ones before it stay played.
 	static bool playOn(Chess::Game& game, const QStringList& uciMoves);

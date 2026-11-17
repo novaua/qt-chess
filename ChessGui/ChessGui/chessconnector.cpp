@@ -252,15 +252,15 @@ void ChessConnector::playPremove()
 		return;            // not our turn yet: it waits for the next move
 	}
 	setPremove(-1, -1);
-	const auto moves = _game->GetAllowedMoves(from);
-	if (std::none_of(moves.begin(), moves.end(), [to](const Chess::Move& m) { return m.To == to; })) {
+	const int target = moveTarget(from, to); // a Chess960 castling premoved onto the king's square: onto its rook
+	if (target < 0) {
 		qDebug() << "Premove" << from << "->" << to << "isn't legal any more: dropped";
 		refreshSelection(); // dropped silently, as on Lichess
 		return;
 	}
 	clearPossibleMoves();
 	// Lichess's premove promotes to a queen: there is no time to ask.
-	makeMove(from, to, _game->IsPromotion(from, to) ? Chess::QUEEN : Chess::EMPTY);
+	makeMove(from, target, _game->IsPromotion(from, target) ? Chess::QUEEN : Chess::EMPTY);
 }
 
 void ChessConnector::refreshSelection()
@@ -310,13 +310,14 @@ void ChessConnector::figureSelected(int index)
 	ClearBoard(_possibleMoves);
 	_selectedSquare = -1;
 	_premoveDots = false;
-	if (selected != -1 && premove && !isPlayerPiece(index))
+	if (selected != -1 && premove && (!isPlayerPiece(index) || isChess960Castling(selected, index)))
 	{
 		setPremove(selected, index);
 	}
 	else if (selected != -1)
 	{
-		makeMove(BoardPosition(selected), BoardPosition(index));
+		const int target = moveTarget(selected, index);
+		makeMove(BoardPosition(selected), BoardPosition(target < 0 ? index : target));
 	}
 	else if (premove)
 	{
@@ -332,9 +333,20 @@ void ChessConnector::figureSelected(int index)
 	}
 	else
 	{
-		for (auto move : _game->GetAllowedMoves(index))
+		const auto moves = _game->GetAllowedMoves(index);
+		for (auto move : moves)
 		{
 			_possibleMoves[move.To] = QString::number(index);
+		}
+		// Chess960: a castling's dot is on its rook, and on the king's square when no move of its own
+		// goes there (as lichess.org).
+		for (const auto& move : moves)
+		{
+			if (!isChess960Castling(index, move.To))
+				continue;
+			const auto kingTo = Chess::CastlingSquares::Of(BoardPosition(index), move.To).KingTo;
+			if (kingTo != index && _possibleMoves[kingTo] == EmptyFlag)
+				_possibleMoves[kingTo] = QString::number(index);
 		}
 		const auto side = _game->IsWhiteMove() ? Chess::PieceColors::Light : Chess::PieceColors::Dark;
 		if (_game->GetPieceAt(index).Color == side)
@@ -361,15 +373,11 @@ bool ChessConnector::movePiece(int from, int to)
 		return false;
 	}
 
-	bool legal = false;
-	if (canPlayerMove() && 0 <= from && from < 64 && 0 <= to && to < 64) {
-		const auto moves = _game->GetAllowedMoves(from);
-		legal = std::any_of(moves.begin(), moves.end(), [to](const Chess::Move& m) { return m.To == to; });
-	}
+	const int target = canPlayerMove() ? moveTarget(from, to) : -1;
 	clearPossibleMoves();
-	if (legal)
-		makeMove(from, to);
-	return legal;
+	if (target >= 0)
+		makeMove(from, target);
+	return target >= 0;
 }
 
 void ChessConnector::pawnPromote(int index, const QString& piece)
@@ -448,8 +456,11 @@ namespace {
 		return color == Chess::PieceColors::Light ? QString(code.toUpper()) : QString(code);
 	}
 
-	static std::shared_ptr<Chess::Game> replayHistory(const Chess::MovesHistory& history, int count) {
+	// From the game's own start position (a Chess960 one too, LI-01A).
+	static std::shared_ptr<Chess::Game> replayHistory(const Chess::MovesHistory& history, int count,
+	                                                  const Chess::StartPosition& start) {
 		auto game = std::make_shared<Chess::Game>();
+		game->Restart(true, start);
 		for (int i = 0; i < count && i < (int)history.size(); ++i)
 			game->DoMove(history[i].ToMove());
 		return game;
@@ -461,9 +472,9 @@ namespace {
 std::shared_ptr<Chess::Game> ChessConnector::shownGame() const
 {
 	if (_player)
-		return replayHistory(_player->GetHistory(), _player->GetPointer());
+		return replayHistory(_player->GetHistory(), _player->GetPointer(), _game->GetStartPosition());
 	if (reviewMode())
-		return replayHistory(_game->GetGameRecord(), _reviewIndex);
+		return replayHistory(_game->GetGameRecord(), _reviewIndex, _game->GetStartPosition());
 	return _game;
 }
 
@@ -511,7 +522,7 @@ const Chess::MovesHistory& ChessConnector::shownHistory() const
 
 // After undo, load or several moves at once: Game::FormatHistorySan replays the game.
 void ChessConnector::buildFullHistoryCache() {
-	_sanCache = Chess::Game::FormatHistorySan(shownHistory());
+	_sanCache = Chess::Game::FormatHistorySan(shownHistory(), _game->GetStartPosition());
 	_moveList->show(_sanCache);
 }
 
@@ -552,6 +563,7 @@ GamePgn ChessConnector::boardPgn() const
 				return *pgn;
 	}
 	GamePgn pgn(sideName(true), sideName(false), _sanCache);
+	pgn.setStartPosition(_game->GetStartPosition());
 	pgn.setDate(_gameDate); // unknown ("????.??.??") only for a game begun elsewhere
 	pgn.setResult(_gameMode == QLatin1String("replay") ? _replayResult : _gameResult.section(' ', 0, 0));
 	if (isOnlineGame())
@@ -878,6 +890,36 @@ void ChessConnector::makeMove(int from, int to, Chess::PieceTypes promoteTo)
 	onHumanMoveDone();
 }
 
+bool ChessConnector::isChess960Castling(int from, int to) const
+{
+	if (!chess960() || from < 0 || from >= 64 || to < 0 || to >= 64)
+		return false;
+	const auto king = _game->GetPieceAt(from);
+	const auto rook = _game->GetPieceAt(to);
+	return king.Type == Chess::KING && rook.Type == Chess::ROOK && rook.Color == king.Color;
+}
+
+int ChessConnector::moveTarget(int from, int to) const
+{
+	if (from < 0 || from >= 64 || to < 0 || to >= 64)
+		return -1;
+	const auto moves = _game->GetAllowedMoves(from);
+	if (std::any_of(moves.begin(), moves.end(), [to](const Chess::Move& m) { return m.To == to; }))
+		return to;
+	for (const auto& m : moves)
+		if (isChess960Castling(from, m.To) && Chess::CastlingSquares::Of(BoardPosition(from), m.To).KingTo == to)
+			return m.To;
+	return -1;
+}
+
+void ChessConnector::restartGame(const Chess::StartPosition& start)
+{
+	const bool changed = !(start == _game->GetStartPosition());
+	_game->Restart(true, start);
+	if (changed)
+		emit startPositionChanged();
+}
+
 bool ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite, const QStringList& joinedMoves)
 {
 	_clock->stop();
@@ -902,7 +944,7 @@ bool ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite,
 	emit playerPlaysWhiteChanged();
 
 	resetMoveHistoryCache();
-	_game->Restart();
+	restartGame(Chess::StartPosition()); // standard only on Lichess until LI-01A stage 2
 	bool allPlayed = true;
 	if (joinedMoves.isEmpty()) {
 		EmitMoveCountUpdates();
@@ -1315,10 +1357,10 @@ QVariantMap ChessConnector::shownAnalysis() const
 
 QString ChessConnector::sanOf(int position, const QString& uciMove) const
 {
-	const auto game = GameRecord::play(_analysisMoves.mid(0, position));
+	const auto game = GameRecord::play(_analysisMoves.mid(0, position), _game->GetStartPosition());
 	if (!game || !GameRecord::playOn(*game, { uciMove }))
 		return {};
-	const auto san = Chess::Game::FormatHistorySan(game->GetGameRecord());
+	const auto san = Chess::Game::FormatHistorySan(game->GetGameRecord(), game->GetStartPosition());
 	return san.empty() ? QString() : QString::fromStdString(san.back());
 }
 
@@ -1431,15 +1473,25 @@ void ChessConnector::rematch()
 			_lichessClient->createRematch();
 		return;
 	}
+	_nextStart = _game->GetStartPosition(); // a Chess960 rematch: the same position (LI-01A)
 	if (_wasVsComputer)
 		startNewGameWithComputer(_config.lastLevel);
 	else
 		startNewGame();
 }
 
-void ChessConnector::startComputerGame(int level, int side, int limitSec, int incSec)
+// LI-01A: StandardGame, RandomChess960 or a Chess960 position's number.
+static Chess::StartPosition startPositionOf(int chess960)
+{
+	if (0 <= chess960 && chess960 < Chess::StartPosition::Count)
+		return Chess::StartPosition::Chess960(chess960);
+	return chess960 == ChessConnector::RandomChess960 ? Chess::StartPosition::Random() : Chess::StartPosition();
+}
+
+void ChessConnector::startComputerGame(int level, int side, int limitSec, int incSec, int chess960)
 {
 	_startTiming.begin(QStringLiteral("vs Robot (level %1)").arg(level));
+	_nextStart = startPositionOf(chess960);
 	_clockLimitSec = limitSec;
 	_clockIncSec = incSec;
 	setPlayerPlaysWhite(side == 2 ? QRandomGenerator::global()->bounded(2) == 0 : side == 0);
@@ -1449,9 +1501,10 @@ void ChessConnector::startComputerGame(int level, int side, int limitSec, int in
 	setGameMode(QStringLiteral("computer"), QStringLiteral("Robot"));
 }
 
-void ChessConnector::startLocalGame(bool playerPlaysWhite, const QString& opponentUserId, int limitSec, int incSec)
+void ChessConnector::startLocalGame(bool playerPlaysWhite, const QString& opponentUserId, int limitSec, int incSec, int chess960)
 {
 	_startTiming.begin(QStringLiteral("two players"));
+	_nextStart = startPositionOf(chess960);
 	_clockLimitSec = limitSec;
 	_clockIncSec = incSec;
 	// Another profile, or a Guest (no id, or a profile that is gone).
@@ -1480,7 +1533,7 @@ void ChessConnector::startNewGame()
 	_reviewIndex = -1;
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) setResult({}, {});
-	_game->Restart();
+	restartGame(newGameStart());
 	applyStartFrom();
 	startClock();
 	EmitMoveCountUpdates();
@@ -1517,7 +1570,7 @@ void ChessConnector::startNewGameWithComputer(int level)
 	_promotionPending = false;
 	_player = nullptr;
 	_reviewIndex = -1;
-	_game->EndGame();
+	restartGame(newGameStart());
 	applyStartFrom();
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) setResult({}, {});
@@ -2146,7 +2199,7 @@ void ChessConnector::endGame()
 	stopEngineThread();
 	_promotionPending = false;
 	_player = nullptr;
-	_game->EndGame();
+	restartGame(Chess::StartPosition()); // Home: no game, the standard board
 	_gameOver = false;
 	_reviewIndex = -1;
 	if (!_gameResult.isEmpty()) setResult({}, {});
@@ -2206,6 +2259,7 @@ void ChessConnector::updateRecord()
 		r.clockLimitSec = r.clockIncSec = 0;
 		r.whiteMs = r.blackMs = 0;
 	}
+	r.setStartPosition(_game->GetStartPosition());
 	r.moves.clear();
 	for (const auto& m : record)
 		r.moves.append(QString::fromStdString(m.ToUciString()));
@@ -2248,7 +2302,7 @@ bool ChessConnector::continueGame(const QString& gameId)
 		return false;
 	// All of its moves, or the game isn't touched: going on from fewer would keep only those (the record
 	// is written again with the next move).
-	if (!GameRecord::play(rec->moves)) {
+	if (!rec->replay()) {
 		qWarning() << "continueGame: a kept move of" << gameId << "can't be played";
 		emit keptGameFailed(QStringLiteral("Couldn't continue the game: one of its moves can't be played."));
 		return false;
@@ -2290,7 +2344,7 @@ bool ChessConnector::continueGame(const QString& gameId)
 	_promotionPending = false;
 	_player = nullptr;
 	_reviewIndex = -1;
-	_game->Restart();
+	restartGame(rec->startPosition());
 	replayMoves(rec->moves);
 	_gameOver = false;
 	if (!_gameResult.isEmpty()) setResult({}, {});
@@ -2327,10 +2381,10 @@ std::optional<ChessConnector::StartFrom> ChessConnector::startFrom(const QString
 	if (!rec || ply < 1 || ply > rec->plyCount())
 		return std::nullopt;
 	const QStringList moves = rec->moves.mid(0, ply);
-	const auto game = GameRecord::play(moves);
+	const auto game = rec->replay(ply);
 	if (!game || game->IsCheckMate() || game->IsStalemate())
 		return std::nullopt;
-	return StartFrom{ rec->id, ply, moves };
+	return StartFrom{ rec->id, ply, moves, rec->startPosition() };
 }
 
 QVariantMap ChessConnector::playFromHere() const
@@ -2395,7 +2449,7 @@ bool ChessConnector::openGame(const QString& gameId)
 	const auto rec = _library ? _library->find(gameId) : std::nullopt;
 	if (!rec || rec->moves.isEmpty())
 		return false;
-	if (!GameRecord::play(rec->moves)) {
+	if (!rec->replay()) {
 		qWarning() << "openGame: a kept move of" << gameId << "can't be played";
 		emit keptGameFailed(QStringLiteral("Couldn't open the game: one of its moves can't be played."));
 		return false;
@@ -2419,11 +2473,12 @@ bool ChessConnector::openGame(const QString& gameId)
 		_resuming = true;
 		_loadingRecord = true;
 		const auto done = qScopeGuard([this] { _resuming = false; _loadingRecord = false; });
+		restartGame(rec->startPosition()); // LoadMoves plays them from the game's start
 		_game->LoadMoves(uci);
 	}
 	catch (const std::exception& ex) {
 		qWarning() << "openGame: the kept moves can't be played:" << ex.what();
-		_game->Restart();
+		restartGame(Chess::StartPosition());
 		return false;
 	}
 	_player = _game->MakePlayer();

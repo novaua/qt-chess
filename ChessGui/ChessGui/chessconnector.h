@@ -71,6 +71,9 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool ReviewMode    READ reviewMode    NOTIFY reviewStateChanged)
 		// BL-19 step 4b: the position shown can be played from (playFromHere()): the Play from here button
 		Q_PROPERTY(QVariantMap PlayFromHere READ playFromHere NOTIFY playFromHereChanged)
+		// LI-01A: the game on the board is Chess960, and its start position's number (0-959; -1 standard)
+		Q_PROPERTY(bool Chess960            READ chess960            NOTIFY startPositionChanged)
+		Q_PROPERTY(int  StartPositionNumber READ startPositionNumber NOTIFY startPositionChanged)
 		Q_PROPERTY(bool CanReviewPrev READ canReviewPrev NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
@@ -145,6 +148,10 @@ public:
 	int  lastMoveFrom()   const;
 	int  lastMoveTo()     const;
 	bool engineThinking()    const { return _engineThinking; }
+	static constexpr int StandardGame = -2;   // startComputerGame / startLocalGame: the standard game
+	static constexpr int RandomChess960 = -1; // ... one of the 960 Chess960 positions at random
+	bool chess960() const { return _game->GetStartPosition().IsChess960(); }
+	int  startPositionNumber() const { return chess960() ? _game->GetStartPosition().Number() : -1; }
 	bool useFen()            const { return _config.useFen; }
 	bool playerPlaysWhite()  const { return _config.playerPlaysWhite; }
 	QAbstractItemModel* moveHistory() const { return _moveList; }
@@ -261,6 +268,7 @@ signals:
 	void boardAnalysisChanged();
 	void shownAnalysisChanged();
 	void playFromHereChanged();
+	void startPositionChanged();
 	void analysisFinished(const QString& gameId);                       // kept on the game's record
 	void analysisFailed(const QString& gameId, const QString& message); // the engine failed: a sentence to show
 	void analysisInterrupted(const QString& gameId);                    // another game's analysis stopped it (one at a time)
@@ -268,9 +276,12 @@ signals:
 public slots:
 	// One call per user action (CLAUDE.md "Key Conventions"). A Lichess game starts and ends
 	// through LichessClient::gameStarted / gameEnded, handled below.
-	// limitSec, incSec: the time control; 0 and 0: no clock.
-	Q_INVOKABLE void startComputerGame(int level, int side, int limitSec = 0, int incSec = 0); // side: 0 White, 1 Black, 2 Random
-	Q_INVOKABLE void startLocalGame(bool playerPlaysWhite, const QString& opponentUserId, int limitSec = 0, int incSec = 0); // "" = Guest
+	// limitSec, incSec: the time control; 0 and 0: no clock. chess960 (LI-01A): StandardGame, RandomChess960
+	// (one of the 960 at random: the setup dialogs) or a position's number 0-959 (the tests, the scenes).
+	// Rematch keeps the game's start position.
+	Q_INVOKABLE void startComputerGame(int level, int side, int limitSec = 0, int incSec = 0, int chess960 = StandardGame); // side: 0 White, 1 Black, 2 Random
+	Q_INVOKABLE void startLocalGame(bool playerPlaysWhite, const QString& opponentUserId, int limitSec = 0, int incSec = 0,
+	                                int chess960 = StandardGame); // "" = Guest
 	// BL-19: a kept game (GameLibrary). continueGame: an unfinished one goes on, vs the robot at its
 	// level or between two players (the opponent's profile, or Guest when it is gone), with its clock
 	// as it was left. openGame: any kept game as a replay ("replay" mode: ‹ › step through its moves).
@@ -375,6 +386,15 @@ private slots:
 private:
 	void startNewGame();
 	void startNewGameWithComputer(int level);
+	// LI-01A: the start position of a new game (`_nextStart`, or a fork's), and the board restarted from one
+	Chess::StartPosition _nextStart;
+	Chess::StartPosition newGameStart() const { return _startFrom ? _startFrom->start : _nextStart; }
+	void restartGame(const Chess::StartPosition& start);
+	// The square a click or drop on `to` plays to with the piece on `from`: `to` when a legal move goes
+	// there; in Chess960 the king's castling square, when no move of its own goes there, is its castling
+	// (the king onto its rook). -1: no move.
+	int  moveTarget(int from, int to) const;
+	bool isChess960Castling(int from, int to) const; // the king on `from` onto its own rook on `to`, in a Chess960 game
 	// joinedMoves (BL-18): the moves of a game joined in progress, on the board before its page opens.
 	// False when one of them can't be played here.
 	bool startOnlineGame(const QString& gameId, bool playingAsWhite, const QStringList& joinedMoves);
@@ -492,7 +512,7 @@ private:
 	int       _undoCount = 0; // takebacks in this game (the record's; such a game isn't rated)
 	QString   _forkOfId;      // Play from here: the game this one continues from (step 4)
 	int       _forkPly = 0;   // ... after its first _forkPly moves, which stay (no takeback, no clock)
-	struct StartFrom { QString gameId; int ply = 0; QStringList moves; };
+	struct StartFrom { QString gameId; int ply = 0; QStringList moves; Chess::StartPosition start; }; // a fork keeps the game's start
 	std::optional<StartFrom> _startFrom; // the …From starts: what the next new game begins with
 	std::optional<StartFrom> startFrom(const QString& gameId, int ply) const; // nothing: no such position
 	void applyStartFrom();    // a new game just restarted: the fork's first moves on the board

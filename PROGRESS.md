@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-17 — LI-01A step 3: Chess960 games kept, continued, replayed; castling input (branch: features/chess960Library_171126)
+
+### Done
+- **`GameRecord`**: `startFen` (JSON `variant: "chess960"`, `startFen`; a record without them is standard), `chess960()`, `startPosition()`, `setStartPosition()`, `replay(plies)`; `play(moves, start)`; never rated (`rateable()`); QML `chess960`, `startPosition`.
+- **`GamePgn`**: `Variant "Chess960"`, `SetUp "1"`, `FEN` (lichess.org's tags); the board's PGN and a kept game's alike.
+- **`ChessConnector`**: `startComputerGame` / `startLocalGame(…, chess960)` (`StandardGame` default, `RandomChess960`, or a number); `Chess960`, `StartPositionNumber` (`startPositionChanged`); `restartGame(start)` everywhere the board restarts; Rematch keeps the position; continue, replay (`openGame`) and Play from here (`StartFrom.start`) keep the record's; Home resets to standard; the SAN, the analysis's SAN and **the review / replay positions** (`shownGame`, which replayed from the standard start: stepping back in a 960 game was wrong) from the start.
+- **Castling input** as lichess.org: with the king selected, a click or drop on its own castling rook castles; a dot on the rook and on the king's castling square when no move of its own goes there (#518 as 960: e1 → g1); a click there castles (`moveTarget`); premove too (click the king, then its rook).
+- Tests: `GameLibraryTest` (a 960 record kept, read, replayed; not rated), `GamePgnTest` (the tags); **`tst_chess960.qml`** (8): castle by drop and by click on the rook, Rematch keeps #3, kept and continued, its PGN, replay and Play from here, #518 castling on the king's square and ← review, vs the robot with a premoved O-O, the robot's O-O and Undo of both.
+- Found: `Run-UiTests.ps1` runs Release by default; without `-Build` it ran a Release exe from before step 1, so the local UI runs of steps 1–2 tested old code (CI built and ran them fresh: green). CLAUDE.md notes it.
+
+### Checked
+- Debug: ChessTests 165/165, ChessQtTests 271/271; UI tests 11 files, 0 failed (Debug and Release, built fresh).
+
+### Next
+- Step 4, the UI (plan §3.8): the setup dialogs' Variant row, "Chess960 #N" on the game page, the cards, screenshot scenes.
+
+---
+
 ## 2026-11-17 — LI-01A step 2: the engine plays Chess960 (branch: features/chess960Engine_171126)
 
 ### Done
