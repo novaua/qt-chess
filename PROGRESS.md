@@ -4,6 +4,19 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-18 — LI-01A step 5: docs and the hand tests (branch: docs/chess960ManualTests_181126)
+
+### Done
+- **`docs/LI-01A-ManualTests.md`** (new, 8 scenarios, for the owner): two players at a random position with both castlings (and the rare ones: the king staying, king and rook swapping) and the forbidden ones; Stockfish at level 1 (the weak picker) and 5, a premoved castling; Undo, Home, restart and Continue; Rematch / New game / the remembered choice; not rated; replay, Play from here, Analyse (the best-move arrow of a castling); the exported PGN imported on lichess.org/paste; the engine setting "Send the game to the engine as".
+- **CLAUDE.md**: the overview (local games standard or Chess960), the setup dialogs' Variant row, `GameTitle`'s "Chess960 #N". **run-chess-app skill**: the scenes `chess960`, `chess960-select`, `chess960-castled`, `computer-960`; `games` has seven games.
+- `TASKS.md`, the plan's status: stage 1 coded; its hand tests open.
+
+### Next
+- The owner runs `LI-01A-ManualTests.md`.
+- LI-01A stage 2 (Chess960 on Lichess) needs its plan (plan §6), or LI-01B Crazyhouse's plan, as the owner chooses.
+
+---
+
 ## 2026-11-17 — LI-01A step 4: the Chess960 UI (branch: features/chess960Ui_171126)
 
 ### Done
