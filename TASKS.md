@@ -94,25 +94,24 @@ Manual checks, no code (do any time):
 
 Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows, chat), BL-10 (challenges as notifications).
 
-- [ ] LI-01 Implement the most popular chess variants on Lichess: Chess960 (Fischer Random) and Crazyhouse [Hard], **needs a plan first; not started; before LI-02**. Both need chess-logic work in `ChessCore`, not only the Lichess dialog. The plan should cover:
-  - **Chess960 today is offered but broken**: `LichessGameDialog.qml` already lets the player create a Chess960 challenge, but `startOnlineGame()` always starts our `Game` from the standard position (`_game->Restart()`), so the moves Lichess sends don't fit the board. Until LI-01 is done, hide the option or start such games from the `gameFull` `initialFen`.
-  - **Chess960**:
-    - start from a FEN (one of the 960 back-rank set-ups; `Game` has FEN output, not input);
-    - castling rules: king and rook end on the usual squares, the squares between must be free and not attacked, and the king may stay where it is;
-    - UCI castling notation: in Chess960, Lichess writes castling as king takes own rook (e.g. `e1h1`);
-    - FEN/SAN for these positions;
-    - a local mode vs the robot: Stockfish supports `UCI_Chess960`;
-    - the board's castling animation (the rook and king may cross or stay).
-  - **Crazyhouse**:
-    - captured pieces go to the capturer's pocket and can be dropped instead of a move (UCI `P@e4`; no pawn drops on the 1st/8th rank);
-    - a promoted piece goes back to the pocket as a pawn;
-    - drops can give check and parry it (mate detection);
-    - the UI: two pockets with counts by the player cards (in place of the captured strip), dragging or clicking a piece from the pocket to a square;
-    - `BoardPieces` adds a row for a dropped piece;
-    - the move list (`P@e4` / SAN `@e4`);
-    - Stockfish has no Crazyhouse in the default build, so no robot mode unless a variant engine is added (BL-06).
-  - Tests in `ChessTests` for each rule; screenshot scenes for a Chess960 start and a Crazyhouse position with pockets.
-  - Statistics and ratings per variant: Lichess has `chess960` and `crazyhouse` rating pools, but `parseRatings` reads only the speed pools (bullet … correspondence), so add them there and to the profile.
+- [ ] LI-01A Chess960 (Fischer Random) [Hard] — plan: [`docs/LI-01A-Chess960Plan.md`](docs/LI-01A-Chess960Plan.md) (the owner split LI-01 on 2026-11-17: A Chess960, B Crazyhouse; rules: <https://lichess.org/variant/chess960>). **Plan done; stage 1 not started.**
+  - [ ] **Stage 1, local**: vs the robot and two players, kept in the games library. The owner's choices: castling as on Lichess (the king onto its rook, or onto its destination when that isn't an ordinary king move); 960 games aren't rated; a random position "Chess960 #N", Rematch keeps it, New game draws a new one. Steps (plan §4):
+    - [ ] 1 ChessCore rules: `StartPosition`, `Board::DoCastling`, castling for any set-up (king onto own rook in 960, `e1g1` kept in standard), SAN/FEN
+    - [ ] 2 The engine: `UCI_Chess960`, the start FEN in every request, the analysis, FakeUci
+    - [ ] 3 The games library and `ChessConnector`: `variant` / `startFen` on the record, PGN tags, start / rematch / continue / replay / fork, the castling input
+    - [ ] 4 The UI: the setup dialogs' Variant row, "Chess960 #N" on the game page and the cards, scenes, `tst_chess960`
+    - [ ] 5 Docs and hand tests (`LI-01A-ManualTests.md`)
+  - [ ] **Stage 2, on Lichess** (a plan of its own, plan §6): start from `gameFull.initialFen`, allow `chess960` in `playableHere` and the challenge form (`OnlinePage.qml`, standard only until then), accept 960 challenges, the `chess960` rating pool in `parseRatings` and the profile, rejoin.
+- [ ] LI-01B Crazyhouse [Hard], **needs a plan first; not started** (after LI-01A). Chess-logic work in `ChessCore`, not only the Lichess dialog. The plan should cover:
+  - captured pieces go to the capturer's pocket and can be dropped instead of a move (UCI `P@e4`; no pawn drops on the 1st/8th rank);
+  - a promoted piece goes back to the pocket as a pawn;
+  - drops can give check and parry it (mate detection);
+  - the UI: two pockets with counts by the player cards (in place of the captured strip), dragging or clicking a piece from the pocket to a square;
+  - `BoardPieces` adds a row for a dropped piece;
+  - the move list (`P@e4` / SAN `@e4`);
+  - Stockfish has no Crazyhouse in the default build, so no robot mode unless a variant engine is added (BL-06).
+  - Tests in `ChessTests` for each rule; a screenshot scene for a Crazyhouse position with pockets.
+  - The `crazyhouse` rating pool in `parseRatings` and the profile.
 - [ ] LI-02 Game clocks and Lichess speeds [Medium] — plan: [`docs/LI-02-ClockPlan.md`](docs/LI-02-ClockPlan.md). A Lichess-like clock in **every mode** (Lichess games, two players, vs Robot): `MM:SS`, tenths under 10 s, red when low, a low-time sound, the flag loses (a draw if the other side can't mate); for Lichess from the stream's `wtime`/`btime`, plus the correspondence deadline if the Board API gives it. The challenge card names the modes (Rapid, Classical) with the player's rating, and an optional Lichess username makes Blitz possible (a direct challenge). The Board API allows only Rapid, Classical and Correspondence online, Blitz only in a challenge to a named user (checked 2026-11-02), so Bullet and UltraBullet are for local and robot games only. Doesn't depend on LI-01. Steps: 0 plan (#118); 1 `GameClock` + `CanMate` with tests (#119); 2 clocks in local and robot games (#120); 3 the Lichess clock (#121); 4 the challenge card (modes, rating, Blitz by username, #122); 5 docs and hand tests (done, branch `li02Docs_041126`). **Coded; the hand tests are open:** [`docs/LI-02-ManualTests.md`](docs/LI-02-ManualTests.md).
 - [x] LI-03 Apply an accepted Lichess takeback to our board [Medium] (from the PR #106 code review). **Done (branch `lichessTakeback_031126`)**: `LichessClient` keeps the stream's list and our sent moves apart and emits `moveListReplaced` for a shorter or different list (and for a move Lichess refused); `ChessConnector` takes back to the common moves and plays the rest; "Move taken back"; 5 stream tests and the `takeback` check scene. **Checked by hand on 2026-11-03** with a real Lichess game: we ask and they accept / refuse, they ask and we accept / refuse — all four work. Lichess allows takebacks between players when the other side agrees (each player's Lichess preference: always, casual games only, or never). The app can already ask for one and answer the opponent's request (`requestTakeback` / `respondTakeback`, the "takeback" offer bar), but when it is accepted Lichess sends a **shorter** `moves` list in `gameState`. `LichessClient::handleGameStreamLine` only emits moves when the list grows and replaces `_lastMovesList`, so our `Game` stays ahead (BL-04 §7 noted this). The next opponent move is then played on the wrong position: `DoMove` throws, or the board silently desyncs. To do:
   - a `takebackApplied(int plies)` signal (or the new full list) when the list shrinks;
