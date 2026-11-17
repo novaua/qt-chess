@@ -7,7 +7,7 @@ import ChessGuiTests
 // the material after its move, or a mate, so the scholar's mate's 3… Nf6 is a blunder (it lets the mate
 // in). Analyse from the result card, the progress, the marks in the move list, the summary and the eval
 // bar; Cancel; a takeback after the mate drops the analysis, and a game going on can't be analysed; a
-// kept game opened from the Games page.
+// kept game opened from the Games page; the arrows of a judged move (played, best).
 TestCase {
     id: test
     name: "Analysis"
@@ -152,6 +152,44 @@ TestCase {
         verify(!app.item("analysisProgress").visible)
         tryVerify(() => !ChessConnector.Analysing, 15000, "done")
         verify(GameLibrary.game(foolsMate).analysed, "kept on its record")
+        app.leaveToHome()
+    }
+
+    // A judged move whose best was another (the engine's 2… e6, not g5??): two arrows on the board, the
+    // move played in its mark's colour and the engine's in green, and "Best was e6"; none on a move that
+    // wasn't judged (BL-19 follow-up).
+    function test_6_bestMoveArrows() {
+        app.startComputerGame("e2e4 f7f6 d2d4 g7g5", 0)
+        app.waitBoardIdle()
+        app.clickMove("e2", "e4")
+        tryCompare(ChessConnector, "MoveCount", 2, 5000, "the robot's f6")
+        app.waitBoardIdle()
+        app.clickMove("d2", "d4")
+        tryCompare(ChessConnector, "MoveCount", 4, 5000, "the robot's g5")
+        app.waitBoardIdle()
+        app.clickMove("d1", "h5")
+        tryVerify(() => ChessConnector.GameResult !== "", 3000, "the mate")
+        TestRun.setEngine("e2e4 f7f6 d2d4 e7e6 d1h5", 0)
+        verify(ChessConnector.analyseGame(""))
+        tryVerify(() => analysed(), 15000, "analysed")
+
+        ChessConnector.reviewTo(4)   // after 2… g5??
+        tryCompare(ChessConnector, "ShownPly", 4, 3000)
+        const shown = ChessConnector.ShownAnalysis
+        compare(shown.mark, "??")
+        compare(shown.best, "e6")
+        compare([shown.playedFrom, shown.playedTo], [54, 38], "g7-g5")
+        compare([shown.bestFrom, shown.bestTo], [52, 44], "e7-e6")
+        const played = app.item("playedMoveArrow")
+        const best = app.item("bestMoveArrow")
+        tryVerify(() => played.visible && best.visible, 3000, "both arrows")
+        verify(Qt.colorEqual(played.color, "#DF5353"), "the blunder's red: " + played.color)
+        verify(Qt.colorEqual(best.color, "#2E9E41"), "the best move's green: " + best.color)
+        verify(app.item("shownJudgement").text.indexOf("Best was e6") >= 0, app.item("shownJudgement").text)
+
+        ChessConnector.reviewTo(2)   // 1… f6: the engine's too
+        tryCompare(ChessConnector, "ShownPly", 2, 3000)
+        tryVerify(() => !played.visible && !best.visible, 3000, "no arrows on a move not judged")
         app.leaveToHome()
     }
 }

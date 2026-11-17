@@ -70,6 +70,9 @@ ChessConnector::ChessConnector(QObject* parent)
 	                      &ChessConnector::gameInfoChanged, &ChessConnector::analysisChanged })
 		connect(this, changed, this, &ChessConnector::refreshBoardAnalysis);
 	connect(this, &ChessConnector::reviewStateChanged, this, &ChessConnector::shownAnalysisChanged);
+	// Play from here follows the review and whether the game is over.
+	for (auto changed : { &ChessConnector::reviewStateChanged, &ChessConnector::gameResultChanged })
+		connect(this, changed, this, &ChessConnector::playFromHereChanged);
 	_claimWin = new ClaimWin(this);
 	connect(_claimWin, &ClaimWin::goneChanged, this, &ChessConnector::opponentGoneChanged);
 	connect(_claimWin, &ClaimWin::secondsLeftChanged, this, &ChessConnector::claimWinSecondsChanged);
@@ -1192,6 +1195,20 @@ namespace {
 			return QStringLiteral("0.0");
 		return (cp > 0 ? QStringLiteral("+") : minus) + QString::number(std::abs(cp) / 100.0, 'f', 1);
 	}
+
+	// A UCI move's squares ("e2e4": 12, 28; 0 = a1 … 63 = h8); -1, -1 when it isn't one.
+	std::pair<int, int> squaresOf(const QString& uci)
+	{
+		if (uci.size() < 4)
+			return { -1, -1 };
+		auto square = [&uci](int at) {
+			const int file = uci.at(at).unicode() - 'a';
+			const int rank = uci.at(at + 1).unicode() - '1';
+			return file >= 0 && file < 8 && rank >= 0 && rank < 8 ? rank * 8 + file : -1;
+		};
+		const int from = square(0), to = square(2);
+		return from < 0 || to < 0 ? std::pair{ -1, -1 } : std::pair{ from, to };
+	}
 }
 
 // The board's game's analysis, when its record has one for the moves it has now; whether it is being
@@ -1269,13 +1286,29 @@ QVariantMap ChessConnector::shownAnalysis() const
 		{ QStringLiteral("mark"),         QString() },
 		{ QStringLiteral("judgement"),    QString() },
 		{ QStringLiteral("best"),         QString() },
+		{ QStringLiteral("playedFrom"),   -1 },
+		{ QStringLiteral("playedTo"),     -1 },
+		{ QStringLiteral("bestFrom"),     -1 },
+		{ QStringLiteral("bestTo"),       -1 },
 	};
 	if (position > 0) {
 		const auto judgement = _boardAnalysis.judgement(position - 1);
 		const QString name = GameAnalysis::judgementName(judgement);
+		const QString best = _bestSan.value(position - 1);
 		shown[QStringLiteral("mark")] = markOf(judgement);
 		shown[QStringLiteral("judgement")] = name.isEmpty() ? name : name.left(1).toUpper() + name.mid(1);
-		shown[QStringLiteral("best")] = _bestSan.value(position - 1);
+		shown[QStringLiteral("best")] = best;
+		// The board's two arrows, with best (a judged move whose engine move was another).
+		if (!best.isEmpty()) {
+			const auto played = squaresOf(_analysisMoves.value(position - 1));
+			const auto engine = squaresOf(_boardAnalysis.bestMove(position - 1));
+			if (played.first >= 0 && engine.first >= 0) {
+				shown[QStringLiteral("playedFrom")] = played.first;
+				shown[QStringLiteral("playedTo")]   = played.second;
+				shown[QStringLiteral("bestFrom")]   = engine.first;
+				shown[QStringLiteral("bestTo")]     = engine.second;
+			}
+		}
 	}
 	return shown;
 }
@@ -2302,10 +2335,11 @@ std::optional<ChessConnector::StartFrom> ChessConnector::startFrom(const QString
 
 QVariantMap ChessConnector::playFromHere() const
 {
-	// Only while reviewing (step 4b): a replay, or a robot / two-player game stepped back.
+	// Only while reviewing (step 4b): a replay, or a robot / two-player game stepped back once it is
+	// over; a game still going on isn't forked (the owner, 2026-11-17).
 	const bool replay = _gameMode == QLatin1String("replay");
 	const bool local = _gameMode == QLatin1String("computer") || _gameMode == QLatin1String("local");
-	if (isOnlineGame() || !(replay || (local && reviewMode())))
+	if (isOnlineGame() || !(replay || (local && reviewMode() && !_gameResult.isEmpty())))
 		return {};
 	const int ply = shownPly();
 	const auto from = startFrom(_recordId, ply);

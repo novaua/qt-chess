@@ -130,6 +130,7 @@ DISTFILES += \
     qml/lichess.js \
     qml/MarkerColumn.qml \
     qml/MarkerRow.qml \
+    qml/MoveArrows.qml \
     qml/MoveList.qml \
     qml/MovesPanel.qml \
     qml/NavigationLayer.qml \

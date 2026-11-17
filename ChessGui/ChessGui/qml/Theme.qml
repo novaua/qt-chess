@@ -68,6 +68,12 @@ QtObject {
     readonly property color legalMoveDot: Qt.alpha("#000000", 0.22)
     readonly property color premove:      Qt.alpha("#C42B1C", 0.5)    // a premove's two squares (red, as on Lichess)
     readonly property color premoveDot:   Qt.alpha("#8B1A10", 0.4)    // where a premove may go
+    // The analysis's arrows (MoveArrows): the engine's best move green, the move played in its
+    // judgement's colour (lichess.org's).
+    readonly property color bestMoveArrow: "#2E9E41"
+    function markArrowColor(mark) {
+        return mark === "??" ? "#DF5353" : mark === "?" ? "#E69F00" : "#56B4E9"
+    }
     readonly property color checkGlowCenter: "#FFD54A"   // the king in check: yellow in the middle …
     readonly property color checkGlowEdge:   "#E5341F"   // … red towards the edges
     // Pieces off the board (move list): a glow of the other colour, so both show on any panel.
