@@ -6,7 +6,8 @@ import ChessPlusPlus
 import "games.js" as Games
 
 // New game for two players on this computer: the player's side, the opponent (another profile or a
-// Guest) and the clock. Play from here (BL-19): openFrom() starts it from a position of a kept game.
+// Guest), the variant (LI-01A) and the clock. Play from here (BL-19): openFrom() starts it from a position
+// of a kept game, whose start it keeps (no Variant row).
 AppDialog {
     id: dialog
 
@@ -14,6 +15,13 @@ AppDialog {
     property var from: ({})           // Play from here: ChessConnector.PlayFromHere; {} = a new game
     readonly property bool _fromHere: from.gameId !== undefined
 
+    // A new game. chess960: the variant to offer (the result card's New game: the game's own); else the
+    // last one chosen.
+    function openNew(chess960) {
+        from = ({})
+        variant.choose(chess960 ?? AppSettings.chess960)
+        open()
+    }
     // From the position `position` (PlayFromHere): the player takes the side to move.
     function openFrom(position) {
         from = position
@@ -36,10 +44,13 @@ AppDialog {
     onClosed: from = ({})   // the next open() is a new game
     onAccepted: {
         clock.remember()
-        if (_fromHere)
+        if (_fromHere) {
             ChessConnector.startLocalGameFrom(from.gameId, from.ply, side.checkedIndex === 0, _opponentId, clock.limitSec, clock.incSec)
-        else
-            ChessConnector.startLocalGame(side.checkedIndex === 0, _opponentId, clock.limitSec, clock.incSec)
+        } else {
+            variant.remember()
+            ChessConnector.startLocalGame(side.checkedIndex === 0, _opponentId, clock.limitSec, clock.incSec,
+                                          variant.startPosition)
+        }
     }
 
     // Many profiles: the opponents wrap and the dialog would outgrow a small window, so this scrolls.
@@ -150,6 +161,14 @@ AppDialog {
                         }
                     }
                 }
+            }
+
+            VariantPicker {
+                id: variant
+                objectName: "playersVariant"
+                visible: !dialog._fromHere
+                Layout.fillWidth: true
+                Layout.topMargin: Theme.s2
             }
 
             Label {

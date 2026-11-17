@@ -39,7 +39,8 @@ Item {
         // A second profile to play against: same names and avatars every time.
         var gameScene = ["game", "leave-online", "drag-off", "continue", "continue-list", "continue-list-robot", "continue-list-starting", "review", "result", "ended", "moves", "select", "drag", "slides",
                          "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate",
-                         "captures", "check", "more-menu", "play-from-here", "play-from-here-menu", "replay"].includes(name)
+                         "captures", "check", "more-menu", "play-from-here", "play-from-here-menu", "replay",
+                         "chess960", "chess960-select", "chess960-castled"].includes(name)
         if ((gameScene || name.startsWith("players")) && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -81,8 +82,9 @@ Item {
             if (name === "games-filter")
                 pages.currentItem.filter = 3
         }
-        if (name === "computer") dialogs.computer.openNew()
-        if (name.startsWith("players")) dialogs.twoPlayer.open()
+        if (name === "computer") dialogs.computer.openNew(false)
+        if (name === "computer-960") dialogs.computer.openNew(true)   // LI-01A: the Variant row's Chess960 and its words
+        if (name.startsWith("players")) dialogs.twoPlayer.openNew()
         if (name === "robot") {
             // A saved game vs the robot (level 5, the player is Black) where White mates in one,
             // then Continue: the engine finds Qh5#, played on the GUI thread (BL-09). Needs Stockfish.
@@ -141,6 +143,9 @@ Item {
                                           + "d7c6 g1e2 e5d3 c2d3 e8f7 d3d4 f8a3 b2a3 f7e7 d1c2 h7h6 c2c6 f6f5 c6h6 e7d7 e2f4 d7e7 a2c2 e7d8 c2c6 d8d7 a3a4 d7e7 f4g6 e7e8 e1f2 e8d8 g6e7 d8d7 e7f5 d7d8",
                                   // The page opens in check: "Check" a second later (in the column, wide).
                                   check: "e2e4 f7f6 d1h5",
+                                  // LI-01A, Chess960 #3 (king f1, rook g1): the king selected (a dot on its
+                                  // rook), then castled (king and rook swap)
+                                  "chess960-select": "e2e4 e7e5 g2g3 b7b6", "chess960-castled": "e2e4 e7e5 g2g3 b7b6 f1g1",
                                   stalemate: "e2e3 a7a5 d1h5 a8a6 h5a5 h7h5 h2h4 a6h6 a5c7 f7f6 c7d7 e8f7 d7b7 d8d3 "
                                            + "b7b8 d3h7 b8c8 f7g6" })[name] ?? ""
             // White's and Black's time: time stands still in this mode, so a scene sets what it shows.
@@ -153,7 +158,7 @@ Item {
             if (robot)   // only a game vs the robot is autosaved; White: no engine needed
                 ChessConnector.startComputerGame(3, 0, limitSec, incSec)
             else
-                ChessConnector.startLocalGame(!shot.black, bob ? bob.id : "", limitSec, incSec)
+                ChessConnector.startLocalGame(!shot.black, bob ? bob.id : "", limitSec, incSec, name.startsWith("chess960") ? 3 : -2)
             if (shot.moves || defaultMoves)
                 ChessConnector.applyMoves(shot.moves || defaultMoves)
             if (clockTimes)
@@ -190,6 +195,8 @@ Item {
                 pages.currentItem.openMoreMenu()   // made on its first opening (BL-11)
             if (name === "select")
                 ChessConnector.figureSelected(6)   // the g1 knight: tinted square, dots on its moves
+            if (name === "chess960-select")
+                ChessConnector.figureSelected(5)   // the f1 king: dots on e2, g2 and its rook on g1 (O-O)
             if (name === "drag-off") {
                 // The g1 knight dragged off the board, over the bottom player card: over it, not under.
                 ChessConnector.figureSelected(6)

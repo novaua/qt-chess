@@ -224,7 +224,7 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 		return;
 	struct Kept {
 		const char* kind; int level; bool white; const char* opponent; QDate day; const char* moves;
-		const char* result; const char* resultText; int limitSec, incSec;
+		const char* result; const char* resultText; int limitSec, incSec; int chess960 = -1; // LI-01A: its position
 	};
 	const Kept kept[] = {
 		{ "computer", 3, true, "Robot", QDate(2026, 11, 2), "e2e4 e7e5 f1c4 b8c6 d1h5 g8f6 h5f7",
@@ -239,6 +239,8 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 		{ "local", 0, false, "Guest", QDate(2026, 11, 12), "d2d4 d7d5 c2c4", "", "", 300, 3 },
 		// Play from here (step 4): the first game again from move 3, vs level 2.
 		{ "computer", 2, true, "Robot", QDate(2026, 11, 14), "e2e4 e7e5 f1c4 b8c6 g1f3", "", "", 0, 0 },
+		// LI-01A: Chess960 #3 (king f1, rook g1), both sides castled
+		{ "local", 0, true, "Bob", QDate(2026, 11, 16), "f1g1 f8g8 e2e4", "", "", 0, 0, 3 },
 	};
 	QString firstId;
 	for (const auto& k : kept) {
@@ -248,6 +250,8 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 		r.playerPlaysWhite = k.white;
 		r.opponentName = QString::fromLatin1(k.opponent);
 		r.startedAt = QDateTime(k.day, QTime(18, 0));
+		if (k.chess960 >= 0)
+			r.setStartPosition(Chess::StartPosition::Chess960(k.chess960));
 		r.setMoves(QString::fromLatin1(k.moves).split(' '));
 		r.result = QString::fromLatin1(k.result);
 		r.finished = !r.result.isEmpty();
@@ -258,7 +262,7 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 		r.clockLimitSec = k.limitSec;
 		r.clockIncSec = k.incSec;
 		r.whiteMs = r.blackMs = k.limitSec * 1000;
-		if (&k == &kept[std::size(kept) - 1]) { // the fork
+		if (&k == &kept[5]) { // the fork
 			r.forkOfId = firstId;
 			r.forkPly = 4;
 		}
@@ -430,7 +434,8 @@ int main(int argc, char* argv[])
 		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-		"opponent-left-error", "timing", "more-menu", "play", "games", "games-empty", "games-filter", "play-from-here", "play-from-here-menu", "replay", "analysis"
+		"opponent-left-error", "timing", "more-menu", "play", "games", "games-empty", "games-filter", "play-from-here", "play-from-here-menu", "replay", "analysis",
+		"chess960", "chess960-select", "chess960-castled", "computer-960"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();

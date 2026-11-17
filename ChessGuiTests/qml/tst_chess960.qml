@@ -2,14 +2,16 @@ import QtQuick
 import QtTest
 import ChessPlusPlus
 import ChessGuiTests
+import "qrc:/qml"   // AppSettings
 
-// LI-01A Chess960 (docs/LI-01A-Chess960Plan.md §3.7): a game from a given position, castling as on
+// LI-01A Chess960 (docs/LI-01A-Chess960Plan.md §3.7, §3.8): a game from a given position, castling as on
 // lichess.org (the king onto its own rook, or onto its square when no move of its own goes there), the
 // takeback (vs the robot), Rematch with the same position, the game kept and continued, its replay, Play from here,
-// its PGN, and the robot (FakeUci) castling, also as a premove.
+// its PGN, and the robot (FakeUci) castling, also as a premove. Then the setup dialogs' Variant row: a
+// random position, "Chess960 #N" in the title, New game offers Chess960 again, the choice remembered,
+// no row in Play from here.
 // #3 BQNNRKRB: king f1, rook g1 (they swap on O-O, at once). #518 is the standard set-up.
-// The games start as the setup dialogs start them, by ChessConnector's own calls (the dialogs' Variant row
-// is step 4).
+// Tests 1-6 start their games at a fixed position by ChessConnector's own calls, as the dialogs do.
 TestCase {
     id: test
     name: "Chess960"
@@ -192,5 +194,78 @@ TestCase {
         const kept = GameLibrary.games[0]
         compare(kept.kind, "computer")
         compare(kept.chess960, true)
+    }
+
+    // Two players, Chess960 chosen in the dialog: one of the 960 at random, named in the title; the
+    // choice is remembered. The result card's New game offers Chess960 again.
+    function test_7_variantRowTwoPlayers() {
+        app.waitForPage("home")
+        compare(AppSettings.chess960, false, "a new profile: standard")
+        app.click("twoPlayersCard")
+        const dialog = app.item("twoPlayerDialog")
+        tryVerify(() => dialog.opened, 3000, "the Two players dialog open")
+        const variant = app.item("playersVariant")
+        verify(variant.visible)
+        compare(variant.chess960, false)
+        app.clickIn("playersVariant", "variantChoice_1")
+        compare(variant.chess960, true, "Chess960 chosen")
+        app.click("startGameButton")
+        app.waitForPage("game", 10000)
+        app.waitClosed(dialog)
+        app.waitBoardIdle()
+
+        compare(ChessConnector.Chess960, true)
+        const number = ChessConnector.StartPositionNumber
+        verify(number >= 0 && number <= 959, "a position: " + number)
+        verify(ChessConnector.GameTitle.endsWith(" · Chess960 #" + number), ChessConnector.GameTitle)
+        compare(AppSettings.chess960, true, "remembered")
+
+        ChessConnector.resignGame()
+        tryVerify(() => app.item("resultCard").visible, 5000, "the result card")
+        app.click("newGameButton")
+        tryVerify(() => dialog.opened, 3000, "the dialog again")
+        compare(variant.chess960, true, "New game: Chess960 again")
+        app.click("startGameButton")
+        app.waitClosed(dialog)
+        tryCompare(ChessConnector, "GameResult", "", 5000, "a new game")
+        compare(ChessConnector.Chess960, true)
+        app.leaveToHome()
+    }
+
+    // vs the robot: the dialog opens with the last choice; Standard chosen again is a standard game, and
+    // remembered too.
+    function test_8_variantRowComputer() {
+        TestRun.setEngine("", 0)
+        app.waitForPage("home")
+        app.click("computerCard")
+        const dialog = app.item("computerDialog")
+        tryVerify(() => dialog.opened, 3000, "the vs computer dialog open")
+        const variant = app.item("computerVariant")
+        compare(variant.chess960, true, "the last choice: Chess960")
+        app.clickIn("computerVariant", "variantChoice_0")
+        app.click("startComputerGameButton")
+        app.waitForPage("game", 10000)
+        app.waitClosed(dialog)
+        compare(ChessConnector.Chess960, false, "a standard game")
+        compare(ChessConnector.StartPositionNumber, -1)
+        verify(ChessConnector.GameTitle.indexOf("Chess960") < 0, ChessConnector.GameTitle)
+        compare(AppSettings.chess960, false)
+        app.leaveToHome()
+    }
+
+    // Play from here keeps the game's start: no Variant row (the kept #3 game of test 3, replayed).
+    function test_9_noVariantRowFromHere() {
+        verify(ChessConnector.openGame(keptId))
+        app.waitForPage("game", 10000)
+        app.waitBoardIdle()
+        ChessConnector.reviewTo(1)
+        tryVerify(() => ChessConnector.PlayFromHere.gameId === keptId, 3000, "a position to play from")
+        const dialog = app.item("computerDialog")
+        dialog.openFrom(ChessConnector.PlayFromHere)
+        tryVerify(() => dialog.opened, 3000)
+        compare(app.item("computerVariant").visible, false, "no Variant row")
+        dialog.reject()
+        app.waitClosed(dialog)
+        app.leaveToHome()
     }
 }
