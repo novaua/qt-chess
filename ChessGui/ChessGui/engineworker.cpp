@@ -1,8 +1,9 @@
 #include "stdafx.h"
 #include "engineworker.h"
 
-EngineWorker::EngineWorker(Chess::EngineLevel level, Chess::PositionMode mode, QObject* parent)
-    : QObject(parent), _level(level), _mode(mode)
+EngineWorker::EngineWorker(Chess::EngineLevel level, Chess::PositionMode mode, const Chess::StartPosition& start,
+                           QObject* parent)
+    : QObject(parent), _level(level), _mode(mode), _start(start)
 {}
 
 // Called from the GUI thread to stop a request: a blocking findMove() returns because the engine
@@ -26,7 +27,7 @@ void EngineWorker::findMove(int request, const Chess::MovesHistory& history, int
         if (!_enginePlayer) {
             // Not started here: FindMove starts the engine once killEngine() can reach it and the
             // cancel check is set, so a stop during the start ends it (BL-16 review).
-            _enginePlayer = std::make_shared<Chess::ChessEnginePlayer>(_level, _mode, false);
+            _enginePlayer = std::make_shared<Chess::ChessEnginePlayer>(_level, _mode, false, _start);
             _enginePlayer->SetCancelCheck([this] { return _abandoned.load(); });
             _playerForKill.store(_enginePlayer.get());
         }

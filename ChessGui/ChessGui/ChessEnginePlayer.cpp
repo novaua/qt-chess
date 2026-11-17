@@ -4,8 +4,8 @@
 
 using namespace Chess;
 
-ChessEnginePlayer::ChessEnginePlayer(EngineLevel level, PositionMode mode, bool startNow)
-	: _level(level), _mode(mode)
+ChessEnginePlayer::ChessEnginePlayer(EngineLevel level, PositionMode mode, bool startNow, const StartPosition& start)
+	: _level(level), _mode(mode), _start(start)
 {
 	_connector = std::make_shared<UciConnector>();
 	if (startNow)
@@ -19,6 +19,8 @@ void ChessEnginePlayer::StartEngine()
 	_connector->Init();
 	if (_cancelled && _cancelled()) // killed during the handshake: don't go on with its options
 		throw std::logic_error("engine request cancelled");
+	if (_start.IsChess960())
+		_connector->SetChess960(true);
 	if (_level.UsesEngineElo())
 		_connector->SetDifficulty(_level.Elo());
 }
@@ -31,29 +33,36 @@ static bool IsUnresolvedPromotion(const HistoryMove& m)
 	return m.From.Piece.Type == PAWN && (to < 8 || to >= 56) && m.PromotedTo.IsEmpty();
 }
 
-// A game with the first `count` moves of `history`, played from the start position.
-static GameAptr Replay(const MovesHistory& history, size_t count)
+// A game with the first `count` moves of `history`, played from its start position.
+static GameAptr Replay(const MovesHistory& history, size_t count, const StartPosition& start)
 {
 	auto game = std::make_shared<Game>();
-	game->Restart();
+	game->Restart(true, start);
 	for (size_t i = 0; i < count && i < history.size(); ++i)
 		game->DoMove(history[i].ToMove());
 	return game;
 }
 
-StartPosMoveRequest ChessEnginePlayer::MakeRequest(const MovesHistory& history, size_t plies, PositionMode mode)
+StartPosMoveRequest ChessEnginePlayer::MakeRequest(const MovesHistory& history, size_t plies, PositionMode mode,
+                                                   const StartPosition& start)
 {
 	const int n = static_cast<int>(std::min(plies, history.size()));
 	StartPosMoveRequest req;
-	if (mode == PositionMode::PureFen)
+	if (start.IsChess960())
 	{
-		req.Fen = Replay(history, n)->MakeFen();
+		req.Fen = start.Fen();
+		for (int i = 0; i < n; ++i)
+			req.Moves.push_back(history[i].ToUciString());
+	}
+	else if (mode == PositionMode::PureFen)
+	{
+		req.Fen = Replay(history, n, start)->MakeFen();
 	}
 	else if (mode == PositionMode::FenWindow && n > FenWindowSize)
 	{
 		int snapshotAt = (n / FenWindowSize) * FenWindowSize;
 
-		req.Fen = Replay(history, snapshotAt)->MakeFen();
+		req.Fen = Replay(history, snapshotAt, start)->MakeFen();
 
 		for (int i = snapshotAt; i < n; ++i)
 			req.Moves.push_back(history[i].ToUciString());
@@ -80,7 +89,7 @@ std::string ChessEnginePlayer::FindMove(const MovesHistory& history, std::chrono
 	if (_cancelled && _cancelled())
 		throw std::logic_error("engine request cancelled");
 
-	const StartPosMoveRequest req = MakeRequest(history, history.size(), _mode);
+	const StartPosMoveRequest req = MakeRequest(history, history.size(), _mode, _start);
 
 	if (_level.UsesEngineElo())
 		return _connector->GetEngineMove(req, maxMoveTime.count() > 0 ? std::min(_level.MoveTime(), maxMoveTime)
@@ -98,9 +107,10 @@ void ChessEnginePlayer::KillEngine()
 std::string ChessEnginePlayer::DebugDump(const MovesHistory& history)
 {
 	static const char* modeNames[] = { "StartPos", "PureFen", "FenWindow" };
-	auto game = Replay(history, history.size());
+	auto game = Replay(history, history.size(), _start);
 
 	std::string out = std::string("mode: ") + modeNames[static_cast<int>(_mode)]
+		+ (_start.IsChess960() ? ", Chess960 #" + std::to_string(_start.Number()) : std::string())
 		+ ", level " + std::to_string(_level.Level());
 	if (_level.UsesEngineElo())
 		out += ", Elo " + std::to_string(_level.Elo())

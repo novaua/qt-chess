@@ -35,6 +35,7 @@ const std::string QuitCommand = "quit";
 const std::string LimitStrengthOption = "UCI_LimitStrength";
 const std::string EloOption = "UCI_Elo";
 const std::string MultiPvOption = "MultiPV";
+const std::string Chess960Option = "UCI_Chess960";
 
 const std::regex IdNameRegex("id name (.*)");
 const std::regex InfoPvRegex("\\bmultipv (\\d+)\\b.*\\bscore (cp|mate) (-?\\d+)\\b.*\\bpv (\\S+)");
@@ -361,6 +362,19 @@ void UciConnector::SetDifficulty(int elo)
 	elo = std::max(1320, std::min(3190, elo));
 	SetOption(LimitStrengthOption, "true");
 	SetOption(EloOption, std::to_string(elo));
+}
+
+void UciConnector::SetChess960(bool on)
+{
+	const std::string current = GetOption(Chess960Option); // "check default false" until it is set
+	if (current.empty()) {
+		if (on)
+			throw std::runtime_error("The chess engine doesn't play Chess960 (it has no UCI_Chess960 option)");
+		return;
+	}
+	if (current == (on ? "true" : "false") || (!on && current != "true"))
+		return; // already so; never set is off
+	SetOption(Chess960Option, on ? "true" : "false");
 }
 
 std::vector<std::string> UciConnector::GetOptions()

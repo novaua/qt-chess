@@ -19,7 +19,7 @@ void AnalysisWorker::stop()
 }
 
 void AnalysisWorker::analyse(int request, const Chess::MovesHistory& history, int depth, Chess::PositionMode mode,
-                             bool hasFinal, int finalEval)
+                             bool hasFinal, int finalEval, const Chess::StartPosition& start)
 {
 	if (_stopped.load())
 		return;
@@ -31,6 +31,7 @@ void AnalysisWorker::analyse(int request, const Chess::MovesHistory& history, in
 		_connector->Init(); // at full strength: a new connector never limits it
 		if (_stopped.load())
 			return;
+		_connector->SetChess960(start.IsChess960());
 		_connector->NewGame();
 		const int plies = (int)history.size();
 		for (int position = 0; position <= plies; ++position) {
@@ -41,7 +42,7 @@ void AnalysisWorker::analyse(int request, const Chess::MovesHistory& history, in
 				break;
 			}
 			const auto candidates = _connector->GetCandidateMoves(
-				Chess::ChessEnginePlayer::MakeRequest(history, position, mode), 1, depth);
+				Chess::ChessEnginePlayer::MakeRequest(history, position, mode, start), 1, depth);
 			const auto& best = candidates.front();
 			const bool whiteToMove = position % 2 == 0;
 			const QString move = best.Move == "(none)" ? QString() : QString::fromStdString(best.Move);
@@ -134,9 +135,10 @@ bool GameAnalyzer::start(const QString& gameId)
 
 	const int request = ++_request;
 	const auto history = game->GetGameRecord();
+	const auto start = game->GetStartPosition(); // the record's set-up (Chess960, LI-01A)
 	const int depth = _runDepth;
 	const auto mode = _mode;
-	QMetaObject::invokeMethod(worker, [=] { worker->analyse(request, history, depth, mode, hasFinal, finalEval); },
+	QMetaObject::invokeMethod(worker, [=] { worker->analyse(request, history, depth, mode, hasFinal, finalEval, start); },
 		Qt::QueuedConnection);
 	emit runningChanged();
 	emit progressChanged();

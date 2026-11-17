@@ -122,6 +122,48 @@ namespace ConnectorTests
 			Assert::AreEqual(MateScoreCp - 1, candidates[0].ScoreCp);
 		}
 
+		// LI-01A: with UCI_Chess960 Stockfish's root moves are exactly ours in a Chess960 position, castling
+		// written as the king onto its own rook (#3 BQNNRKRB: king f1, rook g1, O-O at once).
+		TEST_METHOD(Chess960_TheEnginesMovesAreOurs_Test)
+		{
+			auto ourMoves = [](const vector<string>& moves) {
+				Game game;
+				game.Restart(true, StartPosition::Chess960(3));
+				for (const auto& m : moves)
+					game.DoMove(Move::Parse(m));
+				set<string> legal;
+				for (int square = 0; square < BpMax; ++square)
+					for (const auto& m : game.GetAllowedMoves(square))
+						legal.insert(BoardPositionToString(m.From) + BoardPositionToString(m.To));
+				return legal;
+			};
+			auto enginesMoves = [this](const vector<string>& moves) {
+				set<string> root;
+				for (const auto& c : _connector->GetCandidateMoves({ StartPosition::Chess960(3).Fen(), moves }, 100, 1))
+					root.insert(c.Move);
+				return root;
+			};
+
+			_connector->SetChess960(true);
+			Assert::AreEqual(string("true"), _connector->GetOption("UCI_Chess960"));
+			const auto white = enginesMoves({});
+			Assert::IsTrue(white.count("f1g1") == 1, L"O-O as the king onto its rook");
+			Assert::IsTrue(ourMoves({}) == white, L"White's first moves");
+			const auto black = enginesMoves({ "f1g1" });
+			Assert::IsTrue(black.count("f8g8") == 1);
+			Assert::IsTrue(ourMoves({ "f1g1" }) == black, L"Black's after White castled");
+		}
+
+		TEST_METHOD(SetChess960_OffWhenNeverOn_SendsNothing_Test)
+		{
+			const auto before = _connector->GetOption("UCI_Chess960");
+			_connector->SetChess960(false);
+			Assert::AreEqual(before, _connector->GetOption("UCI_Chess960"), L"not set: the engine's default");
+			_connector->SetChess960(true);
+			_connector->SetChess960(false);
+			Assert::AreEqual(string("false"), _connector->GetOption("UCI_Chess960"));
+		}
+
 		TEST_METHOD(GetCandidateMoves_GameOver_ReturnsNone_Test)
 		{
 			auto candidates = _connector->GetCandidateMoves({ {}, { "f2f3", "e7e6", "g2g4", "d8h4" } }, 4, 6);

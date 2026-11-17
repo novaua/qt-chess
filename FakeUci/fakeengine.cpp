@@ -59,11 +59,11 @@ FakeEngine::FakeEngine(std::vector<std::string> script, int delayMs)
 	SetStartPosition();
 }
 
-void FakeEngine::SetStartPosition()
+void FakeEngine::SetStartPosition(const StartPosition& start)
 {
 	auto board = std::make_shared<Board>();
-	board->Initialize();
-	_state = { board, std::make_shared<MovesHistory>(), std::make_shared<BoardPositionsCache>() };
+	board->Initialize(start);
+	_state = { board, std::make_shared<MovesHistory>(), std::make_shared<BoardPositionsCache>(), start };
 	_side = PieceColors::Light;
 	_ply = 0;
 	_castling = "KQkq";
@@ -150,9 +150,12 @@ std::vector<std::string> FakeEngine::LegalMoves() const
 	return moves;
 }
 
-// A FEN's castling field says what may still castle; the history (empty after a FEN) can't.
+// A FEN's castling field says what may still castle; the history (empty after a FEN) can't. A Chess960
+// game is always played from its start (the app sends it so): its history knows.
 bool FakeEngine::CastlingAllowed(const Move& move) const
 {
+	if (_state.Start.IsChess960())
+		return true;
 	const Piece piece = _state.Board->At(move.From);
 	if (piece.Type != KING || std::abs(int(move.To) % 8 - int(move.From) % 8) != 2)
 		return true;
@@ -222,7 +225,7 @@ std::string FakeEngine::ScoreOf(const std::string& uciMove) const
 {
 	FakeEngine after(*this); // its own board: Play changes it
 	after._state = { std::make_shared<Board>(*_state.Board), std::make_shared<MovesHistory>(*_state.History),
-	                 std::make_shared<BoardPositionsCache>() };
+	                 std::make_shared<BoardPositionsCache>(), _state.Start };
 	if (!after.Play(uciMove))
 		return "cp 0";
 	if (after.LegalMoves().empty())
@@ -236,13 +239,16 @@ void FakeEngine::OnPosition(const std::string& args)
 	const auto words = Words(args);
 	size_t next = 0;
 	if (!words.empty() && words[0] == "startpos") {
-		SetStartPosition();
+		SetStartPosition(_chess960 ? StartPosition::Chess960(StartPosition::StandardNumber) : StartPosition());
 		next = 1;
 	} else if (!words.empty() && words[0] == "fen") {
 		std::string fen;
 		for (next = 1; next < words.size() && words[next] != "moves"; ++next)
 			fen += (fen.empty() ? "" : " ") + words[next];
-		if (!SetFen(fen))
+		const auto start960 = _chess960 ? StartPosition::FromFen(fen) : std::nullopt;
+		if (start960)
+			SetStartPosition(*start960);
+		else if (!SetFen(fen))
 			SetStartPosition();
 	}
 	if (next < words.size() && words[next] == "moves")
@@ -279,6 +285,7 @@ void FakeEngine::Run(std::istream& in, std::ostream& out)
 			       "option name UCI_LimitStrength type check default false\n"
 			       "option name UCI_Elo type spin default 1320 min 1320 max 3190\n"
 			       "option name MultiPV type spin default 1 min 1 max 500\n"
+			       "option name UCI_Chess960 type check default false\n"
 			       "uciok" << std::endl;
 		} else if (command == "isready") {
 			out << "readyok" << std::endl;
@@ -292,9 +299,14 @@ void FakeEngine::Run(std::istream& in, std::ostream& out)
 			for (const auto& move : LegalMoves())
 				out << move << ' ';
 			out << "(ply " << _ply << ')' << std::endl;
+		} else if (command == "setoption") {
+			// "name UCI_Chess960 value true"; the other options change nothing here
+			const auto words = Words(args);
+			if (words.size() >= 4 && words[1] == "UCI_Chess960" && words[2] == "value")
+				_chess960 = words[3] == "true";
 		} else if (command == "quit") {
 			return;
 		}
-		// setoption, stop, debug, …: nothing to do
+		// stop, debug, …: nothing to do
 	}
 }

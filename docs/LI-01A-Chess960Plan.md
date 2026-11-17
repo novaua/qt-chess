@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-17 |
-| **Status** | Stage 1: step 1 (the rules) on `features/chess960Rules_171126`; steps 2–5 not started |
+| **Status** | Stage 1: step 1 (the rules) merged (#175); step 2 (the engine) on `features/chess960Engine_171126`; steps 3–5 not started |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | LI-01A in `TASKS.md` (LI-01 split by the owner, 2026-11-17: A Chess960, B Crazyhouse) |
 | **Rules** | <https://lichess.org/variant/chess960> |
@@ -114,8 +114,9 @@ Castling on one side is legal when:
 
 - `UciConnector` sends `setoption name UCI_Chess960 value true|false` at each new game, when the engine lists
   the option (Stockfish does).
-- A 960 game always asks `position fen <start FEN> moves …` (`StartPosMoveRequest.Fen` = the start FEN).
-  The FEN-window modes keep working with `MakeFen`'s X-FEN.
+- A 960 game always asks `position fen <start FEN> moves …` (`StartPosMoveRequest.Fen` = the start FEN), in
+  every `PositionMode` (done so in step 2, instead of FEN windows with X-FEN): the engine knows the castling
+  rooks from the start, never from a mid-game FEN's castling field, and FakeUci needs only the start.
 - `ChessEnginePlayer::MakeRequest` / `Replay` take the start position; the analysis (`GameAnalyzer`,
   `AnalysisWorker`) passes it on. The weak-move picker (levels 1–2, `GetCandidateMoves`) is unchanged.
 - FakeUci learns the `UCI_Chess960` option and `position fen` of a 960 start (`StartPosition::FromFen`); its

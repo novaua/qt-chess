@@ -1618,7 +1618,7 @@ void ChessConnector::startEngineThread(Chess::EngineLevel level)
 		? Chess::PositionMode::FenWindow
 		: Chess::PositionMode::StartPos;
 	ENGINE_TRACE("start thread: level" << level.Level() << (_config.useFen ? "FenWindow" : "StartPos"));
-	_engineWorker = new EngineWorker(level, mode);
+	_engineWorker = new EngineWorker(level, mode, _game->GetStartPosition());
 	_engineThread = new QThread(this);
 	_engineWorker->moveToThread(_engineThread);
 

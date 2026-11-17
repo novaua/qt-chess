@@ -87,14 +87,14 @@ All chess logic, isolated in the `Chess::` namespace. Key types:
 
 ### UciConnector (static library)
 
-Spawns and communicates with external UCI engines via `QProcess`. Main API: `Init()`, `NewGame()`, `GetEngineMove()`.
+Spawns and communicates with external UCI engines via `QProcess`. Main API: `Init()`, `NewGame()`, `GetEngineMove()`; `SetChess960(on)` (LI-01A: `UCI_Chess960`, sent only when it changes something). A Chess960 game's requests are always its start FEN and every move, whatever the `PositionMode` (`ChessEnginePlayer::MakeRequest(history, plies, mode, start)`; `ChessEnginePlayer`, `EngineWorker` and the analysis get the game's `StartPosition`).
 The engine is `./engines/stockfish.exe`, else one on `PATH`; `CHESS_ENGINE_PATH` names the only one instead (the tests' FakeUci).
 
 ### FakeUci (console exe, tests only)
 
 A stand-in UCI engine on `ChessCore`, no Qt (`FakeUci/fakeengine.h`, BL-05 step 3): answers what the app asks of Stockfish
 at once and the same way every time: the move of the game in `FAKEUCI_MOVES` at that ply when legal there (a promotion without its piece: a queen), else the first legal
-move by its UCI text (said on stderr); its one line's score is `mate 1` when the move mates, else the material after it (the analysis tests); `FAKEUCI_DELAY_MS` before each answer; `moves` (not UCI) lists its legal moves. The UI tests
+move by its UCI text (said on stderr); its one line's score is `mate 1` when the move mates, else the material after it (the analysis tests); Chess960 as Stockfish: `setoption name UCI_Chess960 value true`, then `position fen` of a Chess960 start and its moves; `FAKEUCI_DELAY_MS` before each answer; `moves` (not UCI) lists its legal moves. The UI tests
 (`TestSetup`) and the robot screenshot scenes (`Take-Screenshot.ps1`) run it; its tests are `ChessTests/FakeEngineTests.cpp`.
 
 ### ChessGui (Qt QML application)

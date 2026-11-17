@@ -83,6 +83,9 @@ public:
 	EngineMoveResponse GetEngineMove(const StartPosMoveRequest& req,
 	                                 std::chrono::milliseconds moveTime);
 	void SetDifficulty(int elo); // target Elo strength (clamped to Stockfish's supported 1320-3190 range)
+	// Chess960 (LI-01A): UCI_Chess960, so the engine reads castling as the king onto its own rook. Only sent
+	// when it changes something; throws for an engine without the option when `on`.
+	void SetChess960(bool on);
 
 	// The engine's 'count' best moves after a full-strength search to 'depth', best first.
 	// For a finished game it returns the single "(none)" move, like GetEngineMove().
