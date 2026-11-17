@@ -132,6 +132,31 @@ public:
         Assert::IsTrue(out.str().find("info depth 1 multipv 1 score mate 1 pv d8h4") != std::string::npos);
     }
 
+    // LI-01A: in Chess960 castling is the king onto its own rook (#3 BQNNRKRB: king f1, rook g1).
+    TEST_METHOD(Chess960_CastlesAsTheKingOntoItsRook)
+    {
+        FakeEngine engine({}, 0);
+        engine.SetChess960(true);
+        engine.SetStartPosition(Chess::StartPosition::Chess960(3));
+        Assert::IsTrue(Has(engine.LegalMoves(), "f1g1"));
+        Assert::IsTrue(engine.Play("f1g1"));
+        Assert::IsTrue(Has(engine.LegalMoves(), "f8g8"));
+    }
+
+    // As the app talks to it in a Chess960 game: UCI_Chess960, then the start FEN and every move.
+    TEST_METHOD(Chess960_Protocol)
+    {
+        FakeEngine engine({}, 0);
+        std::istringstream in("uci\nsetoption name UCI_Chess960 value true\n"
+                              "position fen " + Chess::StartPosition::Chess960(3).Fen() + " moves f1g1\nmoves\nquit\n");
+        std::ostringstream out;
+        engine.Run(in, out);
+        const std::string text = out.str();
+        Assert::IsTrue(text.find("option name UCI_Chess960 type check default false") != std::string::npos);
+        Assert::IsTrue(text.find(" f8g8 ") != std::string::npos, L"Black may castle too");
+        Assert::IsTrue(text.find("(ply 1)") != std::string::npos, L"White's castling was played");
+    }
+
     TEST_METHOD(Protocol_AsTheAppTalksToIt)
     {
         FakeEngine engine({ "e2e4", "c7c5" }, 0);

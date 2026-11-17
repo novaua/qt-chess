@@ -27,7 +27,7 @@ public:
 	// The last one, when the game is over there (mate, stalemate), isn't searched: `finalEval` is its
 	// score then (hasFinal).
 	void analyse(int request, const Chess::MovesHistory& history, int depth, Chess::PositionMode mode,
-	             bool hasFinal, int finalEval);
+	             bool hasFinal, int finalEval, const Chess::StartPosition& start = Chess::StartPosition());
 	void stop(); // any thread: the search ends (the engine process is terminated), nothing more is reported
 
 signals:

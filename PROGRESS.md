@@ -4,6 +4,23 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-17 — LI-01A step 2: the engine plays Chess960 (branch: features/chess960Engine_171126)
+
+### Done
+- `UciConnector::SetChess960(on)`: `UCI_Chess960`, sent only when it changes something; an engine without the option can't play a Chess960 game (an error).
+- `ChessEnginePlayer` / `EngineWorker` take the game's `StartPosition` (`ChessConnector::startEngineThread` passes `_game->GetStartPosition()`); a Chess960 one sets the option when the engine starts. `MakeRequest(history, plies, mode, start)`: a Chess960 game is always its start FEN and every move (no FEN window: the engine knows the castling rooks from the start; plan §3.6 updated). The debug dump names the position.
+- The analysis (`AnalysisWorker`) sets the option and asks from the start; `GameAnalyzer::start` passes the replayed game's start (standard until step 3 gives the record one).
+- FakeUci: lists `UCI_Chess960`, `setoption` turns it on, `position fen` of a Chess960 start (or `startpos` as #518) is then a Chess960 game; castling from the history.
+- Tests: Stockfish's root moves equal ours in Chess960 #3 (castling as the king onto its rook), `SetChess960` sends nothing when off; `MakeRequest` (start FEN in every mode), the robot at levels 1 and 5 plays a legal move in a 960 game; FakeUci +2; the analysis worker tells FakeUci the start.
+
+### Checked
+- Debug: ChessTests 165/165, ChessQtTests 269/269; UI tests 10 files, 0 failed.
+
+### Next
+- Step 3 (plan §3.7): `GameRecord` `variant` / `startFen`, PGN tags, `ChessConnector` start / rematch / continue / replay / fork with the start position, the castling input.
+
+---
+
 ## 2026-11-17 — LI-01A step 1: Chess960 rules in ChessCore (branch: features/chess960Rules_171126)
 
 ### Done

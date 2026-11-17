@@ -19,6 +19,8 @@
 // Its one line's score (BL-19 step 6, the analysis) is "mate 1" when its move mates, else the material
 // after its move from the side to move's view (pawn 100, knight and bishop 300, rook 500, queen 900):
 // an analysis sees a piece taken or left to be taken, and a mate, the same way every time.
+// Chess960 (LI-01A) as Stockfish plays it: "setoption name UCI_Chess960 value true", then "position fen"
+// of a Chess960 start and its moves; castling is the king onto its own rook.
 class FakeEngine
 {
 public:
@@ -28,8 +30,9 @@ public:
 	void Run(std::istream& in, std::ostream& out);
 
 	// The position (for the tests of the engine itself, and the "position" command)
-	void SetStartPosition();
+	void SetStartPosition(const Chess::StartPosition& start = Chess::StartPosition());
 	bool SetFen(const std::string& fen);   // false: not a FEN it understands
+	void SetChess960(bool on) { _chess960 = on; } // UCI_Chess960: a start FEN is then a Chess960 game's
 	bool Play(const std::string& uciMove); // false: not legal here (the position is unchanged)
 	std::vector<std::string> LegalMoves() const; // in UCI, sorted
 	std::string ChooseMove() const;              // "" when there is none (mate, stalemate)
@@ -50,4 +53,5 @@ private:
 	Chess::PieceColors _side = Chess::PieceColors::Light;
 	int _ply = 0;
 	std::string _castling = "KQkq"; // from the FEN: what may still castle
+	bool _chess960 = false;
 };

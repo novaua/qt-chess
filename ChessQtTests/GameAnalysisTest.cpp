@@ -216,6 +216,23 @@ namespace GameAnalysisTests
 			Assert::IsTrue(GameAnalysis::fromJson(again.find(id)->analysis) == a, L"kept in games.json");
 		}
 
+		// LI-01A: the analysis tells the engine a Chess960 game's start. FakeUci follows the scholar's mate
+		// script where it can: after White's O-O (f1g1) its move for Black is 1… e5, so it played the castling.
+		TEST_METHOD(Chess960_TheEngineIsToldTheStart)
+		{
+			Chess::Game game;
+			game.Restart(true, Chess::StartPosition::Chess960(3));
+			game.DoMove(Chess::Move::Parse("f1g1"));
+			AnalysisWorker worker;
+			QSignalSpy done(&worker, &AnalysisWorker::positionDone);
+			QSignalSpy finished(&worker, &AnalysisWorker::finished);
+			worker.analyse(1, game.GetGameRecord(), 6, Chess::PositionMode::FenWindow, false, 0, game.GetStartPosition());
+			Assert::AreEqual(1, (int)finished.count());
+			Assert::AreEqual(2, (int)done.count());
+			Assert::AreEqual(QStringLiteral("e2e4"), done.at(0).at(3).toString());
+			Assert::AreEqual(QStringLiteral("e7e5"), done.at(1).at(3).toString(), L"Black's move: the castling was played");
+		}
+
 		// Stockfish (./engines/ or PATH, as the other engine tests): its scores are the side to move's,
 		// turned to White's here.
 		TEST_METHOD(RealEngine_TheBlunderAndTheMate)

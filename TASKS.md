@@ -97,7 +97,7 @@ Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows
 - [ ] LI-01A Chess960 (Fischer Random) [Hard] — plan: [`docs/LI-01A-Chess960Plan.md`](docs/LI-01A-Chess960Plan.md) (the owner split LI-01 on 2026-11-17: A Chess960, B Crazyhouse; rules: <https://lichess.org/variant/chess960>). **Plan done; stage 1 not started.**
   - [ ] **Stage 1, local**: vs the robot and two players, kept in the games library. The owner's choices: castling as on Lichess (the king onto its rook, or onto its destination when that isn't an ordinary king move); 960 games aren't rated; a random position "Chess960 #N", Rematch keeps it, New game draws a new one. Steps (plan §4):
     - [x] 1 ChessCore rules: `StartPosition`, `Board::DoCastling`, castling for any set-up (king onto own rook in 960, `e1g1` kept in standard), SAN/FEN (branch `features/chess960Rules_171126`; checked against python-chess)
-    - [ ] 2 The engine: `UCI_Chess960`, the start FEN in every request, the analysis, FakeUci
+    - [x] 2 The engine: `UCI_Chess960`, the start FEN in every request, the analysis, FakeUci (branch `features/chess960Engine_171126`)
     - [ ] 3 The games library and `ChessConnector`: `variant` / `startFen` on the record, PGN tags, start / rematch / continue / replay / fork, the castling input
     - [ ] 4 The UI: the setup dialogs' Variant row, "Chess960 #N" on the game page and the cards, scenes, `tst_chess960`
     - [ ] 5 Docs and hand tests (`LI-01A-ManualTests.md`)

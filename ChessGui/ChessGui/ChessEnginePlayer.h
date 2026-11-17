@@ -16,6 +16,7 @@ namespace Chess {
 		UciConnectorAPtr _connector;
 		EngineLevel _level;
 		PositionMode _mode;
+		StartPosition _start; // the game's set-up: a Chess960 one sets UCI_Chess960 (LI-01A)
 		std::mt19937 _rng{ std::random_device{}() };
 		std::function<bool()> _cancelled; // set by the worker: true when the request is abandoned
 
@@ -26,14 +27,18 @@ namespace Chess {
 		// KillEngine() and the cancel check can end its start too (BL-16 review: the start in the
 		// constructor couldn't be stopped).
 		ChessEnginePlayer(EngineLevel level = EngineLevel{3},
-		                  PositionMode mode = PositionMode::FenWindow, bool startNow = true);
+		                  PositionMode mode = PositionMode::FenWindow, bool startNow = true,
+		                  const StartPosition& start = StartPosition());
 
 		// The engine's move in UCI notation (e.g. "e7e8q") for the game with these moves
 		// from the start position. maxMoveTime: the robot's clock caps the level's thinking time (0: no cap).
 		std::string FindMove(const MovesHistory& history, std::chrono::milliseconds maxMoveTime = {});
 		// What the engine is told for the position after the first `plies` moves of `history`, in `mode`
 		// (FenWindow: a FEN every FenWindowSize plies and the moves since). The analysis asks the same way.
-		static StartPosMoveRequest MakeRequest(const MovesHistory& history, size_t plies, PositionMode mode);
+		// A Chess960 game is always its start FEN and every move since, whatever the mode (LI-01A): the
+		// engine then knows the castling rooks from the start, never from a FEN's castling field.
+		static StartPosMoveRequest MakeRequest(const MovesHistory& history, size_t plies, PositionMode mode,
+		                                       const StartPosition& start = StartPosition());
 		// Stops the engine process; thread-safe.
 		void KillEngine();
 		// A request that is no longer wanted (the game was left): FindMove checks this before and after

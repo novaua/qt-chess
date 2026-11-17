@@ -24,6 +24,7 @@ class EngineWorker : public QObject
     Chess::ChessEnginePlayerAptr _enginePlayer;
     Chess::EngineLevel _level;
     Chess::PositionMode _mode;
+    Chess::StartPosition _start; // the game's set-up (Chess960: the engine is told, LI-01A)
 
     // killEngine() runs on the GUI thread while findMove() may be creating the player here: keep
     // the pieces it needs in atomics. _playerForKill is owned by _enginePlayer (stable until the
@@ -34,6 +35,7 @@ class EngineWorker : public QObject
 public:
     explicit EngineWorker(Chess::EngineLevel level = Chess::EngineLevel{3},
                           Chess::PositionMode mode = Chess::PositionMode::FenWindow,
+                          const Chess::StartPosition& start = Chess::StartPosition(),
                           QObject* parent = nullptr);
 
     void killEngine();

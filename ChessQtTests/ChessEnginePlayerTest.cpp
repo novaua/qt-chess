@@ -72,6 +72,45 @@ namespace EnginePlayerTests
 			Assert::IsTrue(elapsed < 1500, L"thought for the level's time");
 		}
 
+		// LI-01A: a Chess960 game is its start FEN and every move, whatever the mode (12 plies: FenWindow
+		// would send a FEN of the position at ply 8 in a standard game).
+		TEST_METHOD(MakeRequest_Chess960_StartFenAndEveryMove_Test)
+		{
+			const auto start = StartPosition::Chess960(3);
+			const vector<string> moves = { "f1g1", "f8g8", "e2e4", "e7e5", "c1d3", "c8d6", "d1e3", "d8e6",
+			                               "b2b3", "b7b6", "g2g3", "g7g6" };
+			Game game;
+			game.Restart(true, start);
+			for (const auto& m : moves)
+				game.DoMove(Move::Parse(m));
+			for (auto mode : { PositionMode::StartPos, PositionMode::PureFen, PositionMode::FenWindow }) {
+				const auto req = ChessEnginePlayer::MakeRequest(game.GetGameRecord(), moves.size(), mode, start);
+				Assert::AreEqual(start.Fen(), req.Fen);
+				Assert::IsTrue(moves == req.Moves);
+			}
+			const auto standard = ChessEnginePlayer::MakeRequest(Play(LongMateInOne), 12, PositionMode::FenWindow);
+			Assert::AreNotEqual(string(), standard.Fen, L"a standard game keeps its FEN window");
+		}
+
+		// The robot in a Chess960 game, a strong level and a weak one (the candidates' picker): its move is
+		// one of ours.
+		TEST_METHOD(FindMove_Chess960_LegalHere_Test)
+		{
+			const auto start = StartPosition::Chess960(3);
+			Game game;
+			game.Restart(true, start);
+			for (const auto& m : { "e2e4", "e7e5" })
+				game.DoMove(Move::Parse(m));
+			for (int level : { 1, 5 }) {
+				ChessEnginePlayer player(EngineLevel{ level }, PositionMode::FenWindow, true, start);
+				const auto move = Move::Parse(player.FindMove(game.GetGameRecord(), chrono::milliseconds(300)));
+				player.KillEngine();
+				const auto legal = game.GetAllowedMoves(move.From);
+				Assert::IsTrue(any_of(legal.begin(), legal.end(), [&](const Move& m) { return m.To == move.To; }),
+					(L"level " + to_wstring(level)).c_str());
+			}
+		}
+
 		TEST_METHOD(DebugDump_ShowsThePositionOfTheMoves_Test)
 		{
 			ChessEnginePlayer player(EngineLevel{ 5 }, PositionMode::FenWindow);
