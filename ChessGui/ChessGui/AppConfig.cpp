@@ -54,6 +54,16 @@ QString AppConfig::gamesFilePath(const QString& userId)
 	return dir + "/games.json";
 }
 
+QString AppConfig::gamesDirPath(const QString& userId)
+{
+	return appDataDir() + "/users/" + userId + "/games";
+}
+
+QString AppConfig::ratingFilePath(const QString& userId)
+{
+	return appDataDir() + "/users/" + userId + "/rating.json";
+}
+
 AppConfig AppConfig::load()
 {
 	AppConfig cfg;

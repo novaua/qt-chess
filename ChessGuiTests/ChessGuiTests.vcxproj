@@ -125,6 +125,7 @@
     <ClCompile Include="..\ChessGui\ChessGui\gameclock.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gamelibrary.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gamepgn.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\gamesignature.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gameanalysis.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gameanalyzer.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\applog.cpp" />

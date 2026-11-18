@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QList>
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
@@ -121,11 +122,15 @@ struct GameRecord
 	QVariantMap toVariant() const; // for QML: the fields above plus plyCount, playerToMove, lastMove
 };
 
-// The games library of the active profile (BL-19): `users/<id>/games.json`, written whole with
-// QSaveFile on every change (a record is small; a crash loses nothing). It follows the active profile
-// (UserManager::activeUserChanged) and keeps the last `keepCount` finished games: the oldest finished
-// one goes when a new one comes; unfinished games are never removed on their own. On its first load
-// for a profile it migrates the two save slots of earlier versions (`chess.autosave`, `chess.save`).
+// The games library of the active profile (BL-19). BL-20: one signed file per game,
+// `users/<id>/games/<gameId>.json` ({"record": …, "sig": GameSignature}), written with QSaveFile when it
+// changes (only that game's file), and the rating vs the robot in `users/<id>/rating.json`. A game file
+// that fails its check (edited by hand, damaged, another game's id) is set aside in `games/rejected/`,
+// never loaded or counted (gamesSetAside). It follows the active profile (UserManager::activeUserChanged)
+// and keeps the last `keepCount` finished games: the oldest finished one goes when a new one comes;
+// unfinished games are never removed on their own. It migrates once what earlier versions kept: the
+// profile's `games.json` (BL-19: trusted and signed, then renamed `games.json.migrated`) and the two save
+// slots before it (`chess.autosave`, `chess.save`).
 //
 // QML singleton `GameLibrary` (import ChessPlusPlus): the list for the Games page and the Continue
 // list, and Delete; anything that puts a game on the board goes through ChessConnector (openGame,
@@ -149,10 +154,13 @@ class GameLibrary : public QObject
 	Q_PROPERTY(bool ratingProvisional READ ratingProvisional NOTIFY ratingChanged)
 	// The rating is provisional under this many rated games (LocalRating::ProvisionalGames).
 	Q_PROPERTY(int provisionalGames READ provisionalGames CONSTANT)
+	// BL-20: the games of this profile set aside when it was loaded (they failed their check).
+	Q_PROPERTY(int setAsideCount READ setAsideCount NOTIFY gamesChanged)
 
 public:
 	static constexpr int DefaultKeepCount = 100;
-	static constexpr int FormatVersion = 1;
+	static constexpr int FormatVersion = 1;       // games.json (BL-19): read only to migrate it
+	static constexpr int RatingFormatVersion = 1; // rating.json
 
 	explicit GameLibrary(QObject* parent = nullptr);
 	~GameLibrary() override; // a change still waiting is written
@@ -194,36 +202,56 @@ public:
 	bool setAnalysis(const QString& id, const QStringList& moves, const GameAnalysis& analysis);
 	QString userId() const { return _userId; } // the profile whose games these are; "" = none
 	Q_INVOKABLE QVariantMap game(const QString& id) const; // {} when there is none
+	int setAsideCount() const { return _setAside; }
 
-	// The profile's file. Public for the tests.
-	QString filePath() const;
-	static QString filePathOf(const QString& userId);
+	// The profile's files. Public for the tests.
+	QString gamesDir() const { return gamesDirOf(_userId); }
+	static QString gamesDirOf(const QString& userId);
+	static QString gameFilePathOf(const QString& userId, const QString& gameId);
+	static QString rejectedDirOf(const QString& userId);
+	static QString ratingFilePathOf(const QString& userId);
+	static QString legacyFilePathOf(const QString& userId); // games.json of BL-19
+	// A game file's content: {"record": …, "sig": …}, signed with the current key.
+	static QByteArray gameFileContent(const GameRecord& record);
+	// A game file read and checked: its record, or nullopt (why: the reason). resign: it verified with an
+	// older key (to be signed again).
+	static std::optional<GameRecord> readGameFile(const QString& path, QString* why = nullptr, bool* resign = nullptr);
+	// A game id that can name a file: letters, digits, '-' and '_' (a UUID).
+	static bool isFileId(const QString& id);
 
 signals:
 	void gamesChanged();
 	void keepCountChanged();
 	void ratingChanged();
+	void gamesSetAside(int count); // the profile just loaded had `count` games that failed their check
 
 private:
 	enum class FileState { Missing, Read, Damaged, Unreadable };
-	// A profile's games.json: its records, newest first, and its rating.
+	// A profile's games: its records, newest first, and its rating.
 	struct ProfileFile
 	{
 		QList<GameRecord> records;
 		LocalRating rating;
+		int setAside = 0;   // game files that failed their check
+		QStringList resign; // records that verified with an older key: signed again when written
 	};
-	// Unreadable: it is there but couldn't be opened (a lock).
-	static FileState readFile(const QString& path, ProfileFile& file);
-	static bool writeFile(const QString& path, const ProfileFile& file);
+	// Its game files and its rating file. setAside: a failing game file is moved to rejected/ (else
+	// only left out).
+	static void readProfile(const QString& userId, ProfileFile& file, bool setAside);
+	// games.json of BL-19. Unreadable: it is there but couldn't be opened (a lock).
+	static FileState readLegacyFile(const QString& path, ProfileFile& file);
+	static bool writeGameFile(const QString& userId, const GameRecord& record);
+	static bool writeRatingFile(const QString& userId, const LocalRating& rating);
 	void rate(GameRecord& record); // put(): rates a game that just finished, or gives a resumed one's change back
-	static bool trimRecords(QList<GameRecord>& records, int keep); // true: some went
+	static QStringList trimRecords(QList<GameRecord>& records, int keep); // the ids that went
 	QStringList profileIds() const;
 
 	void reload();
 	bool save();
 	void scheduleSave();
-	void trim() { trimRecords(_records, _keepCount); }
+	void trim();
 	void trimOtherProfiles(); // their files, as setKeepCount trims the active one's
+	FileState migrateLegacyFile(); // games.json → a file per game (once; trusted and signed)
 	void migrateOldSaves(); // chess.autosave / chess.save + their GameSaveInfo → records (once)
 
 	UserManager* _userManager = nullptr;
@@ -231,8 +259,14 @@ private:
 	QList<GameRecord> _records; // newest first
 	LocalRating _rating;        // the profile's rating vs the robot
 	int _keepCount = DefaultKeepCount;
-	bool _unreadable = false;  // its games.json couldn't be read: never written over (save() reads it again)
-	QStringList _rateLater;    // games that finished while it couldn't be read: rated once its rating is known
+	int _setAside = 0;          // game files of this profile set aside when it was loaded
+	// Its games.json (BL-19) is there but couldn't be read now (a lock): its games aren't in yet, so the
+	// rating isn't known. Every write tries the migration again; games.json is never written over.
+	bool _legacyPending = false;
+	QStringList _rateLater;    // games that finished while the rating wasn't known: rated once it is
+	QSet<QString> _changed;    // records to write: put, analysis, migrated, signed with an older key
+	QSet<QString> _removed;    // records whose files go: removed, trimmed
+	bool _ratingChanged = false; // rating.json to write
 	bool _dirty = false;       // a change not written yet
 	bool _saveQueued = false;  // scheduleSave(): the write is on its way
 };

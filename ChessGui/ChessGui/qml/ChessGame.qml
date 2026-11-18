@@ -317,6 +317,7 @@ ApplicationWindow {
     Component.onCompleted: {
         _messagesUser = UserManager.isLoggedIn ? UserManager.activeUserId : ""
         route()
+        Qt.callLater(() => root._tellSetAside(GameLibrary.setAsideCount))   // BL-20: the first profile's
     }
 
     // ── --screenshot mode (see main.cpp): ScreenshotScene.qml sets up the scene, then C++ grabs the
@@ -1198,6 +1199,19 @@ ApplicationWindow {
         gamesKeptConfirm.open()
     }
     Binding { target: GameLibrary; property: "keepCount"; value: AppSettings.gamesKept }
+
+    // BL-20: kept games that failed their check (edited by hand, damaged) were set aside when the profile
+    // loaded: said once per load. The first profile loads before this window: asked once it is up.
+    function _tellSetAside(count) {
+        if (count > 0)
+            root.notify((count === 1 ? "1 kept game couldn't be verified and was"
+                                     : count + " kept games couldn't be verified and were")
+                        + " set aside.", "caution", true)
+    }
+    Connections {
+        target: GameLibrary
+        function onGamesSetAside(count) { root._tellSetAside(count) }
+    }
     Binding { target: ChessConnector; property: "AnalysisDepth"; value: AppSettings.analysisDepth } // BL-19 step 6
 
     ConfirmDialog {

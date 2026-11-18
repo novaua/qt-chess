@@ -5,6 +5,7 @@
 #include "EngineLevel.h"
 #include "Game.h"
 #include "gameanalysis.h"
+#include "gamesignature.h"
 #include "UserManager.h"
 
 #include <QDebug>
@@ -13,6 +14,7 @@
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QRegularExpression>
 #include <QSaveFile>
 #include <QTimer>
 #include <QUuid>
@@ -246,14 +248,37 @@ void GameLibrary::setUserManager(UserManager* um)
 	reload();
 }
 
-QString GameLibrary::filePathOf(const QString& userId)
+// ── The files (BL-20) ────────────────────────────────────────────────────────
+
+QString GameLibrary::gamesDirOf(const QString& userId)
+{
+	return AppConfig::gamesDirPath(userId);
+}
+
+QString GameLibrary::gameFilePathOf(const QString& userId, const QString& gameId)
+{
+	return gamesDirOf(userId) + QLatin1Char('/') + gameId + QStringLiteral(".json");
+}
+
+QString GameLibrary::rejectedDirOf(const QString& userId)
+{
+	return gamesDirOf(userId) + QStringLiteral("/rejected");
+}
+
+QString GameLibrary::ratingFilePathOf(const QString& userId)
+{
+	return AppConfig::ratingFilePath(userId);
+}
+
+QString GameLibrary::legacyFilePathOf(const QString& userId)
 {
 	return AppConfig::gamesFilePath(userId);
 }
 
-QString GameLibrary::filePath() const
+bool GameLibrary::isFileId(const QString& id)
 {
-	return filePathOf(_userId);
+	static const QRegularExpression fileId(QRegularExpression::anchoredPattern(QStringLiteral("[A-Za-z0-9_-]{1,64}")));
+	return fileId.match(id).hasMatch();
 }
 
 static bool newerFirst(const GameRecord& a, const GameRecord& b)
@@ -261,8 +286,132 @@ static bool newerFirst(const GameRecord& a, const GameRecord& b)
 	return a.startedAt > b.startedAt;
 }
 
-// The active profile's games. Without one (logged out, deleted) the library is empty and keeps nothing.
-GameLibrary::FileState GameLibrary::readFile(const QString& path, ProfileFile& profileFile)
+// What is signed: the record's JSON as it is written. QJsonObject keeps its keys sorted and Qt writes
+// numbers in the shortest form that reads back the same, so the record read from the file gives the
+// same bytes again (GameSignatureTest guards it).
+static QByteArray canonical(const QJsonObject& record)
+{
+	return QJsonDocument(record).toJson(QJsonDocument::Compact);
+}
+
+QByteArray GameLibrary::gameFileContent(const GameRecord& record)
+{
+	const QJsonObject json = record.toJson();
+	const QJsonObject root{
+		{ QStringLiteral("record"), json },
+		{ QStringLiteral("sig"),    GameSignature::sign(GameSignature::Kind::Game, canonical(json)) },
+	};
+	return QJsonDocument(root).toJson(QJsonDocument::Compact);
+}
+
+std::optional<GameRecord> GameLibrary::readGameFile(const QString& path, QString* why, bool* resign)
+{
+	auto fail = [why](const char* reason) -> std::optional<GameRecord> {
+		if (why)
+			*why = QString::fromLatin1(reason);
+		return std::nullopt;
+	};
+	QFile file(path);
+	if (!file.open(QIODevice::ReadOnly))
+		return fail("can't be opened");
+	QJsonParseError err;
+	const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+	if (err.error != QJsonParseError::NoError || !doc.isObject())
+		return fail("not JSON");
+	const QJsonObject json = doc.object().value(QStringLiteral("record")).toObject();
+	const QString sig = doc.object().value(QStringLiteral("sig")).toString();
+	if (json.isEmpty() || !GameSignature::verify(GameSignature::Kind::Game, canonical(json), sig))
+		return fail("its signature doesn't fit");
+	GameRecord record = GameRecord::fromJson(json);
+	if (record.id != QFileInfo(path).completeBaseName())
+		return fail("another game's id"); // a game copied under another name
+	if (resign)
+		*resign = !GameSignature::isCurrent(sig);
+	return record;
+}
+
+// Moved, not deleted: a damaged one can be looked at; an edited one isn't lost.
+static void setAsideFile(const QString& path, const QString& rejectedDir, const QString& why)
+{
+	QDir().mkpath(rejectedDir);
+	QString target = rejectedDir + QLatin1Char('/') + QFileInfo(path).fileName();
+	if (QFileInfo::exists(target))
+		target = rejectedDir + QLatin1Char('/') + QFileInfo(path).completeBaseName()
+			+ QDateTime::currentDateTime().toString(QStringLiteral("-yyyyMMdd-HHmmss")) + QStringLiteral(".json");
+	if (!QFile::rename(path, target))
+		qWarning() << "GameLibrary: can't set aside" << path;
+	qWarning() << "GameLibrary:" << QFileInfo(path).fileName() << "set aside:" << why;
+}
+
+void GameLibrary::readProfile(const QString& userId, ProfileFile& profileFile, bool setAside)
+{
+	profileFile = {};
+	const QString dir = gamesDirOf(userId);
+	for (const QFileInfo& info : QDir(dir).entryInfoList({ QStringLiteral("*.json") }, QDir::Files)) {
+		QString why;
+		bool resign = false;
+		const auto record = readGameFile(info.filePath(), &why, &resign);
+		if (!record) {
+			if (why == QLatin1String("can't be opened")) {
+				qWarning() << "GameLibrary: can't read" << info.filePath() << "now; left as it is";
+				continue; // a lock: it is there next time
+			}
+			++profileFile.setAside;
+			if (setAside)
+				setAsideFile(info.filePath(), rejectedDirOf(userId), why);
+			continue;
+		}
+		if (record->moves.isEmpty())
+			continue; // nothing to keep
+		profileFile.records.append(*record);
+		if (resign)
+			profileFile.resign.append(record->id);
+	}
+	std::stable_sort(profileFile.records.begin(), profileFile.records.end(), newerFirst);
+
+	QFile rating(ratingFilePathOf(userId));
+	if (rating.open(QIODevice::ReadOnly))
+		profileFile.rating = LocalRating::fromJson(QJsonDocument::fromJson(rating.readAll()).object()
+			.value(QStringLiteral("rating")).toObject());
+}
+
+bool GameLibrary::writeGameFile(const QString& userId, const GameRecord& record)
+{
+	QDir().mkpath(gamesDirOf(userId));
+	QSaveFile file(gameFilePathOf(userId, record.id));
+	if (!file.open(QIODevice::WriteOnly)) {
+		qWarning() << "GameLibrary: can't write" << file.fileName() << file.errorString();
+		return false;
+	}
+	file.write(gameFileContent(record));
+	if (!file.commit()) {
+		qWarning() << "GameLibrary: can't write" << file.fileName() << file.errorString();
+		return false;
+	}
+	return true;
+}
+
+bool GameLibrary::writeRatingFile(const QString& userId, const LocalRating& rating)
+{
+	QSaveFile file(ratingFilePathOf(userId));
+	if (!file.open(QIODevice::WriteOnly)) {
+		qWarning() << "GameLibrary: can't write" << file.fileName() << file.errorString();
+		return false;
+	}
+	const QJsonObject root{
+		{ QStringLiteral("version"), RatingFormatVersion },
+		{ QStringLiteral("rating"),  rating.toJson() },
+	};
+	file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
+	if (!file.commit()) {
+		qWarning() << "GameLibrary: can't write" << file.fileName() << file.errorString();
+		return false;
+	}
+	return true;
+}
+
+// games.json of BL-19: every record and the rating in one file.
+GameLibrary::FileState GameLibrary::readLegacyFile(const QString& path, ProfileFile& profileFile)
 {
 	auto& records = profileFile.records;
 	records.clear();
@@ -286,30 +435,6 @@ GameLibrary::FileState GameLibrary::readFile(const QString& path, ProfileFile& p
 	return FileState::Read;
 }
 
-bool GameLibrary::writeFile(const QString& path, const ProfileFile& profileFile)
-{
-	QJsonArray games;
-	for (const auto& r : profileFile.records)
-		games.append(r.toJson());
-	QJsonObject root{
-		{ QStringLiteral("version"), FormatVersion },
-		{ QStringLiteral("games"),   games },
-	};
-	if (profileFile.rating.games() > 0)
-		root[QStringLiteral("rating")] = profileFile.rating.toJson();
-	QSaveFile file(path);
-	if (!file.open(QIODevice::WriteOnly)) {
-		qWarning() << "GameLibrary: can't write" << path << file.errorString();
-		return false;
-	}
-	file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
-	if (!file.commit()) {
-		qWarning() << "GameLibrary: can't write" << path << file.errorString();
-		return false;
-	}
-	return true;
-}
-
 // A damaged file is kept aside, not overwritten or deleted: the owner may want to look at it.
 static void keepAside(const QString& path)
 {
@@ -319,37 +444,86 @@ static void keepAside(const QString& path)
 	qWarning() << "GameLibrary:" << path << "is damaged, kept as" << aside;
 }
 
+// The profile's games.json (BL-19), once: its games become files of their own, signed (trusted: they
+// were never signed), its rating rating.json when there is none yet (games rated while it couldn't be
+// read moved this one). Written now, then renamed games.json.migrated (kept, never read again).
+GameLibrary::FileState GameLibrary::migrateLegacyFile()
+{
+	const QString path = legacyFilePathOf(_userId);
+	ProfileFile legacy;
+	const FileState state = readLegacyFile(path, legacy);
+	if (state == FileState::Damaged)
+		keepAside(path);
+	if (state != FileState::Read)
+		return state;
+	int added = 0;
+	for (GameRecord r : legacy.records) {
+		if (find(r.id))
+			continue; // already a file of its own (a migration cut short)
+		if (!isFileId(r.id))
+			r.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+		_records.append(r);
+		_changed.insert(r.id);
+		++added;
+	}
+	std::stable_sort(_records.begin(), _records.end(), newerFirst);
+	if (!QFileInfo::exists(ratingFilePathOf(_userId)) && legacy.rating.games() > 0) {
+		_rating = legacy.rating;
+		_ratingChanged = true;
+	}
+	_legacyPending = false;
+	_dirty = true;
+	if (!save())
+		return FileState::Unreadable; // not written: games.json stays, tried again
+	const QString migrated = path + QStringLiteral(".migrated");
+	QFile::remove(migrated);
+	QFile::rename(path, migrated);
+	qInfo() << "GameLibrary: migrated" << added << "game(s) of" << path << "into" << gamesDir();
+	return FileState::Read;
+}
+
 void GameLibrary::reload()
 {
 	flush(); // the profile being left: its last change
 	const QString userId = _userManager && _userManager->isLoggedIn() ? _userManager->activeUserId() : QString();
 	_userId = userId;
-	_unreadable = false;
+	_legacyPending = false;
 	_records.clear();
 	_rating = {};
+	_setAside = 0;
+	_changed.clear();
+	_removed.clear();
+	_rateLater.clear();
+	_ratingChanged = false;
 	if (!_userId.isEmpty()) {
 		ProfileFile file;
-		switch (readFile(filePath(), file)) {
-		case FileState::Read:
-			_records = file.records;
-			_rating = file.rating;
-			break;
-		case FileState::Damaged:
-			keepAside(filePath());
-			break;
+		readProfile(_userId, file, true);
+		_records = file.records;
+		_rating = file.rating;
+		_setAside = file.setAside;
+		for (const auto& id : file.resign)
+			_changed.insert(id);
+		if (!_changed.isEmpty())
+			scheduleSave();
+		switch (migrateLegacyFile()) {
 		case FileState::Unreadable:
 			// There, but not to be read now (another program holds it): its games aren't shown, and it
-			// isn't written over; save() tries it again.
-			_unreadable = true;
-			qWarning() << "GameLibrary: can't read" << filePath() << "now; it is kept as it is";
+			// isn't written over; every write tries it again.
+			_legacyPending = true;
+			qWarning() << "GameLibrary: can't read" << legacyFilePathOf(_userId) << "now; it is kept as it is";
 			break;
 		case FileState::Missing:
 			migrateOldSaves();
+			break;
+		case FileState::Read:
+		case FileState::Damaged:
 			break;
 		}
 	}
 	emit gamesChanged();
 	emit ratingChanged();
+	if (_setAside > 0)
+		emit gamesSetAside(_setAside);
 }
 
 bool GameLibrary::save()
@@ -357,40 +531,49 @@ bool GameLibrary::save()
 	_dirty = false;
 	if (_userId.isEmpty())
 		return false;
-	if (_unreadable) {
-		// Read it again: its games and the ones kept since go in together, and its rating moved by the
-		// games rated since (the rating here started from the start rating: what it moved is the change).
-		ProfileFile onDisk;
-		switch (readFile(filePath(), onDisk)) {
+	if (_legacyPending && QFileInfo::exists(legacyFilePathOf(_userId))) {
+		// The games of games.json and the ones kept since go in together; then the rating is known, and
+		// the games that finished meanwhile are rated.
+		_legacyPending = false;
+		switch (migrateLegacyFile()) {
 		case FileState::Unreadable:
-			_dirty = true; // the next change tries again
-			qWarning() << "GameLibrary: still can't read" << filePath() << "- not written";
-			return false;
-		case FileState::Damaged:
-			keepAside(filePath());
+			_legacyPending = true;
+			qWarning() << "GameLibrary: still can't read" << legacyFilePathOf(_userId);
 			break;
-		case FileState::Read:
-			for (const auto& r : onDisk.records)
-				if (std::none_of(_records.begin(), _records.end(), [&](const GameRecord& k) { return k.id == r.id; }))
-					_records.append(r);
-			std::stable_sort(_records.begin(), _records.end(), newerFirst);
+		default:
+			for (const QString& id : std::exchange(_rateLater, {})) {
+				const auto it = std::find_if(_records.begin(), _records.end(), [&](const GameRecord& r) { return r.id == id; });
+				if (it != _records.end()) {
+					rate(*it);
+					_changed.insert(id);
+				}
+			}
 			trim();
-			_rating = onDisk.rating;
-			emit ratingChanged();
-			break;
-		case FileState::Missing:
+			emit gamesChanged();
 			break;
 		}
-		_unreadable = false;
-		// The games that finished meanwhile, rated now that the rating they move is known.
-		for (const QString& id : std::exchange(_rateLater, {})) {
-			const auto it = std::find_if(_records.begin(), _records.end(), [&](const GameRecord& r) { return r.id == id; });
-			if (it != _records.end())
-				rate(*it);
-		}
-		emit gamesChanged();
 	}
-	return writeFile(filePath(), ProfileFile{ _records, _rating });
+	bool ok = true;
+	for (const QString& id : std::exchange(_removed, {}))
+		QFile::remove(gameFilePathOf(_userId, id));
+	const QSet<QString> changed = std::exchange(_changed, {});
+	for (const QString& id : changed) {
+		const auto r = find(id);
+		if (r && !writeGameFile(_userId, *r)) {
+			_changed.insert(id); // tried again with the next change
+			ok = false;
+		}
+	}
+	// The rating is written once it is known (not while games.json waits: its games may move it).
+	if (_ratingChanged && !_legacyPending) {
+		if (writeRatingFile(_userId, _rating))
+			_ratingChanged = false;
+		else
+			ok = false;
+	}
+	if (!ok || _legacyPending)
+		_dirty = true; // tried again at the next write (games.json: until it can be read)
+	return ok;
 }
 
 void GameLibrary::scheduleSave()
@@ -432,8 +615,8 @@ int GameLibrary::finishedBeyond(int keep) const
 		if (id == _userId)
 			continue;
 		ProfileFile file;
-		if (readFile(filePathOf(id), file) == FileState::Read)
-			total += beyond(file.records);
+		readProfile(id, file, false);
+		total += beyond(file.records);
 	}
 	return total;
 }
@@ -443,9 +626,18 @@ void GameLibrary::trimOtherProfiles()
 	for (const auto& id : profileIds()) {
 		if (id == _userId)
 			continue;
-		ProfileFile file; // its rating stays as it is
-		if (readFile(filePathOf(id), file) == FileState::Read && trimRecords(file.records, _keepCount))
-			writeFile(filePathOf(id), file);
+		ProfileFile file;
+		readProfile(id, file, false); // a failing file stays where it is: that profile sets it aside when it loads
+		for (const QString& gameId : trimRecords(file.records, _keepCount))
+			QFile::remove(gameFilePathOf(id, gameId));
+	}
+}
+
+void GameLibrary::trim()
+{
+	for (const QString& id : trimRecords(_records, _keepCount)) {
+		_changed.remove(id);
+		_removed.insert(id);
 	}
 }
 
@@ -501,7 +693,9 @@ void GameLibrary::setKeepCount(int count)
 		return;
 	_keepCount = count;
 	emit keepCountChanged();
-	if (trimRecords(_records, _keepCount)) {
+	const int before = (int)_records.size();
+	trim();
+	if ((int)_records.size() != before) {
 		save();
 		emit gamesChanged();
 	}
@@ -512,7 +706,7 @@ QString GameLibrary::put(GameRecord record)
 {
 	if (_userId.isEmpty())
 		return {};
-	if (record.id.isEmpty())
+	if (record.id.isEmpty() || !isFileId(record.id))
 		record.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
 	if (!record.startedAt.isValid())
 		record.startedAt = QDateTime::currentDateTime();
@@ -525,6 +719,8 @@ QString GameLibrary::put(GameRecord record)
 	else
 		_records.prepend(record);
 	std::stable_sort(_records.begin(), _records.end(), newerFirst);
+	_changed.insert(record.id);
+	_removed.remove(record.id);
 	trim();
 	scheduleSave();
 	emit gamesChanged();
@@ -536,7 +732,7 @@ QString GameLibrary::put(GameRecord record)
 // change back right then restores the rating exactly.
 void GameLibrary::rate(GameRecord& record)
 {
-	if (_unreadable) {
+	if (_legacyPending) {
 		// The rating isn't known while games.json can't be read (it shows the start rating): a change
 		// worked out from that would be wrong. Rated when the file is read again (save()).
 		if (!record.rated && record.rateable() && !_rateLater.contains(record.id))
@@ -549,12 +745,14 @@ void GameLibrary::rate(GameRecord& record)
 		_rating.revert(record.ratingChange);
 		record.rated = false;
 		record.ratingBefore = record.ratingChange = 0;
+		_ratingChanged = true;
 		emit ratingChanged();
 	} else if (!record.rated && record.rateable()) {
 		record.ratingBefore = _rating.value();
 		record.ratingChange = _rating.changeFor(Chess::EngineLevel(record.level).DisplayElo(), record.playerScore());
 		record.rated = true;
 		_rating.apply(record.ratingChange);
+		_ratingChanged = true;
 		emit ratingChanged();
 	}
 }
@@ -565,6 +763,8 @@ bool GameLibrary::remove(const QString& id)
 	if (it == _records.end())
 		return false;
 	_records.erase(it);
+	_changed.remove(id);
+	_removed.insert(id);
 	scheduleSave();
 	emit gamesChanged();
 	return true;
@@ -576,20 +776,21 @@ bool GameLibrary::setAnalysis(const QString& id, const QStringList& moves, const
 	if (it == _records.end() || it->moves != moves || !analysis.fits(moves))
 		return false;
 	it->analysis = analysis.toJson();
+	_changed.insert(id);
 	scheduleSave();
 	emit gamesChanged();
 	return true;
 }
 
 // The oldest finished games beyond keepCount go (by when they finished); unfinished ones stay.
-bool GameLibrary::trimRecords(QList<GameRecord>& records, int keep)
+QStringList GameLibrary::trimRecords(QList<GameRecord>& records, int keep)
 {
 	QList<const GameRecord*> finished;
 	for (const auto& r : records)
 		if (r.finished)
 			finished.append(&r);
 	if (finished.size() <= keep)
-		return false;
+		return {};
 	std::sort(finished.begin(), finished.end(), [](const GameRecord* a, const GameRecord* b) {
 		const QDateTime da = a->finishedAt.isValid() ? a->finishedAt : a->startedAt;
 		const QDateTime db = b->finishedAt.isValid() ? b->finishedAt : b->startedAt;
@@ -600,7 +801,7 @@ bool GameLibrary::trimRecords(QList<GameRecord>& records, int keep)
 		drop.append(finished[i]->id);
 	records.erase(std::remove_if(records.begin(), records.end(),
 		[&](const GameRecord& r) { return drop.contains(r.id); }), records.end());
-	return true;
+	return drop;
 }
 
 // Versions before BL-19 kept two binary files per profile, the robot's autosave and the game saved
@@ -667,6 +868,7 @@ void GameLibrary::migrateOldSaves()
 			if (!r.moves.isEmpty()) {
 				r.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
 				_records.append(r);
+				_changed.insert(r.id);
 			}
 		}
 		catch (const std::exception& e) {
@@ -683,5 +885,5 @@ void GameLibrary::migrateOldSaves()
 	_userManager->clearAutoSaveInfo();
 	_userManager->clearSavedGameInfo();
 	save();
-	qInfo() << "GameLibrary: migrated" << _records.size() << "saved game(s) of the profile into" << filePath();
+	qInfo() << "GameLibrary: migrated" << _records.size() << "saved game(s) of the profile into" << gamesDir();
 }

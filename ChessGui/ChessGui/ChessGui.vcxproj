@@ -365,6 +365,7 @@
     <ClCompile Include="gameclock.cpp" />
     <ClCompile Include="gamelibrary.cpp" />
     <ClCompile Include="gamepgn.cpp" />
+    <ClCompile Include="gamesignature.cpp" />
     <ClCompile Include="gameanalysis.cpp" />
     <ClCompile Include="gameanalyzer.cpp" />
     <ClCompile Include="applog.cpp" />
@@ -378,6 +379,7 @@
     <ClInclude Include="appservices.h" />
     <ClInclude Include="frametrace.h" />
     <ClInclude Include="gamepgn.h" />
+    <ClInclude Include="gamesignature.h" />
     <ClInclude Include="gameanalysis.h" />
     <QtMoc Include="AppInfo.h" />
     <QtMoc Include="AvatarProvider.h" />

@@ -28,6 +28,7 @@ SOURCES += main.cpp \
     gameclock.cpp \
     gamelibrary.cpp \
     gamepgn.cpp \
+    gamesignature.cpp \
     gameanalysis.cpp \
     gameanalyzer.cpp \
     applog.cpp \
@@ -81,6 +82,7 @@ HEADERS += \
     gameclock.h \
     gamelibrary.h \
     gamepgn.h \
+    gamesignature.h \
     gameanalysis.h \
     gameanalyzer.h \
     applog.h \

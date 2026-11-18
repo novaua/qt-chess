@@ -48,6 +48,9 @@ public:
 	Q_INVOKABLE void addFinishedGames(int count);
 	// An unfinished two-player game whose third move can't be played (a damaged record); its id.
 	Q_INVOKABLE QString addDamagedGame();
+	// BL-20: a finished two-player game whose file is then edited on disk (its result turned round), as a
+	// player might: the next start sets it aside. Its id.
+	Q_INVOKABLE QString addEditedGame();
 	// A file in the test's data folder, as a URL (e.g. for Export PGN), and a text file's contents.
 	Q_INVOKABLE QUrl fileUrl(const QString& name) const;
 	Q_INVOKABLE QString readTextFile(const QUrl& file) const;
