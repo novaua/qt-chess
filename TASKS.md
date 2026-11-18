@@ -29,7 +29,8 @@
   - [x] 1 a signed file per game (`GameSignature`), set aside (`games/rejected/`, the message), migration from `games.json`, export / import of the files (branch `features/gameFiles_181126`)
   - [x] 2 the rating and the statistics signed, their recovery (branch `features/signedRating_181126`)
   - [x] 3 an old export imported unrated; the signed rating and statistics in an export (branch `features/signedExport_191126`)
-  - [ ] 4 docs and hand tests
+  - [x] 4 docs and hand tests: [`docs/BL-20-ManualTests.md`](docs/BL-20-ManualTests.md) (8 scenarios: a game edited, damaged or copied; the rating and the statistics edited; export / import between two data folders, an edited export; your own data from before BL-20 updated; another Windows account, a reinstall) (branch `docs/gameFilesManualTests_191126`)
+  - [ ] The owner's hand tests: the task is done when they pass
 
 Manual checks, no code (do any time):
 

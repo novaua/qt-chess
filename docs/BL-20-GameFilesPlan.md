@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-18 |
-| **Status** | Steps 1 (#188) and 2 (#189) done; step 3 (the import checked, old exports unrated) on `features/signedExport_191126` |
+| **Status** | Steps 1–3 done (#188–#190); step 4: the hand tests, [`BL-20-ManualTests.md`](BL-20-ManualTests.md), the owner's to run |
 | **Branch** | `docs/gameFilesPlan_181126` (plan); each step on its own branch from `develop` |
 | **Task** | BL-20 in `TASKS.md` (the owner, 2026-11-18: a game per file instead of one `games.json`; every game signed, so an edited game isn't taken in: a simple anti-cheat and an integrity check) |
 
