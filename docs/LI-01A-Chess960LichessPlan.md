@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-18 |
-| **Status** | Step 1 (the C++ side) merged (#182); step 2 (the UI, `tst_lichess960`) on `features/chess960LichessUi_181126` |
+| **Status** | Coded: step 1 (the C++ side) merged (#182), step 2 (the UI, `tst_lichess960`) merged (#183); step 3: the hand tests on lichess.org, [`LI-01A-LichessManualTests.md`](LI-01A-LichessManualTests.md), not run yet |
 | **Branch** | `docs/chess960LichessPlan_181126` (plan); each step on its own branch from `develop` |
 | **Task** | LI-01A in `TASKS.md`, stage 2 ([`LI-01A-Chess960Plan.md`](LI-01A-Chess960Plan.md) §6) |
 | **Rules** | <https://lichess.org/variant/chess960> |

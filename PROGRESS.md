@@ -4,6 +4,18 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-18 — LI-01A stage 2 step 3: the hand tests on lichess.org (branch: docs/chess960LichessManualTests_181126)
+
+### Done
+- **`docs/LI-01A-LichessManualTests.md`** (new, 9 scenarios, two Lichess accounts as BL-10's): a Chess960 challenge from lichess.org accepted (the same set-up and #N, both castlings both ways); a premoved castling; Leave, Continue, restart; Rematch keeps the position, and the opponent's rematch offer; a Chess960 challenge from the app (named and a link; the choice kept apart from the local dialogs'); correspondence; the PGN pasted at lichess.org/paste; the Chess960 rating; Crazyhouse refused (the bar, a joined link's message).
+- `TASKS.md`, the plan's status: stage 2 coded, its hand tests open. CLAUDE.md already describes stage 2 (#182, #183).
+
+### Next
+- The owner runs `LI-01A-LichessManualTests.md`; LI-01A is done when they pass.
+- Then LI-01B Crazyhouse's plan, or the next item in `TASKS.md`, as the owner chooses.
+
+---
+
 ## 2026-11-18 — LI-01A stage 2 step 2: the Chess960 Lichess UI (branch: features/chess960LichessUi_181126)
 
 ### Done
