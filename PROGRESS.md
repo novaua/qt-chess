@@ -4,6 +4,18 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-18 — Bug: a Lichess sign-in that can't be decrypted said Connected (branch: bugs/lichessTokenUndecryptable_181126)
+
+### Done
+- Found while planning BL-20 (moving a profile): the Lichess token is encrypted for the Windows account that linked it (`CryptProtectData`). In a data folder copied to another PC or Windows account it can't be decrypted: the app sent no token, yet the profile said **Connected**, and nothing on Lichess worked, with no hint why.
+- **`UserManager::lichessToken()`** (C++ only): the decrypted token; one that can't be decrypted marks the link expired (`setLichessExpired`), so Home, the Online page and the Profile ask to reconnect, as after a 401. `AppServices::updateLichessToken` uses it.
+- UserManagerTest +1 (`LichessToken_CantBeDecryptedHere_AsksToReconnect`). CLAUDE.md.
+
+### Checked
+- Debug: ChessQtTests 282/282; UI tests `tst_lichess`, `tst_lichess960`, `tst_profiles`, `tst_firstRun` passed.
+
+---
+
 ## 2026-11-18 — BL-20 plan: one signed file per game (branch: docs/gameFilesPlan_181126)
 
 ### Done

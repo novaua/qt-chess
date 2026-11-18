@@ -68,11 +68,11 @@ void AppServices::registerQmlTypes() const
 }
 
 // The active profile's Lichess token goes to the client (none while it is expired). A new token:
-// fetch the account for the ratings; a 401 on any call marks the link expired.
+// fetch the account for the ratings; a 401 on any call, or a token this Windows account can't decrypt
+// (UserManager::lichessToken), marks the link expired.
 void AppServices::updateLichessToken()
 {
-	const QString token = _userManager->lichessConnected()
-		? LichessClient::decryptToken(_userManager->lichessTokenEncrypted()) : QString();
+	const QString token = _userManager->lichessToken();
 	_lichessClient->setUsername(_userManager->lichessUsername());
 	if (token == _lastToken)
 		return;

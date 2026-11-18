@@ -131,7 +131,7 @@ move by its UCI text (said on stderr); its one line's score is `mate 1` when the
   - Setup dialogs: `ComputerGameDialog`, `TwoPlayerDialog` (both with the Variant row, LI-01A), `ChallengeDialog` (a Lichess challenge waiting for the friend or a named player), `LeaveOnlineDialog` (Leave / Resign / Stay when leaving or closing during a running Lichess game); profiles: `CreateUserDialog`, `ImportConflictDialog`, `RestoreBackupDialog`
 - `UserManager` keeps `users.json` (atomic `QSaveFile` writes, `backups/users-1..3.json`), statistics
   per opponent, profile export/import (`.chessprofile`, with the profile's `games.json`, never the Lichess token) and the Lichess
-  sign-in (`LichessAuth`), so the token never reaches QML. Its tests are in `ChessQtTests/UserManagerTest.cpp`.
+  sign-in (`LichessAuth`), so the token never reaches QML (`lichessToken()`, C++ only: a token this Windows account can't decrypt, e.g. a data folder copied from another PC, marks the link expired: "reconnect"). Its tests are in `ChessQtTests/UserManagerTest.cpp`.
 - Image assets live in `ChessGui/ChessGui/pics/`
 - Resources bundled via `qml.qrc`
 

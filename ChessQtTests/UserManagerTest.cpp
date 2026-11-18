@@ -3,6 +3,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 #include <CppUnitTest.h>
 #include "AppConfig.h"
@@ -228,6 +229,37 @@ namespace UserManagerTests
 			Assert::IsTrue(um.restoreBackup(1), L"and the restore can be undone");
 			Assert::AreEqual(2, um.userCount());
 			Assert::AreEqual(1, um.gamesPlayed());
+		}
+
+		// The data folder copied to another PC or Windows account: the Lichess token, encrypted for the
+		// account that linked it, can't be decrypted. The profile asks to reconnect instead of saying
+		// Connected with no token behind it; the rest of the profile is as it was.
+		TEST_METHOD(LichessToken_CantBeDecryptedHere_AsksToReconnect)
+		{
+			{
+				UserManager um;
+				um.createUser("A", "cat");
+				um.saveLichessCredentials("token-123", "a_li");
+				Assert::AreEqual(QString("token-123"), um.lichessToken(), L"decrypted on the account that linked it");
+			}
+			// Another account's encryption: bytes this one can't decrypt.
+			QByteArray users = readFile(UserManager::usersFilePath());
+			const QJsonObject before = QJsonDocument::fromJson(users).object();
+			const QString encrypted = before.value("users").toArray().first().toObject().value("lichessToken").toString();
+			Assert::IsFalse(encrypted.isEmpty());
+			users.replace(encrypted.toLatin1(), QByteArray("not-this-accounts-token").toBase64());
+			writeFile(UserManager::usersFilePath(), users);
+
+			UserManager um;
+			Assert::IsTrue(um.lichessConnected(), L"still says linked until the token is read");
+			QSignalSpy changed(&um, &UserManager::lichessChanged);
+			Assert::IsTrue(um.lichessToken().isEmpty());
+			Assert::IsFalse(um.lichessConnected());
+			Assert::IsTrue(um.lichessNeedsReconnect(), L"reconnect in your profile");
+			Assert::AreEqual(QString("a_li"), um.lichessUsername(), L"the account it was linked to is kept");
+			Assert::AreEqual(1, (int)changed.count());
+			Assert::IsTrue(um.lichessToken().isEmpty(), L"asked again: still nothing, no second change");
+			Assert::AreEqual(1, (int)changed.count());
 		}
 
 		TEST_METHOD(RestoreBackup_KeepsThisPcsLichessSignIn_AndCountsAsTheSameAsNow)
