@@ -11,7 +11,7 @@ function speedName(speed) {
 function gameDetails(game) {
     var parts = [speedName(game.speed)]
     if (game.variant !== "standard")
-        parts.push(game.variant)
+        parts.push(game.variantName)   // Lichess's name: "Chess960" (LichessClient)
     if (game.timeLeftText !== "")
         parts.push(game.timeLeftText + " left")
     return parts.join(" · ")

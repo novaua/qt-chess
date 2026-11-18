@@ -29,14 +29,14 @@ class LICHESSCONNECTOR_EXPORT LichessClient: public QObject
 	Q_OBJECT
 	// LI-04: the player's unfinished games on Lichess (refreshOngoingGames), one map per game, most
 	// urgent first: gameId, color, opponentName, opponentRating, opponentIsAi, isMyTurn, secondsLeft,
-	// timeLeftText, speed, variant, canPlayHere, lastMove, fen, rated.
+	// timeLeftText, speed, variant, variantName ("Chess960"), canPlayHere, lastMove, fen, rated.
 	Q_PROPERTY(QVariantList ongoingGames READ ongoingGames NOTIFY ongoingGamesChanged)
 	Q_PROPERTY(bool ongoingGamesLoading READ ongoingGamesLoading NOTIFY ongoingGamesChanged)
 	Q_PROPERTY(QString ongoingGamesError READ ongoingGamesError NOTIFY ongoingGamesChanged) // the last refresh failed
 	// BL-10: the challenges to the player waiting on Lichess, oldest first: id, url, challengerId,
 	// challengerName, challengerRating (0: none), challengerProvisional, challengerTitle,
 	// challengerText ("FM Speedy (2105?)"), timeControlText ("10+5", "3 days per move", "Unlimited"),
-	// speed, rated, variant, ourSide ("white", "black", "random"), sideText ("You play Black",
+	// speed, rated, variant, variantName, ourSide ("white", "black", "random"), sideText ("You play Black",
 	// "Random side"), canPlayHere (the Board API can play it), rematchOf.
 	Q_PROPERTY(QVariantList incomingChallenges READ incomingChallenges NOTIFY incomingChallengesChanged)
 	// The opponent's rematch offer the finished game's own bar shows (watchForRematch); "" for none.

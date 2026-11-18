@@ -27,8 +27,10 @@ Page {
     readonly property bool _opponentValid: _opponent === "" || LichessClient.isUsername(_opponent)
     readonly property bool _named: _opponent !== "" && _opponentValid
     readonly property bool _realTime: tcType.checkedIndex === 1
-    // What the chosen time control is on Lichess, and the player's rating there.
-    readonly property string _mode: _realTime ? tcClock.speed : tcType.checkedIndex === 2 ? "Correspondence" : ""
+    // What the chosen time control is on Lichess, and the player's rating there. Chess960 has one
+    // pool for every speed (LI-01A stage 2).
+    readonly property string _mode: variant.chess960 ? "Chess960"
+                                  : _realTime ? tcClock.speed : tcType.checkedIndex === 2 ? "Correspondence" : ""
     readonly property var _perf: UserManager.lichessRatings[_mode.toLowerCase()]
 
     readonly property var _games: LichessClient.ongoingGames
@@ -39,7 +41,7 @@ Page {
     function _challengeDetails(c) {
         const parts = [c.timeControlText, Lichess.speedName(c.speed), c.rated ? "Rated" : "Casual", c.sideText]
         if (c.variant !== "standard")
-            parts.push(c.variant)
+            parts.push(c.variantName)   // Lichess's name: "Chess960"
         if (c.rematchOf !== "")
             parts.push("Rematch")
         return parts.filter(p => p !== "").join(" · ")
@@ -89,11 +91,13 @@ Page {
         const incSec = _realTime ? tcClock.incSec : 0
         const days = tcType.checkedIndex === 2 ? tcDays.options[tcDays.checkedIndex].days : 0
         const color = side.options[side.checkedIndex].value
-        // Standard only: Chess960 isn't playable here yet (LI-01).
+        // Standard or Chess960 (LI-01A stage 2): Lichess picks the 960 position.
+        const v = variant.chess960 ? "chess960" : "standard"
+        variant.remember()
         if (_opponent !== "")
-            _start(() => LichessClient.challengePlayer(_opponent, limitSec, incSec, days, color))
+            _start(() => LichessClient.challengePlayer(_opponent, limitSec, incSec, days, color, v))
         else
-            _start(() => LichessClient.createOpenChallenge(limitSec / 60, incSec, color, "standard", days))
+            _start(() => LichessClient.createOpenChallenge(limitSec / 60, incSec, color, v, days))
     }
 
     Connections {
@@ -302,7 +306,14 @@ Page {
                         color: Theme.textSecondary
                     }
                 }
+                VariantPicker {
+                    id: variant
+                    online: true
+                    Layout.fillWidth: true
+                    Component.onCompleted: choose(AppSettings.onlineChess960)
+                }
                 Label {
+                    objectName: "challengeRating"
                     visible: page._perf !== undefined
                     text: page._perf ? "Your " + page._mode + " rating: " + page._perf.rating + (page._perf.prov ? "?" : "") : ""
                     font: Theme.bodyStrong
@@ -336,6 +347,7 @@ Page {
 
                 BusyButton {
                     id: challengeButton
+                    objectName: "challengeButton"
                     idleText: page._named ? "Challenge " + page._opponent : "Create challenge"
                     idleIcon: page._named ? "" : Theme.icon("link")
                     busy: page._busyAction === "challenge"

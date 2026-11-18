@@ -4,6 +4,25 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-18 — LI-01A stage 2 step 2: the Chess960 Lichess UI (branch: features/chess960LichessUi_181126)
+
+### Done
+- **Online page**: a Variant row under the time control (`VariantPicker` with `online`: "…one of 960 start positions, picked by Lichess…"; remembered as `AppSettings.onlineChess960`, apart from the local dialogs' `chess960`); the challenge (named or a link) asks for `chess960`; with Chess960 chosen the rating line is "Your Chess960 rating" (one pool for every speed). `onlineCard` (Home) and `challengeButton` named for the tests.
+- **Names**: `LichessClient` adds `variantName` to the ongoing games' and challenges' rows; the cards (`lichess.js`), the challenge rows and the challenge bar (now with the variant: "10+5 · Chess960 · Casual") show "Chess960", not the key.
+- **Profile**: the Chess960 rating tile.
+- **`FakeLichessServer`**: `challenge(…, variant, startFen)`, `addOngoingGame(…, variant, startFen)`; `gameFull` / `/api/account/playing` send them; the account has a Chess960 rating (1480?).
+- **`tst_lichess960`** (4 tests): a 960 challenge accepted at #3 (the title, the board), a premoved O-O posted as `f8g8`, the opponent's `f1g1` from the stream; an ongoing 960 game continued from Home, castled by clicks (`f1g1` posted); a Crazyhouse challenge without Accept, a Crazyhouse game rejoined anyway refused (`gameStartFailed`, Home stays); the Online page's Variant row: the Chess960 rating, `variant=chess960` for a named challenge and a link, the choice remembered apart. The 960 rematch's `fen` stays covered by ChessQtTests (FakeLichess has no outgoing challenges).
+- **Scenes**: `online-960` (new); `online-challenges` / `challenge`: SlowPlayer's challenge is Chess960; `profile`: the Chess960 tile. Their baselines change.
+- CLAUDE.md, the run-chess-app skill.
+
+### Checked
+- Debug: ChessQtTests all passed; UI tests 12 files, 0 failed; the scenes `online-960`, `online-challenges`, `profile`, `challenge` looked at.
+
+### Next
+- Step 3 (`docs/chess960LichessManualTests_…`): `LI-01A-LichessManualTests.md` on real lichess.org, docs.
+
+---
+
 ## 2026-11-18 — LI-01A stage 2 step 1: Chess960 Lichess games (branch: features/chess960LichessGames_181126)
 
 ### Done

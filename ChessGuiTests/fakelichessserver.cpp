@@ -39,7 +39,8 @@ bool FakeLichessServer::eventStreamOpen() const
 
 // ── What a test does as the other side ─────────────────────────────────
 
-void FakeLichessServer::challenge(const QString& id, const QString& challenger, int rating, const QString& challengerColor)
+void FakeLichessServer::challenge(const QString& id, const QString& challenger, int rating, const QString& challengerColor,
+                                  const QString& variant, const QString& startFen)
 {
 	const QJsonObject event{
 		{ "type", "challenge" },
@@ -52,7 +53,8 @@ void FakeLichessServer::challenge(const QString& id, const QString& challenger, 
 			{ "challenger", QJsonObject{ { "id", challenger.toLower() }, { "name", challenger },
 			                             { "rating", rating }, { "provisional", false } } },
 			{ "destUser", player(username()) },
-			{ "variant", QJsonObject{ { "key", "standard" } } },
+			{ "variant", QJsonObject{ { "key", variant } } },
+			{ "initialFen", startFen.isEmpty() ? QStringLiteral("startpos") : startFen },
 			{ "rated", false },
 			{ "speed", "rapid" },
 			{ "timeControl", QJsonObject{ { "type", "clock" }, { "limit", 600 }, { "increment", 5 }, { "show", "10+5" } } },
@@ -66,10 +68,14 @@ void FakeLichessServer::challenge(const QString& id, const QString& challenger, 
 }
 
 void FakeLichessServer::addOngoingGame(const QString& id, const QString& opponent, const QString& playerColor,
-                                       const QString& moves, const QString& fen)
+                                       const QString& moves, const QString& fen, const QString& variant,
+                                       const QString& startFen)
 {
 	Game game;
 	game.id = id;
+	game.variant = variant;
+	if (!startFen.isEmpty())
+		game.initialFen = startFen;
 	const bool white = playerColor == QLatin1String("white");
 	game.whiteName = white ? username() : opponent;
 	game.blackName = white ? opponent : username();
@@ -189,6 +195,8 @@ void FakeLichessServer::accept(QTcpSocket* socket, const QString& challengeId)
 	game.id = challengeId; // as on Lichess: the challenge's id is its game's
 	game.whiteName = challengerWhite ? challenger : username();
 	game.blackName = challengerWhite ? username() : challenger;
+	game.variant = challenge.value("variant").toObject().value("key").toString();
+	game.initialFen = challenge.value("initialFen").toString();
 	_games.insert(challengeId, game);
 	ok(socket);
 	sendEvent(QJsonObject{ { "type", "gameStart" }, { "game", QJsonObject{ { "gameId", challengeId } } } });
@@ -248,7 +256,8 @@ QByteArray FakeLichessServer::account() const
 	return compact(QJsonObject{
 		{ "id", username().toLower() },
 		{ "username", username() },
-		{ "perfs", QJsonObject{ { "rapid", QJsonObject{ { "rating", 1650 }, { "games", 42 }, { "prov", false } } } } },
+		{ "perfs", QJsonObject{ { "rapid", QJsonObject{ { "rating", 1650 }, { "games", 42 }, { "prov", false } } },
+		                         { "chess960", QJsonObject{ { "rating", 1480 }, { "games", 7 }, { "prov", true } } } } },
 	});
 }
 
@@ -271,7 +280,7 @@ QByteArray FakeLichessServer::playing() const
 			{ "secondsLeft", 600 },
 			{ "speed", "rapid" },
 			{ "source", "friend" },
-			{ "variant", QJsonObject{ { "key", "standard" }, { "name", "Standard" } } },
+			{ "variant", QJsonObject{ { "key", game.variant } } },
 			{ "lastMove", game.moves.value(game.moves.size() - 1) },
 			{ "rated", false },
 			{ "perf", "rapid" },
@@ -291,12 +300,12 @@ QByteArray FakeLichessServer::gameFull(const Game& game) const
 		{ "type", "gameFull" },
 		{ "id", game.id },
 		{ "rated", false },
-		{ "variant", QJsonObject{ { "key", "standard" } } },
+		{ "variant", QJsonObject{ { "key", game.variant } } },
 		{ "speed", "rapid" },
 		{ "clock", QJsonObject{ { "initial", 600000 }, { "increment", 5000 } } },
 		{ "white", player(game.whiteName) },
 		{ "black", player(game.blackName) },
-		{ "initialFen", "startpos" },
+		{ "initialFen", game.initialFen },
 		{ "state", gameState(game) },
 	});
 }

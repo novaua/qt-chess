@@ -41,7 +41,8 @@ Page {
     }
     readonly property var _ratingPools: [
         { key: "bullet", name: "Bullet" }, { key: "blitz", name: "Blitz" }, { key: "rapid", name: "Rapid" },
-        { key: "classical", name: "Classical" }, { key: "correspondence", name: "Correspondence" }
+        { key: "classical", name: "Classical" }, { key: "correspondence", name: "Correspondence" },
+        { key: "chess960", name: "Chess960" }   // LI-01A stage 2: one pool for every speed
     ]
 
     background: Rectangle { color: Theme.windowBg }

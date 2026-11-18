@@ -104,7 +104,7 @@ Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows
     - [x] The owner runs `LI-01A-ManualTests.md` (Stockfish at levels 1 and 5, castlings, takeback, Continue, not rated, replay, Analyse, the PGN on lichess.org): all 8 passed on 2026-11-18
   - [ ] **Stage 2, on Lichess** (plan: [`docs/LI-01A-Chess960LichessPlan.md`](docs/LI-01A-Chess960LichessPlan.md); the owner's choice: a 960 Rematch keeps the position). Steps (plan §4):
     - [x] 1 C++: `playableVariant` (standard, chess960), `gameStarted` with the variant and the start FEN, `startOnlineGame` from it, other variants refused, `challengePlayer`'s variant, the rematch's `fen`, the `chess960` rating, `variantName`; ChessQtTests (branch `features/chess960LichessGames_181126`)
-    - [ ] 2 UI: the Online page's Variant row (`AppSettings.onlineChess960`, the Chess960 rating line), Lichess's variant names, the Profile's Chess960 pool, `FakeLichessServer` variants, scenes, `tst_lichess960`
+    - [x] 2 UI: the Online page's Variant row (`AppSettings.onlineChess960`, the Chess960 rating line), Lichess's variant names, the Profile's Chess960 pool, `FakeLichessServer` variants, scenes, `tst_lichess960` (branch `features/chess960LichessUi_181126`)
     - [ ] 3 Docs and hand tests on lichess.org: `LI-01A-LichessManualTests.md`, CLAUDE.md, `TASKS.md`, `PROGRESS.md`
 - [ ] LI-01B Crazyhouse [Hard], **needs a plan first; not started** (after LI-01A). Chess-logic work in `ChessCore`, not only the Lichess dialog. The plan should cover:
   - captured pieces go to the capturer's pocket and can be dropped instead of a move (UCI `P@e4`; no pawn drops on the 1st/8th rank);

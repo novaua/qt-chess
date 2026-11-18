@@ -90,7 +90,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 			sceneMap["ongoingGames"] = QVariantList{ sceneMap["ongoingGames"].toList().first() };
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
-	                  "online", "online-empty", "online-blitz", "online-challenge", "continue", "continue-online",
+	                  "online", "online-empty", "online-blitz", "online-challenge", "online-960", "continue", "continue-online",
 	                  "continue-list", "continue-list-online", "continue-list-starting", "continue-starting", "takeback",
 	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting", "rejoin",
 	                  "challenge", "challenge-accepting", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
@@ -109,6 +109,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 			{ "blitz",     QVariantMap{ { "rating", 1612 }, { "games", 214 }, { "prov", false } } },
 			{ "rapid",     QVariantMap{ { "rating", 1688 }, { "games", 57 },  { "prov", false } } },
 			{ "classical", QVariantMap{ { "rating", 1500 }, { "games", 3 },   { "prov", true } } },
+			{ "chess960",  QVariantMap{ { "rating", 1534 }, { "games", 9 },   { "prov", true } } }, // LI-01A stage 2
 		});
 		if (scene == "profile-expired")
 			um->setLichessExpired();
@@ -364,7 +365,7 @@ static void seedChallenges(LichessClient* lichess, const QString& scene)
 		lichess->handleEventStreamLine(R"({"type":"challenge","compat":{"bot":false,"board":true},"challenge":{
 			"id":"chal0002","url":"https://lichess.org/chal0002","status":"created","direction":"in",
 			"challenger":{"id":"slowplayer","name":"SlowPlayer","rating":1540,"provisional":true},"destUser":{"id":"testerchess","name":"TesterChess"},
-			"variant":{"key":"standard"},"rated":true,"speed":"correspondence",
+			"variant":{"key":"chess960"},"rated":true,"speed":"correspondence",
 			"timeControl":{"type":"correspondence","daysPerTurn":3},"color":"random"}})");
 }
 
@@ -430,7 +431,7 @@ int main(int argc, char* argv[])
 		"continue-list-robot", "continue-list-starting", "continue-starting", "challenge-accepting", "starting", "game", "leave-online", "drag-off", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
-		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge",
+		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge", "online-960",
 		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",

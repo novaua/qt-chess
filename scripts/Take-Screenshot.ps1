@@ -73,7 +73,7 @@ $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue-online', 'continue-list', 'continue-list-online',
              'continue-list-robot', 'game', 'leave-online', 'review', 'result', 'ended', 'moves', 'select', 'drag', 'drag-off',
              'settings', 'about', 'restore', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'online-empty', 'online-disconnected', 'computer', 'players',
-             'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge',
+             'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge', 'online-960',
              'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline',
              'captures', 'check', 'draw-offer', 'home-message', 'messages', 'opponent-left', 'opponent-left-claim', 'opponent-left-turn',
              'opponent-left-error', 'rejoin', 'continue-starting', 'continue-list-starting', 'challenge-accepting', 'starting', 'more-menu',

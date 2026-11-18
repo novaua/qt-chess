@@ -53,6 +53,7 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   is chosen: the pawn goes back), `clock-continue` (a robot game continued, its clock running), `stalemate`,
   `clock-online` and `clock-correspondence` (a Lichess game fed to the stream parser, no network),
   `online-blitz` (the challenge card with a name: Blitz lit), `online-challenge` (waiting for that player),
+  `online-960` (LI-01A stage 2: the challenge card with Chess960 chosen, its line and "Your Chess960 rating"),
   `premove`, `premove-played`, `premove-dropped` (LI-05: a Lichess game fed to the stream parser, no network:
   Bf1-c4 waiting in red and the d2 pawn's premove dots; Black's Nc6 comes and Bc4 is played (our moves aren't
   posted in screenshot mode); e4-e5 waiting, gone after Nc6), `rejoin` (BL-18: a Lichess game joined with ten moves, grabbed the moment its page is up, no `--delay`: the position after 5… a6, never the start position), `reconnecting` (LI-06: the same game with its
@@ -60,7 +61,7 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   the event stream's parser: the bar with Accept / Decline / Hide and "+1 more"), `challenge-unplayable`
   (a Bullet challenge: Open on lichess.org instead of Accept), `challenge-ingame` (a real-time Lichess
   game on the board, then a challenge: Decline only, "Finish your game first"), `online-challenges` (the
-  Online page's "Challenges to you": three, one of them Bullet), `online-challenges-decline` (the same with
+  Online page's "Challenges to you": three, one of them Bullet, SlowPlayer's a Chess960 one), `online-challenges-decline` (the same with
   the first one's Decline… menu open: Lichess's reasons), `captures` (BL-13: Black down to a lone king,
   White lost six: a full captured strip and "+29"), `check` (the page opens in check: "Check" over the command bar), `draw-offer` (a Lichess game, the opponent offers a draw: Accept / Decline over the command bar; at 640x560 it doesn't fit: the InfoBar), `home-message` ("Profile imported" over Home's command bar), `messages` (the recent messages open: an open draw offer, an error, the connection, a decline), `opponent-left` (the Lichess opponent left: the countdown, frozen at 12 s), `opponent-left-claim` (Claim victory, on the opponent's turn; at 640x560 it doesn't fit: the InfoBar), `opponent-left-turn` (the player's turn: no Claim victory, "your move, then claim victory"; at 640x560 the text is cut short, not the InfoBar), `opponent-left-error` (a refused claim's error in the command bar's place for its 4 s, the opponent-left message waiting behind it), `messages@640x560` (the recent messages kept inside a small window), `continue-starting`, `continue-list-starting`, `challenge-accepting` (BL-16: Lichess, a local server that never answers, hasn't answered yet: Home's Continue card "Connecting to Lichess…", Friend's card "Starting…", the challenge bar's "Accepting…"; the ring is a still clock in the scenes), `starting` ("Starting the game…" as while a game page is built, over the vs-computer dialog that started it: the notice is on the Overlay layer, above popups; the scenes themselves skip it), `more-menu` (BL-11: the game's More menu open; it is made on its first opening),
   `all`.
