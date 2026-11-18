@@ -4,6 +4,19 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-18 — LI-01A stage 2 plan: Chess960 on Lichess (branch: docs/chess960LichessPlan_181126)
+
+### Done
+- **`docs/LI-01A-Chess960LichessPlan.md`**: what blocks Chess960 on Lichess now (`playableHere`, `parseChallenge`, the challenge form, `startOnlineGame`'s standard start, `gameFull`'s `initialFen` not passed on, the rating pools); the design (one `playableVariant` rule; `gameStarted` with the variant and start FEN; other variants refused with a message instead of a board out of step; the Online page's Variant row; Lichess's variant names; the Chess960 rating); 3 steps; tests (ChessQtTests, `tst_lichess960`, hand tests on lichess.org); risks.
+- Checked in lila's source: the Board API limits games by the clock only (`Game.isBoardCompatible`), and the challenge forms take `variant` and `fen` (a 960 start, casual only).
+- The owner's choice: a Chess960 Rematch keeps the position (the challenge sends the start FEN).
+- `TASKS.md`: stage 2's steps; the stage 1 plan's §6 links the new plan.
+
+### Next
+- Step 1 (`features/chess960LichessGames_…`): the C++ side and its ChessQtTests.
+
+---
+
 ## 2026-11-18 — LI-01A stage 1: the hand tests passed (branch: docs/li01aHandTestResults_181126)
 
 ### Done
