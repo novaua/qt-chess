@@ -21,8 +21,8 @@ namespace Chess { class Game; }
 // The player's rating vs the robot (BL-19 step 5), standard Elo: it starts at 1200, a rated game moves it
 // by K·(S − E) with E = 1/(1 + 10^((robot − rating)/400)), K = 40 for the first 30 rated games, 20 after;
 // provisional under 10. Stored as it goes (the owner's choice, 2026-11-16): each rated game's change is
-// worked out when it ends and kept on its record, the rating itself in games.json, so removing games
-// (the cap, Delete) never changes it. The robot's rating is its level's EngineLevel::DisplayElo().
+// worked out when it ends and kept on its record, the rating itself in rating.json (signed, BL-20), so
+// removing games (the cap, Delete) never changes it. The robot's rating is its level's EngineLevel::DisplayElo().
 class LocalRating
 {
 public:
@@ -89,6 +89,9 @@ struct GameRecord
 	bool      rated = false;      // its result moved the player's rating (step 5): by ratingChange, from ratingBefore
 	int       ratingBefore = 0;
 	int       ratingChange = 0;
+	// BL-20: the player's rated games after this one, so the newest rated game gives the whole rating
+	// (ratingBefore + ratingChange, ratedGames) when rating.json fails its check; 0 in records rated before.
+	int       ratedGames = 0;
 
 	bool chess960() const { return !startFen.isEmpty() || !start; }
 	// The standard one unless startFen is a Chess960 start (also for one that can't be read: replay() fails then).
@@ -124,7 +127,8 @@ struct GameRecord
 
 // The games library of the active profile (BL-19). BL-20: one signed file per game,
 // `users/<id>/games/<gameId>.json` ({"record": …, "sig": GameSignature}), written with QSaveFile when it
-// changes (only that game's file), and the rating vs the robot in `users/<id>/rating.json`. A game file
+// changes (only that game's file), and the rating vs the robot in `users/<id>/rating.json` (signed too;
+// one that fails its check is set aside and the rating restored from the newest rated game). A game file
 // that fails its check (edited by hand, damaged, another game's id) is set aside in `games/rejected/`,
 // never loaded or counted (gamesSetAside). It follows the active profile (UserManager::activeUserChanged)
 // and keeps the last `keepCount` finished games: the oldest finished one goes when a new one comes;
@@ -156,6 +160,9 @@ class GameLibrary : public QObject
 	Q_PROPERTY(int provisionalGames READ provisionalGames CONSTANT)
 	// BL-20: the games of this profile set aside when it was loaded (they failed their check).
 	Q_PROPERTY(int setAsideCount READ setAsideCount NOTIFY gamesChanged)
+	// BL-20: this profile's rating.json failed its check (or was missing with rated games kept) when it was
+	// loaded: the rating was restored from the newest rated game, or started again (ratedGames 0).
+	Q_PROPERTY(bool ratingRestored READ ratingRestored NOTIFY ratingChanged)
 
 public:
 	static constexpr int DefaultKeepCount = 100;
@@ -203,6 +210,7 @@ public:
 	QString userId() const { return _userId; } // the profile whose games these are; "" = none
 	Q_INVOKABLE QVariantMap game(const QString& id) const; // {} when there is none
 	int setAsideCount() const { return _setAside; }
+	bool ratingRestored() const { return _ratingRestored; }
 
 	// The profile's files. Public for the tests.
 	QString gamesDir() const { return gamesDirOf(_userId); }
@@ -218,20 +226,34 @@ public:
 	static std::optional<GameRecord> readGameFile(const QString& path, QString* why = nullptr, bool* resign = nullptr);
 	// A game id that can name a file: letters, digits, '-' and '_' (a UUID).
 	static bool isFileId(const QString& id);
+	// rating.json's content: {"version", "rating", "sig"}, the rating signed with the current key.
+	static QByteArray ratingFileContent(const LocalRating& rating);
+	// rating.json read and checked: nullopt when it isn't there, isn't JSON or its signature doesn't fit.
+	static std::optional<LocalRating> readRatingFile(const QString& path);
+	// The rating after the newest rated game of these (BL-20 §3.4): its ratingBefore + ratingChange, and
+	// its ratedGames (a record from before BL-20 without it: the rated games kept up to it); nullopt when
+	// none is rated.
+	static std::optional<LocalRating> ratingFromGames(const QList<GameRecord>& records);
+	// A profile's kept games that verify, newest first, read from its files as they are (nothing set
+	// aside): UserManager rebuilds statistics that fail their check from them.
+	static QList<GameRecord> keptRecordsOf(const QString& userId);
 
 signals:
 	void gamesChanged();
 	void keepCountChanged();
 	void ratingChanged();
 	void gamesSetAside(int count); // the profile just loaded had `count` games that failed their check
+	void ratingRestoredOnLoad();   // the profile just loaded had its rating restored (ratingRestored)
 
 private:
 	enum class FileState { Missing, Read, Damaged, Unreadable };
+	enum class RatingState { Missing, Verified, Failed };
 	// A profile's games: its records, newest first, and its rating.
 	struct ProfileFile
 	{
 		QList<GameRecord> records;
-		LocalRating rating;
+		LocalRating rating;  // the start rating unless rating.json verified
+		RatingState ratingState = RatingState::Missing;
 		int setAside = 0;   // game files that failed their check
 		QStringList resign; // records that verified with an older key: signed again when written
 	};
@@ -252,6 +274,9 @@ private:
 	void trim();
 	void trimOtherProfiles(); // their files, as setKeepCount trims the active one's
 	FileState migrateLegacyFile(); // games.json → a file per game (once; trusted and signed)
+	// After loading (BL-20 §3.4): a rating.json that failed its check is set aside and the rating restored
+	// from the games; one older than the newest rated game (a crash between the two writes) catches up.
+	void recoverRating(RatingState state);
 	void migrateOldSaves(); // chess.autosave / chess.save + their GameSaveInfo → records (once)
 
 	UserManager* _userManager = nullptr;
@@ -267,6 +292,7 @@ private:
 	QSet<QString> _changed;    // records to write: put, analysis, migrated, signed with an older key
 	QSet<QString> _removed;    // records whose files go: removed, trimmed
 	bool _ratingChanged = false; // rating.json to write
+	bool _ratingRestored = false; // ratingRestored: this profile's, when it was loaded
 	bool _dirty = false;       // a change not written yet
 	bool _saveQueued = false;  // scheduleSave(): the write is on its way
 };

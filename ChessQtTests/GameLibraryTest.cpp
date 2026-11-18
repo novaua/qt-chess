@@ -784,5 +784,134 @@ namespace GameLibraryTests
 			Assert::AreEqual(aliceRating, _library->rating(), L"the cap");
 			Assert::AreEqual(3, _library->ratedGames());
 		}
+
+		// ── The rating signed (BL-20 step 2) ──
+
+		// rating.json is signed; each rated record has the rated games after it, so the newest one gives
+		// the whole rating. A new profile has nothing to restore.
+		TEST_METHOD(TheRatingFileIsSignedAndEachRatedGameCountsItsRatedGames)
+		{
+			const QString user = addUser("Alice");
+			Assert::IsFalse(_library->ratingRestored(), L"a new profile");
+			const QString first = _library->put(makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-1)));
+			const QString second = _library->put(makeRecord("computer", true, { "d2d4", "d7d5" }));
+			_library->flush();
+			Assert::AreEqual(1, _library->find(first)->ratedGames);
+			Assert::AreEqual(2, _library->find(second)->ratedGames);
+			const auto read = GameLibrary::readRatingFile(GameLibrary::ratingFilePathOf(user));
+			Assert::IsTrue(read.has_value(), L"it verifies");
+			Assert::IsTrue(*read == _library->localRating());
+			Assert::IsTrue(readFile(GameLibrary::ratingFilePathOf(user)).contains("\"sig\":\"1:"));
+
+			const auto rating = GameLibrary::ratingFromGames(_library->records());
+			Assert::IsTrue(rating.has_value());
+			Assert::IsTrue(*rating == _library->localRating(), L"the newest rated game gives the whole rating");
+
+			makeLibrary();
+			Assert::AreEqual(2, _library->find(second)->ratedGames, L"read back");
+			Assert::IsFalse(_library->ratingRestored());
+		}
+
+		// An edited rating.json (here: the value, the signature kept) fails its check: set aside in
+		// games/rejected/, the rating restored from the newest rated game, written signed again, said once.
+		TEST_METHOD(AnEditedRatingIsRestoredFromTheNewestRatedGame)
+		{
+			const QString user = addUser("Alice");
+			_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-1)));
+			_library->put(makeRecord("computer", true, { "d2d4", "d7d5" }));
+			const LocalRating real = _library->localRating();
+			_library->flush();
+			const QString path = GameLibrary::ratingFilePathOf(user);
+			QByteArray content = readFile(path);
+			const QByteArray value = "\"value\":" + QByteArray::number(real.value());
+			Assert::IsTrue(content.contains(value));
+			content.replace(value, "\"value\":2400");
+			writeFile(path, content);
+
+			makeLibrary();
+			Assert::IsTrue(_library->ratingRestored());
+			Assert::IsTrue(_library->localRating() == real, L"from the newest rated game");
+			Assert::AreEqual(1, jsonFilesIn(GameLibrary::rejectedDirOf(user)), L"the edited file kept aside");
+			Assert::AreEqual(2, _library->count(), L"the games stay");
+			_library->flush();
+			Assert::IsTrue(GameLibrary::readRatingFile(path).has_value(), L"written signed again");
+			makeLibrary();
+			Assert::IsFalse(_library->ratingRestored(), L"once");
+			Assert::IsTrue(_library->localRating() == real);
+		}
+
+		// One without a signature, or not JSON, fails too; with no rated game kept the rating starts again.
+		// A rating.json deleted while rated games are kept is restored from them.
+		TEST_METHOD(AFailingRatingWithoutRatedGamesStartsAgain_AMissingOneIsRestored)
+		{
+			const QString user = addUser("Alice");
+			_library->put(makeRecord("local", true, { "e2e4", "e7e5" }));
+			_library->flush();
+			writeFile(GameLibrary::ratingFilePathOf(user), R"({"version":1,"rating":{"value":2400,"games":50}})");
+			makeLibrary();
+			Assert::IsTrue(_library->ratingRestored());
+			Assert::AreEqual(LocalRating::Start, _library->rating());
+			Assert::AreEqual(0, _library->ratedGames());
+
+			_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }));
+			const LocalRating real = _library->localRating();
+			_library->flush();
+			Assert::IsTrue(QFile::remove(GameLibrary::ratingFilePathOf(user)));
+			makeLibrary();
+			Assert::IsTrue(_library->ratingRestored(), L"rated games kept, no rating file");
+			Assert::IsTrue(_library->localRating() == real);
+			_library->flush(); // the restored rating written now, not over the file below when this library goes
+
+			writeFile(GameLibrary::ratingFilePathOf(user), "not json");
+			makeLibrary();
+			Assert::IsTrue(_library->ratingRestored());
+			Assert::IsTrue(_library->localRating() == real);
+		}
+
+		// The rating is written after its game (two writes): a rating.json that verifies but is behind the
+		// newest rated game (a crash between them) catches up silently.
+		TEST_METHOD(ARatingBehindTheNewestRatedGameCatchesUp)
+		{
+			const QString user = addUser("Alice");
+			_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-1)));
+			const LocalRating afterFirst = _library->localRating();
+			_library->put(makeRecord("computer", true, { "d2d4", "d7d5" }));
+			const LocalRating real = _library->localRating();
+			_library->flush();
+			writeFile(GameLibrary::ratingFilePathOf(user), GameLibrary::ratingFileContent(afterFirst));
+			makeLibrary();
+			Assert::IsFalse(_library->ratingRestored(), L"not a failed check");
+			Assert::IsTrue(_library->localRating() == real);
+		}
+
+		// games.json (BL-19) had no ratedGames: the migration counts them back from its rating along the
+		// rated records, oldest first. Records rated before BL-20 without them: counted as kept.
+		TEST_METHOD(RatedGamesAreWorkedOutForOlderRecords)
+		{
+			const QString user = addUser("Alice");
+			const QDateTime now = QDateTime::currentDateTime();
+			GameRecord a = makeRecord("computer", true, { "e2e4", "e7e5" }, now.addDays(-3));
+			a.id = QStringLiteral("game-a");
+			a.rated = true; a.ratingBefore = 1300; a.ratingChange = 20;
+			GameRecord b2 = makeRecord("computer", true, { "d2d4", "d7d5" }, now.addDays(-2));
+			b2.id = QStringLiteral("game-b");
+			b2.rated = true; b2.ratingBefore = 1320; b2.ratingChange = -10;
+			GameRecord c = makeRecord("local", true, { "c2c4" }, now.addDays(-1));
+			c.id = QStringLiteral("game-c");
+			writeFile(GameLibrary::legacyFilePathOf(user), legacyContent({ a, b2, c }, 1310, 5)); // 3 rated games trimmed
+			makeLibrary();
+			Assert::AreEqual(4, _library->find("game-a")->ratedGames);
+			Assert::AreEqual(5, _library->find("game-b")->ratedGames);
+			Assert::AreEqual(0, _library->find("game-c")->ratedGames);
+			Assert::IsFalse(_library->ratingRestored());
+			Assert::AreEqual(1310, _library->rating());
+			Assert::AreEqual(5, _library->ratedGames());
+
+			a.ratedGames = b2.ratedGames = 0;
+			const auto counted = GameLibrary::ratingFromGames({ b2, c, a });
+			Assert::AreEqual(1310, counted->value(), L"the newest");
+			Assert::AreEqual(2, counted->games(), L"the rated games kept");
+			Assert::IsFalse(GameLibrary::ratingFromGames({ c }).has_value());
+		}
 	};
 }

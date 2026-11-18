@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-18 |
-| **Status** | Step 1 (a signed file per game, set aside, migration, export / import of the files) on `features/gameFiles_181126` |
+| **Status** | Step 1 done (#188); step 2 (the rating and the statistics signed, their recovery) on `features/signedRating_181126` |
 | **Branch** | `docs/gameFilesPlan_181126` (plan); each step on its own branch from `develop` |
 | **Task** | BL-20 in `TASKS.md` (the owner, 2026-11-18: a game per file instead of one `games.json`; every game signed, so an edited game isn't taken in: a simple anti-cheat and an integrity check) |
 
@@ -98,6 +98,19 @@ A small class in ChessGui (`gamesignature.h/cpp`, C++ style as CLAUDE.md asks):
   verified kept games (vs Robot by level, two-player opponents), Lichess and "earlier" rows dropped, and a message.
   `UserManager::recordResult` signs as it writes.
 - A file from before BL-20 (no signature) is trusted once and signed (§3.5); after that, unsigned = failing.
+- **As built (step 2):** `rating.json` has no "before BL-20" form (it came with step 1, never released), so one
+  without a signature fails like an edited one; games.json's rating is trusted once, as its games, by the
+  migration, which also works out `ratedGames` along the rated records. A failing `rating.json` is moved to
+  `games/rejected/`; a missing one while rated games are kept is restored the same way; one that verifies but
+  is behind the newest rated game (a crash between the two writes) catches up without a message. A record rated
+  before step 2 has no `ratedGames`: the rated games kept up to it are counted.
+- **As built (step 2):** "before BL-20" for `users.json` is its `version` below 3 (version 3 signs). A player who
+  edits the version back and drops the signatures gets the statistics trusted once: a deliberate edit of the
+  format, beyond editing a number (§2.5: a deterrent). The rebuild counts the kept games the statistics had
+  (`resultRecorded`), and a profile's two-player games kept by the other profile (the one signed in keeps
+  them). The window says it: "Alice's statistics couldn't be verified and were restored from a backup." /
+  "… rebuilt from the kept games (Lichess and older games aren't in them)." An import keeps its statistics
+  as they are until step 3.
 
 ### 3.5 Migration (once per profile)
 

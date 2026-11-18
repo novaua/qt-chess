@@ -103,6 +103,8 @@ QJsonObject GameRecord::toJson() const
 	if (rated) {
 		o[QStringLiteral("ratingBefore")] = ratingBefore;
 		o[QStringLiteral("ratingChange")] = ratingChange;
+		if (ratedGames > 0)
+			o[QStringLiteral("ratedGames")] = ratedGames;
 	}
 	return o;
 }
@@ -146,6 +148,7 @@ GameRecord GameRecord::fromJson(const QJsonObject& o)
 	r.rated            = o.contains(QStringLiteral("ratingChange"));
 	r.ratingBefore     = o.value(QStringLiteral("ratingBefore")).toInt(0);
 	r.ratingChange     = o.value(QStringLiteral("ratingChange")).toInt(0);
+	r.ratedGames       = r.rated ? o.value(QStringLiteral("ratedGames")).toInt(0) : 0;
 	return r;
 }
 
@@ -369,10 +372,94 @@ void GameLibrary::readProfile(const QString& userId, ProfileFile& profileFile, b
 	}
 	std::stable_sort(profileFile.records.begin(), profileFile.records.end(), newerFirst);
 
-	QFile rating(ratingFilePathOf(userId));
-	if (rating.open(QIODevice::ReadOnly))
-		profileFile.rating = LocalRating::fromJson(QJsonDocument::fromJson(rating.readAll()).object()
-			.value(QStringLiteral("rating")).toObject());
+	const QString ratingPath = ratingFilePathOf(userId);
+	if (!QFileInfo::exists(ratingPath)) {
+		profileFile.ratingState = RatingState::Missing;
+	} else if (const auto rating = readRatingFile(ratingPath)) {
+		profileFile.rating = *rating;
+		profileFile.ratingState = RatingState::Verified;
+	} else {
+		profileFile.ratingState = RatingState::Failed;
+	}
+}
+
+QList<GameRecord> GameLibrary::keptRecordsOf(const QString& userId)
+{
+	ProfileFile file;
+	readProfile(userId, file, false);
+	return file.records;
+}
+
+static QDateTime endedAt(const GameRecord& r)
+{
+	return r.finishedAt.isValid() ? r.finishedAt : r.startedAt;
+}
+
+std::optional<LocalRating> GameLibrary::ratingFromGames(const QList<GameRecord>& records)
+{
+	QList<const GameRecord*> rated;
+	for (const auto& r : records)
+		if (r.rated)
+			rated.append(&r);
+	std::stable_sort(rated.begin(), rated.end(), [](const GameRecord* a, const GameRecord* b) { return endedAt(*a) < endedAt(*b); });
+	std::optional<LocalRating> newest;
+	for (int i = 0; i < rated.size(); ++i) {
+		// The most rated games after it is the newest (the time only orders records without ratedGames).
+		const int games = rated[i]->ratedGames > 0 ? rated[i]->ratedGames : i + 1;
+		if (!newest || games >= newest->games())
+			newest = LocalRating(rated[i]->ratingBefore + rated[i]->ratingChange, games);
+	}
+	return newest;
+}
+
+QByteArray GameLibrary::ratingFileContent(const LocalRating& rating)
+{
+	const QJsonObject json = rating.toJson();
+	const QJsonObject root{
+		{ QStringLiteral("version"), RatingFormatVersion },
+		{ QStringLiteral("rating"),  json },
+		{ QStringLiteral("sig"),     GameSignature::sign(GameSignature::Kind::Rating, canonical(json)) },
+	};
+	return QJsonDocument(root).toJson(QJsonDocument::Compact);
+}
+
+std::optional<LocalRating> GameLibrary::readRatingFile(const QString& path)
+{
+	QFile file(path);
+	if (!file.open(QIODevice::ReadOnly))
+		return std::nullopt;
+	const QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
+	const QJsonObject json = root.value(QStringLiteral("rating")).toObject();
+	if (json.isEmpty()
+		|| !GameSignature::verify(GameSignature::Kind::Rating, canonical(json), root.value(QStringLiteral("sig")).toString()))
+		return std::nullopt;
+	return LocalRating::fromJson(json);
+}
+
+void GameLibrary::recoverRating(RatingState state)
+{
+	const auto fromGames = ratingFromGames(_records);
+	switch (state) {
+	case RatingState::Verified:
+		// rating.json is written after its game (two writes): a crash between them leaves it behind.
+		if (fromGames && fromGames->games() > _rating.games()) {
+			qWarning() << "GameLibrary: rating.json is older than the newest rated game; caught up";
+			_rating = *fromGames;
+			_ratingChanged = true;
+		}
+		return;
+	case RatingState::Missing:
+		if (!fromGames)
+			return; // nothing rated yet
+		break;
+	case RatingState::Failed:
+		setAsideFile(ratingFilePathOf(_userId), rejectedDirOf(_userId), QStringLiteral("its signature doesn't fit"));
+		break;
+	}
+	_rating = fromGames.value_or(LocalRating());
+	_ratingChanged = true;
+	_ratingRestored = true;
+	qWarning() << "GameLibrary: the rating of" << _userId << "restored:" << _rating.value() << _rating.games() << "games";
 }
 
 bool GameLibrary::writeGameFile(const QString& userId, const GameRecord& record)
@@ -398,11 +485,7 @@ bool GameLibrary::writeRatingFile(const QString& userId, const LocalRating& rati
 		qWarning() << "GameLibrary: can't write" << file.fileName() << file.errorString();
 		return false;
 	}
-	const QJsonObject root{
-		{ QStringLiteral("version"), RatingFormatVersion },
-		{ QStringLiteral("rating"),  rating.toJson() },
-	};
-	file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
+	file.write(ratingFileContent(rating));
 	if (!file.commit()) {
 		qWarning() << "GameLibrary: can't write" << file.fileName() << file.errorString();
 		return false;
@@ -456,6 +539,17 @@ GameLibrary::FileState GameLibrary::migrateLegacyFile()
 		keepAside(path);
 	if (state != FileState::Read)
 		return state;
+	// BL-20: each rated record gets the rated games after it, counted back from the rating's along the
+	// rated records, oldest first (the newest has them all).
+	QList<GameRecord*> rated;
+	for (auto& r : legacy.records)
+		if (r.rated)
+			rated.append(&r);
+	std::stable_sort(rated.begin(), rated.end(), [](const GameRecord* a, const GameRecord* b) { return endedAt(*a) < endedAt(*b); });
+	const int n = (int)rated.size();
+	for (int i = 0; i < n; ++i)
+		if (rated[i]->ratedGames == 0)
+			rated[i]->ratedGames = std::max(i + 1, legacy.rating.games() - (n - 1 - i));
 	int added = 0;
 	for (GameRecord r : legacy.records) {
 		if (find(r.id))
@@ -495,6 +589,7 @@ void GameLibrary::reload()
 	_removed.clear();
 	_rateLater.clear();
 	_ratingChanged = false;
+	_ratingRestored = false;
 	if (!_userId.isEmpty()) {
 		ProfileFile file;
 		readProfile(_userId, file, true);
@@ -505,6 +600,7 @@ void GameLibrary::reload()
 			_changed.insert(id);
 		if (!_changed.isEmpty())
 			scheduleSave();
+		RatingState ratingState = file.ratingState;
 		switch (migrateLegacyFile()) {
 		case FileState::Unreadable:
 			// There, but not to be read now (another program holds it): its games aren't shown, and it
@@ -516,14 +612,24 @@ void GameLibrary::reload()
 			migrateOldSaves();
 			break;
 		case FileState::Read:
+			if (ratingState == RatingState::Missing)
+				ratingState = RatingState::Verified; // games.json's rating, trusted once as its games
+			break;
 		case FileState::Damaged:
 			break;
+		}
+		if (!_legacyPending) { // else the rating isn't known yet: games.json's games may move it
+			recoverRating(ratingState);
+			if (_ratingChanged)
+				scheduleSave();
 		}
 	}
 	emit gamesChanged();
 	emit ratingChanged();
 	if (_setAside > 0)
 		emit gamesSetAside(_setAside);
+	if (_ratingRestored)
+		emit ratingRestoredOnLoad();
 }
 
 bool GameLibrary::save()
@@ -744,7 +850,7 @@ void GameLibrary::rate(GameRecord& record)
 	if (record.rated && !record.finished) {
 		_rating.revert(record.ratingChange);
 		record.rated = false;
-		record.ratingBefore = record.ratingChange = 0;
+		record.ratingBefore = record.ratingChange = record.ratedGames = 0;
 		_ratingChanged = true;
 		emit ratingChanged();
 	} else if (!record.rated && record.rateable()) {
@@ -752,6 +858,7 @@ void GameLibrary::rate(GameRecord& record)
 		record.ratingChange = _rating.changeFor(Chess::EngineLevel(record.level).DisplayElo(), record.playerScore());
 		record.rated = true;
 		_rating.apply(record.ratingChange);
+		record.ratedGames = _rating.games();
 		_ratingChanged = true;
 		emit ratingChanged();
 	}
