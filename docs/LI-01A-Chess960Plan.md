@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-17 |
-| **Status** | Stage 1: step 1 (the rules) merged (#175); step 2 (the engine) merged (#176); step 3 (the library, the connector, castling input, `tst_chess960`) merged (#177); step 4 (the UI) merged (#178); step 5 (docs, [`LI-01A-ManualTests.md`](LI-01A-ManualTests.md)) on `docs/chess960ManualTests_181126`; the hand tests not run yet |
+| **Status** | Stage 1: step 1 (the rules) merged (#175); step 2 (the engine) merged (#176); step 3 (the library, the connector, castling input, `tst_chess960`) merged (#177); step 4 (the UI) merged (#178); step 5 (docs, [`LI-01A-ManualTests.md`](LI-01A-ManualTests.md)) merged (#179); the hand tests all passed (2026-11-18): stage 1 done. Stage 2 (Lichess) needs its plan |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | LI-01A in `TASKS.md` (LI-01 split by the owner, 2026-11-17: A Chess960, B Crazyhouse) |
 | **Rules** | <https://lichess.org/variant/chess960> |

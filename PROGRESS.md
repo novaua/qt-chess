@@ -4,6 +4,16 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-18 — LI-01A stage 1: the hand tests passed (branch: docs/li01aHandTestResults_181126)
+
+### Done
+- The owner ran `docs/LI-01A-ManualTests.md`: all 8 scenarios passed (both castlings, Stockfish at levels 1 and 5, takeback / Continue, Rematch / New game, not rated, replay / Play from here / Analyse, the PGN imported on lichess.org, the engine setting). Results written in the file; `TASKS.md` and the plan: stage 1 done.
+
+### Next
+- LI-01A stage 2 (Chess960 on Lichess) needs its plan (plan §6), or LI-01B Crazyhouse's plan, as the owner chooses.
+
+---
+
 ## 2026-11-18 — LI-01A step 5: docs and the hand tests (branch: docs/chess960ManualTests_181126)
 
 ### Done
