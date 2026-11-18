@@ -4,6 +4,17 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-19 — BL-20 step 4: the hand tests (branch: docs/gameFilesManualTests_191126)
+
+### Done
+- [`docs/BL-20-ManualTests.md`](docs/BL-20-ManualTests.md): 8 scenarios on throwaway data folders (`--data-dir`): a game edited by hand set aside and said once; a damaged game and one copied under another name; the rating edited, then deleted (restored from the kept games); the statistics edited (from a backup, then rebuilt with no backup); export / import between two data folders (nothing said); an export's statistics edited (rebuilt, "Name (2)"); the owner's own data from before BL-20 updated on a copy (no message, `games.json.migrated`, `users.json` version 3); optional: another Windows account, a reinstall. Each lists the files, the exact messages and what the automated tests already cover.
+- TASKS.md (step 4 done; open: the owner's hand tests), the plan's status.
+
+### Next
+- The owner runs `docs/BL-20-ManualTests.md`; BL-20 is done when they pass.
+
+---
+
 ## 2026-11-19 — BL-20 step 3: an import checked, an old export unrated (branch: features/signedExport_191126)
 
 ### Done
