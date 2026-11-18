@@ -4,6 +4,22 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-19 — BL-20 step 3: an import checked, an old export unrated (branch: features/signedExport_191126)
+
+### Done
+- **`GameLibrary::checkImport`**: an imported profile's files checked before `UserManager` writes them: a game file that fails its check → `games/rejected/`; a `rating.json` that fails → `games/rejected/`, the rating restored from the newest verified rated game imported (none: 1200); an export's `games.json` (before BL-20) → signed game files without their rating fields, and no rating (the owner's choice: unrated). `readGameContent` and `parseLegacy` read content, not only files.
+- **`UserManager::importProfile`**: the profile's statistics checked (`statsSig`); without one that fits (edited, or an old export) they are rebuilt from the imported games (`statisticsFromGames`). `lastImport()`: `{ setAside, unrated, ratingRestored, statsRebuilt }`; `ChessGame.qml` puts them in the import's message ("Profile imported. It comes from an older Chess++: its games are unrated, …").
+- Tests: UserManagerTest +2 (an old export unrated, its statistics rebuilt, the profile loads at 1200 without a message; an edited export: the edited game set aside, the rating restored from the first game, the statistics rebuilt, nothing said again at load); the export round trip finds nothing; the import's file names test: a game name with bad content is set aside.
+- CLAUDE.md, the plan (§3.6 as built), TASKS.md.
+
+### Checked
+- Debug: ChessQtTests 303/303, no warnings; UI tests (Debug) 12 files, 0 failed.
+
+### Next
+- Step 4 (`docs/gameFilesManualTests_…`): `BL-20-ManualTests.md` (edit a game, the rating, the statistics by hand; damage a file; export / import between two data folders; an old profile updated).
+
+---
+
 ## 2026-11-18 — BL-20 step 2: the rating and the statistics signed (branch: features/signedRating_181126)
 
 ### Done

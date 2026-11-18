@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-18 |
-| **Status** | Step 1 done (#188); step 2 (the rating and the statistics signed, their recovery) on `features/signedRating_181126` |
+| **Status** | Steps 1 (#188) and 2 (#189) done; step 3 (the import checked, old exports unrated) on `features/signedExport_191126` |
 | **Branch** | `docs/gameFilesPlan_181126` (plan); each step on its own branch from `develop` |
 | **Task** | BL-20 in `TASKS.md` (the owner, 2026-11-18: a game per file instead of one `games.json`; every game signed, so an edited game isn't taken in: a simple anti-cheat and an integrity check) |
 
@@ -109,8 +109,7 @@ A small class in ChessGui (`gamesignature.h/cpp`, C++ style as CLAUDE.md asks):
   format, beyond editing a number (§2.5: a deterrent). The rebuild counts the kept games the statistics had
   (`resultRecorded`), and a profile's two-player games kept by the other profile (the one signed in keeps
   them). The window says it: "Alice's statistics couldn't be verified and were restored from a backup." /
-  "… rebuilt from the kept games (Lichess and older games aren't in them)." An import keeps its statistics
-  as they are until step 3.
+  "… rebuilt from the kept games (Lichess and older games aren't in them)." An import checks its own (§3.6).
 
 ### 3.5 Migration (once per profile)
 
@@ -127,7 +126,19 @@ A small class in ChessGui (`gamesignature.h/cpp`, C++ style as CLAUDE.md asks):
   format version. Import verifies each: failing ones go to `rejected/` in the imported profile, with the message.
 - An export from before BL-20 (with `games.json`): **imported unrated** (§2.7): its games come in and are
   signed, but their rating fields are dropped and the profile's rating starts at 1200. Trusting it would be a
-  way around the check (edit an old-style export, import it). Until step 3 it migrates as this PC's own does.
+  way around the check (edit an old-style export, import it).
+- **As built (step 3):** the export format stays 2 (step 2's exports already carry the signed rating and
+  `statsSig`). `GameLibrary::checkImport` checks the files before `UserManager` writes them, so nothing that
+  failed is ever loaded and nothing is said twice: a failing game file → `games/rejected/`; a failing
+  `rating.json` → `games/rejected/`, and the rating restored from the newest verified rated game among the
+  imported ones (none: 1200); `games.json` → signed game files without `rated`, `ratingBefore`,
+  `ratingChange`, `ratedGames`, and no `rating.json` (also when it came with one). Statistics without a
+  signature that fits (edited, or an export from before BL-20) are rebuilt from the imported games, so an old
+  export's Lichess and "earlier" rows are lost: the same reasoning as its rating (a way around the check
+  otherwise). One message after the import names what was found: "Profile imported. It comes from an older
+  Chess++: its games are unrated, its rating starts at 1200 and its statistics count only its kept games." /
+  "… 1 game couldn't be verified and was set aside." / "Its rating couldn't be verified and was restored from
+  its games." / "Its statistics couldn't be verified and were rebuilt from its kept games."
 
 ### 3.7 Moving a profile: reinstall, another PC, another Windows account
 

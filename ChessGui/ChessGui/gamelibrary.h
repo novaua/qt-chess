@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QJsonObject>
 #include <QList>
+#include <QMap>
 #include <QObject>
 #include <QSet>
 #include <QString>
@@ -224,6 +225,23 @@ public:
 	// A game file read and checked: its record, or nullopt (why: the reason). resign: it verified with an
 	// older key (to be signed again).
 	static std::optional<GameRecord> readGameFile(const QString& path, QString* why = nullptr, bool* resign = nullptr);
+	// The same for a game file's content, named `fileId` (its file name without ".json").
+	static std::optional<GameRecord> readGameContent(const QByteArray& content, const QString& fileId,
+	                                                 QString* why = nullptr, bool* resign = nullptr);
+
+	// BL-20 step 3: what checkImport found in an imported profile's files.
+	struct ImportCheck
+	{
+		int  setAside = 0;          // game files that failed their check: put in games/rejected/
+		bool unrated = false;       // an export from before BL-20: its games.json came in unrated
+		bool ratingRestored = false; // its rating.json failed its check: restored from its games (or none)
+	};
+	// An imported profile's files (the name under users/<id>/ → content, as the export has them), checked
+	// before UserManager writes them: a game file that fails its check goes to games/rejected/; games.json
+	// (an export from before BL-20) becomes a signed file per game without its rating fields, and no
+	// rating comes with it (the owner's choice: an old export imports unrated); a rating.json that fails
+	// its check goes to games/rejected/ and the rating is restored from the newest verified rated game.
+	static ImportCheck checkImport(QMap<QString, QByteArray>& files);
 	// A game id that can name a file: letters, digits, '-' and '_' (a UUID).
 	static bool isFileId(const QString& id);
 	// rating.json's content: {"version", "rating", "sig"}, the rating signed with the current key.
@@ -262,6 +280,7 @@ private:
 	static void readProfile(const QString& userId, ProfileFile& file, bool setAside);
 	// games.json of BL-19. Unreadable: it is there but couldn't be opened (a lock).
 	static FileState readLegacyFile(const QString& path, ProfileFile& file);
+	static FileState parseLegacy(const QByteArray& content, ProfileFile& file); // Read or Damaged
 	static bool writeGameFile(const QString& userId, const GameRecord& record);
 	static bool writeRatingFile(const QString& userId, const LocalRating& rating);
 	void rate(GameRecord& record); // put(): rates a game that just finished, or gives a resumed one's change back
