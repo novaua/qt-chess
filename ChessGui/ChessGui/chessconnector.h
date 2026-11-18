@@ -12,6 +12,7 @@
 #include <QThread>
 #include <QTimer>
 #include <functional>
+#include <map>
 #include <optional>
 #include <utility>
 
@@ -148,8 +149,10 @@ public:
 	int  lastMoveFrom()   const;
 	int  lastMoveTo()     const;
 	bool engineThinking()    const { return _engineThinking; }
-	static constexpr int StandardGame = -2;   // startComputerGame / startLocalGame: the standard game
-	static constexpr int RandomChess960 = -1; // ... one of the 960 Chess960 positions at random
+	// startComputerGame / startLocalGame's start (LI-01A): these, or a Chess960 position's number (0-959).
+	// QML: ChessConnector.StandardGame, ChessConnector.RandomChess960.
+	enum StartChoice { StandardGame = -2, RandomChess960 = -1 };
+	Q_ENUM(StartChoice)
 	bool chess960() const { return _game->GetStartPosition().IsChess960(); }
 	int  startPositionNumber() const { return chess960() ? _game->GetStartPosition().Number() : -1; }
 	bool useFen()            const { return _config.useFen; }
@@ -394,6 +397,7 @@ private:
 	// there; in Chess960 the king's castling square, when no move of its own goes there, is its castling
 	// (the king onto its rook). -1: no move.
 	int  moveTarget(int from, int to) const;
+	std::map<int, int> moveTargets(int from) const; // every square moveTarget() plays to from `from`: square → the move's target
 	bool isChess960Castling(int from, int to) const; // the king on `from` onto its own rook on `to`, in a Chess960 game
 	// joinedMoves (BL-18): the moves of a game joined in progress, on the board before its page opens.
 	// False when one of them can't be played here. start: the game's set-up (LI-01A: standard or Chess960).

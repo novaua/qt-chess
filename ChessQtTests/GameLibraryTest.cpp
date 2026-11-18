@@ -459,6 +459,32 @@ namespace GameLibraryTests
 			Assert::AreEqual(-1, standard.toVariant().value("startPosition").toInt());
 		}
 
+		// A Chess960 record whose start can't be read (a damaged or hand-edited games.json) stays a Chess960
+		// record: never replayed from the standard start (its moves are Chess960 moves), so continue and
+		// open refuse it, and it is written back as it was read, not downgraded to a standard game.
+		TEST_METHOD(Chess960_UnreadableStart_KeptNotDowngraded)
+		{
+			QJsonObject json = makeRecord("local", false, {}).toJson();
+			json["variant"] = QStringLiteral("chess960");
+			json["startFen"] = QStringLiteral("bqnnrkrb/pppppppp/8/8");   // cut short
+			json["moves"] = QJsonArray{ "f1g1", "f8g8" };
+			const GameRecord read = GameRecord::fromJson(json);
+			Assert::IsTrue(read.chess960());
+			Assert::IsTrue(read.replay() == nullptr, L"not played from the standard start");
+			GameRecord copy = read;
+			Assert::IsFalse(copy.setMoves({ "e2e4" }), L"no moves without its start");
+			const QJsonObject again = read.toJson();
+			Assert::AreEqual(QStringLiteral("chess960"), again.value("variant").toString());
+			Assert::AreEqual(QStringLiteral("bqnnrkrb/pppppppp/8/8"), again.value("startFen").toString(), L"as it was read");
+			Assert::AreEqual(-1, read.toVariant().value("startPosition").toInt());
+
+			json.remove("startFen"); // the variant without its start
+			const GameRecord noStart = GameRecord::fromJson(json);
+			Assert::IsTrue(noStart.chess960());
+			Assert::IsTrue(noStart.replay() == nullptr);
+			Assert::AreEqual(QStringLiteral("chess960"), noStart.toJson().value("variant").toString());
+		}
+
 		// ── The rating vs the robot (step 5) ──
 
 		// Elo from 1200 against level 3 (1320): E = 0.334; K 40 under 30 games, 20 from then on.

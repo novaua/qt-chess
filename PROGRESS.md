@@ -16,6 +16,25 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-18 — LI-01A code review fixes (branch: bugs/li01aReviewFixes_181126)
+
+A `/code-review medium` of all LI-01A code: 4 bugs, 5 cleanups, all fixed.
+
+### Done
+- **A refused Lichess game touched the game on the board** (bugs 1, 4): after `ChessConnector` refused a game in `gameStarted` (Crazyhouse…), `handleGameStreamLine` still started its clock, sent its times and its end: a local game's clock jumped to Lichess's, its result could be set. Now `LichessClient` stops reading once the receiver stopped the stream in `gameStarted` (`_stops`, also no rematch of it), and `onLichessClockStarted` / `onLichessGameEnded` / `clockUpdated` ignore Lichess when no Lichess game is on the board.
+- **A Chess960 game sent as `startpos`** (bug 2) was refused ("it is Chess960, and Chess++ plays … Chess960"): now Chess960 #518. A bad start FEN of a playable variant has its own message.
+- **A Chess960 record with an unreadable `startFen`** (bug 3) became a standard game and lost its variant at the next write: now it stays Chess960 (written back as read), `replay()` fails, so continue / open refuse it; the card says "Chess960" without a number.
+- Cleanups: `GameRecord::start` (the start position read once, not per card per list rebuild); `MoveGeneration::CastlingPath` shared by the legal moves and `GetPremoveTargets`; `ChessConnector.StandardGame` / `RandomChess960` as a QML enum (no -1 / -2 in QML); the screenshot seed's fork by a `fork` field, not `&kept[5]`; `ChessConnector::moveTargets` gives both the dots and the click / drop target (a click on the king's own square no longer castles when it stays put).
+- Tests: ChessQtTests +2 (the refused game's stream; the unreadable record); `tst_lichess960` +2 (a 960 game at `startpos`; a refused game during a local game with a clock).
+
+### Checked
+- Debug: ChessTests 165/165, ChessQtTests 281/281, UI tests 12 files, 0 failed; the scenes `chess960-select` and `games` as before.
+
+### Next
+- The owner's hand tests: `LI-01A-LichessManualTests.md`.
+
+---
+
 ## 2026-11-18 — LI-01A stage 2 step 3: the hand tests on lichess.org (branch: docs/chess960LichessManualTests_181126)
 
 ### Done

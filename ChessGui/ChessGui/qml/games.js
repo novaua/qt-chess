@@ -25,7 +25,7 @@ function fromHereText(from) {
 function details(game) {
     var parts = []
     if (game.chess960)   // LI-01A: first, so a narrow card still shows it
-        parts.push("Chess960 #" + game.startPosition)
+        parts.push(game.startPosition >= 0 ? "Chess960 #" + game.startPosition : "Chess960")   // -1: its start can't be read
     parts.push(game.kind === "computer" ? "you play " + (game.playerPlaysWhite ? "White" : "Black")
                                         : (game.playerPlaysWhite ? "White" : "Black") + " vs " + (game.playerPlaysWhite ? "Black" : "White"))
     if (game.forkOfId)   // Play from here: where it began

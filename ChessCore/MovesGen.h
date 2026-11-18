@@ -1,5 +1,7 @@
 #pragma once
+#include <functional>
 #include <map>
+#include <optional>
 #include "Move.h"
 
 #define BasicMovesGeneratorTypeName "Basic"
@@ -58,6 +60,11 @@ namespace Chess
 		// Castling (LI-01A). A side may still castle on that side while its king and that rook stand
 		// on their start squares, the king has never moved and no move went from or to the rook's square.
 		static bool HasCastlingRight(const GameState& gameState, PieceColors side, bool kingside);
+		// That side's castling squares while it has the right and no square the king or that rook passes
+		// or lands on (the two aside) is `taken`: empty squares for a legal move, our own pieces for a
+		// premove. nullopt otherwise. Whether the king passes an attacked square is the caller's.
+		static std::optional<CastlingSquares> CastlingPath(const GameState& gameState, PieceColors side, bool kingside,
+		                                                   const std::function<bool(BoardPosition)>& taken);
 		// The move is a castling of this game (standard: the king from its start two files over;
 		// Chess960: the king onto its own rook): its squares in `squares`.
 		static bool IsCastling(const GameState& gameState, const Move& move, CastlingSquares& squares);

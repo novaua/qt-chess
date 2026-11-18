@@ -148,9 +148,54 @@ TestCase {
         FakeLichess.endGame("zh000002", "aborted", "")
     }
 
+    // A Chess960 game Lichess starts as "startpos" (#518, the standard set-up): played as Chess960 #518,
+    // not refused.
+    function test_4_chess960AtTheStandardSetUp() {
+        FakeLichess.challenge("c9600003", "Classic960", 1700, "black", "chess960")
+        tryVerify(() => bar().visible, 3000, "the challenge bar")
+        app.click("challengeAcceptButton")
+        app.waitForPage("game", 10000)
+        app.waitBoardIdle()
+        compare(ChessConnector.Chess960, true)
+        compare(ChessConnector.StartPositionNumber, 518)
+        compare(app.pieceAt("e1"), "K")
+        compare(app.pieceAt("h1"), "R")
+        FakeLichess.endGame("c9600003", "aborted", "")
+        tryVerify(() => ChessConnector.GameResult !== "", 3000, "the game over")
+        app.leaveToHome()
+        app.waitForPage("home", 5000)
+    }
+
+    // A Lichess game refused while a local game with a clock is on the board: nothing of it (its clock,
+    // 10+5 in FakeLichess) reaches the local game, which goes on as it was.
+    function test_5_refusedKeepsTheLocalGame() {
+        ChessConnector.startLocalGame(true, "", 300, 0)
+        app.waitForPage("game", 10000)
+        app.waitBoardIdle()
+        const clock = ChessConnector.Clock
+        verify(clock.enabled)
+        const white = clock.whiteText
+        const black = clock.blackText
+
+        FakeLichess.addOngoingGame("zh000003", "Housey", "white", "", "", "crazyhouse")
+        startFailed.clear()
+        verify(ChessConnector.continueOnlineGame("zh000003"))
+        waitRequest("GET /api/board/game/stream/zh000003")
+        tryCompare(startFailed, "count", 1, 3000, "refused")
+        wait(300)   // a clock line of the refused game would have come by now
+        compare(ChessConnector.GameMode, "local")
+        compare(ChessConnector.InGame, true)
+        compare(clock.whiteText, white, "the local clock, not Lichess's")
+        compare(clock.blackText, black)
+        compare(ChessConnector.GameResult, "")
+        FakeLichess.endGame("zh000003", "aborted", "")
+        app.leaveToHome()
+        app.waitForPage("home", 5000)
+    }
+
     // The Online page's Variant row: Chess960 names the Chess960 rating; a challenge to a player and a
     // link both ask Lichess for chess960; the choice is kept apart from the local games'.
-    function test_4_onlineVariantRow() {
+    function test_6_onlineVariantRow() {
         compare(AppSettings.onlineChess960, false)
         const localChoice = AppSettings.chess960
         app.click("onlineCard")
