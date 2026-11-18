@@ -926,7 +926,8 @@ void ChessConnector::restartGame(const Chess::StartPosition& start)
 	}
 }
 
-bool ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite, const QStringList& joinedMoves)
+bool ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite, const Chess::StartPosition& start,
+	const QStringList& joinedMoves)
 {
 	_clock->stop();
 	stopEngineThread();
@@ -950,7 +951,7 @@ bool ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite,
 	emit playerPlaysWhiteChanged();
 
 	resetMoveHistoryCache();
-	restartGame(Chess::StartPosition()); // standard only on Lichess until LI-01A stage 2
+	restartGame(start); // the joined moves and every move after are played from it
 	bool allPlayed = true;
 	if (joinedMoves.isEmpty()) {
 		EmitMoveCountUpdates();
@@ -977,8 +978,26 @@ bool ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite,
 }
 
 void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsWhite,
-	const QString& opponentName, const QString& opponentAvatar, const QStringList& moves)
+	const QString& opponentName, const QString& opponentAvatar, const QStringList& moves,
+	const QString& variant, const QString& startFen)
 {
+	// LI-01A stage 2: standard or Chess960, from the position Lichess gives. Anything else (a link to a
+	// Crazyhouse game, a challenge accepted on lichess.org) is refused before it replaces the game on
+	// the board: a board out of step with Lichess can't be played move by move.
+	std::optional<Chess::StartPosition> start;
+	if (variant == QLatin1String("standard") && startFen.isEmpty())
+		start = Chess::StartPosition();
+	else if (variant == QLatin1String("chess960"))
+		start = Chess::StartPosition::FromFen(startFen.toStdString()); // #518 too: castles as Chess960
+	if (!start) {
+		qWarning() << "ChessConnector: Lichess game" << gameId << "can't be played here | variant:" << variant
+		           << "| initialFen:" << startFen;
+		_startTiming.cancel();
+		emit gameStartFailed(QStringLiteral("it is %1, and Chess++ plays standard chess and Chess960. "
+		                                    "Open it on lichess.org.").arg(LichessClient::variantName(variant)));
+		_lichessClient->stopStream(); // the game on the board (if any) stays as it was
+		return;
+	}
 	// A Lichess game replaces a local game (BL-10: a challenge accepted during it): kept for
 	// Continue, as when leaving it for Home.
 	keepGameOnLeave();
@@ -996,7 +1015,7 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 	_gameMode = QStringLiteral("online");
 	_opponentName = opponent;
 	_opponentUserId.clear();
-	if (!startOnlineGame(gameId, playingAsWhite, joined ? moves : QStringList{})) {
+	if (!startOnlineGame(gameId, playingAsWhite, *start, joined ? moves : QStringList{})) {
 		emit gameStartFailed(QStringLiteral("Lichess sent a move Chess++ can't play"));
 		endGame(); // stops the stream; back where the player was (Home), not a board out of step with Lichess
 		return;

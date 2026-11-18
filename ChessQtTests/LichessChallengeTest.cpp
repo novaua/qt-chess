@@ -1,5 +1,6 @@
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QUrlQuery>
 #include <CppUnitTest.h>
 #include "LichessClient.h"
 #include "TestSupport.h"
@@ -80,13 +81,16 @@ namespace LichessTests
 				.value("challengerText").toString());
 		}
 
-		// Lichess's compat.board decides; Chess960 waits for LI-01; without compat, the speeds the
-		// Board API plays in a direct challenge, which a challenge to us is: Blitz too.
+		// Lichess's compat.board decides, for the variants Chess++ plays (standard, Chess960: LI-01A);
+		// without compat, the speeds the Board API plays in a direct challenge, which a challenge to us
+		// is: Blitz too.
 		TEST_METHOD(ParseChallenge_WhatThisAppCanPlay)
 		{
 			auto canPlay = [](const QByteArray& event) { return LichessClient::parseChallenge(json(event)).value("canPlayHere").toBool(); };
 			Assert::IsFalse(canPlay(challengeEvent("c3", "in", "", R"("compat":{"bot":false,"board":false},)")), L"e.g. Bullet");
-			Assert::IsFalse(canPlay(R"({"type":"challenge","compat":{"board":true},"challenge":{"id":"c4","variant":{"key":"chess960"},"speed":"rapid"}})"));
+			Assert::IsTrue(canPlay(R"({"type":"challenge","compat":{"board":true},"challenge":{"id":"c4","variant":{"key":"chess960"},"speed":"rapid"}})"));
+			Assert::IsFalse(canPlay(R"({"type":"challenge","compat":{"board":true},"challenge":{"id":"c9","variant":{"key":"crazyhouse"},"speed":"rapid"}})"));
+			Assert::IsFalse(canPlay(R"({"type":"challenge","challenge":{"id":"c10","variant":{"key":"atomic"},"speed":"rapid"}})"));
 			Assert::IsTrue(canPlay(R"({"type":"challenge","challenge":{"id":"c5","speed":"blitz"}})"));
 			Assert::IsTrue(canPlay(R"({"type":"challenge","challenge":{"id":"c6","speed":"classical"}})"));
 			Assert::IsFalse(canPlay(R"({"type":"challenge","challenge":{"id":"c8","speed":"bullet"}})"));
@@ -450,6 +454,106 @@ namespace LichessTests
 			client.startEventStream();
 			waitUntil([&] { return lichess.count(Events) == 2; });
 			Assert::AreEqual(2, lichess.count(Events));
+		}
+	};
+	// LI-01A stage 2: the variant and, for a Chess960 rematch, the start position in the challenges sent.
+	TEST_CLASS(LichessChess960ChallengeTests)
+	{
+		static constexpr const char* Start960 = "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w KQkq - 0 1";
+
+		// The body of the first request made as `request`, once it has come.
+		static QUrlQuery bodyOf(const FakeLichess& lichess, const QString& request)
+		{
+			waitUntil([&] { return lichess.requests.contains(request); });
+			return QUrlQuery(lichess.bodies.value(int(lichess.requests.indexOf(request))));
+		}
+
+		static void setUp(LichessClient& client, FakeLichess& lichess)
+		{
+			lichess.onRequest = [](QTcpSocket* socket, const QString&, const QString&) { FakeLichess::startStream(socket); };
+			client.setUsername("me");
+			client.setBaseUrl(lichess.url());
+			client.setToken("token");
+		}
+
+		// A finished game, as its stream's gameFull tells it: the rematch's settings.
+		static void playedGame(LichessClient& client, const QByteArray& variantAndFen, const char* opponent)
+		{
+			client.handleGameStreamLine(QByteArray(R"({"type":"gameFull","id":"g1",)") + variantAndFen
+				+ R"(,"clock":{"initial":600000,"increment":5000},"white":{"id":"me","name":"Me"},"black":)" + opponent
+				+ R"(,"state":{"moves":"","status":"resign","winner":"white"}})");
+		}
+
+	public:
+		TEST_METHOD(ChallengePlayer_Chess960_VariantNoFen)
+		{
+			FakeLichess lichess;
+			LichessClient client;
+			setUp(client, lichess);
+
+			client.challengePlayer("friend", 600, 5, 0, "white", "chess960");
+
+			const QUrlQuery body = bodyOf(lichess, "POST /api/challenge/friend");
+			Assert::AreEqual(QString("chess960"), body.queryItemValue("variant"));
+			Assert::IsFalse(body.hasQueryItem("fen"), L"a new challenge: Lichess picks the position");
+			Assert::AreEqual(QString("false"), body.queryItemValue("rated"));
+		}
+
+		TEST_METHOD(ChallengePlayer_DefaultIsStandard)
+		{
+			FakeLichess lichess;
+			LichessClient client;
+			setUp(client, lichess);
+
+			client.challengePlayer("friend", 600, 5, 0, "white");
+
+			Assert::AreEqual(QString("standard"), bodyOf(lichess, "POST /api/challenge/friend").queryItemValue("variant"));
+		}
+
+		// The owner's choice: a Chess960 rematch is the same position, colours swapped.
+		TEST_METHOD(Rematch_Chess960_NamedOpponent_SamePosition)
+		{
+			FakeLichess lichess;
+			LichessClient client;
+			setUp(client, lichess);
+			playedGame(client, QByteArray(R"("variant":{"key":"chess960"},"initialFen":")") + Start960 + "\"",
+			           R"({"id":"friend","name":"Friend"})");
+			Assert::IsTrue(client.canRematch());
+
+			client.createRematch();
+
+			const QUrlQuery body = bodyOf(lichess, "POST /api/challenge/friend");
+			Assert::AreEqual(QString("chess960"), body.queryItemValue("variant"));
+			Assert::AreEqual(QString(Start960), body.queryItemValue("fen", QUrl::FullyDecoded));
+			Assert::AreEqual(QString("black"), body.queryItemValue("color"));
+		}
+
+		TEST_METHOD(Rematch_Chess960_Anonymous_OpenChallengeSamePosition)
+		{
+			FakeLichess lichess;
+			LichessClient client;
+			setUp(client, lichess);
+			playedGame(client, QByteArray(R"("variant":{"key":"chess960"},"initialFen":")") + Start960 + "\"", "{}");
+
+			client.createRematch();
+
+			const QUrlQuery body = bodyOf(lichess, "POST /api/challenge/open");
+			Assert::AreEqual(QString("chess960"), body.queryItemValue("variant"));
+			Assert::AreEqual(QString(Start960), body.queryItemValue("fen", QUrl::FullyDecoded));
+		}
+
+		TEST_METHOD(Rematch_Standard_NoFen)
+		{
+			FakeLichess lichess;
+			LichessClient client;
+			setUp(client, lichess);
+			playedGame(client, R"("variant":{"key":"standard"},"initialFen":"startpos")", R"({"id":"friend","name":"Friend"})");
+
+			client.createRematch();
+
+			const QUrlQuery body = bodyOf(lichess, "POST /api/challenge/friend");
+			Assert::AreEqual(QString("standard"), body.queryItemValue("variant"));
+			Assert::IsFalse(body.hasQueryItem("fen"));
 		}
 	};
 }

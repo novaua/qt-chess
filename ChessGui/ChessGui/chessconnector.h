@@ -376,7 +376,7 @@ private slots:
 	void onEngineMoveFound(int request, const QString& move);
 	void onEngineMoveError(int request, const QString& message, const QString& details);
 	void onLichessGameStarted(const QString& gameId, bool playingAsWhite, const QString& opponentName,
-		const QString& opponentAvatar, const QStringList& moves);
+		const QString& opponentAvatar, const QStringList& moves, const QString& variant, const QString& startFen);
 	void onLichessGameEnded(const QString& status, const QString& winner);
 	void onLichessOpponentGone(bool gone, int claimWinInSeconds);
 	void onLichessClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence);
@@ -396,8 +396,9 @@ private:
 	int  moveTarget(int from, int to) const;
 	bool isChess960Castling(int from, int to) const; // the king on `from` onto its own rook on `to`, in a Chess960 game
 	// joinedMoves (BL-18): the moves of a game joined in progress, on the board before its page opens.
-	// False when one of them can't be played here.
-	bool startOnlineGame(const QString& gameId, bool playingAsWhite, const QStringList& joinedMoves);
+	// False when one of them can't be played here. start: the game's set-up (LI-01A: standard or Chess960).
+	bool startOnlineGame(const QString& gameId, bool playingAsWhite, const Chess::StartPosition& start,
+		const QStringList& joinedMoves);
 	void setPlayerPlaysWhite(bool v);
 	// opponentUserId: the opponent's profile in a two-player game ("" = Guest, or not a local game).
 	void setGameMode(const QString& mode, const QString& opponentName, const QString& opponentUserId = {});

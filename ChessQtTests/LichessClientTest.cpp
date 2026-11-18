@@ -166,6 +166,7 @@ namespace LichessTests
 			auto info = LichessClient::parseRematchInfo(Json(R"({
 				"type": "gameFull", "id": "AbCdEfGh",
 				"variant": { "key": "chess960", "name": "Chess960" },
+				"initialFen": "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w KQkq - 0 1",
 				"clock": { "initial": 300000, "increment": 3000 },
 				"white": { "id": "me", "name": "Me" },
 				"black": { "id": "friend", "name": "Friend" }
@@ -180,12 +181,15 @@ namespace LichessTests
 			Assert::AreEqual(3, info.clockIncrementSec);
 			Assert::AreEqual(0, info.days);
 			Assert::AreEqual(QString("chess960"), info.variant);
+			Assert::AreEqual(QString("bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w KQkq - 0 1"), info.startFen,
+				L"LI-01A: a Chess960 rematch keeps the position");
 		}
 
 		TEST_METHOD(ParseRematchInfo_AnonymousOpponent_EmptyId_Test)
 		{
 			auto info = LichessClient::parseRematchInfo(Json(R"({
 				"variant": { "key": "standard" },
+				"initialFen": "startpos",
 				"clock": { "initial": 600000, "increment": 0 },
 				"white": {},
 				"black": { "id": "me", "name": "Me" }
@@ -195,6 +199,8 @@ namespace LichessTests
 			Assert::IsFalse(info.playedAsWhite);
 			Assert::IsTrue(info.opponentId.isEmpty(), L"Anonymous player has no id");
 			Assert::AreEqual(QString("Anonymous"), info.opponentName);
+			Assert::AreEqual(QString("standard"), info.variant);
+			Assert::IsTrue(info.startFen.isEmpty(), L"the standard start: no fen with the rematch");
 		}
 
 		TEST_METHOD(ParseRematchInfo_Correspondence_DaysNoClock_Test)
@@ -268,12 +274,14 @@ namespace LichessTests
 				"perfs": {
 					"blitz":  { "games": 214, "rating": 1612, "rd": 60, "prog": 12 },
 					"rapid":  { "games": 3, "rating": 1500, "rd": 300, "prov": true },
+					"chess960": { "games": 12, "rating": 1480, "rd": 110 },
 					"puzzle": { "games": 10, "rating": 1900 },
 					"storm":  { "runs": 4, "score": 20 }
 				}
 			})"));
 
-			Assert::AreEqual(2, (int)ratings.size(), L"blitz and rapid; puzzle and storm aren't games");
+			Assert::AreEqual(3, (int)ratings.size(), L"blitz, rapid and chess960; puzzle and storm aren't games");
+			Assert::AreEqual(1480, ratings.value("chess960").toMap().value("rating").toInt(), L"LI-01A");
 			const auto blitz = ratings.value("blitz").toMap();
 			Assert::AreEqual(1612, blitz.value("rating").toInt());
 			Assert::AreEqual(214, blitz.value("games").toInt());
@@ -331,7 +339,41 @@ namespace LichessTests
 			Assert::AreEqual(-1, ai.value("secondsLeft").toInt(), L"no clock");
 			Assert::IsTrue(ai.value("timeLeftText").toString().isEmpty());
 
-			Assert::IsFalse(games[3].toMap().value("canPlayHere").toBool(), L"Chess960 isn't playable here yet (LI-01)");
+			Assert::IsTrue(games[3].toMap().value("canPlayHere").toBool(), L"Chess960 (LI-01A stage 2)");
+			Assert::AreEqual(QString("chess960"), games[3].toMap().value("variant").toString());
+		}
+
+		// LI-01A: standard and Chess960 only; the Board API would play the rest, Chess++ doesn't.
+		TEST_METHOD(ParseOngoingGames_VariantsPlayedHere_Test)
+		{
+			auto games = LichessClient::parseOngoingGames(Json(R"({ "nowPlaying": [
+				{ "gameId": "std00001", "speed": "rapid", "source": "friend", "variant": { "key": "standard" } },
+				{ "gameId": "c9600001", "speed": "correspondence", "source": "friend", "variant": "chess960" },
+				{ "gameId": "zh000001", "speed": "rapid", "source": "friend", "variant": { "key": "crazyhouse" } },
+				{ "gameId": "fpos0001", "speed": "rapid", "source": "friend", "variant": { "key": "fromPosition" } },
+				{ "gameId": "none0001", "speed": "rapid", "source": "friend" }
+			] })"));
+
+			Assert::AreEqual(5, (int)games.size());
+			Assert::IsTrue(games[0].toMap().value("canPlayHere").toBool());
+			Assert::IsTrue(games[1].toMap().value("canPlayHere").toBool(), L"a plain string too");
+			Assert::IsFalse(games[2].toMap().value("canPlayHere").toBool());
+			Assert::IsFalse(games[3].toMap().value("canPlayHere").toBool(), L"no general FEN start");
+			Assert::IsTrue(games[4].toMap().value("canPlayHere").toBool(), L"no variant: standard");
+			Assert::AreEqual(QString("standard"), games[4].toMap().value("variant").toString());
+		}
+
+		TEST_METHOD(VariantName_LichessNames_Test)
+		{
+			Assert::AreEqual(QString("Chess960"), LichessClient::variantName("chess960"));
+			Assert::AreEqual(QString("Standard"), LichessClient::variantName("standard"));
+			Assert::AreEqual(QString("King of the Hill"), LichessClient::variantName("kingOfTheHill"));
+			Assert::AreEqual(QString("Three-check"), LichessClient::variantName("threeCheck"));
+			Assert::AreEqual(QString("Racing Kings"), LichessClient::variantName("racingKings"));
+			Assert::AreEqual(QString("Crazyhouse"), LichessClient::variantName("crazyhouse"));
+			Assert::AreEqual(QString("Newvariant"), LichessClient::variantName("newvariant"), L"an unknown key, capitalised");
+			Assert::IsTrue(LichessClient::playableVariant("standard") && LichessClient::playableVariant("chess960"));
+			Assert::IsFalse(LichessClient::playableVariant("crazyhouse") || LichessClient::playableVariant("fromPosition"));
 		}
 
 		// The Board API: Rapid, Classical, Correspondence; Blitz only in direct challenges and vs AI.
@@ -592,6 +634,37 @@ namespace LichessTests
 				"state":{"moves":"e2e4 e7e5 g1f3","status":"started"}})");
 
 			LichessStaticTests::areEqual({ "start e2e4 e7e5 g1f3" }, events);
+		}
+
+		// LI-01A stage 2: the game's variant and start position come with its start; the standard
+		// start ("startpos") is "".
+		TEST_METHOD(GameStream_GameFull_VariantAndStartFen_Test)
+		{
+			auto start = [](const char* gameFull) {
+				LichessClient client;
+				client.setUsername("me");
+				QString started;
+				QObject::connect(&client, &LichessClient::gameStarted,
+					[&](QString, bool, QString, QString, QStringList moves, QString variant, QString startFen) {
+						started = variant + " | " + startFen + " | " + moves.join(' ');
+					});
+				client.handleGameStreamLine(gameFull);
+				return started;
+			};
+			Assert::AreEqual(QString("chess960 | bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w KQkq - 0 1 | g2g3 g7g6 g1f2"),
+				start(R"({"type":"gameFull","variant":{"key":"chess960"},
+					"initialFen":"bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w KQkq - 0 1",
+					"white":{"id":"me"},"black":{"id":"friend"},"state":{"moves":"g2g3 g7g6 g1f2","status":"started"}})"));
+			Assert::AreEqual(QString("standard |  | e2e4"),
+				start(R"({"type":"gameFull","variant":{"key":"standard"},"initialFen":"startpos",
+					"white":{"id":"me"},"black":{"id":"friend"},"state":{"moves":"e2e4","status":"started"}})"));
+			Assert::AreEqual(QString("standard |  | "),
+				start(R"({"type":"gameFull","white":{"id":"me"},"black":{"id":"friend"},"state":{"moves":"","status":"started"}})"),
+				L"neither field: the standard game");
+			Assert::AreEqual(QString("crazyhouse |  | "),
+				start(R"({"type":"gameFull","variant":{"key":"crazyhouse"},"initialFen":"startpos",
+					"white":{"id":"me"},"black":{"id":"friend"},"state":{"moves":"","status":"started"}})"),
+				L"passed on: the connector refuses it");
 		}
 
 		TEST_METHOD(GameStream_GameState_OnlyNewMoves_Test)
