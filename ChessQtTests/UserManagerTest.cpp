@@ -7,6 +7,7 @@
 #include <CppUnitTest.h>
 #include "AppConfig.h"
 #include "UserManager.h"
+#include "gamelibrary.h"
 #include "TestSupport.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -407,6 +408,63 @@ namespace UserManagerTests
 			Assert::IsFalse(um.lichessConnected());
 			Assert::IsTrue(um.lichessNeedsReconnect());
 			Assert::IsTrue(readFile(AppConfig::savedGameFilePath(id)) == "saved-bytes");
+		}
+
+		// BL-20: an export carries the profile's games as they are (one signed file each) and its rating;
+		// on the other PC they verify (one app-wide key). Nothing but games/<id>.json is written under games/.
+		TEST_METHOD(ExportImport_TheSignedGamesAndTheRatingVerifyOnAnotherPc)
+		{
+			const QString file = _dir->path() + "/export/Alice.chessprofile";
+			QDir().mkpath(_dir->path() + "/export");
+			GameRecord game;
+			game.id = QStringLiteral("0b0f6c5e-1a2b-4c3d-9e8f-0123456789ab");
+			game.kind = QStringLiteral("local");
+			game.opponentName = QStringLiteral("Guest");
+			game.startedAt = QDateTime(QDate(2026, 11, 18), QTime(18, 0));
+			game.moves = { "e2e4", "e7e5" };
+			{
+				UserManager um;
+				um.createUser("Alice", "girl");
+				const QString alice = um.activeUserId();
+				writeFile(GameLibrary::gameFilePathOf(alice, game.id), GameLibrary::gameFileContent(game));
+				writeFile(GameLibrary::ratingFilePathOf(alice), R"({"version":1,"rating":{"value":1250,"games":3}})");
+				writeFile(GameLibrary::gamesDirOf(alice) + "/notes.txt", "not a game");
+				Assert::AreEqual(QString(), um.exportProfile(alice, QUrl::fromLocalFile(file)));
+			}
+			QTemporaryDir otherPc;
+			AppConfig::setAppDataDir(otherPc.path());
+
+			UserManager um;
+			Assert::AreEqual(QString(), um.importProfile(QUrl::fromLocalFile(file), false));
+			const QString id = idOf(um, "Alice");
+			const auto read = GameLibrary::readGameFile(GameLibrary::gameFilePathOf(id, game.id));
+			Assert::IsTrue(read.has_value(), L"the game verifies on the other PC");
+			Assert::AreEqual(QStringLiteral("e2e4 e7e5"), read->moves.join(' '));
+			Assert::IsTrue(readFile(GameLibrary::ratingFilePathOf(id)).contains("1250"));
+			Assert::IsFalse(QFile::exists(GameLibrary::gamesDirOf(id) + "/notes.txt"), L"only game files");
+		}
+
+		// An export naming a file outside the profile's games (a path in the name) writes nothing of it.
+		TEST_METHOD(Import_OnlyGameFileNamesAreWritten)
+		{
+			const QString file = _dir->path() + "/Evil.chessprofile";
+			const QJsonObject root{
+				{ "format", "chessplusplus-profile" },
+				{ "version", 2 },
+				{ "profile", QJsonObject{ { "id", "evil" }, { "name", "Evil" }, { "avatar", "fox" } } },
+				{ "files", QJsonObject{
+					{ "games/../../escape.json", QString::fromLatin1(QByteArray("x").toBase64()) },
+					{ "games/sub/inner.json",    QString::fromLatin1(QByteArray("x").toBase64()) },
+					{ "games/ok-1.json",         QString::fromLatin1(QByteArray("x").toBase64()) },
+				} },
+			};
+			writeFile(file, QJsonDocument(root).toJson());
+			UserManager um;
+			Assert::AreEqual(QString(), um.importProfile(QUrl::fromLocalFile(file), false));
+			const QString id = idOf(um, "Evil");
+			Assert::IsFalse(QFile::exists(_dir->path() + "/users/escape.json"), L"not out of the profile's folder");
+			Assert::IsFalse(QFile::exists(GameLibrary::gamesDirOf(id) + "/sub/inner.json"));
+			Assert::IsTrue(QFile::exists(GameLibrary::gameFilePathOf(id, "ok-1")), L"a game file's name is written");
 		}
 
 		TEST_METHOD(Import_Conflict_AsNewProfile_GetsSuffix)

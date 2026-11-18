@@ -1,22 +1,26 @@
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QCoreApplication>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QUuid>
 #include <CppUnitTest.h>
 #include "AppConfig.h"
 #include "Game.h"
 #include "UserManager.h"
 #include "gamelibrary.h"
+#include "gamesignature.h"
 #include "TestSupport.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-// The games library (BL-19) on a temporary data folder: records kept per profile in games.json,
-// the cap on finished games, the migration of the two save slots of earlier versions, a damaged file.
+// The games library (BL-19) on a temporary data folder: records kept per profile, one signed file per
+// game (BL-20), the cap on finished games, games that fail their check set aside, the migration of
+// games.json (BL-19) and of the two save slots of earlier versions.
 namespace GameLibraryTests
 {
 	static QByteArray readFile(const QString& path)
@@ -42,6 +46,34 @@ namespace GameLibraryTests
 		r.moves = moves;
 		r.fen = QStringLiteral("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
 		return r;
+	}
+
+	// A profile's games.json as BL-19 wrote it (one file, unsigned, the rating inside).
+	static QByteArray legacyContent(const QList<GameRecord>& records, int rating = 1200, int ratedGames = 0)
+	{
+		QJsonArray games;
+		for (GameRecord r : records) {
+			if (r.id.isEmpty())
+				r.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+			games.append(r.toJson());
+		}
+		QJsonObject root{ { "version", 1 }, { "games", games } };
+		if (ratedGames > 0)
+			root["rating"] = QJsonObject{ { "value", rating }, { "games", ratedGames } };
+		return QJsonDocument(root).toJson(QJsonDocument::Compact);
+	}
+
+	static void writeFile(const QString& path, const QByteArray& data)
+	{
+		QDir().mkpath(QFileInfo(path).absolutePath());
+		QFile f(path);
+		Assert::IsTrue(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+		f.write(data);
+	}
+
+	static int jsonFilesIn(const QString& dir)
+	{
+		return (int)QDir(dir).entryList({ QStringLiteral("*.json") }, QDir::Files).size();
 	}
 
 	TEST_CLASS(GameLibraryTest)
@@ -99,9 +131,9 @@ namespace GameLibraryTests
 			const QString id = _library->put(r);
 			Assert::IsFalse(id.isEmpty(), L"an id is given");
 			Assert::AreEqual(1, (int)changed.count());
-			Assert::IsFalse(QFile::exists(GameLibrary::filePathOf(user)), L"written once the event is done, not at once");
+			Assert::IsFalse(QFile::exists(GameLibrary::gameFilePathOf(user, id)), L"written once the event is done, not at once");
 			QCoreApplication::processEvents();
-			Assert::IsTrue(QFile::exists(GameLibrary::filePathOf(user)), L"games.json written");
+			Assert::IsTrue(QFile::exists(GameLibrary::gameFilePathOf(user, id)), L"its file written");
 
 			makeLibrary(); // read again from the file (the profile is still logged in)
 			Assert::AreEqual(1, _library->count());
@@ -217,28 +249,131 @@ namespace GameLibraryTests
 			Assert::AreEqual(QStringLiteral("e2e4"), _library->records()[0].moves.join(' '));
 			_users->logout();
 			Assert::AreEqual(0, _library->count(), L"nobody logged in: nothing");
-			Assert::IsTrue(QFile::exists(GameLibrary::filePathOf(bob)));
+			Assert::AreEqual(2, jsonFilesIn(GameLibrary::gamesDirOf(bob)));
 			_users->login(bob);
 			_users->deleteUser(bob);
-			Assert::IsFalse(QFile::exists(GameLibrary::filePathOf(bob)), L"the profile's folder went with it");
+			Assert::IsFalse(QDir(GameLibrary::gamesDirOf(bob)).exists(), L"the profile's folder went with it");
 			Assert::AreEqual(0, _library->count());
 		}
 
-		TEST_METHOD(ADamagedFileIsKeptAsideAndTheLibraryStartsEmpty)
+		// A games.json of BL-19 that can't be read as JSON is kept aside (nothing migrated from it).
+		TEST_METHOD(ADamagedLegacyFileIsKeptAside)
 		{
 			const QString user = addUser("Alice");
-			_library->put(makeRecord("local", false, { "e2e4" }));
-			_library->flush();
-			QFile f(GameLibrary::filePathOf(user));
-			Assert::IsTrue(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
-			f.write("{ not json");
-			f.close();
+			writeFile(GameLibrary::legacyFilePathOf(user), "{ not json");
 			makeLibrary();
 			Assert::AreEqual(0, _library->count());
-			Assert::IsTrue(QFile::exists(GameLibrary::filePathOf(user) + ".damaged"), L"kept aside");
+			Assert::IsTrue(QFile::exists(GameLibrary::legacyFilePathOf(user) + ".damaged"), L"kept aside");
+			Assert::IsFalse(QFile::exists(GameLibrary::legacyFilePathOf(user)));
 			_library->put(makeRecord("local", false, { "d2d4" }));
 			makeLibrary();
-			Assert::AreEqual(1, _library->count(), L"a fresh file works");
+			Assert::AreEqual(1, _library->count(), L"games are kept as before");
+		}
+
+		// BL-20: games.json (BL-19) becomes a signed file per game once, the rating rating.json; it is then
+		// kept as games.json.migrated and never read again.
+		TEST_METHOD(TheLegacyFileIsMigratedOnceAndSigned)
+		{
+			const QString user = addUser("Alice");
+			GameRecord a = makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-2));
+			a.id = QStringLiteral("game-a");
+			a.rated = true; a.ratingBefore = 1200; a.ratingChange = 27;
+			GameRecord b2 = makeRecord("local", false, { "d2d4" }, QDateTime::currentDateTime().addDays(-1));
+			b2.id = QStringLiteral("game-b");
+			writeFile(GameLibrary::legacyFilePathOf(user), legacyContent({ a, b2 }, 1227, 1));
+			makeLibrary();
+			Assert::AreEqual(2, _library->count());
+			Assert::AreEqual(1227, _library->rating());
+			Assert::AreEqual(1, _library->ratedGames());
+			Assert::AreEqual(2, jsonFilesIn(GameLibrary::gamesDirOf(user)), L"a file per game");
+			Assert::IsTrue(QFile::exists(GameLibrary::ratingFilePathOf(user)));
+			Assert::IsFalse(QFile::exists(GameLibrary::legacyFilePathOf(user)));
+			Assert::IsTrue(QFile::exists(GameLibrary::legacyFilePathOf(user) + ".migrated"), L"kept, not read again");
+			Assert::IsTrue(GameLibrary::readGameFile(GameLibrary::gameFilePathOf(user, "game-a")).has_value(), L"signed");
+			Assert::AreEqual(0, _library->setAsideCount());
+
+			makeLibrary(); // no second migration
+			Assert::AreEqual(2, _library->count());
+			Assert::AreEqual(1227, _library->rating());
+		}
+
+		// BL-20: a game file edited by hand (here: the result) fails its check: set aside in games/rejected/,
+		// not loaded, said once (gamesSetAside); the other games load as before.
+		TEST_METHOD(AnEditedGameIsSetAside)
+		{
+			const QString user = addUser("Alice");
+			const QString kept = _library->put(makeRecord("local", true, { "e2e4" }, QDateTime::currentDateTime().addDays(-1)));
+			const QString edited = _library->put(makeRecord("computer", true, { "d2d4" }));
+			_library->flush();
+			const QString path = GameLibrary::gameFilePathOf(user, edited);
+			QByteArray content = readFile(path);
+			Assert::IsTrue(content.contains("\"result\":\"1-0\""));
+			content.replace("\"result\":\"1-0\"", "\"result\":\"0-1\"");
+			writeFile(path, content);
+
+			_users = std::make_unique<UserManager>();
+			_library = std::make_unique<GameLibrary>();
+			QSignalSpy setAside(_library.get(), &GameLibrary::gamesSetAside);
+			_library->setUserManager(_users.get());
+			Assert::AreEqual(1, _library->count(), L"only the one that verifies");
+			Assert::IsTrue(_library->find(kept).has_value());
+			Assert::IsFalse(_library->find(edited).has_value());
+			Assert::AreEqual(1, _library->setAsideCount());
+			Assert::AreEqual(1, (int)setAside.count());
+			Assert::AreEqual(1, setAside.at(0).at(0).toInt());
+			Assert::IsFalse(QFile::exists(path), L"moved, not deleted");
+			Assert::AreEqual(1, jsonFilesIn(GameLibrary::rejectedDirOf(user)));
+
+			makeLibrary();
+			Assert::AreEqual(0, _library->setAsideCount(), L"said once: it is in rejected/ now");
+			Assert::AreEqual(1, _library->count());
+		}
+
+		// A good file copied under another game's name, a file that isn't JSON, one without a signature, and
+		// one signed with a key this copy doesn't know: all set aside.
+		TEST_METHOD(OtherFailingFilesAreSetAside)
+		{
+			const QString user = addUser("Alice");
+			const QString id = _library->put(makeRecord("local", true, { "e2e4" }));
+			_library->flush();
+			const QByteArray good = readFile(GameLibrary::gameFilePathOf(user, id));
+			writeFile(GameLibrary::gameFilePathOf(user, "copied"), good);
+			writeFile(GameLibrary::gameFilePathOf(user, "garbage"), "not json");
+			QJsonObject unsigned_ = QJsonDocument::fromJson(good).object();
+			unsigned_.remove("sig");
+			writeFile(GameLibrary::gameFilePathOf(user, "unsigned"), QJsonDocument(unsigned_).toJson());
+			QJsonObject newer = QJsonDocument::fromJson(good).object();
+			newer["sig"] = QStringLiteral("9:") + newer.value("sig").toString().mid(2);
+			writeFile(GameLibrary::gameFilePathOf(user, "newerkey"), QJsonDocument(newer).toJson());
+			QString why;
+			Assert::IsFalse(GameLibrary::readGameFile(GameLibrary::gameFilePathOf(user, "copied"), &why).has_value());
+			Assert::AreEqual(QStringLiteral("another game's id"), why);
+
+			makeLibrary();
+			Assert::AreEqual(1, _library->count());
+			Assert::AreEqual(4, _library->setAsideCount());
+			Assert::AreEqual(4, jsonFilesIn(GameLibrary::rejectedDirOf(user)));
+		}
+
+		// BL-20: a move writes only its own game's file; Delete removes the file.
+		TEST_METHOD(OnlyTheChangedGameIsWritten)
+		{
+			const QString user = addUser("Alice");
+			const QString a = _library->put(makeRecord("local", false, { "e2e4" }, QDateTime::currentDateTime().addDays(-1)));
+			const QString b3 = _library->put(makeRecord("local", false, { "d2d4" }));
+			_library->flush();
+			const QDateTime aWritten = QFileInfo(GameLibrary::gameFilePathOf(user, a)).lastModified();
+			const QByteArray aBefore = readFile(GameLibrary::gameFilePathOf(user, a));
+			GameRecord next = *_library->find(b3);
+			next.moves.append(QStringLiteral("d7d5"));
+			_library->put(next);
+			_library->flush();
+			Assert::IsTrue(aBefore == readFile(GameLibrary::gameFilePathOf(user, a)), L"the other game untouched");
+			Assert::IsTrue(aWritten == QFileInfo(GameLibrary::gameFilePathOf(user, a)).lastModified());
+			Assert::IsTrue(readFile(GameLibrary::gameFilePathOf(user, b3)).contains("d7d5"));
+			Assert::IsTrue(_library->remove(a));
+			_library->flush();
+			Assert::IsFalse(QFile::exists(GameLibrary::gameFilePathOf(user, a)), L"Delete removes its file");
 		}
 
 		// The two save slots of versions before BL-19 (chess.autosave: the robot's game, chess.save: Save game,
@@ -274,12 +409,11 @@ namespace GameLibraryTests
 				info.opponentUserId = "gone";
 				_users->setSavedGameInfo(info);
 			}
-			QFile::remove(GameLibrary::filePathOf(user)); // no games.json yet: the first load migrates
 			makeLibrary();
 			Assert::AreEqual(2, _library->count());
 			Assert::IsFalse(QFile::exists(AppConfig::autoSaveFilePath(user)), L"the autosave file went");
 			Assert::IsFalse(QFile::exists(AppConfig::savedGameFilePath(user)), L"the save file went");
-			Assert::IsTrue(QFile::exists(GameLibrary::filePathOf(user)), L"games.json written");
+			Assert::AreEqual(2, jsonFilesIn(GameLibrary::gamesDirOf(user)), L"a signed file per game");
 			Assert::IsFalse(_users->autoSaveInfo().isSinglePlayer, L"the old info cleared");
 			Assert::IsTrue(_users->savedGameInfo().opponentName.isEmpty());
 
@@ -320,51 +454,52 @@ namespace GameLibraryTests
 			info.isSinglePlayer = false;
 			info.opponentName = "Guest";
 			_users->setSavedGameInfo(info);
-			QFile::remove(GameLibrary::filePathOf(user));
 			makeLibrary();
 			Assert::AreEqual(1, _library->count());
 			Assert::IsFalse(_library->records()[0].finished, L"not over: Continue offers it");
 			Assert::AreEqual(QStringLiteral("local"), _library->records()[0].kind);
 		}
 
-		TEST_METHOD(TheFileIsCompactJsonWithAVersion)
+		// BL-20: {"record": …, "sig": "1:<hex>"}, compact; the record as GameRecord::toJson writes it.
+		TEST_METHOD(TheGameFileIsSignedCompactJson)
 		{
 			const QString user = addUser("Alice");
-			_library->put(makeRecord("local", false, { "e2e4" }));
+			const QString id = _library->put(makeRecord("local", false, { "e2e4" }));
 			_library->flush();
-			const QJsonObject root = QJsonDocument::fromJson(readFile(GameLibrary::filePathOf(user))).object();
-			Assert::AreEqual(GameLibrary::FormatVersion, root.value("version").toInt());
-			Assert::AreEqual(1, (int)root.value("games").toArray().size());
-			const QJsonObject g = root.value("games").toArray()[0].toObject();
+			const QByteArray content = readFile(GameLibrary::gameFilePathOf(user, id));
+			Assert::IsFalse(content.contains('\n'), L"compact");
+			const QJsonObject root = QJsonDocument::fromJson(content).object();
+			Assert::IsTrue(root.value("sig").toString().startsWith("1:"), L"key 1");
+			const QJsonObject g = root.value("record").toObject();
+			Assert::AreEqual(id, g.value("id").toString());
 			Assert::AreEqual(QStringLiteral("e2e4"), g.value("moves").toArray()[0].toString());
 			Assert::IsFalse(g.contains("result"), L"no result while unfinished");
 			Assert::IsFalse(g.contains("analysis"), L"nothing until analysed");
 		}
-		// A games.json that is there but can't be read now (here: a folder of that name) is never written
-		// over; once it can be read, its games and the ones kept meanwhile go in together (review #3).
-		TEST_METHOD(AFileThatCantBeReadIsntWrittenOver)
+		// A games.json (BL-19) that is there but can't be read now (here: a folder of that name) is never
+		// written over; games kept meanwhile get their files, and once it can be read it is migrated, its
+		// games beside them.
+		TEST_METHOD(ALegacyFileThatCantBeReadIsMigratedLater)
 		{
 			const QString user = addUser("Alice");
-			_library->put(makeRecord("local", true, { "e2e4" }, QDateTime::currentDateTime().addDays(-2)));
-			_library->flush();
-			const QByteArray before = readFile(GameLibrary::filePathOf(user));
-			Assert::IsTrue(QFile::rename(GameLibrary::filePathOf(user), GameLibrary::filePathOf(user) + ".held"));
-			Assert::IsTrue(QDir().mkdir(GameLibrary::filePathOf(user)), L"a folder in its place: it can't be opened");
+			const QString legacy = GameLibrary::legacyFilePathOf(user);
+			writeFile(legacy + ".held", legacyContent({ makeRecord("local", true, { "e2e4" }, QDateTime::currentDateTime().addDays(-2)) }));
+			Assert::IsTrue(QDir().mkdir(legacy), L"a folder in its place: it can't be opened");
 			makeLibrary();
 			Assert::AreEqual(0, _library->count(), L"its games can't be shown");
 			_library->put(makeRecord("local", false, { "d2d4" }));
 			_library->flush();
-			Assert::IsTrue(QFileInfo(GameLibrary::filePathOf(user)).isDir(), L"not written over");
+			Assert::IsTrue(QFileInfo(legacy).isDir(), L"not written over");
 
-			// It can be read again: the next write has both.
-			Assert::IsTrue(QDir().rmdir(GameLibrary::filePathOf(user)));
-			Assert::IsTrue(QFile::rename(GameLibrary::filePathOf(user) + ".held", GameLibrary::filePathOf(user)));
+			// It can be read again: the next write migrates it.
+			Assert::IsTrue(QDir().rmdir(legacy));
+			Assert::IsTrue(QFile::rename(legacy + ".held", legacy));
 			_library->put(makeRecord("local", false, { "c2c4" }));
 			_library->flush();
 			Assert::AreEqual(3, _library->count(), L"the file's game and the two kept meanwhile");
+			Assert::IsTrue(QFile::exists(legacy + ".migrated"));
 			makeLibrary();
 			Assert::AreEqual(3, _library->count());
-			Assert::AreNotEqual(before.size(), readFile(GameLibrary::filePathOf(user)).size());
 		}
 
 		// An old save that can't be read is kept aside, not deleted (review #5); the autosave of a
@@ -386,7 +521,6 @@ namespace GameLibraryTests
 				info.opponentName = "Lichess opponent";
 				_users->setAutoSaveInfo(info);
 			}
-			QFile::remove(GameLibrary::filePathOf(user));
 			makeLibrary();
 			Assert::AreEqual(0, _library->count(), L"neither became a game");
 			Assert::IsTrue(QFile::exists(AppConfig::savedGameFilePath(user) + ".damaged"), L"the unreadable save kept aside");
@@ -545,7 +679,7 @@ namespace GameLibraryTests
 		// Only games vs the robot without a takeback, not begun from another game, with a result.
 		TEST_METHOD(GamesThatArentRated)
 		{
-			addUser("Alice");
+			const QString user = addUser("Alice");
 			_library->put(makeRecord("local", true, { "e2e4", "e7e5" }));
 			_library->put(makeRecord("computer", false, { "e2e4", "e7e5" }));
 			GameRecord undone = makeRecord("computer", true, { "e2e4", "e7e5" });
@@ -569,8 +703,7 @@ namespace GameLibraryTests
 			for (const auto& r : _library->records())
 				Assert::IsFalse(r.rated);
 			_library->flush();
-			const QJsonObject root = QJsonDocument::fromJson(readFile(_library->filePath())).object();
-			Assert::IsFalse(root.contains("rating"), L"no rating in the file until a game is rated");
+			Assert::IsFalse(QFile::exists(GameLibrary::ratingFilePathOf(user)), L"no rating file until a game is rated");
 		}
 
 		// A takeback after the result resumes the game: its change goes back, and with a takeback it is
@@ -597,16 +730,16 @@ namespace GameLibraryTests
 			Assert::AreEqual(1227, _library->rating(), L"finished again after a takeback: not rated");
 		}
 
-		// While games.json can't be read the rating isn't known (it shows the start rating): a robot game that
-		// ends then is rated once the file is read again, from the real rating (review of #167-#170).
-		TEST_METHOD(AGameEndedWhileTheFileCantBeReadIsRatedLater)
+		// While games.json (BL-19) can't be read the rating isn't known (it shows the start rating): a robot
+		// game that ends then is rated once the file is read and migrated, from the real rating.
+		TEST_METHOD(AGameEndedWhileTheLegacyFileCantBeReadIsRatedLater)
 		{
 			const QString user = addUser("Alice");
-			_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-1)));
-			_library->flush();
-			Assert::AreEqual(1227, _library->rating());
-			Assert::IsTrue(QFile::rename(GameLibrary::filePathOf(user), GameLibrary::filePathOf(user) + ".held"));
-			Assert::IsTrue(QDir().mkdir(GameLibrary::filePathOf(user)));
+			const QString legacy = GameLibrary::legacyFilePathOf(user);
+			GameRecord old = makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-1));
+			old.rated = true; old.ratingBefore = 1200; old.ratingChange = 27;
+			writeFile(legacy + ".held", legacyContent({ old }, 1227, 1));
+			Assert::IsTrue(QDir().mkdir(legacy));
 			makeLibrary();
 			Assert::AreEqual(0, _library->ratedGames(), L"not known now");
 
@@ -614,17 +747,19 @@ namespace GameLibraryTests
 			Assert::IsFalse(_library->find(id)->rated, L"not from the start rating");
 			Assert::AreEqual(0, _library->ratedGames());
 			_library->flush();
+			Assert::IsFalse(QFile::exists(GameLibrary::ratingFilePathOf(user)), L"no rating written while it isn't known");
 
-			Assert::IsTrue(QDir().rmdir(GameLibrary::filePathOf(user)));
-			Assert::IsTrue(QFile::rename(GameLibrary::filePathOf(user) + ".held", GameLibrary::filePathOf(user)));
-			_library->flush(); // read again, merged, written
+			Assert::IsTrue(QDir().rmdir(legacy));
+			Assert::IsTrue(QFile::rename(legacy + ".held", legacy));
+			_library->flush(); // read, migrated, rated, written
 			const auto rated = _library->find(id);
 			Assert::IsTrue(rated->rated, L"rated now");
 			Assert::AreEqual(1227, rated->ratingBefore, L"from the real rating");
 			Assert::AreEqual(1227 + 25, _library->rating());
 			Assert::AreEqual(2, _library->ratedGames());
 			makeLibrary();
-			Assert::AreEqual(1227 + 25, _library->rating(), L"in the file");
+			Assert::AreEqual(1227 + 25, _library->rating(), L"in rating.json");
+			Assert::IsTrue(_library->find(id)->rated, L"and on its record");
 		}
 
 		// Removing games, by hand or by the cap, never changes the rating; another profile's file keeps

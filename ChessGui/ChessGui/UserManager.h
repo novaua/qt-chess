@@ -78,7 +78,7 @@ public:
     static QString userKey(const QString& userId) { return QStringLiteral("user:") + userId; }
 
     static constexpr int kBackupCount = 3;
-    static constexpr int kExportVersion = 1;
+    static constexpr int kExportVersion = 2; // 2: the games one signed file each (BL-20); 1: games.json
 
     explicit UserManager(QObject* parent = nullptr);
 

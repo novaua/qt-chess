@@ -7,6 +7,7 @@ import "qrc:/qml"   // AppSettings
 // Scenario 9 (docs/UiTestSuitePlan.md §9): what the app keeps when it is closed and started again.
 // This file runs twice on one data folder (Run-UiTests.ps1 reads the line below): run 1 turns
 // "Highlight last move" off and leaves a game vs the robot on the board; run 2 is the next start.
+// BL-20: run 1 also edits a kept game's file on disk; run 2 sets it aside and says so.
 // ui-test-runs: 2
 TestCase {
     id: test
@@ -39,6 +40,8 @@ TestCase {
         compare(AppSettings.highlightLastMove, false)
         app.click("backButton")
         app.waitForPage("home")
+        TestRun.addEditedGame()   // BL-20: set aside at the next start
+        compare(GameLibrary.finishedCount, 1)
     }
 
     // 1. e4 e5 vs the robot; the window then closes with the game on (the app autosaves it).
@@ -53,8 +56,18 @@ TestCase {
     }
 
     // ── Run 2: the app started again ──
+    // BL-20: the game whose file was edited fails its check: set aside, not listed, and said once.
+    function test_3_run2_editedGameSetAside() {
+        onlyInRun(2)
+        app.waitForPage("home")
+        app.waitMessage("1 kept game couldn't be verified and was set aside.", 5000)
+        compare(GameLibrary.setAsideCount, 1)
+        compare(GameLibrary.finishedCount, 0, "not listed")
+        compare(GameLibrary.unfinishedCount, 1, "the robot game is")
+    }
+
     // The profile is there (straight to Home), the setting still off.
-    function test_3_run2_profileAndSetting() {
+    function test_4_run2_profileAndSetting() {
         onlyInRun(2)
         app.waitForPage("home")
         compare(UserManager.activeUserName, "Tester")
@@ -67,7 +80,7 @@ TestCase {
     }
 
     // Continue: the game as it was; the last move isn't marked (the setting).
-    function test_4_run2_continueTheGame() {
+    function test_5_run2_continueTheGame() {
         onlyInRun(2)
         compare(GameLibrary.unfinishedCount, 1, "the game kept")
         TestRun.setEngine(line, 0)

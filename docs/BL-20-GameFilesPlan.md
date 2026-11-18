@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-18 |
-| **Status** | Plan |
+| **Status** | Step 1 (a signed file per game, set aside, migration, export / import of the files) on `features/gameFiles_181126` |
 | **Branch** | `docs/gameFilesPlan_181126` (plan); each step on its own branch from `develop` |
 | **Task** | BL-20 in `TASKS.md` (the owner, 2026-11-18: a game per file instead of one `games.json`; every game signed, so an edited game isn't taken in: a simple anti-cheat and an integrity check) |
 
@@ -37,10 +37,11 @@
 5. **One app-wide key**: the same in every copy of Chess++, so an exported profile's games verify on another PC.
    A determined user could find the key in the program: this stops editing a file by hand, not a programmer.
 
-**To confirm (found while planning):** the rating and the statistics can't be fully *recomputed* from the kept
-games (§1: trimmed games, Lichess games, the "earlier" row). §3.4 recovers them from what is signed instead:
-the rating from the newest verified rated game, the statistics from the newest backup that verifies, and only
-as a last resort rebuilt from the kept games (Lichess and older counts lost then).
+6. **Recover, not recompute** (2026-11-18): the rating and the statistics can't be fully *recomputed* from the
+   kept games (§1: trimmed games, Lichess games, the "earlier" row). §3.4 recovers them from what is signed:
+   the rating from the newest verified rated game, the statistics from the newest backup that verifies, and
+   only as a last resort rebuilt from the kept games (Lichess and older counts lost then).
+7. **An export from before BL-20 imports unrated** (2026-11-18, §3.6): its games come in, but not its rating.
 
 ## 3. Design
 
@@ -111,10 +112,9 @@ A small class in ChessGui (`gamesignature.h/cpp`, C++ style as CLAUDE.md asks):
 
 - `.chessprofile` carries the `games/` files and `rating.json` as they are (signed), not `games.json`; a new
   format version. Import verifies each: failing ones go to `rejected/` in the imported profile, with the message.
-- An export from before BL-20 (with `games.json`): imported and migrated as in §3.5 (trusted once).
-  **Open question for the owner:** this is a way around the check (edit an old-style export, import it). The
-  alternative: games from an old export come in unrated (rating fields dropped, the rating restarted). The
-  plan's default: trust it, as the migration does.
+- An export from before BL-20 (with `games.json`): **imported unrated** (§2.7): its games come in and are
+  signed, but their rating fields are dropped and the profile's rating starts at 1200. Trusting it would be a
+  way around the check (edit an old-style export, import it). Until step 3 it migrates as this PC's own does.
 
 ### 3.7 Moving a profile: reinstall, another PC, another Windows account
 
@@ -134,9 +134,9 @@ Each step is one branch and one PR from the latest `origin/develop`.
 
 | Step | Branch | What |
 |---|---|---|
-| 1 | `features/gameFiles_…` | §3.1–3.3, §3.5 (games): `GameSignature`, a file per game, set aside, migration from `games.json`; `GameLibraryTest`, `GameSignatureTest`; the UI tests' `TestRun.addFinishedGames` writes signed files |
+| 1 | `features/gameFiles_…` | §3.1–3.3, §3.5 (games): `GameSignature`, a file per game, set aside, migration from `games.json`; export / import of the game files and `rating.json` (export format 2; moved here from step 3 so no export loses games in between); `GameLibraryTest`, `GameSignatureTest`, UserManagerTest +2, `tst_restart` (an edited game set aside at the next start) |
 | 2 | `features/signedRating_…` | §3.4: `rating.json`, `ratedGames` on rated records, the statistics' `statsSig`, recovery from the newest rated game / the backups; UserManagerTest, GameLibraryTest |
-| 3 | `features/signedExport_…` | §3.6: export / import of the game files; old exports migrated; UserManagerTest |
+| 3 | `features/signedExport_…` | §3.6: an export of format 1 imported unrated; the signed rating and statistics in an export; UserManagerTest |
 | 4 | `docs/gameFilesManualTests_…` | CLAUDE.md, `BL-20-ManualTests.md` (edit a game, the rating, the statistics by hand; damage a file; export / import between two data folders; an old profile updated), `TASKS.md`, `PROGRESS.md` |
 
 ## 5. Tests

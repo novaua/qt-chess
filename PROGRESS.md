@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-18 — BL-20 step 1: one signed file per game (branch: features/gameFiles_181126)
+
+### Done
+- The owner's answers to the plan's questions: recover the rating and statistics from what is signed; an export from before BL-20 imports unrated (step 3). Written into the plan (§2.6, §2.7).
+- **`GameSignature`** (`gamesignature.h/cpp`): HMAC-SHA256 (`QMessageAuthenticationCode`), one app-wide key (key 1, two masked halves), a domain per kind (game, rating, statistics), signatures `"<key>:<hex>"`; a key number this copy doesn't know fails.
+- **`GameLibrary`**: a file per game, `users/<id>/games/<gameId>.json` (`{"record", "sig"}`, the record's canonical compact JSON signed), only the changed game written (`_changed` / `_removed`); the rating in `rating.json` (signed in step 2); a game that fails its check (bad signature, not JSON, no signature, unknown key, another game's id) moved to `games/rejected/`, never loaded: `setAsideCount`, `gamesSetAside` → "N kept games couldn't be verified and were set aside." (`ChessGame.qml`, also for the first profile, loaded before the window); records signed with an older key re-signed when written; ids that can't name a file get a new UUID. `games.json` (BL-19) migrated once, trusted and signed, then `games.json.migrated`; one that can't be read now: migrated at a later write (`_legacyPending`, the rating waits, games ended meanwhile rated after), a damaged one kept aside as before.
+- **Export / import** (`UserManager`): export format 2 carries `games/<id>.json` and `rating.json`; import writes only those names under `games/` (no paths out); a format 1 export's `games.json` migrates as above.
+- Tests: `GameSignatureTest` (5, key 1 pinned by a Python-computed HMAC), `GameLibraryTest` (the storage tests rewritten for the files; new: migration, an edited game set aside, other failing files, only the changed game written), UserManagerTest +2 (export / import of the signed files, only game file names written), `tst_restart` (run 1 edits a kept game's file, run 2 sets it aside and says so). `TestRun.addEditedGame()`.
+- CLAUDE.md, the plan (step 3's export / import of the files moved into step 1, so no release loses games in exports).
+
+### Checked
+- Debug: ChessTests 165/165, ChessQtTests 292/292, UI tests 12 files, 0 failed; scene `games` as before.
+
+### Next
+- Step 2 (`features/signedRating_…`): `rating.json` signed, `ratedGames` on rated records, the statistics' `statsSig`, recovery.
+
+---
+
 ## 2026-11-18 — BL-20 plan: one signed file per game (branch: docs/gameFilesPlan_181126)
 
 ### Done

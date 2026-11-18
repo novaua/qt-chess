@@ -99,6 +99,30 @@ QString TestSetup::addDamagedGame()
 	return _services->gameLibrary()->put(r);
 }
 
+QString TestSetup::addEditedGame()
+{
+	GameLibrary* library = _services->gameLibrary();
+	GameRecord r;
+	r.kind = QStringLiteral("local");
+	r.opponentName = QStringLiteral("Guest");
+	r.setMoves({ "f2f3", "e7e5", "g2g4", "d8h4" });
+	r.startedAt = QDateTime::currentDateTime().addDays(-60);
+	r.finishedAt = r.startedAt.addSecs(60);
+	r.finished = true;
+	r.result = QStringLiteral("0-1");
+	r.resultText = QStringLiteral("Guest wins by checkmate");
+	const QString id = library->put(r);
+	library->flush();
+	QFile file(GameLibrary::gameFilePathOf(library->userId(), id));
+	if (!file.open(QIODevice::ReadWrite))
+		qCritical() << "TestSetup: can't edit" << file.fileName();
+	QByteArray content = file.readAll();
+	content.replace("\"result\":\"0-1\"", "\"result\":\"1-0\"");
+	file.resize(0);
+	file.write(content);
+	return id;
+}
+
 QUrl TestSetup::fileUrl(const QString& name) const
 {
 	return QUrl::fromLocalFile(QDir(_dataDir).filePath(name));

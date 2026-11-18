@@ -20,8 +20,19 @@
 
 static const QString kExportFormat = QStringLiteral("chessplusplus-profile");
 // The per-user files an export carries (AppConfig::autoSaveFilePath / savedGameFilePath).
-// games.json is the games library (BL-19); the two binary saves are those of older exports, migrated on import.
-static const QStringList kProfileFiles = { QStringLiteral("games.json"), QStringLiteral("chess.autosave"), QStringLiteral("chess.save") };
+// The profile's files in an export. BL-20: its games are one signed file each (games/<id>.json, gameFiles())
+// and its rating rating.json; games.json is the games library of BL-19 (version 1 exports, migrated by
+// GameLibrary when the profile loads), and the two binary saves those of older exports.
+static const QStringList kProfileFiles = { QStringLiteral("rating.json"), QStringLiteral("games.json"),
+                                           QStringLiteral("chess.autosave"), QStringLiteral("chess.save") };
+
+// An export's name of a game file: games/<id>.json, the id as GameLibrary names its files. Nothing
+// else under games/ is written on import.
+static bool isGameFileName(const QString& name)
+{
+    static const QRegularExpression gameFile(QRegularExpression::anchoredPattern(QStringLiteral("games/[A-Za-z0-9_-]{1,64}\.json")));
+    return gameFile.match(name).hasMatch();
+}
 
 UserManager::UserManager(QObject* parent)
     : QObject(parent)
@@ -838,7 +849,10 @@ QString UserManager::exportProfile(const QString& userId, const QUrl& file)
     if (!file.isLocalFile()) return QStringLiteral("Choose a file on this computer");
 
     QJsonObject files;
-    for (const auto& name : kProfileFiles) {
+    QStringList names = kProfileFiles;
+    for (const auto& game : QDir(userDir(userId) + "/games").entryList({ QStringLiteral("*.json") }, QDir::Files))
+        names.append(QStringLiteral("games/") + game); // signed as they are: they verify on import (BL-20)
+    for (const auto& name : names) {
         const QByteArray data = readFile(userDir(userId) + "/" + name);
         if (!data.isEmpty())
             files[name] = QString::fromLatin1(data.toBase64());
@@ -871,9 +885,9 @@ static QString readExport(const QUrl& file, QJsonObject& profile, QMap<QString, 
     if (profile.value(QStringLiteral("id")).toString().isEmpty() || profile.value(QStringLiteral("name")).toString().trimmed().isEmpty())
         return QStringLiteral("The profile in this file is incomplete");
     const QJsonObject filesObj = root.value(QStringLiteral("files")).toObject();
-    for (const auto& name : kProfileFiles) // only these names: nothing else is written
-        if (filesObj.contains(name))
-            files[name] = QByteArray::fromBase64(filesObj.value(name).toString().toLatin1());
+    for (auto it = filesObj.begin(); it != filesObj.end(); ++it) // only these names: nothing else is written
+        if (kProfileFiles.contains(it.key()) || isGameFileName(it.key()))
+            files[it.key()] = QByteArray::fromBase64(it.value().toString().toLatin1());
     return {};
 }
 

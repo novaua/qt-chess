@@ -126,6 +126,7 @@
     <ClCompile Include="UciConnectorTest.cpp" />
     <ClCompile Include="UserManagerTest.cpp" />
     <ClCompile Include="GameLibraryTest.cpp" />
+    <ClCompile Include="GameSignatureTest.cpp" />
     <ClCompile Include="GamePgnTest.cpp" />
     <ClCompile Include="GameAnalysisTest.cpp" />
     <!-- UserManager and what it needs, from the app (it has no library of its own) -->
@@ -135,6 +136,7 @@
     <!-- The games library (BL-19) -->
     <ClCompile Include="..\ChessGui\ChessGui\gamelibrary.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gamepgn.cpp" />
+    <ClCompile Include="..\ChessGui\ChessGui\gamesignature.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gameanalysis.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\gameanalyzer.cpp" />
     <!-- The engine player and its thread worker -->
