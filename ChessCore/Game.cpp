@@ -466,21 +466,15 @@ namespace Chess
 			// Castling: the king and that rook haven't moved, and none of our other pieces stands where
 			// the two go or between. The king's square, and in Chess960 also the rook's (the king onto
 			// its rook, as the move is written there).
-			const int backRank = own == PieceColors::Light ? 0 : 56;
-			const int home = backRank + _gameState.Start.KingFile();
+			const int home = (own == PieceColors::Light ? 0 : 56) + _gameState.Start.KingFile();
 			for (bool kingside : { true, false }) {
-				if (index != home || !MoveGeneration::HasCastlingRight(_gameState, own, kingside))
+				if (index != home)
 					continue;
-				const auto c = CastlingSquares::Of((BoardPosition)home,
-					(BoardPosition)(backRank + _gameState.Start.RookFile(kingside)));
-				auto blocked = [&](int from, int to) {
-					for (int sq = std::min(from, to); sq <= std::max(from, to); ++sq)
-						if (sq != c.KingFrom && sq != c.RookFrom && board.At(sq).Color == own)
-							return true;
-					return false;
-				};
-				if (blocked(c.KingFrom, c.KingTo) || blocked(c.RookFrom, c.RookTo))
+				const auto path = MoveGeneration::CastlingPath(_gameState, own, kingside,
+					[&board, own](BoardPosition sq) { return board.At(sq).Color == own; });
+				if (!path)
 					continue;
+				const auto& c = *path;
 				auto addOnce = [&](BoardPosition sq) {
 					if (std::find(targets.begin(), targets.end(), sq) == targets.end())
 						targets.push_back(sq);

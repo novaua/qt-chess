@@ -290,6 +290,7 @@ private:
 	QNetworkReply* _openChallengeReply   = nullptr; // POST /api/challenge/open in flight
 	QNetworkReply* _acceptReply          = nullptr; // acceptChallenge's POST in flight (then the stream)
 	bool           _gameFullSeen         = false;   // the game stream has sent gameFull: the game is on
+	int            _stops                = 0;       // stopAll() calls: a game refused in gameStarted stops it (LI-01A)
 	bool           _hasClock             = false;   // this game has one: real time or correspondence
 	bool           _correspondence       = false;
 	int            _moveTimeoutMs        = 10000;

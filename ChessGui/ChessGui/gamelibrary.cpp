@@ -124,9 +124,12 @@ GameRecord GameRecord::fromJson(const QJsonObject& o)
 	r.whiteMs          = o.value(QStringLiteral("whiteMs")).toInteger(0);
 	r.blackMs          = o.value(QStringLiteral("blackMs")).toInteger(0);
 	if (o.value(QStringLiteral("variant")).toString() == QLatin1String("chess960")) {
-		const auto start = Chess::StartPosition::FromFen(o.value(QStringLiteral("startFen")).toString().toStdString());
-		if (start)
-			r.setStartPosition(*start);
+		// Kept as read, also when it can't be read: never downgraded to a standard game (its moves are
+		// Chess960 moves) nor lost at the next write.
+		r.startFen = o.value(QStringLiteral("startFen")).toString();
+		r.start = Chess::StartPosition::FromFen(r.startFen.toStdString());
+		if (!r.start)
+			qWarning() << "GameLibrary: game" << r.id << "has a Chess960 start that can't be read:" << r.startFen;
 	}
 	for (const auto& m : o.value(QStringLiteral("moves")).toArray())
 		r.moves.append(m.toString());
@@ -169,25 +172,22 @@ std::shared_ptr<Chess::Game> GameRecord::play(const QStringList& uciMoves, const
 
 std::shared_ptr<Chess::Game> GameRecord::replay(int plies) const
 {
-	return play(plies < 0 ? moves : moves.mid(0, plies), startPosition());
+	if (!start)
+		return nullptr; // a Chess960 start that can't be read
+	return play(plies < 0 ? moves : moves.mid(0, plies), *start);
 }
 
-Chess::StartPosition GameRecord::startPosition() const
+void GameRecord::setStartPosition(const Chess::StartPosition& position)
 {
-	if (startFen.isEmpty())
-		return Chess::StartPosition();
-	const auto start = Chess::StartPosition::FromFen(startFen.toStdString());
-	return start ? *start : Chess::StartPosition();
-}
-
-void GameRecord::setStartPosition(const Chess::StartPosition& start)
-{
-	startFen = start.IsChess960() ? QString::fromStdString(start.Fen()) : QString();
+	start = position;
+	startFen = position.IsChess960() ? QString::fromStdString(position.Fen()) : QString();
 }
 
 bool GameRecord::setMoves(const QStringList& uciMoves)
 {
-	const auto game = play(uciMoves, startPosition());
+	if (!start)
+		return false;
+	const auto game = play(uciMoves, *start);
 	if (!game)
 		return false;
 	moves = uciMoves;
@@ -212,7 +212,7 @@ QVariantMap GameRecord::toVariant() const
 		{ QStringLiteral("clockIncSec"),      clockIncSec },
 		{ QStringLiteral("plyCount"),         plyCount() },
 		{ QStringLiteral("chess960"),         chess960() },
-		{ QStringLiteral("startPosition"),    chess960() ? startPosition().Number() : -1 },
+		{ QStringLiteral("startPosition"),    chess960() && start ? start->Number() : -1 }, // -1: standard, or unreadable
 		{ QStringLiteral("lastMove"),         lastMove() },
 		{ QStringLiteral("fen"),              fen },
 		{ QStringLiteral("result"),           result },

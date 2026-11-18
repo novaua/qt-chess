@@ -226,6 +226,7 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 	struct Kept {
 		const char* kind; int level; bool white; const char* opponent; QDate day; const char* moves;
 		const char* result; const char* resultText; int limitSec, incSec; int chess960 = -1; // LI-01A: its position
+		bool fork = false; // Play from here: the first game's first 4 plies, continued
 	};
 	const Kept kept[] = {
 		{ "computer", 3, true, "Robot", QDate(2026, 11, 2), "e2e4 e7e5 f1c4 b8c6 d1h5 g8f6 h5f7",
@@ -239,7 +240,7 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 		  "1/2-1/2", "Draw by stalemate", 0, 0 },
 		{ "local", 0, false, "Guest", QDate(2026, 11, 12), "d2d4 d7d5 c2c4", "", "", 300, 3 },
 		// Play from here (step 4): the first game again from move 3, vs level 2.
-		{ "computer", 2, true, "Robot", QDate(2026, 11, 14), "e2e4 e7e5 f1c4 b8c6 g1f3", "", "", 0, 0 },
+		{ "computer", 2, true, "Robot", QDate(2026, 11, 14), "e2e4 e7e5 f1c4 b8c6 g1f3", "", "", 0, 0, -1, true },
 		// LI-01A: Chess960 #3 (king f1, rook g1), both sides castled
 		{ "local", 0, true, "Bob", QDate(2026, 11, 16), "f1g1 f8g8 e2e4", "", "", 0, 0, 3 },
 	};
@@ -263,7 +264,7 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 		r.clockLimitSec = k.limitSec;
 		r.clockIncSec = k.incSec;
 		r.whiteMs = r.blackMs = k.limitSec * 1000;
-		if (&k == &kept[5]) { // the fork
+		if (k.fork) {
 			r.forkOfId = firstId;
 			r.forkPly = 4;
 		}
