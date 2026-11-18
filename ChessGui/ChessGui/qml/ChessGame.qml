@@ -181,8 +181,28 @@ ApplicationWindow {
     }
     function importProfile(file, replace) {
         var error = UserManager.importProfile(file, replace)
-        if (error !== "") root.notify(error, "critical")
-        else              root.notify("Profile imported", "success")
+        if (error !== "") {
+            root.notify(error, "critical")
+            return
+        }
+        // BL-20 step 3: what the import's check found, in the same message.
+        const check = UserManager.lastImport()
+        const notes = []
+        if (check.unrated)
+            notes.push("It comes from an older Chess++: its games are unrated, its rating starts at 1200"
+                       + (check.statsRebuilt ? " and its statistics count only its kept games." : "."))
+        else if (check.statsRebuilt)
+            notes.push("Its statistics couldn't be verified and were rebuilt from its kept games.")
+        if (check.ratingRestored)
+            notes.push("Its rating couldn't be verified and was restored from its games.")
+        if (check.setAside > 0)
+            notes.push((check.setAside === 1 ? "1 game couldn't be verified and was"
+                                             : check.setAside + " games couldn't be verified and were")
+                       + " set aside.")
+        if (notes.length === 0)
+            root.notify("Profile imported", "success")
+        else
+            root.notify("Profile imported. " + notes.join(" "), "caution", true)
     }
     function deleteProfile(userId) {
         var user = UserManager.users.find(u => u.id === userId)

@@ -317,8 +317,19 @@ std::optional<GameRecord> GameLibrary::readGameFile(const QString& path, QString
 	QFile file(path);
 	if (!file.open(QIODevice::ReadOnly))
 		return fail("can't be opened");
+	return readGameContent(file.readAll(), QFileInfo(path).completeBaseName(), why, resign);
+}
+
+std::optional<GameRecord> GameLibrary::readGameContent(const QByteArray& content, const QString& fileId,
+                                                       QString* why, bool* resign)
+{
+	auto fail = [why](const char* reason) -> std::optional<GameRecord> {
+		if (why)
+			*why = QString::fromLatin1(reason);
+		return std::nullopt;
+	};
 	QJsonParseError err;
-	const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+	const QJsonDocument doc = QJsonDocument::fromJson(content, &err);
 	if (err.error != QJsonParseError::NoError || !doc.isObject())
 		return fail("not JSON");
 	const QJsonObject json = doc.object().value(QStringLiteral("record")).toObject();
@@ -326,7 +337,7 @@ std::optional<GameRecord> GameLibrary::readGameFile(const QString& path, QString
 	if (json.isEmpty() || !GameSignature::verify(GameSignature::Kind::Game, canonical(json), sig))
 		return fail("its signature doesn't fit");
 	GameRecord record = GameRecord::fromJson(json);
-	if (record.id != QFileInfo(path).completeBaseName())
+	if (record.id != fileId)
 		return fail("another game's id"); // a game copied under another name
 	if (resign)
 		*resign = !GameSignature::isCurrent(sig);
@@ -423,17 +434,23 @@ QByteArray GameLibrary::ratingFileContent(const LocalRating& rating)
 	return QJsonDocument(root).toJson(QJsonDocument::Compact);
 }
 
-std::optional<LocalRating> GameLibrary::readRatingFile(const QString& path)
+// rating.json's content, checked: nullopt when it isn't JSON or its signature doesn't fit.
+static std::optional<LocalRating> verifiedRating(const QByteArray& content)
 {
-	QFile file(path);
-	if (!file.open(QIODevice::ReadOnly))
-		return std::nullopt;
-	const QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
+	const QJsonObject root = QJsonDocument::fromJson(content).object();
 	const QJsonObject json = root.value(QStringLiteral("rating")).toObject();
 	if (json.isEmpty()
 		|| !GameSignature::verify(GameSignature::Kind::Rating, canonical(json), root.value(QStringLiteral("sig")).toString()))
 		return std::nullopt;
 	return LocalRating::fromJson(json);
+}
+
+std::optional<LocalRating> GameLibrary::readRatingFile(const QString& path)
+{
+	QFile file(path);
+	if (!file.open(QIODevice::ReadOnly))
+		return std::nullopt;
+	return verifiedRating(file.readAll());
 }
 
 void GameLibrary::recoverRating(RatingState state)
@@ -504,8 +521,16 @@ GameLibrary::FileState GameLibrary::readLegacyFile(const QString& path, ProfileF
 	QFile file(path);
 	if (!file.open(QIODevice::ReadOnly))
 		return FileState::Unreadable;
+	return parseLegacy(file.readAll(), profileFile);
+}
+
+GameLibrary::FileState GameLibrary::parseLegacy(const QByteArray& content, ProfileFile& profileFile)
+{
+	auto& records = profileFile.records;
+	records.clear();
+	profileFile.rating = {};
 	QJsonParseError err;
-	const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+	const QJsonDocument doc = QJsonDocument::fromJson(content, &err);
 	if (err.error != QJsonParseError::NoError || !doc.isObject())
 		return FileState::Damaged;
 	profileFile.rating = LocalRating::fromJson(doc.object().value(QStringLiteral("rating")).toObject());
@@ -516,6 +541,60 @@ GameLibrary::FileState GameLibrary::readLegacyFile(const QString& path, ProfileF
 	}
 	std::stable_sort(records.begin(), records.end(), newerFirst);
 	return FileState::Read;
+}
+
+GameLibrary::ImportCheck GameLibrary::checkImport(QMap<QString, QByteArray>& files)
+{
+	ImportCheck check;
+	const QString games = QStringLiteral("games/");
+	const QString rejected = QStringLiteral("games/rejected/");
+	const QString legacyName = QStringLiteral("games.json");
+	const QString ratingName = QStringLiteral("rating.json");
+	QList<GameRecord> verified;
+	for (const QString& name : files.keys()) { // a copy: failing ones move
+		if (!name.startsWith(games) || name.startsWith(rejected))
+			continue;
+		QString why;
+		const QString fileName = name.mid(games.size());
+		if (const auto record = readGameContent(files.value(name), QFileInfo(fileName).completeBaseName(), &why)) {
+			verified.append(*record);
+			continue;
+		}
+		qWarning() << "GameLibrary: the imported" << name << "set aside:" << why;
+		files.insert(rejected + fileName, files.take(name));
+		++check.setAside;
+	}
+	if (files.contains(legacyName)) {
+		// An export from before BL-20: nothing in it was signed, so its games come in without their
+		// rating fields and no rating comes with it (§2.7). One that can't be read is written as it is:
+		// the profile keeps it aside as .damaged when it loads.
+		check.unrated = true;
+		files.remove(ratingName);
+		ProfileFile legacy;
+		if (parseLegacy(files.value(legacyName), legacy) != FileState::Read)
+			return check;
+		for (GameRecord r : legacy.records) {
+			r.rated = false;
+			r.ratingBefore = r.ratingChange = r.ratedGames = 0;
+			if (!isFileId(r.id))
+				r.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+			const QString name = games + r.id + QStringLiteral(".json");
+			if (!files.contains(name))
+				files.insert(name, gameFileContent(r));
+		}
+		files.remove(legacyName);
+		return check;
+	}
+	if (files.contains(ratingName)) {
+		if (!verifiedRating(files.value(ratingName))) {
+			qWarning() << "GameLibrary: the imported rating.json set aside: its signature doesn't fit";
+			files.insert(rejected + ratingName, files.take(ratingName));
+			if (const auto rating = ratingFromGames(verified))
+				files.insert(ratingName, ratingFileContent(*rating));
+			check.ratingRestored = true;
+		}
+	}
+	return check;
 }
 
 // A damaged file is kept aside, not overwritten or deleted: the owner may want to look at it.

@@ -614,6 +614,161 @@ namespace UserManagerTests
 			Assert::IsTrue(rating.has_value(), L"the rating verifies on the other PC");
 			Assert::AreEqual(1250, rating->value());
 			Assert::IsFalse(QFile::exists(GameLibrary::gamesDirOf(id) + "/notes.txt"), L"only game files");
+			const QVariantMap check = um.lastImport();
+			Assert::AreEqual(0, check["setAside"].toInt());
+			Assert::IsFalse(check["unrated"].toBool());
+			Assert::IsFalse(check["ratingRestored"].toBool());
+			Assert::IsFalse(check["statsRebuilt"].toBool(), L"the statistics verify too");
+		}
+
+		// BL-20 step 3: an export from before BL-20 (games.json, nothing signed) imports unrated: its games
+		// come in as signed files without their rating fields, no rating with them; its statistics, which
+		// can't be verified, are rebuilt from its games (Lichess and older rows lost).
+		TEST_METHOD(Import_AnOldExport_GamesComeInUnrated)
+		{
+			GameRecord won;
+			won.id = QStringLiteral("old-won");
+			won.kind = QStringLiteral("computer");
+			won.level = 3;
+			won.opponentName = QStringLiteral("Robot");
+			won.finished = true;
+			won.result = QStringLiteral("1-0");
+			won.resultRecorded = true;
+			won.startedAt = QDateTime(QDate(2026, 11, 10), QTime(18, 0));
+			won.finishedAt = won.startedAt.addSecs(300);
+			won.moves = { "e2e4", "e7e5" };
+			won.rated = true; won.ratingBefore = 1200; won.ratingChange = 27;
+			GameRecord left;
+			left.id = QStringLiteral("old-left");
+			left.kind = QStringLiteral("local");
+			left.opponentName = QStringLiteral("Guest");
+			left.startedAt = QDateTime(QDate(2026, 11, 11), QTime(18, 0));
+			left.moves = { "d2d4" };
+			const QByteArray gamesJson = QJsonDocument(QJsonObject{
+				{ "version", 1 },
+				{ "games", QJsonArray{ won.toJson(), left.toJson() } },
+				{ "rating", QJsonObject{ { "value", 2400 }, { "games", 40 } } },
+			}).toJson();
+			const QString file = _dir->path() + "/Old.chessprofile";
+			writeFile(file, QJsonDocument(QJsonObject{
+				{ "format", "chessplusplus-profile" },
+				{ "version", 1 },
+				{ "profile", QJsonObject{ { "id", "old" }, { "name", "Old" }, { "avatarName", "cat" },
+					{ "stats", QJsonObject{ { "byOpponent", QJsonObject{
+						{ "computer:3", QJsonObject{ { "name", "Robot" }, { "games", 9 }, { "wins", 9 }, { "draws", 0 }, { "losses", 0 } } },
+						{ "lichess",    QJsonObject{ { "name", "Lichess" }, { "games", 2 }, { "wins", 0 }, { "draws", 0 }, { "losses", 2 } } } } } } } } },
+				{ "files", QJsonObject{ { "games.json", QString::fromLatin1(gamesJson.toBase64()) } } },
+			}).toJson());
+
+			UserManager um;
+			Assert::AreEqual(QString(), um.importProfile(QUrl::fromLocalFile(file), false));
+			const QVariantMap check = um.lastImport();
+			Assert::IsTrue(check["unrated"].toBool());
+			Assert::IsTrue(check["statsRebuilt"].toBool());
+			const QString id = idOf(um, "Old");
+			Assert::IsFalse(QFile::exists(GameLibrary::legacyFilePathOf(id)), L"no games.json: a file per game");
+			Assert::IsFalse(QFile::exists(GameLibrary::ratingFilePathOf(id)), L"no rating");
+			const auto read = GameLibrary::readGameFile(GameLibrary::gameFilePathOf(id, "old-won"));
+			Assert::IsTrue(read.has_value(), L"signed");
+			Assert::IsFalse(read->rated, L"unrated");
+			Assert::AreEqual(0, read->ratingChange);
+			Assert::IsTrue(GameLibrary::readGameFile(GameLibrary::gameFilePathOf(id, "old-left")).has_value());
+			const auto stats = um.statsOf(id);
+			Assert::AreEqual(1, (int)stats.size(), L"only the robot: no Lichess");
+			Assert::AreEqual(1, stats.value(UserManager::computerKey(3)).wins, L"its kept game, not the 9 it said");
+
+			um.login(id);
+			GameLibrary library;
+			library.setUserManager(&um);
+			Assert::AreEqual(2, library.count());
+			Assert::AreEqual(LocalRating::Start, library.rating());
+			Assert::AreEqual(0, library.ratedGames());
+			Assert::IsFalse(library.ratingRestored(), L"nothing to restore: it starts at 1200");
+		}
+
+		// BL-20 step 3: an export edited by hand: the game that fails its check is set aside, the rating
+		// restored from the newest verified rated game, the statistics rebuilt from the games that verify.
+		TEST_METHOD(Import_AnEditedExport_FailingPartsSetAsideOrRestored)
+		{
+			const QString file = _dir->path() + "/export/Alice.chessprofile";
+			QDir().mkpath(_dir->path() + "/export");
+			auto rated = [](const QString& id, int daysAgo, int before, int change, int ratedGames) {
+				GameRecord r;
+				r.id = id;
+				r.kind = QStringLiteral("computer");
+				r.level = 3;
+				r.opponentName = QStringLiteral("Robot");
+				r.finished = true;
+				r.result = QStringLiteral("1-0");
+				r.resultRecorded = true;
+				r.startedAt = QDateTime::currentDateTime().addDays(-daysAgo);
+				r.finishedAt = r.startedAt.addSecs(300);
+				r.moves = { "e2e4", "e7e5" };
+				r.rated = true; r.ratingBefore = before; r.ratingChange = change; r.ratedGames = ratedGames;
+				return r;
+			};
+			{
+				UserManager um;
+				um.createUser("Alice", "girl");
+				const QString alice = um.activeUserId();
+				writeFile(GameLibrary::gameFilePathOf(alice, "first"), GameLibrary::gameFileContent(rated("first", 2, 1200, 27, 1)));
+				writeFile(GameLibrary::gameFilePathOf(alice, "second"), GameLibrary::gameFileContent(rated("second", 1, 1227, 25, 2)));
+				writeFile(GameLibrary::ratingFilePathOf(alice), GameLibrary::ratingFileContent(LocalRating(1252, 2)));
+				um.recordResult(alice, 1, UserManager::computerKey(3), "Robot");
+				um.recordResult(alice, 1, UserManager::computerKey(3), "Robot");
+				Assert::AreEqual(QString(), um.exportProfile(alice, QUrl::fromLocalFile(file)));
+			}
+			// The edits: the second game's result, the rating's value, the statistics' wins.
+			QJsonObject root = QJsonDocument::fromJson(readFile(file)).object();
+			QJsonObject files = root["files"].toObject();
+			auto editFile = [&files](const QString& name, const QByteArray& from, const QByteArray& to) {
+				QByteArray content = QByteArray::fromBase64(files[name].toString().toLatin1());
+				Assert::IsTrue(content.contains(from));
+				content.replace(from, to);
+				files[name] = QString::fromLatin1(content.toBase64());
+			};
+			editFile("games/second.json", "\"result\":\"1-0\"", "\"result\":\"0-1\"");
+			editFile("rating.json", "\"value\":1252", "\"value\":2400");
+			root["files"] = files;
+			QJsonObject profile = root["profile"].toObject();
+			QJsonObject stats = profile["stats"].toObject();
+			QJsonObject byOpponent = stats["byOpponent"].toObject();
+			QJsonObject robot = byOpponent["computer:3"].toObject();
+			robot["games"] = 50;
+			robot["wins"] = 50;
+			byOpponent["computer:3"] = robot;
+			stats["byOpponent"] = byOpponent;
+			profile["stats"] = stats;
+			root["profile"] = profile;
+			writeFile(file, QJsonDocument(root).toJson());
+
+			QTemporaryDir otherPc;
+			AppConfig::setAppDataDir(otherPc.path());
+			UserManager um;
+			Assert::AreEqual(QString(), um.importProfile(QUrl::fromLocalFile(file), false));
+			const QVariantMap check = um.lastImport();
+			Assert::AreEqual(1, check["setAside"].toInt());
+			Assert::IsTrue(check["ratingRestored"].toBool());
+			Assert::IsTrue(check["statsRebuilt"].toBool());
+			Assert::IsFalse(check["unrated"].toBool());
+			const QString id = idOf(um, "Alice");
+			Assert::IsFalse(QFile::exists(GameLibrary::gameFilePathOf(id, "second")));
+			Assert::IsTrue(QFile::exists(GameLibrary::rejectedDirOf(id) + "/second.json"), L"kept for a look");
+			Assert::IsTrue(QFile::exists(GameLibrary::rejectedDirOf(id) + "/rating.json"));
+			const auto rating = GameLibrary::readRatingFile(GameLibrary::ratingFilePathOf(id));
+			Assert::IsTrue(rating.has_value(), L"restored, signed");
+			Assert::IsTrue(*rating == LocalRating(1227, 1), L"after the first game: the second didn't verify");
+			const auto rebuilt = um.statsOf(id).value(UserManager::computerKey(3));
+			Assert::AreEqual(1, rebuilt.games, L"the game that verifies");
+			Assert::AreEqual(1, rebuilt.wins);
+
+			um.login(id);
+			GameLibrary library;
+			library.setUserManager(&um);
+			Assert::AreEqual(1, library.count());
+			Assert::AreEqual(0, library.setAsideCount(), L"set aside at the import, not again");
+			Assert::IsFalse(library.ratingRestored(), L"restored at the import");
+			Assert::AreEqual(1227, library.rating());
 		}
 
 		// An export naming a file outside the profile's games (a path in the name) writes nothing of it.
@@ -638,7 +793,9 @@ namespace UserManagerTests
 			Assert::IsFalse(QFile::exists(_dir->path() + "/users/escape.json"), L"not out of the profile's folder");
 			Assert::IsFalse(QFile::exists(GameLibrary::gamesDirOf(id) + "/sub/inner.json"));
 			Assert::IsFalse(QFile::exists(GameLibrary::gamesDirOf(id) + "/ok-2xjson"), L"\".json\", not any character");
-			Assert::IsTrue(QFile::exists(GameLibrary::gameFilePathOf(id, "ok-1")), L"a game file's name is written");
+			Assert::IsTrue(QFile::exists(GameLibrary::rejectedDirOf(id) + "/ok-1.json"),
+				L"a game file's name is taken; its content fails its check (step 3): set aside");
+			Assert::AreEqual(1, um.lastImport()["setAside"].toInt());
 		}
 
 		TEST_METHOD(Import_Conflict_AsNewProfile_GetsSuffix)

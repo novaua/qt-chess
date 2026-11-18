@@ -28,7 +28,7 @@
 - [ ] **BL-20 Games library: one signed file per game** [Medium] — plan: [`docs/BL-20-GameFilesPlan.md`](docs/BL-20-GameFilesPlan.md) (the owner, 2026-11-18: a game per file instead of one `games.json`, so a move writes only its game; every game signed (HMAC, one app-wide key) so an edited game is set aside, not loaded: a simple anti-cheat and an integrity check; the robot rating and the statistics signed too). The owner's answers (2026-11-18): recover the rating and statistics (not recompute); an old export imports unrated. Steps:
   - [x] 1 a signed file per game (`GameSignature`), set aside (`games/rejected/`, the message), migration from `games.json`, export / import of the files (branch `features/gameFiles_181126`)
   - [x] 2 the rating and the statistics signed, their recovery (branch `features/signedRating_181126`)
-  - [ ] 3 an old export imported unrated; the signed rating and statistics in an export
+  - [x] 3 an old export imported unrated; the signed rating and statistics in an export (branch `features/signedExport_191126`)
   - [ ] 4 docs and hand tests
 
 Manual checks, no code (do any time):

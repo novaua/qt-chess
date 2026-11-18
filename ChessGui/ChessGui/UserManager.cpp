@@ -222,6 +222,11 @@ QMap<QString, UserManager::Record> UserManager::statsOf(const QString& userId) c
     return u ? u->stats : QMap<QString, Record>{};
 }
 
+QVariantMap UserManager::lastImport() const
+{
+    return _lastImport;
+}
+
 QVariantList UserManager::takeRestoredStatistics()
 {
     return std::exchange(_restoredStatistics, {});
@@ -1018,9 +1023,9 @@ QString UserManager::readImport(const QUrl& file, User& user, QMap<QString, QByt
     const QString error = readExport(file, profile, files);
     if (!error.isEmpty())
         return error;
-    // Through the users.json reader, so an import gets the same defaults and migrations. Its statistics
-    // are taken as they are and signed here (BL-20 step 3 checks them).
-    const QList<User> read = usersFromJson(QJsonArray{ profile });
+    // Through the users.json reader, so an import gets the same defaults and migrations; its statistics
+    // checked (statsVerified: an export from before BL-20 has no signature).
+    const QList<User> read = usersFromJson(QJsonArray{ profile }, true);
     if (read.isEmpty())
         return QStringLiteral("The profile in this file is incomplete");
     user = read.first();
@@ -1079,8 +1084,24 @@ QString UserManager::importProfile(const QUrl& file, bool replace)
         imported.name = uniqueName(imported.name);
         _users.append(imported);
     }
+    // BL-20 step 3: the games and the rating checked before they are written (GameLibrary::checkImport).
+    const GameLibrary::ImportCheck check = GameLibrary::checkImport(files);
     for (auto it = files.cbegin(); it != files.cend(); ++it)
         writeFileAtomically(userDir(imported.id) + "/" + it.key(), it.value());
+    // Statistics that don't verify (edited, or an export from before BL-20): rebuilt from its games.
+    const bool statsRebuilt = !imported.statsVerified;
+    if (statsRebuilt) {
+        User* u = userById(imported.id);
+        u->stats = statisticsFromGames(imported.id);
+        u->statsVerified = true;
+        qWarning() << "UserManager: the imported statistics of" << imported.name << "failed their check; rebuilt from its games";
+    }
+    _lastImport = QVariantMap{
+        { QStringLiteral("setAside"),       check.setAside },
+        { QStringLiteral("unrated"),        check.unrated },
+        { QStringLiteral("ratingRestored"), check.ratingRestored },
+        { QStringLiteral("statsRebuilt"),   statsRebuilt },
+    };
     save();
     emit usersChanged();
     if (imported.id == _activeUserId) {

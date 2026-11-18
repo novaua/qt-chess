@@ -169,6 +169,11 @@ public slots:
     // Step 2: replace = overwrite the conflicting profile; otherwise add it with a new id (and
     // "Name (2)" when the name is taken). Returns "" or an error message.
     Q_INVOKABLE QString importProfile(const QUrl& file, bool replace);
+    // BL-20 step 3: what the last successful import checked: { setAside (games that failed their check,
+    // put in games/rejected/), unrated (an export from before BL-20: its games came in unrated, no
+    // rating), ratingRestored (its rating.json failed its check: restored from its games), statsRebuilt
+    // (its statistics didn't verify, or had no signature: rebuilt from its games) }.
+    Q_INVOKABLE QVariantMap lastImport() const;
 
     // The newest backup that parses replaces users.json (the damaged file is kept beside it).
     Q_INVOKABLE bool restoreFromBackup();
@@ -217,6 +222,7 @@ private:
     bool         _lichessNewUser = false; // the sign-in creates a profile
 
     QVariantList _restoredStatistics; // takeRestoredStatistics()
+    QVariantMap  _lastImport;         // lastImport()
 
     // Without the Lichess token and pending challenge; with the statistics' signature (statsSig).
     static QJsonObject userToJson(const User& u);
