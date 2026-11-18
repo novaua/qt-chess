@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "LichessClient.h"
 
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -110,7 +111,7 @@ QVariantMap LichessClient::parseRatings(const QJsonObject& account)
 {
     QVariantMap ratings;
     const QJsonObject perfs = account.value(QStringLiteral("perfs")).toObject();
-    for (const char* pool : { "bullet", "blitz", "rapid", "classical", "correspondence" }) {
+    for (const char* pool : { "bullet", "blitz", "rapid", "classical", "correspondence", "chess960" }) {
         const QJsonObject perf = perfs.value(QLatin1String(pool)).toObject();
         if (!perf.contains(QStringLiteral("rating")))
             continue;
@@ -121,6 +122,49 @@ QVariantMap LichessClient::parseRatings(const QJsonObject& account)
         });
     }
     return ratings;
+}
+
+// static
+bool LichessClient::playableVariant(const QString& variant)
+{
+    return variant == QLatin1String("standard") || variant == QLatin1String("chess960");
+}
+
+// static
+QString LichessClient::variantName(const QString& variant)
+{
+    static const QHash<QString, QString> names{
+        { QStringLiteral("standard"),      QStringLiteral("Standard") },
+        { QStringLiteral("chess960"),      QStringLiteral("Chess960") },
+        { QStringLiteral("crazyhouse"),    QStringLiteral("Crazyhouse") },
+        { QStringLiteral("antichess"),     QStringLiteral("Antichess") },
+        { QStringLiteral("atomic"),        QStringLiteral("Atomic") },
+        { QStringLiteral("horde"),         QStringLiteral("Horde") },
+        { QStringLiteral("kingOfTheHill"), QStringLiteral("King of the Hill") },
+        { QStringLiteral("racingKings"),   QStringLiteral("Racing Kings") },
+        { QStringLiteral("threeCheck"),    QStringLiteral("Three-check") },
+        { QStringLiteral("fromPosition"),  QStringLiteral("From position") },
+    };
+    const auto it = names.constFind(variant);
+    if (it != names.constEnd())
+        return *it;
+    return variant.isEmpty() ? QStringLiteral("Standard") : variant.left(1).toUpper() + variant.mid(1);
+}
+
+// static
+QString LichessClient::variantOf(const QJsonObject& gameFull)
+{
+    // "variant" is { "key": "chess960", ... }; a plain string is accepted too.
+    const QJsonValue value = gameFull.value(QStringLiteral("variant"));
+    const QString key = value.isObject() ? value.toObject().value(QStringLiteral("key")).toString() : value.toString();
+    return key.isEmpty() ? QStringLiteral("standard") : key;
+}
+
+// static
+QString LichessClient::startFenOf(const QJsonObject& gameFull)
+{
+    const QString fen = gameFull.value(QStringLiteral("initialFen")).toString();
+    return fen == QLatin1String("startpos") ? QString() : fen;
 }
 
 void LichessClient::setToken(const QString& decryptedToken)
@@ -256,10 +300,10 @@ QString LichessClient::timeLeftText(int seconds)
 
 // The Board API plays Rapid, Classical and Correspondence; Blitz only in a direct challenge (from
 // the website "friend", from the API "api"), bulk pairing ("api") or vs Lichess AI (Lichess API spec,
-// "Board → Restrictions"). Only the standard variant here (LI-01).
+// "Board → Restrictions"). The variants: those Chess++ plays (playableVariant).
 static bool playableHere(const QString& speed, const QString& source, const QString& variant)
 {
-    if (variant != QLatin1String("standard"))
+    if (!LichessClient::playableVariant(variant))
         return false;
     if (speed == QLatin1String("rapid") || speed == QLatin1String("classical") || speed == QLatin1String("correspondence"))
         return true;
@@ -285,12 +329,7 @@ QVariantList LichessClient::parseOngoingGames(const QJsonObject& playing)
         else if (opponentName.isEmpty())
             opponentName = QStringLiteral("Anonymous");
 
-        // "variant" is { "key": "standard", ... }; a plain string is accepted too.
-        const QJsonValue variantValue = game.value(QStringLiteral("variant"));
-        QString variant = variantValue.isObject() ? variantValue.toObject().value(QStringLiteral("key")).toString()
-                                                  : variantValue.toString();
-        if (variant.isEmpty())
-            variant = QStringLiteral("standard");
+        const QString variant = variantOf(game);
 
         const QJsonValue secondsValue = game.value(QStringLiteral("secondsLeft"));
         const int secondsLeft = secondsValue.isDouble() ? secondsValue.toInt() : -1; // none: no clock
@@ -386,13 +425,15 @@ void LichessClient::createOpenChallenge(int minutes, int increment, const QStrin
 }
 
 void LichessClient::createOpenChallengeSec(int limitSec, int incrementSec, int days,
-                                           const QString& color, const QString& variant)
+                                           const QString& color, const QString& variant, const QString& startFen)
 {
     QUrlQuery body;
     addTimeControl(body, limitSec, incrementSec, days);
     // No "color" here: /api/challenge/open has none (Lichess answers "color":"random" and picks a
     // finalColor). Our side is taken when we accept it below.
     body.addQueryItem(QStringLiteral("variant"), variant);
+    if (!startFen.isEmpty())
+        body.addQueryItem(QStringLiteral("fen"), startFen); // a Chess960 rematch: the same position (casual only)
 
     if (_openChallengeReply) {
         auto* previous = _openChallengeReply;
@@ -723,7 +764,7 @@ QVariantMap LichessClient::parseChallenge(const QJsonObject& challengeEvent)
     // challenge to us is a direct one ("friend"), so Blitz too.
     const QJsonObject compat = challengeEvent.value(QStringLiteral("compat")).toObject();
     const bool canPlayHere = compat.contains(QStringLiteral("board"))
-        ? compat.value(QStringLiteral("board")).toBool() && variant == QLatin1String("standard")
+        ? compat.value(QStringLiteral("board")).toBool() && playableVariant(variant)
         : playableHere(speed, QStringLiteral("friend"), variant);
 
     // As the bar and the Online page show them.
@@ -936,7 +977,8 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
             _sentMoves.clear();
             setRejoiningGameId({}); // a rejoin has its game
             setAcceptingId({});     // so has an accepted challenge (its row goes)
-            emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl, moves);
+            emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl, moves,
+                             variantOf(obj), startFenOf(obj));
             startClock(obj);
         }
 
@@ -1153,12 +1195,13 @@ void LichessClient::createRematch()
     const QString color = _lastGame.playedAsWhite ? QStringLiteral("black") : QStringLiteral("white");
     if (_lastGame.opponentId.isEmpty())
         createOpenChallengeSec(_lastGame.clockLimitSec, _lastGame.clockIncrementSec, _lastGame.days,
-                               color, _lastGame.variant);
+                               color, _lastGame.variant, _lastGame.startFen);
     else
         challengeUser(_lastGame, color);
 }
 
-void LichessClient::challengePlayer(const QString& username, int limitSec, int incrementSec, int days, const QString& color)
+void LichessClient::challengePlayer(const QString& username, int limitSec, int incrementSec, int days, const QString& color,
+                                    const QString& variant)
 {
     if (!isUsername(username)) { // it goes into the URL
         emit networkError(QStringLiteral("That isn't a Lichess username"));
@@ -1170,6 +1213,7 @@ void LichessClient::challengePlayer(const QString& username, int limitSec, int i
     game.clockLimitSec     = limitSec;
     game.clockIncrementSec = incrementSec;
     game.days              = days;
+    game.variant           = variant;
     challengeUser(game, color);
 }
 
@@ -1191,6 +1235,8 @@ void LichessClient::challengeUser(const RematchInfo& game, const QString& color)
     body.addQueryItem(QStringLiteral("rated"),   QStringLiteral("false"));
     body.addQueryItem(QStringLiteral("color"),   color);
     body.addQueryItem(QStringLiteral("variant"), game.variant);
+    if (!game.startFen.isEmpty())
+        body.addQueryItem(QStringLiteral("fen"), game.startFen); // a Chess960 rematch: the same position (casual only)
     // With keepAliveStream the challenge lives while this request is open, and the server ends it
     // with {"done":"accepted"|...}.
     _directKeepAlive = needsKeepAlive(game);
@@ -1422,10 +1468,9 @@ RematchInfo LichessClient::parseRematchInfo(const QJsonObject& gameFull, const Q
         info.days = gameFull.value(QStringLiteral("daysPerTurn")).toInt();
     }
 
-    const QString variant = gameFull.value(QStringLiteral("variant")).toObject()
-                                .value(QStringLiteral("key")).toString();
-    if (!variant.isEmpty())
-        info.variant = variant;
+    info.variant = variantOf(gameFull);
+    if (info.variant == QLatin1String("chess960"))
+        info.startFen = startFenOf(gameFull); // the owner's choice: a Chess960 rematch keeps the position (LI-01A)
 
     info.valid = true;
     return info;

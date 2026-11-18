@@ -4,6 +4,22 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-18 — LI-01A stage 2 step 1: Chess960 Lichess games (branch: features/chess960LichessGames_181126)
+
+### Done
+- **`LichessClient`**: `playableVariant` (standard, chess960) decides `canPlayHere` of the ongoing games and of the challenges (with `compat.board`); `variantOf` / `startFenOf` of a `gameFull`; `gameStarted` ends with `variant` and `startFen` (`""` for `startpos`); `variantName` (Lichess's names, `Q_INVOKABLE` static for step 2's QML); `challengePlayer(…, variant = "standard")`; `RematchInfo.startFen` (a Chess960 game's), sent as `fen` by the rematch (named or open challenge): the same position, the owner's choice; `parseRatings` reads `chess960`.
+- **`ChessConnector::onLichessGameStarted`**: standard (no start FEN) or Chess960 (`StartPosition::FromFen`) starts from that position (`startOnlineGame(…, start, …)`); any other variant, or a FEN that isn't a 960 start, is refused before it replaces the board's game: `gameStartFailed` ("it is Crazyhouse, and Chess++ plays standard chess and Chess960. Open it on lichess.org."), the stream stopped.
+- **ChessQtTests** +5 tests, 4 extended: the ongoing games' and challenges' variants, `variantName`, the ratings, `parseRematchInfo`'s start FEN, `gameStarted`'s variant and start FEN; `LichessChess960ChallengeTests`: the named challenge's variant, the 960 rematch's `fen` (named and open), none for standard.
+- CLAUDE.md, the plan (§3.4: `variantName` in C++, used by step 2's QML).
+
+### Checked
+- Debug: ChessQtTests 279/279; UI tests 11 files, 0 failed.
+
+### Next
+- Step 2 (`features/chess960LichessUi_…`): the Online page's Variant row, Lichess's variant names in the cards and rows, the Profile's Chess960 pool, `FakeLichessServer` variants, scenes, `tst_lichess960` (also the connector's start from a 960 `gameFull` and the refusal, untested in C++ until then).
+
+---
+
 ## 2026-11-18 — LI-01A stage 2 plan: Chess960 on Lichess (branch: docs/chess960LichessPlan_181126)
 
 ### Done

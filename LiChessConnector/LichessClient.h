@@ -20,6 +20,7 @@ struct RematchInfo
 	int     clockIncrementSec = 0;
 	int     days              = 0; // correspondence: days per move
 	QString variant           = QStringLiteral("standard");
+	QString startFen;            // a Chess960 game's start (gameFull's initialFen): its rematch keeps it (LI-01A); "" = none
 	bool    valid             = false;
 };
 
@@ -51,8 +52,16 @@ public:
 	Q_INVOKABLE void validateToken(const QString& token);
 	// GET /api/account with our token: emits accountFetched, or authExpired on a 401.
 	void refreshAccount();
-	// "perfs" of /api/account: { "blitz": { rating, games, prov }, ... } for the pools that have a rating.
+	// "perfs" of /api/account: { "blitz": { rating, games, prov }, ... } for the pools that have a rating
+	// (bullet, blitz, rapid, classical, correspondence, chess960).
 	static QVariantMap parseRatings(const QJsonObject& account);
+	// The variants Chess++ plays: standard and chess960 (LI-01A). The Board API itself takes any.
+	static bool playableVariant(const QString& variant);
+	// Lichess's name of a variant key: "chess960" → "Chess960", "kingOfTheHill" → "King of the Hill".
+	Q_INVOKABLE static QString variantName(const QString& variant);
+	// A gameFull's variant ("standard" when none) and its start position: initialFen, "" for "startpos".
+	static QString variantOf(const QJsonObject& gameFull);
+	static QString startFenOf(const QJsonObject& gameFull);
 	// color: our side, "white", "black" or "random". Lichess's open challenge has no colour of its
 	// own: we take our seat when we accept it (waitForGameStart), and the friend gets the other link.
 	// days > 0 (with minutes 0): a correspondence game with that many days per move.
@@ -60,8 +69,9 @@ public:
 	                                     int days = 0);
 	// A challenge to a named player: the only way to play Blitz from a Board API app (LI-02). Sent:
 	// directChallengeSent; refused by Lichess (no such player): networkError. limitSec 0 with days 0:
-	// unlimited. color: "white", "black" or "random".
-	Q_INVOKABLE void challengePlayer(const QString& username, int limitSec, int incrementSec, int days, const QString& color);
+	// unlimited. color: "white", "black" or "random". variant: "standard" or "chess960" (Lichess picks the position).
+	Q_INVOKABLE void challengePlayer(const QString& username, int limitSec, int incrementSec, int days, const QString& color,
+	                                 const QString& variant = QStringLiteral("standard"));
 	Q_INVOKABLE static bool isUsername(const QString& text); // could be one: 2 to 30 letters, digits, - or _
 	// Lichess drops a challenge with a clock after 20 s unless a request keeps it alive. The others
 	// stay there for two weeks: no need to wait for them.
@@ -181,8 +191,11 @@ signals:
 	void authExpired(); // Lichess answered 401 to a call made with our token
 	void challengeCreated(QString gameId, QString joinUrl);
 	// moves: the game's moves so far (UCI), e.g. of a game rejoined; empty for a new game. They are
-	// the start's, not sent again with opponentMoveReceived (BL-18).
-	void gameStarted(QString gameId, bool playingAsWhite, QString opponentName, QString opponentAvatarUrl, QStringList moves);
+	// the start's, not sent again with opponentMoveReceived (BL-18). variant: gameFull's ("standard",
+	// "chess960", …: any, the receiver refuses what it can't play); startFen: its initialFen, "" for the
+	// standard start (LI-01A).
+	void gameStarted(QString gameId, bool playingAsWhite, QString opponentName, QString opponentAvatarUrl, QStringList moves,
+	                 QString variant, QString startFen);
 	void opponentMoveReceived(QString uciMove); // the opponent's new move(s) after the start
 	// The game's moves changed other than by new moves: an accepted takeback (a shorter list), a
 	// move of ours that Lichess refused, or a list that disagrees with ours. All the moves, as Lichess has them.
@@ -224,7 +237,7 @@ private:
 	void checkAuthExpired(QNetworkReply* reply, bool unauthorized);
 	void postGameAction(const QString& path);
 	void createOpenChallengeSec(int limitSec, int incrementSec, int days,
-	                            const QString& color, const QString& variant);
+	                            const QString& color, const QString& variant, const QString& startFen = {});
 	void challengeUser(const RematchInfo& game, const QString& color);
 	void handleDirectChallengeLine(const QByteArray& line);
 	void stopDirectChallenge();

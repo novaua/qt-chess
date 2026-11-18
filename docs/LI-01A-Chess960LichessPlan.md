@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-18 |
-| **Status** | Plan |
+| **Status** | Step 1 (the C++ side) on `features/chess960LichessGames_181126` |
 | **Branch** | `docs/chess960LichessPlan_181126` (plan); each step on its own branch from `develop` |
 | **Task** | LI-01A in `TASKS.md`, stage 2 ([`LI-01A-Chess960Plan.md`](LI-01A-Chess960Plan.md) §6) |
 | **Rules** | <https://lichess.org/variant/chess960> |
@@ -98,9 +98,10 @@ Crazyhouse).
 
 ### 3.4 Words
 
-- `lichess.js`: `variantName(key)` gives Lichess's names (`chess960` → "Chess960", `kingOfTheHill` → "King of
-  the Hill", `threeCheck` → "Three-check", `racingKings` → "Racing Kings", `fromPosition` → "From position", else
-  the key with its first letter capitalised). It is used by `gameDetails` (the ongoing cards) and
+- `LichessClient.variantName(key)` (a static `Q_INVOKABLE`, done in step 1 for the refusal's message) gives
+  Lichess's names (`chess960` → "Chess960", `kingOfTheHill` → "King of the Hill", `threeCheck` → "Three-check",
+  `racingKings` → "Racing Kings", `fromPosition` → "From position", else the key with its first letter
+  capitalised). Step 2 uses it in `lichess.js` `gameDetails` (the ongoing cards) and
   `OnlinePage._challengeDetails` (the challenge rows and the bar), which show the raw key now.
 - `ProfilePage._ratingPools` + `{ key: "chess960", name: "Chess960" }`; `parseRatings` reads `chess960`.
 
