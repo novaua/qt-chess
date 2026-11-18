@@ -3,7 +3,7 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-17 |
-| **Status** | Stage 1: step 1 (the rules) merged (#175); step 2 (the engine) merged (#176); step 3 (the library, the connector, castling input, `tst_chess960`) merged (#177); step 4 (the UI) merged (#178); step 5 (docs, [`LI-01A-ManualTests.md`](LI-01A-ManualTests.md)) merged (#179); the hand tests all passed (2026-11-18): stage 1 done. Stage 2 (Lichess) needs its plan |
+| **Status** | Stage 1: step 1 (the rules) merged (#175); step 2 (the engine) merged (#176); step 3 (the library, the connector, castling input, `tst_chess960`) merged (#177); step 4 (the UI) merged (#178); step 5 (docs, [`LI-01A-ManualTests.md`](LI-01A-ManualTests.md)) merged (#179); the hand tests all passed (2026-11-18): stage 1 done. Stage 2 (Lichess): [`LI-01A-Chess960LichessPlan.md`](LI-01A-Chess960LichessPlan.md) |
 | **Branch** | each step on its own branch from `develop` |
 | **Task** | LI-01A in `TASKS.md` (LI-01 split by the owner, 2026-11-17: A Chess960, B Crazyhouse) |
 | **Rules** | <https://lichess.org/variant/chess960> |
@@ -200,7 +200,9 @@ Each step is one branch and one PR from the latest `origin/develop`.
 and Continue; replay; Analyse; Export PGN, then paste it into lichess.org's analysis board to confirm the moves
 and the castlings read the same.
 
-## 6. Stage 2: Chess960 on Lichess (a later plan)
+## 6. Stage 2: Chess960 on Lichess
+
+Planned in [`LI-01A-Chess960LichessPlan.md`](LI-01A-Chess960LichessPlan.md) (2026-11-18). The outline:
 
 The rules work of stage 1 is all Lichess needs. What stays:
 - start a Lichess game from `gameFull.initialFen` (`StartPosition::FromFen`); the stream's castling moves already
