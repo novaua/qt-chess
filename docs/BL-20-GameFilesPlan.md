@@ -47,7 +47,7 @@ as a last resort rebuilt from the kept games (Lichess and older counts lost then
 ### 3.1 The files
 
 ```
-users/<id>/games/<gameId>.json      {"record": {…GameRecord…}, "sig": "<64 hex>"}
+users/<id>/games/<gameId>.json      {"record": {…GameRecord…}, "sig": "1:<64 hex>"}
 users/<id>/games/rejected/…         set aside: failed the check, or unreadable
 users/<id>/rating.json              {"rating": {"value": 1227, "games": 2}, "sig": "…"}
 ```
@@ -69,6 +69,11 @@ A small class in ChessGui (`gamesignature.h/cpp`, C++ style as CLAUDE.md asks):
 - A domain prefix per kind (`"game\n"`, `"rating\n"`, `"stats\n"`) so one kind's signature never fits another's.
 - The key: 32 bytes in the source, not as one plain string (put together at run time): it keeps a `strings`
   search from finding it, nothing more (§2.5).
+- **The key never changes, and each signature names its key**: `"<key number>:<hex>"`, key 1 to begin with. A
+  new key, if one is ever needed, is added beside the old ones: a file signed with any known key verifies, and
+  is signed again with the newest key when it is next written. A file signed with a key number this copy
+  doesn't know (made by a newer Chess++) is set aside like a failing one, and the message says to update.
+  Changing key 1 itself would set aside every kept game after an update: never done.
 
 ### 3.3 Loading and writing games
 
@@ -111,6 +116,18 @@ A small class in ChessGui (`gamesignature.h/cpp`, C++ style as CLAUDE.md asks):
   alternative: games from an old export come in unrated (rating fields dropped, the rating restarted). The
   plan's default: trust it, as the migration does.
 
+### 3.7 Moving a profile: reinstall, another PC, another Windows account
+
+The signatures don't tie a game to a PC, a Windows account or an installation (§2.5: one app-wide key), so:
+- **A reinstall** keeps every game valid. Uninstalling asks whether to delete the user data (the default is
+  Yes; a silent uninstall keeps it unless `/DELETEDATA=1`); data that is kept is read as before.
+- **Export / import** (`.chessprofile`, §3.6) is the supported way to another PC: games, rating and statistics
+  verify there. The Lichess sign-in is never exported: the player links Lichess again.
+- **A copied data folder** (`%LOCALAPPDATA%\ChessPlusPlus_Inc` to the same place on the new PC, or to another
+  Windows account) verifies too. Its Lichess sign-in is encrypted for the old Windows account
+  (`CryptProtectData`) and can't be read there: the profile shows "reconnect" (a bug fix outside BL-20,
+  `bugs/lichessTokenUndecryptable_181126`: before it, the profile said Connected and nothing worked).
+
 ## 4. Steps
 
 Each step is one branch and one PR from the latest `origin/develop`.
@@ -126,7 +143,9 @@ Each step is one branch and one PR from the latest `origin/develop`.
 
 **ChessQtTests:**
 - `GameSignatureTest` (new): sign / verify; a changed byte fails; another domain's signature fails; the
-  canonical JSON round trip (a record with an analysis, Chess960, a fork) gives the same bytes.
+  canonical JSON round trip (a record with an analysis, Chess960, a fork) gives the same bytes; a signature with
+  an older key number verifies (a test-only second key) and is re-signed with the newest on write; an unknown
+  key number fails.
 - `GameLibraryTest`: a file per game, only the changed one written; an edited result, moves or rating field →
   set aside, the others load; a file renamed to another id → set aside; unreadable JSON → set aside; the
   migration from a `games.json` (rating, `ratedGames`, `.migrated` kept); "Games kept" deletes files; profile
@@ -138,7 +157,9 @@ Each step is one branch and one PR from the latest `origin/develop`.
 **UI** (`tst_games`): the "set aside" message after a test edits a file on disk between two runs
 (`// ui-test-runs: 2`).
 
-**By hand** (step 4): the edits a player might try, in a text editor; an old profile updated in place.
+**By hand** (step 4): the edits a player might try, in a text editor; an old profile updated in place; the
+data folder copied to another Windows account (games verify, Lichess asks to reconnect); a reinstall that
+keeps the data.
 
 ## 6. Risks
 
@@ -151,3 +172,5 @@ Each step is one branch and one PR from the latest `origin/develop`.
 - **A crash between writes**: each file is written whole (`QSaveFile`); the rating file and its game are two
   writes. The rating's recovery (§3.4) covers a rating file older than its newest rated game.
 - **The key in the program**: by design (§2.5), a deterrent, not security.
+- **Losing the key**: a change to key 1 would set aside every game; the key number (§3.2) lets a new key come
+  in without that, and a test pins key 1's signature of a fixed record so an accidental change fails at once.
