@@ -16,6 +16,18 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-18 — BL-20 plan: one signed file per game (branch: docs/gameFilesPlan_181126)
+
+### Done
+- **`docs/BL-20-GameFilesPlan.md`**: the owner's request (a game per file; every game signed against editing, also an integrity check) and choices: a failing game set aside (`games/rejected/`), the rating and statistics signed too, one app-wide HMAC key. Design: `GameSignature` (HMAC-SHA256 over the record's canonical JSON, a domain per kind), `users/<id>/games/<gameId>.json`, `rating.json`, the statistics' `statsSig`, migration from `games.json` (trusted once), export / import of the signed files; 4 steps; tests; risks.
+- Found while planning: the rating and the statistics can't be recomputed from the kept games (trimmed games, Lichess games, the "earlier" row); the plan recovers them instead (the newest verified rated game; the newest verifying backup of `users.json`). For the owner to confirm, with the old-export question (§3.6).
+- `TASKS.md`: BL-20.
+
+### Next
+- The owner's answers to the plan's two open questions; then step 1.
+
+---
+
 ## 2026-11-18 — LI-01A code review fixes (branch: bugs/li01aReviewFixes_181126)
 
 A `/code-review medium` of all LI-01A code: 4 bugs, 5 cleanups, all fixed.
