@@ -4,6 +4,7 @@
 | :---- | :---- |
 | **Date** | 2026-11-18 |
 | **Build** | `develop` with #175–#178 (Release) |
+| **Run** | 2026-11-18 by the owner: all 8 scenarios passed |
 | **Plan** | [`LI-01A-Chess960Plan.md`](LI-01A-Chess960Plan.md) (§5: "By hand") |
 | **Rules** | <https://lichess.org/variant/chess960> |
 
@@ -55,7 +56,7 @@ castling and a premoved castling against FakeUci (`tst_chess960`, 11 tests); eve
    king or that rook has moved (moving away and back counts).
    - **Expected**: no dot on the rook; a click on the rook just selects it.
 
-Result: (N =)
+Result: **OK** (2026-11-18; O-O and O-O-O both castled)
 
 ## 2. The robot at level 1 and level 5 (Stockfish)
 
@@ -74,7 +75,7 @@ setting: the two paths ask the engine differently.
    - **Expected**: the rook's square is marked as a premove; after the robot's move you castle at once (if it is
      still legal; else the premove just goes).
 
-Result:
+Result: **OK** (2026-11-18)
 
 ## 3. Takeback, leaving and Continue
 
@@ -88,7 +89,7 @@ Result:
    - **Expected**: the same position and title "… · Chess960 #N"; the robot (same level) goes on; castling
      rights are as they were (a side that castled or moved its king can't castle again).
 
-Result:
+Result: **OK** (2026-11-18)
 
 ## 4. Rematch and New game
 
@@ -100,7 +101,7 @@ Result:
    - **Expected**: Chess960 is still chosen (the last choice), also after a restart of the app. Choose Standard
      and start: a normal game, no "Chess960" in the title.
 
-Result:
+Result: **OK** (2026-11-18)
 
 ## 5. Not rated
 
@@ -110,7 +111,7 @@ Result:
 2. Finish a standard robot game.
    - **Expected**: that one is rated as before.
 
-Result:
+Result: **OK** (2026-11-18)
 
 ## 6. Replay, Play from here, Analyse
 
@@ -124,7 +125,7 @@ Result:
    - **Expected**: the analysis runs to the end (no error, no stop). The marks and accuracy look plausible; on a
      judged move where the best move is a castling, the green arrow goes from the king to its rook.
 
-Result:
+Result: **OK** (2026-11-18)
 
 ## 7. The PGN on lichess.org
 
@@ -135,7 +136,7 @@ Result:
    - **Expected**: lichess.org takes it as Chess960 with the same start position; every move is read (none cut
      off), the castlings land where they did in the app, and the final position is the same.
 
-Result:
+Result: **OK** (2026-11-18; lichess.org imports the PGN)
 
 ## 8. The engine setting "Send the game to the engine as"
 
@@ -145,7 +146,7 @@ Result:
      every move, whatever this setting says.)
 2. Set it back to **Position (FEN)**.
 
-Result:
+Result: **OK** (2026-11-18)
 
 ## Clean up
 
