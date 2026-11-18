@@ -62,6 +62,8 @@ Item {
                 findItem(pages.currentItem, "challengeOpponent").text = "Friend"
                 findItem(pages.currentItem, "challengeClock").select(3)   // 5+3
             }
+            if (name === "online-960")   // LI-01A stage 2: the Variant row's Chess960, its line and the Chess960 rating
+                findItem(pages.currentItem, "variantChoice").checkedIndex = 1
             if (name === "online-challenges-decline")   // the first challenge's reasons
                 Qt.callLater(() => findItem(pages.currentItem, "declineButton").clicked())
             if (name === "online-challenge") {   // sent to Friend: no link, Lichess isn't asked

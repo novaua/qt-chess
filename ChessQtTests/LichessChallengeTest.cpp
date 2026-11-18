@@ -89,6 +89,8 @@ namespace LichessTests
 			auto canPlay = [](const QByteArray& event) { return LichessClient::parseChallenge(json(event)).value("canPlayHere").toBool(); };
 			Assert::IsFalse(canPlay(challengeEvent("c3", "in", "", R"("compat":{"bot":false,"board":false},)")), L"e.g. Bullet");
 			Assert::IsTrue(canPlay(R"({"type":"challenge","compat":{"board":true},"challenge":{"id":"c4","variant":{"key":"chess960"},"speed":"rapid"}})"));
+			Assert::AreEqual(QString("Chess960"), LichessClient::parseChallenge(json(
+				R"({"type":"challenge","challenge":{"id":"c4","variant":{"key":"chess960"}}})")).value("variantName").toString());
 			Assert::IsFalse(canPlay(R"({"type":"challenge","compat":{"board":true},"challenge":{"id":"c9","variant":{"key":"crazyhouse"},"speed":"rapid"}})"));
 			Assert::IsFalse(canPlay(R"({"type":"challenge","challenge":{"id":"c10","variant":{"key":"atomic"},"speed":"rapid"}})"));
 			Assert::IsTrue(canPlay(R"({"type":"challenge","challenge":{"id":"c5","speed":"blitz"}})"));

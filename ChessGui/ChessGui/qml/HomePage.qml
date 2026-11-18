@@ -195,6 +195,7 @@ Page {
                     onClicked: page.twoPlayerGameRequested()
                 }
                 HomeCard {
+                    objectName: "onlineCard"
                     text: "Play online"
                     // BL-10: the challenges waiting for an answer are on the Online page.
                     description: UserManager.lichessConnected

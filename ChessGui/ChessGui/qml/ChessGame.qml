@@ -49,7 +49,8 @@ ApplicationWindow {
 
     function challengeText(c) {
         let text = c.challengerText + (c.rematchOf !== "" ? " offers a rematch" : " challenges you")
-                 + " · " + c.timeControlText + " · " + (c.rated ? "Rated" : "Casual") + " · " + c.sideText
+                 + " · " + c.timeControlText + (c.variant !== "standard" ? " · " + c.variantName : "")
+                 + " · " + (c.rated ? "Rated" : "Casual") + " · " + c.sideText
         if (!c.canPlayHere)
             text += " · Can't be played in this app"
         else if (!ChessConnector.CanAcceptChallenge)

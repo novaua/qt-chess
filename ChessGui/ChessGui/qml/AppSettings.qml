@@ -25,6 +25,7 @@ Settings {
     property int  clockLimitSec:      0     // the last new game's time control; 0 and 0: no clock
     property int  clockIncSec:        0
     property bool chess960:           false // the last new game's variant: Chess960 (LI-01A), else standard
+    property bool onlineChess960:     false // the Online page's last challenge: Chess960 (LI-01A stage 2), apart from the local games'
 
     // Computer
     property int  analysisDepth:      14    // the engine's search depth per position of an analysis (ChessConnector.AnalysisDepth, BL-19)

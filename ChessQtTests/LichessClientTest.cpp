@@ -357,6 +357,7 @@ namespace LichessTests
 			Assert::AreEqual(5, (int)games.size());
 			Assert::IsTrue(games[0].toMap().value("canPlayHere").toBool());
 			Assert::IsTrue(games[1].toMap().value("canPlayHere").toBool(), L"a plain string too");
+			Assert::AreEqual(QString("Chess960"), games[1].toMap().value("variantName").toString(), L"Lichess's name, for the cards");
 			Assert::IsFalse(games[2].toMap().value("canPlayHere").toBool());
 			Assert::IsFalse(games[3].toMap().value("canPlayHere").toBool(), L"no general FEN start");
 			Assert::IsTrue(games[4].toMap().value("canPlayHere").toBool(), L"no variant: standard");

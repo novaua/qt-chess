@@ -38,12 +38,16 @@ public:
 
 	// A challenge to the player (10+5, casual, rapid): on the event stream now, and again each time it
 	// opens, until it is accepted or declined. challengerColor: the challenger's side, "white",
-	// "black" or "random" (then the player gets White).
-	Q_INVOKABLE void challenge(const QString& id, const QString& challenger, int rating, const QString& challengerColor);
+	// "black" or "random" (then the player gets White). variant: Lichess's key ("chess960",
+	// "crazyhouse"); startFen: a Chess960 game's start (its game's initialFen; LI-01A stage 2).
+	Q_INVOKABLE void challenge(const QString& id, const QString& challenger, int rating, const QString& challengerColor,
+	                           const QString& variant = QStringLiteral("standard"), const QString& startFen = {});
 	// An unfinished game of the player's, already under way: in /api/account/playing, and its stream
 	// starts with these moves (UCI, "e2e4 e7e5"). fen: its position, for the Continue card's picture.
+	// variant, startFen: as for challenge().
 	Q_INVOKABLE void addOngoingGame(const QString& id, const QString& opponent, const QString& playerColor,
-	                                const QString& moves, const QString& fen);
+	                                const QString& moves, const QString& fen,
+	                                const QString& variant = QStringLiteral("standard"), const QString& startFen = {});
 	// The opponent: a move, a draw offer, or the game's end (status "resign", "mate", "draw", …;
 	// winner "white", "black" or "").
 	Q_INVOKABLE void play(const QString& gameId, const QString& uciMove);
@@ -73,6 +77,8 @@ private:
 		QString winner;
 		bool wdraw = false, bdraw = false;
 		QString fen;
+		QString variant = QStringLiteral("standard");
+		QString initialFen = QStringLiteral("startpos");
 		QList<QPointer<QTcpSocket>> streams;
 	};
 
