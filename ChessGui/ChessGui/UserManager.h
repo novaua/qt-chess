@@ -78,6 +78,10 @@ public:
     static QString userKey(const QString& userId) { return QStringLiteral("user:") + userId; }
 
     static constexpr int kBackupCount = 3;
+    // users.json: 2 statistics per opponent; 3 each profile's statistics signed (statsSig, BL-20). A file
+    // before 3 is trusted once (its statistics signed at the next save); from 3 on, statistics that fail
+    // their check are restored (restoredStatistics).
+    static constexpr int kUsersVersion = 3;
     static constexpr int kExportVersion = 2; // 2: the games one signed file each (BL-20); 1: games.json
 
     explicit UserManager(QObject* parent = nullptr);
@@ -113,6 +117,11 @@ public:
     // outcome: 1 the user won, 0 draw, -1 lost.
     void recordResult(const QString& userId, int outcome, const QString& opponentKey, const QString& opponentName);
     QMap<QString, Record> statsOf(const QString& userId) const;
+    // BL-20: the profiles whose statistics failed their check when users.json (or a backup) was loaded,
+    // since the last call: [{ name, rebuilt }]: restored from the newest backup whose statistics verify,
+    // or (rebuilt) from the kept games when none does (Lichess and older games aren't in them). The
+    // window says so (statisticsRestored, and once it is up for the load at start).
+    Q_INVOKABLE QVariantList takeRestoredStatistics();
     QString nameOf(const QString& userId) const;
     QString avatarOf(const QString& userId) const; // "" when there is no such profile
 
@@ -179,6 +188,7 @@ signals:
     void lichessLinkFailed(QString error);
     void pendingChallengeChanged();
     void backupsChanged();
+    void statisticsRestored(); // takeRestoredStatistics() has some
 
 private:
     struct User {
@@ -186,6 +196,7 @@ private:
         QString      name;
         QString      avatarName;
         QMap<QString, Record> stats;
+        bool         statsVerified = true; // as read: statsSig fits (or a users.json from before it)
         QDate        createdDate;
         QDate        lastPlayed;
         GameSaveInfo autoSave;
@@ -205,10 +216,21 @@ private:
     LichessAuth* _lichessAuth = nullptr;
     bool         _lichessNewUser = false; // the sign-in creates a profile
 
-    static QJsonObject userToJson(const User& u); // without the Lichess token and pending challenge
-    static QList<User> usersFromJson(const QJsonArray& array);
+    QVariantList _restoredStatistics; // takeRestoredStatistics()
+
+    // Without the Lichess token and pending challenge; with the statistics' signature (statsSig).
+    static QJsonObject userToJson(const User& u);
+    // signedStats: the file is of a version that signs statistics, so each user's are checked
+    // (statsVerified); else they are trusted.
+    static QList<User> usersFromJson(const QJsonArray& array, bool signedStats = false);
     void load();
-    bool loadFrom(const QByteArray& json);
+    // false: not a users file. Statistics that fail their check are restored (recoverStatistics); true
+    // in *restored then, and users.json is to be written.
+    bool loadFrom(const QByteArray& json, bool* restored = nullptr);
+    // BL-20 §3.4: the newest backup whose statistics for this profile verify; else rebuilt from the kept
+    // games of every profile (vs the robot by level, Guest, the other profiles), Lichess and older lost.
+    void recoverStatistics(User& u);
+    QMap<QString, Record> statisticsFromGames(const QString& userId) const;
     void save();
     void rotateBackups(const QByteArray& json);
     void emitAllChanged(); // after a restore: every property may have changed

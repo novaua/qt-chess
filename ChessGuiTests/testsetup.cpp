@@ -99,6 +99,14 @@ QString TestSetup::addDamagedGame()
 	return _services->gameLibrary()->put(r);
 }
 
+void TestSetup::editRatingFile()
+{
+	QFile file(GameLibrary::ratingFilePathOf(_services->gameLibrary()->userId()));
+	if (!file.open(QIODevice::WriteOnly))
+		qCritical() << "TestSetup: can't write" << file.fileName();
+	file.write(R"({"version":1,"rating":{"games":50,"value":2400},"sig":"1:00"})");
+}
+
 QString TestSetup::addEditedGame()
 {
 	GameLibrary* library = _services->gameLibrary();

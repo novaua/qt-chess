@@ -51,6 +51,9 @@ public:
 	// BL-20: a finished two-player game whose file is then edited on disk (its result turned round), as a
 	// player might: the next start sets it aside. Its id.
 	Q_INVOKABLE QString addEditedGame();
+	// BL-20 step 2: the active profile's rating.json written by hand (2400 after 50 games, a made-up
+	// signature): the next start restores the rating (no rated game kept: it starts again).
+	Q_INVOKABLE void editRatingFile();
 	// A file in the test's data folder, as a URL (e.g. for Export PGN), and a text file's contents.
 	Q_INVOKABLE QUrl fileUrl(const QString& name) const;
 	Q_INVOKABLE QString readTextFile(const QUrl& file) const;

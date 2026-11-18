@@ -44,6 +44,49 @@ namespace UserManagerTests
 		return QDir(dir).entryList({ "users.damaged-*.json" }, QDir::Files);
 	}
 
+	// users.json with a profile's statistics edited by hand, its signature kept: a win vs the robot added.
+	static void addAWinByHand(const QString& userId)
+	{
+		QJsonObject root = QJsonDocument::fromJson(readFile(UserManager::usersFilePath())).object();
+		QJsonArray users = root["users"].toArray();
+		for (int i = 0; i < users.size(); ++i) {
+			QJsonObject u = users[i].toObject();
+			if (u["id"].toString() != userId)
+				continue;
+			QJsonObject stats = u["stats"].toObject();
+			QJsonObject byOpponent = stats["byOpponent"].toObject();
+			QJsonObject robot = byOpponent[UserManager::computerKey(8)].toObject();
+			robot["name"] = "Robot";
+			robot["games"] = robot["games"].toInt() + 1;
+			robot["wins"] = robot["wins"].toInt() + 1;
+			byOpponent[UserManager::computerKey(8)] = robot;
+			stats["byOpponent"] = byOpponent;
+			u["stats"] = stats;
+			users[i] = u;
+		}
+		root["users"] = users;
+		writeFile(UserManager::usersFilePath(), QJsonDocument(root).toJson());
+	}
+
+	// A finished game kept by a profile (a signed file of its own).
+	static void keepGame(const QString& userId, const QString& id, const QString& kind, const QString& result,
+		const QString& opponentUserId = {}, const QString& opponentName = {}, bool resultRecorded = true)
+	{
+		GameRecord r;
+		r.id = id;
+		r.kind = kind;
+		r.finished = true;
+		r.startedAt = QDateTime::currentDateTime();
+		r.finishedAt = r.startedAt.addSecs(60);
+		r.result = result;
+		r.level = kind == QLatin1String("computer") ? 3 : 0;
+		r.opponentUserId = opponentUserId;
+		r.opponentName = !opponentName.isEmpty() ? opponentName : kind == QLatin1String("computer") ? QString("Robot") : QString("Guest");
+		r.resultRecorded = resultRecorded;
+		r.moves = { "e2e4", "e7e5" };
+		writeFile(GameLibrary::gameFilePathOf(userId, id), GameLibrary::gameFileContent(r));
+	}
+
 	TEST_CLASS(UserManagerTest)
 	{
 		std::unique_ptr<QTemporaryDir> _dir;
@@ -133,6 +176,101 @@ namespace UserManagerTests
 			Assert::AreEqual(2, robot.losses);
 			Assert::AreEqual(2, stats.value("earlier").games, L"two-player games without a result");
 			Assert::AreEqual(7, um.gamesPlayed());
+		}
+
+		// ── The statistics signed (BL-20 step 2) ──
+
+		// users.json (version 3) signs each profile's statistics. Edited by hand, they fail their check: the
+		// newest backup whose statistics for that profile verify gives them back, said once, written signed.
+		TEST_METHOD(Statistics_Edited_RestoredFromTheNewestBackupThatVerifies)
+		{
+			QString alice;
+			{
+				UserManager um;
+				um.createUser("Alice", "girl");
+				alice = um.activeUserId();
+				um.recordResult(alice, 1, UserManager::computerKey(3), "Robot");
+			}
+			{
+				UserManager um; // the start copies users.json (one game) to backups/users-1.json
+				um.recordResult(alice, -1, UserManager::computerKey(3), "Robot");
+			}
+			const QJsonObject root = QJsonDocument::fromJson(readFile(UserManager::usersFilePath())).object();
+			Assert::AreEqual(UserManager::kUsersVersion, root["version"].toInt());
+			Assert::IsTrue(root["users"].toArray()[0].toObject()["statsSig"].toString().startsWith("1:"), L"signed");
+
+			addAWinByHand(alice);
+			{
+				UserManager um;
+				const QVariantList restored = um.takeRestoredStatistics();
+				Assert::AreEqual(1, (int)restored.size());
+				Assert::AreEqual(QString("Alice"), restored[0].toMap()["name"].toString());
+				Assert::IsFalse(restored[0].toMap()["rebuilt"].toBool(), L"from a backup");
+				const auto stats = um.statsOf(alice);
+				Assert::IsFalse(stats.contains(UserManager::computerKey(8)), L"the edit is gone");
+				Assert::AreEqual(1, stats.value(UserManager::computerKey(3)).games, L"the backup's: the game after it is lost");
+				Assert::AreEqual(1, stats.value(UserManager::computerKey(3)).wins);
+				Assert::IsTrue(um.takeRestoredStatistics().isEmpty(), L"taken");
+			}
+			UserManager um;
+			Assert::IsTrue(um.takeRestoredStatistics().isEmpty(), L"written signed again");
+			Assert::AreEqual(1, um.gamesPlayed());
+		}
+
+		// No backup verifies: the statistics are rebuilt from the kept games that verify, the profile's own
+		// and the two-player games another profile kept against it; Lichess and the edit are gone.
+		TEST_METHOD(Statistics_NoBackupVerifies_RebuiltFromTheKeptGames)
+		{
+			QString alice, bob;
+			{
+				UserManager um;
+				um.createUser("Bob", "fox");
+				bob = um.activeUserId();
+				um.createUser("Alice", "girl");
+				alice = um.activeUserId();
+				um.recordResult(alice, 1, "lichess", "Lichess");
+			}
+			keepGame(alice, "robot-win", "computer", "1-0");
+			keepGame(alice, "guest-draw", "local", "1/2-1/2");
+			keepGame(alice, "bob-loss", "local", "0-1", bob, "Bob");
+			keepGame(alice, "not-counted", "computer", "1-0", {}, {}, false);
+			addAWinByHand(alice);
+			addAWinByHand(bob);
+			QDir(QFileInfo(UserManager::backupFilePath(1)).absolutePath()).removeRecursively();
+
+			UserManager um;
+			const QVariantList restored = um.takeRestoredStatistics();
+			Assert::AreEqual(2, (int)restored.size());
+			Assert::IsTrue(restored[0].toMap()["rebuilt"].toBool());
+			const auto stats = um.statsOf(alice);
+			Assert::AreEqual(3, (int)stats.size(), L"robot, Guest, Bob: no Lichess, no edit");
+			Assert::AreEqual(1, stats.value(UserManager::computerKey(3)).wins);
+			Assert::AreEqual(1, stats.value(UserManager::computerKey(3)).games, L"only games the statistics had");
+			Assert::AreEqual(1, stats.value("guest").draws);
+			Assert::AreEqual(1, stats.value(UserManager::userKey(bob)).losses);
+			const auto bobStats = um.statsOf(bob);
+			Assert::AreEqual(1, (int)bobStats.size());
+			Assert::AreEqual(1, bobStats.value(UserManager::userKey(alice)).wins, L"Alice's kept game, from Bob's side");
+			Assert::AreEqual(QString("Alice"), bobStats.value(UserManager::userKey(alice)).opponentName);
+		}
+
+		// A users.json from before version 3 has no signatures: trusted once, signed at the next save.
+		TEST_METHOD(Statistics_FromBeforeVersion3_TrustedOnceThenSigned)
+		{
+			writeFile(UserManager::usersFilePath(), R"({ "version": 2, "activeUserId": "u1", "users": [
+				{ "id": "u1", "name": "Old", "avatarName": "cat",
+				  "stats": { "byOpponent": { "computer:2": { "name": "Robot", "games": 4, "wins": 4, "draws": 0, "losses": 0 } } } } ] })");
+			{
+				UserManager um;
+				Assert::IsTrue(um.takeRestoredStatistics().isEmpty());
+				Assert::AreEqual(4, um.statsOf("u1").value(UserManager::computerKey(2)).wins);
+				um.updateProfile("Old", "fox"); // any save
+			}
+			const QJsonObject root = QJsonDocument::fromJson(readFile(UserManager::usersFilePath())).object();
+			Assert::AreEqual(UserManager::kUsersVersion, root["version"].toInt());
+			UserManager um;
+			Assert::IsTrue(um.takeRestoredStatistics().isEmpty(), L"they verify now");
+			Assert::AreEqual(4, um.statsOf("u1").value(UserManager::computerKey(2)).wins);
 		}
 
 		TEST_METHOD(DeleteUser_RemovesProfileAndSaves_LogsOutTheActiveOne)
@@ -459,7 +597,7 @@ namespace UserManagerTests
 				um.createUser("Alice", "girl");
 				const QString alice = um.activeUserId();
 				writeFile(GameLibrary::gameFilePathOf(alice, game.id), GameLibrary::gameFileContent(game));
-				writeFile(GameLibrary::ratingFilePathOf(alice), R"({"version":1,"rating":{"value":1250,"games":3}})");
+				writeFile(GameLibrary::ratingFilePathOf(alice), GameLibrary::ratingFileContent(LocalRating(1250, 3)));
 				writeFile(GameLibrary::gamesDirOf(alice) + "/notes.txt", "not a game");
 				Assert::AreEqual(QString(), um.exportProfile(alice, QUrl::fromLocalFile(file)));
 			}
@@ -472,7 +610,9 @@ namespace UserManagerTests
 			const auto read = GameLibrary::readGameFile(GameLibrary::gameFilePathOf(id, game.id));
 			Assert::IsTrue(read.has_value(), L"the game verifies on the other PC");
 			Assert::AreEqual(QStringLiteral("e2e4 e7e5"), read->moves.join(' '));
-			Assert::IsTrue(readFile(GameLibrary::ratingFilePathOf(id)).contains("1250"));
+			const auto rating = GameLibrary::readRatingFile(GameLibrary::ratingFilePathOf(id));
+			Assert::IsTrue(rating.has_value(), L"the rating verifies on the other PC");
+			Assert::AreEqual(1250, rating->value());
 			Assert::IsFalse(QFile::exists(GameLibrary::gamesDirOf(id) + "/notes.txt"), L"only game files");
 		}
 
@@ -488,6 +628,7 @@ namespace UserManagerTests
 					{ "games/../../escape.json", QString::fromLatin1(QByteArray("x").toBase64()) },
 					{ "games/sub/inner.json",    QString::fromLatin1(QByteArray("x").toBase64()) },
 					{ "games/ok-1.json",         QString::fromLatin1(QByteArray("x").toBase64()) },
+					{ "games/ok-2xjson",         QString::fromLatin1(QByteArray("x").toBase64()) },
 				} },
 			};
 			writeFile(file, QJsonDocument(root).toJson());
@@ -496,6 +637,7 @@ namespace UserManagerTests
 			const QString id = idOf(um, "Evil");
 			Assert::IsFalse(QFile::exists(_dir->path() + "/users/escape.json"), L"not out of the profile's folder");
 			Assert::IsFalse(QFile::exists(GameLibrary::gamesDirOf(id) + "/sub/inner.json"));
+			Assert::IsFalse(QFile::exists(GameLibrary::gamesDirOf(id) + "/ok-2xjson"), L"\".json\", not any character");
 			Assert::IsTrue(QFile::exists(GameLibrary::gameFilePathOf(id, "ok-1")), L"a game file's name is written");
 		}
 

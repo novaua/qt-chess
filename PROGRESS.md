@@ -4,6 +4,23 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-18 — BL-20 step 2: the rating and the statistics signed (branch: features/signedRating_181126)
+
+### Done
+- **The rating** (`GameLibrary`): `rating.json` signed (`ratingFileContent`, `readRatingFile`, `GameSignature::Kind::Rating`); every rated record has `ratedGames` (the rated games after it), so the newest rated game gives the whole rating (`ratingFromGames`). At load (`recoverRating`): a `rating.json` that fails its check (edited, unsigned, not JSON) is moved to `games/rejected/` and the rating restored from the newest rated game, else 1200; a missing one while rated games are kept is restored the same way; one behind the newest rated game (a crash between the two writes) catches up silently. `ratingRestored`, `ratingRestoredOnLoad`; `ChessGame.qml`: "Your rating couldn't be verified and was restored from your kept games." / "… was started again." The migration of `games.json` works out `ratedGames` along the rated records.
+- **The statistics** (`UserManager`): `users.json` version 3 (`kUsersVersion`), each profile's statistics signed (`statsSig`, also in an export); an older file is trusted once and signed at the next save. Statistics that fail their check: the newest backup whose statistics for that profile verify, else rebuilt from the kept games (`GameLibrary::keptRecordsOf`: the profile's, and its two-player games another profile kept), Lichess and older rows lost; written signed at once (that file, not the failing one, becomes the backup). `takeRestoredStatistics`, `statisticsRestored`; `ChessGame.qml` says it per profile. Also for a backup restored from Settings or after a damaged `users.json`.
+- Step 1 fix: the import's game file name pattern lacked a backslash (`\.` in a C++ string is a plain `.`, warning C4129), so any character before `json` matched.
+- Tests: GameLibraryTest +5 (signed and `ratedGames`; an edited rating restored; unsigned / not JSON / missing; behind the newest game; `ratedGames` worked out for older records), UserManagerTest +3 (restored from a backup; rebuilt from the kept games of both profiles; version 2 trusted once), the export test's rating verifies on the other PC, the import's `.json` check; `tst_restart` (run 1 also edits `rating.json`; run 2: the rating message, the set-aside one in Recent messages: `app.recentMessages()`, the flyout's objectName `recentMessages`). `TestRun.editRatingFile()`.
+- CLAUDE.md, the plan (§3.4 as built), TASKS.md.
+
+### Checked
+- Debug: ChessQtTests 301/301, no warnings; UI tests (Debug) 12 files, 0 failed.
+
+### Next
+- Step 3 (`features/signedExport_…`): an export of format 1 imported unrated; an import checks the signed rating and statistics.
+
+---
+
 ## 2026-11-18 — BL-20 step 1: one signed file per game (branch: features/gameFiles_181126)
 
 ### Done

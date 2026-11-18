@@ -164,6 +164,14 @@ QtObject {
         test.tryVerify(() => bar.showing && bar.text === text, timeout ?? 3000,
                        "the message \"" + text + "\" (shown: \"" + (bar.showing ? bar.text : "") + "\")")
     }
+    // The recent messages' texts, newest first (Recent messages, Ctrl+M): also those a newer one replaced.
+    function recentMessages() {
+        const model = item("recentMessages").model
+        const texts = []
+        for (let i = 0; i < model.count; ++i)
+            texts.push(model.get(i).text)
+        return texts
+    }
 
     // From a game (two players, the robot): the Home button, then Home. The game is kept as it is (BL-19).
     function leaveToHome() {

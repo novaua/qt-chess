@@ -3,6 +3,8 @@
 #include "AppConfig.h"
 #include "AvatarProvider.h"
 #include "LichessAuth.h"
+#include "gamelibrary.h"
+#include "gamesignature.h"
 
 #include <QDate>
 #include <QDateTime>
@@ -30,7 +32,7 @@ static const QStringList kProfileFiles = { QStringLiteral("rating.json"), QStrin
 // else under games/ is written on import.
 static bool isGameFileName(const QString& name)
 {
-    static const QRegularExpression gameFile(QRegularExpression::anchoredPattern(QStringLiteral("games/[A-Za-z0-9_-]{1,64}\.json")));
+    static const QRegularExpression gameFile(QRegularExpression::anchoredPattern(QStringLiteral("games/[A-Za-z0-9_-]{1,64}\\.json")));
     return gameFile.match(name).hasMatch();
 }
 
@@ -78,6 +80,20 @@ static QJsonObject parseObject(const QByteArray& json)
     QJsonParseError err;
     const QJsonDocument doc = QJsonDocument::fromJson(json, &err);
     return err.error == QJsonParseError::NoError && doc.isObject() ? doc.object() : QJsonObject();
+}
+
+// What is signed (BL-20): the JSON as it is written, compact; QJsonObject keeps its keys sorted, so the
+// object read back gives the same bytes.
+static QByteArray canonical(const QJsonObject& o)
+{
+    return QJsonDocument(o).toJson(QJsonDocument::Compact);
+}
+
+// A profile's statistics in users.json (or a backup, an export) fit their signature.
+static bool statsVerify(const QJsonObject& user)
+{
+    return GameSignature::verify(GameSignature::Kind::Statistics, canonical(user.value(QStringLiteral("stats")).toObject()),
+                                 user.value(QStringLiteral("statsSig")).toString());
 }
 
 // What load() accepts as users.json: an object with a "users" array.
@@ -204,6 +220,11 @@ QMap<QString, UserManager::Record> UserManager::statsOf(const QString& userId) c
 {
     const auto* u = userById(userId);
     return u ? u->stats : QMap<QString, Record>{};
+}
+
+QVariantList UserManager::takeRestoredStatistics()
+{
+    return std::exchange(_restoredStatistics, {});
 }
 
 bool    UserManager::lichessConnected()     const { const auto* u = activeUser(); return u && !u->lichessTokenEncrypted.isEmpty() && !u->lichessExpired; }
@@ -606,6 +627,63 @@ static QMap<QString, UserManager::Record> statsFromJson(const QJsonObject& stats
     return result;
 }
 
+void UserManager::recoverStatistics(User& u)
+{
+    u.statsVerified = true; // as restored: signed at the next save
+    for (int n = 1; n <= kBackupCount; ++n) {
+        const QJsonObject root = parseObject(readFile(backupFilePath(n)));
+        if (root.value(QStringLiteral("version")).toInt() < 3)
+            continue; // its statistics were never signed
+        for (const auto& val : root.value(QStringLiteral("users")).toArray()) {
+            const QJsonObject obj = val.toObject();
+            if (obj.value(QStringLiteral("id")).toString() != u.id || !statsVerify(obj))
+                continue;
+            u.stats = statsFromJson(obj.value(QStringLiteral("stats")).toObject());
+            qWarning() << "UserManager: the statistics of" << u.id << "failed their check; restored from" << backupFilePath(n);
+            _restoredStatistics.append(QVariantMap{ { QStringLiteral("name"), u.name }, { QStringLiteral("rebuilt"), false } });
+            return;
+        }
+    }
+    u.stats = statisticsFromGames(u.id);
+    qWarning() << "UserManager: the statistics of" << u.id << "failed their check and no backup verifies; rebuilt from the kept games";
+    _restoredStatistics.append(QVariantMap{ { QStringLiteral("name"), u.name }, { QStringLiteral("rebuilt"), true } });
+}
+
+// The rows ChessConnector::recordResult made for the kept games that verify: the profile's own (vs the
+// robot by level, Guest, another profile), and the two-player games another profile kept against this
+// one (the profile signed in keeps the game). Lichess games have no record.
+QMap<QString, UserManager::Record> UserManager::statisticsFromGames(const QString& userId) const
+{
+    QMap<QString, Record> stats;
+    auto add = [&stats](const QString& key, const QString& name, double score) {
+        Record& r = stats[key];
+        r.opponentName = name;
+        r.games++;
+        if (score > 0.5)      r.wins++;
+        else if (score < 0.5) r.losses++;
+        else                  r.draws++;
+    };
+    auto counted = [](const GameRecord& r) { return r.finished && r.resultRecorded && !r.result.isEmpty(); };
+    for (const GameRecord& r : GameLibrary::keptRecordsOf(userId)) {
+        if (!counted(r))
+            continue;
+        if (r.kind == QLatin1String("computer"))
+            add(computerKey(r.level), QStringLiteral("Robot"), r.playerScore());
+        else if (r.opponentUserId.isEmpty())
+            add(QStringLiteral("guest"), QStringLiteral("Guest"), r.playerScore());
+        else
+            add(userKey(r.opponentUserId), r.opponentName, r.playerScore());
+    }
+    for (const User& other : _users) {
+        if (other.id == userId)
+            continue;
+        for (const GameRecord& r : GameLibrary::keptRecordsOf(other.id))
+            if (counted(r) && r.kind == QLatin1String("local") && r.opponentUserId == userId)
+                add(userKey(other.id), other.name, 1.0 - r.playerScore());
+    }
+    return stats;
+}
+
 QJsonObject UserManager::userToJson(const User& u)
 {
     QJsonObject obj;
@@ -615,7 +693,9 @@ QJsonObject UserManager::userToJson(const User& u)
     obj[QStringLiteral("createdDate")] = u.createdDate.toString(Qt::ISODate);
     if (u.lastPlayed.isValid())
         obj[QStringLiteral("lastPlayed")] = u.lastPlayed.toString(Qt::ISODate);
-    obj[QStringLiteral("stats")]       = statsToJson(u.stats);
+    const QJsonObject stats = statsToJson(u.stats);
+    obj[QStringLiteral("stats")]       = stats;
+    obj[QStringLiteral("statsSig")]    = GameSignature::sign(GameSignature::Kind::Statistics, canonical(stats));
     obj[QStringLiteral("autoSave")]    = saveInfoToJson(u.autoSave);
     obj[QStringLiteral("savedGame")]   = saveInfoToJson(u.savedGame);
     obj[QStringLiteral("lichessUsername")] = u.lichessUsername;
@@ -624,7 +704,7 @@ QJsonObject UserManager::userToJson(const User& u)
     return obj;
 }
 
-QList<UserManager::User> UserManager::usersFromJson(const QJsonArray& array)
+QList<UserManager::User> UserManager::usersFromJson(const QJsonArray& array, bool signedStats)
 {
     QList<User> users;
     for (const auto& val : array) {
@@ -637,6 +717,7 @@ QList<UserManager::User> UserManager::usersFromJson(const QJsonArray& array)
         if (!u.createdDate.isValid()) u.createdDate = QDate::currentDate();
         u.lastPlayed  = QDate::fromString(obj.value(QStringLiteral("lastPlayed")).toString(), Qt::ISODate);
         u.stats       = statsFromJson(obj.value(QStringLiteral("stats")).toObject());
+        u.statsVerified = !signedStats || statsVerify(obj);
         u.autoSave              = saveInfoFromJson(obj.value(QStringLiteral("autoSave")).toObject());
         u.savedGame             = saveInfoFromJson(obj.value(QStringLiteral("savedGame")).toObject());
         u.lichessTokenEncrypted = obj.value(QStringLiteral("lichessToken")).toString();
@@ -651,12 +732,23 @@ QList<UserManager::User> UserManager::usersFromJson(const QJsonArray& array)
     return users;
 }
 
-bool UserManager::loadFrom(const QByteArray& json)
+bool UserManager::loadFrom(const QByteArray& json, bool* restored)
 {
     if (!isUsersFile(json))
         return false;
     const QJsonObject root = parseObject(json);
-    _users = usersFromJson(root.value(QStringLiteral("users")).toArray());
+    // Before version 3 nothing was signed: trusted once (BL-20 §3.5), signed when it is next written.
+    const bool signedStats = root.value(QStringLiteral("version")).toInt() >= 3;
+    _users = usersFromJson(root.value(QStringLiteral("users")).toArray(), signedStats);
+    bool any = false;
+    for (User& u : _users) {
+        if (!u.statsVerified) {
+            recoverStatistics(u);
+            any = true;
+        }
+    }
+    if (restored)
+        *restored = any;
     _activeUserId = root.value(QStringLiteral("activeUserId")).toString();
     // One profile: straight in. Several: the profile list asks who is playing.
     _isLoggedIn = userById(_activeUserId) && _users.size() == 1;
@@ -668,9 +760,15 @@ void UserManager::load()
     if (!QFile::exists(usersFilePath()))
         return; // first run
     const QByteArray json = readFile(usersFilePath());
-    if (!loadFrom(json)) {
+    bool restored = false;
+    if (!loadFrom(json, &restored)) {
         qWarning() << "UserManager: users.json can't be read; it is kept until a restore or the next save";
         _damaged = true;
+        return;
+    }
+    if (restored) {
+        save(); // the restored statistics, signed; that file is the backup, not the one that failed
+        rotateBackups(readFile(usersFilePath()));
         return;
     }
     rotateBackups(json);
@@ -740,7 +838,8 @@ bool UserManager::restoreBackup(int n)
     const QString userId = _activeUserId;
     const bool wasLoggedIn = _isLoggedIn;
     const QList<User> before = _users;
-    loadFrom(json);
+    bool restored = false;
+    loadFrom(json, &restored);
     // What belongs to this PC now stays: the save files on disk weren't restored, and a Lichess
     // sign-in removed since the backup must not come back.
     for (User& u : _users) {
@@ -764,6 +863,8 @@ bool UserManager::restoreBackup(int n)
     save();
     qInfo() << "UserManager: restored users.json from backup" << n;
     emitAllChanged();
+    if (restored)
+        emit statisticsRestored();
     return true;
 }
 
@@ -811,10 +912,16 @@ bool UserManager::restoreFromBackup()
             continue;
         if (!keepDamagedFile())
             return false;
-        loadFrom(json);
-        writeFileAtomically(usersFilePath(), json);
+        bool restored = false;
+        loadFrom(json, &restored);
+        if (restored)
+            save(); // its statistics restored, signed
+        else
+            writeFileAtomically(usersFilePath(), json);
         qInfo() << "UserManager: restored users.json from" << backupFilePath(n);
         emitAllChanged();
+        if (restored)
+            emit statisticsRestored();
         return true;
     }
     return false;
@@ -837,7 +944,7 @@ void UserManager::save()
     }
 
     QJsonObject root;
-    root[QStringLiteral("version")]      = 2; // 2: statistics per opponent
+    root[QStringLiteral("version")]      = kUsersVersion;
     root[QStringLiteral("activeUserId")] = _activeUserId;
     root[QStringLiteral("users")]        = usersArray;
 
@@ -911,7 +1018,8 @@ QString UserManager::readImport(const QUrl& file, User& user, QMap<QString, QByt
     const QString error = readExport(file, profile, files);
     if (!error.isEmpty())
         return error;
-    // Through the users.json reader, so an import gets the same defaults and migrations.
+    // Through the users.json reader, so an import gets the same defaults and migrations. Its statistics
+    // are taken as they are and signed here (BL-20 step 3 checks them).
     const QList<User> read = usersFromJson(QJsonArray{ profile });
     if (read.isEmpty())
         return QStringLiteral("The profile in this file is incomplete");

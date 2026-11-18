@@ -317,7 +317,11 @@ ApplicationWindow {
     Component.onCompleted: {
         _messagesUser = UserManager.isLoggedIn ? UserManager.activeUserId : ""
         route()
-        Qt.callLater(() => root._tellSetAside(GameLibrary.setAsideCount))   // BL-20: the first profile's
+        Qt.callLater(() => {   // BL-20: what the load at start found (the first profile's games, users.json)
+            root._tellSetAside(GameLibrary.setAsideCount)
+            root._tellRatingRestored()
+            root._tellStatisticsRestored()
+        })
     }
 
     // ── --screenshot mode (see main.cpp): ScreenshotScene.qml sets up the scene, then C++ grabs the
@@ -815,6 +819,7 @@ ApplicationWindow {
     }
     MessagesFlyout {
         id: recentFlyout
+        objectName: "recentMessages"
         anchors.fill: parent
         model: recentMessages
         canClaim: root._canClaim
@@ -1208,9 +1213,27 @@ ApplicationWindow {
                                      : count + " kept games couldn't be verified and were")
                         + " set aside.", "caution", true)
     }
+    // BL-20: the rating (rating.json) or the statistics (users.json) failed their check and were restored.
+    function _tellRatingRestored() {
+        if (GameLibrary.ratingRestored)
+            root.notify("Your rating couldn't be verified and was "
+                        + (GameLibrary.ratedGames > 0 ? "restored from your kept games." : "started again.")
+                        , "caution", true)
+    }
+    function _tellStatisticsRestored() {
+        for (const s of UserManager.takeRestoredStatistics())
+            root.notify(s.name + "'s statistics couldn't be verified and were "
+                        + (s.rebuilt ? "rebuilt from the kept games (Lichess and older games aren't in them)."
+                                     : "restored from a backup."), "caution", true)
+    }
     Connections {
         target: GameLibrary
         function onGamesSetAside(count) { root._tellSetAside(count) }
+        function onRatingRestoredOnLoad() { root._tellRatingRestored() }
+    }
+    Connections {
+        target: UserManager
+        function onStatisticsRestored() { root._tellStatisticsRestored() }
     }
     Binding { target: ChessConnector; property: "AnalysisDepth"; value: AppSettings.analysisDepth } // BL-19 step 6
 

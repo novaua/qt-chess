@@ -42,6 +42,7 @@ TestCase {
         app.waitForPage("home")
         TestRun.addEditedGame()   // BL-20: set aside at the next start
         compare(GameLibrary.finishedCount, 1)
+        TestRun.editRatingFile()  // BL-20 step 2: restored at the next start
     }
 
     // 1. e4 e5 vs the robot; the window then closes with the game on (the app autosaves it).
@@ -56,14 +57,20 @@ TestCase {
     }
 
     // ── Run 2: the app started again ──
-    // BL-20: the game whose file was edited fails its check: set aside, not listed, and said once.
+    // BL-20: the game whose file was edited fails its check: set aside, not listed, and said once. The
+    // edited rating.json too: no rated game is kept, so the rating starts again (said after the games).
     function test_3_run2_editedGameSetAside() {
         onlyInRun(2)
         app.waitForPage("home")
-        app.waitMessage("1 kept game couldn't be verified and was set aside.", 5000)
+        app.waitMessage("Your rating couldn't be verified and was started again.", 5000)
+        verify(app.recentMessages().includes("1 kept game couldn't be verified and was set aside."),
+               "the games' message too: " + app.recentMessages())
         compare(GameLibrary.setAsideCount, 1)
         compare(GameLibrary.finishedCount, 0, "not listed")
         compare(GameLibrary.unfinishedCount, 1, "the robot game is")
+        compare(GameLibrary.ratingRestored, true)
+        compare(GameLibrary.rating, 1200)
+        compare(GameLibrary.ratedGames, 0)
     }
 
     // The profile is there (straight to Home), the setting still off.
