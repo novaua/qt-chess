@@ -99,6 +99,10 @@ public:
     QVariantMap  lichessRatings()       const;
     bool         lichessLinking()       const { return _lichessAuth != nullptr; }
     QString      lichessTokenEncrypted() const;   // C++ only — never expose to QML
+    // The active profile's Lichess token, decrypted (C++ only, never QML); "" when not connected. A token
+    // this Windows account can't decrypt (a data folder copied from another PC or Windows account: it is
+    // encrypted for the account that linked it) marks the link expired: the profile asks to reconnect.
+    QString      lichessToken();
     bool         hasPendingChallenge()  const;
     QString      pendingChallengeId()   const;
     QString      pendingChallengeUrl()  const;

@@ -344,6 +344,19 @@ void UserManager::setLichessAccount(const QString& username, const QVariantMap& 
     emit lichessChanged();
 }
 
+QString UserManager::lichessToken()
+{
+    if (!lichessConnected())
+        return {};
+    const QString token = LichessClient::decryptToken(lichessTokenEncrypted());
+    if (token.isEmpty()) {
+        qWarning() << "UserManager: the Lichess sign-in of" << activeUserId()
+                   << "can't be decrypted here (linked on another PC or Windows account): reconnect";
+        setLichessExpired();
+    }
+    return token;
+}
+
 void UserManager::setLichessExpired()
 {
     auto* u = activeUser();
