@@ -94,7 +94,7 @@ Manual checks, no code (do any time):
 
 Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows, chat), BL-10 (challenges as notifications).
 
-- [ ] LI-01A Chess960 (Fischer Random) [Hard] — plan: [`docs/LI-01A-Chess960Plan.md`](docs/LI-01A-Chess960Plan.md) (the owner split LI-01 on 2026-11-17: A Chess960, B Crazyhouse; rules: <https://lichess.org/variant/chess960>). **Stage 1 done (steps 1–5, #175–#179; the owner's hand tests [`LI-01A-ManualTests.md`](docs/LI-01A-ManualTests.md) all passed on 2026-11-18); stage 2 (Lichess) planned: [`LI-01A-Chess960LichessPlan.md`](docs/LI-01A-Chess960LichessPlan.md).**
+- [ ] LI-01A Chess960 (Fischer Random) [Hard] — plan: [`docs/LI-01A-Chess960Plan.md`](docs/LI-01A-Chess960Plan.md) (the owner split LI-01 on 2026-11-17: A Chess960, B Crazyhouse; rules: <https://lichess.org/variant/chess960>). **Stage 1 done (steps 1–5, #175–#179; the owner's hand tests [`LI-01A-ManualTests.md`](docs/LI-01A-ManualTests.md) all passed on 2026-11-18); stage 2 (Lichess) coded (#182, #183; plan [`LI-01A-Chess960LichessPlan.md`](docs/LI-01A-Chess960LichessPlan.md)); its hand tests are the owner's ([`LI-01A-LichessManualTests.md`](docs/LI-01A-LichessManualTests.md)).**
   - [x] **Stage 1, local**: vs the robot and two players, kept in the games library. The owner's choices: castling as on Lichess (the king onto its rook, or onto its destination when that isn't an ordinary king move); 960 games aren't rated; a random position "Chess960 #N", Rematch keeps it, New game draws a new one. Steps (plan §4):
     - [x] 1 ChessCore rules: `StartPosition`, `Board::DoCastling`, castling for any set-up (king onto own rook in 960, `e1g1` kept in standard), SAN/FEN (branch `features/chess960Rules_171126`; checked against python-chess)
     - [x] 2 The engine: `UCI_Chess960`, the start FEN in every request, the analysis, FakeUci (branch `features/chess960Engine_171126`)
@@ -105,7 +105,8 @@ Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows
   - [ ] **Stage 2, on Lichess** (plan: [`docs/LI-01A-Chess960LichessPlan.md`](docs/LI-01A-Chess960LichessPlan.md); the owner's choice: a 960 Rematch keeps the position). Steps (plan §4):
     - [x] 1 C++: `playableVariant` (standard, chess960), `gameStarted` with the variant and the start FEN, `startOnlineGame` from it, other variants refused, `challengePlayer`'s variant, the rematch's `fen`, the `chess960` rating, `variantName`; ChessQtTests (branch `features/chess960LichessGames_181126`)
     - [x] 2 UI: the Online page's Variant row (`AppSettings.onlineChess960`, the Chess960 rating line), Lichess's variant names, the Profile's Chess960 pool, `FakeLichessServer` variants, scenes, `tst_lichess960` (branch `features/chess960LichessUi_181126`)
-    - [ ] 3 Docs and hand tests on lichess.org: `LI-01A-LichessManualTests.md`, CLAUDE.md, `TASKS.md`, `PROGRESS.md`
+    - [x] 3 Docs and hand tests on lichess.org: [`docs/LI-01A-LichessManualTests.md`](docs/LI-01A-LichessManualTests.md) (9 scenarios, two Lichess accounts), `TASKS.md`, `PROGRESS.md` (branch `docs/chess960LichessManualTests_181126`)
+    - [ ] The owner runs `LI-01A-LichessManualTests.md` (a 960 challenge both ways, castlings, premove, Continue, rematch's position, correspondence, PGN, the rating, Crazyhouse refused)
 - [ ] LI-01B Crazyhouse [Hard], **needs a plan first; not started** (after LI-01A). Chess-logic work in `ChessCore`, not only the Lichess dialog. The plan should cover:
   - captured pieces go to the capturer's pocket and can be dropped instead of a move (UCI `P@e4`; no pawn drops on the 1st/8th rank);
   - a promoted piece goes back to the pocket as a pawn;
