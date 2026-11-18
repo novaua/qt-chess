@@ -637,6 +637,34 @@ namespace LichessTests
 			LichessStaticTests::areEqual({ "start e2e4 e7e5 g1f3" }, events);
 		}
 
+		// A game the receiver refuses (LI-01A: a variant Chess++ doesn't play; it stops the stream in
+		// gameStarted): nothing more of it comes, neither its clock nor its end, and it can't be rematched.
+		TEST_METHOD(GameStream_GameRefusedInGameStarted_NothingMoreOfIt_Test)
+		{
+			for (const char* status : { "started", "resign" }) {
+				LichessClient client;
+				client.setUsername("me");
+				client.setToken("token");
+				client.setCurrentGameId("zh000001");
+				QStringList events;
+				QObject::connect(&client, &LichessClient::gameStarted, [&](QString, bool, QString, QString, QStringList, QString variant) {
+					events << "start " + variant;
+					client.stopStream();
+				});
+				QObject::connect(&client, &LichessClient::clockStarted, [&](qint64, qint64, bool) { events << "clock"; });
+				QObject::connect(&client, &LichessClient::clockUpdated, [&](qint64, qint64, bool, bool) { events << "times"; });
+				QObject::connect(&client, &LichessClient::gameEnded, [&](QString s, QString) { events << "end " + s; });
+
+				const bool more = client.handleGameStreamLine(QByteArray(R"({"type":"gameFull","id":"zh000001","variant":{"key":"crazyhouse"},
+					"clock":{"initial":300000,"increment":0},"white":{"id":"me","name":"Me"},"black":{"id":"friend","name":"Friend"},
+					"state":{"moves":"","wtime":300000,"btime":300000,"status":")") + status + R"("}})");
+
+				Assert::IsFalse(more, L"the rest of the stream isn't read");
+				LichessStaticTests::areEqual({ "start crazyhouse" }, events);
+				Assert::IsFalse(client.canRematch());
+			}
+		}
+
 		// LI-01A stage 2: the game's variant and start position come with its start; the standard
 		// start ("startpos") is "".
 		TEST_METHOD(GameStream_GameFull_VariantAndStartFen_Test)

@@ -72,7 +72,10 @@ struct GameRecord
 	int       clockIncSec = 0;
 	qint64    whiteMs = 0;        // the times left when the game was left (unfinished with a clock)
 	qint64    blackMs = 0;
-	QString   startFen;           // a Chess960 game's start position (LI-01A); "" = the standard game
+	QString   startFen;           // a Chess960 game's start position (LI-01A), as games.json has it; "" = the standard game
+	// startFen read once (setStartPosition, fromJson). nullopt: a Chess960 record whose startFen can't be
+	// read: it can't be replayed (continue / open refuse it), and is written back as it was read.
+	std::optional<Chess::StartPosition> start = Chess::StartPosition();
 	QStringList moves;            // UCI, e.g. "e2e4", "e7e8q"; a Chess960 castling is the king onto its rook
 	QString   fen;                // the position after the last move: the card's board preview
 	QString   result;             // "1-0", "0-1", "1/2-1/2"; "" while unfinished
@@ -86,8 +89,9 @@ struct GameRecord
 	int       ratingBefore = 0;
 	int       ratingChange = 0;
 
-	bool chess960() const { return !startFen.isEmpty(); }
-	Chess::StartPosition startPosition() const; // the standard one unless startFen is a Chess960 start
+	bool chess960() const { return !startFen.isEmpty() || !start; }
+	// The standard one unless startFen is a Chess960 start (also for one that can't be read: replay() fails then).
+	Chess::StartPosition startPosition() const { return start.value_or(Chess::StartPosition()); }
 	void setStartPosition(const Chess::StartPosition& start);
 	int  plyCount() const { return (int)moves.size(); }
 	bool whiteToMove() const { return moves.size() % 2 == 0; }

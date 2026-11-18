@@ -979,8 +979,16 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
             _sentMoves.clear();
             setRejoiningGameId({}); // a rejoin has its game
             setAcceptingId({});     // so has an accepted challenge (its row goes)
+            const int stops = _stops;
             emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl, moves,
                              variantOf(obj), startFenOf(obj));
+            if (_stops != stops) {
+                // Refused (LI-01A: a variant Chess++ doesn't play): the receiver stopped the stream.
+                // Nothing of this game (its clock, its end, a rematch) may reach the game on the board.
+                _lastGame = {};
+                emit canRematchChanged();
+                return false;
+            }
             startClock(obj);
         }
 
@@ -1485,6 +1493,7 @@ void LichessClient::stopStream()
 
 void LichessClient::stopAll(bool keepAccept)
 {
+    ++_stops;
     setRejoiningGameId({}); // dropped, not failed: no rejoinFailed
     if (!keepAccept)
         setAcceptingId({}); // dropped: no challengeAcceptFailed

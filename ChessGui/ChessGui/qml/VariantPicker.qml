@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import ChessPlusPlus
 
 // The setup dialogs' Variant row (LI-01A): Standard or Chess960, a random one of the 960 start positions
 // (Rematch keeps it, New game draws another). remember() keeps the choice for the next new game.
@@ -11,8 +12,8 @@ ColumnLayout {
     readonly property bool chess960: choice.checkedIndex === 1
     property bool rateable: false   // vs the robot: says a Chess960 game isn't rated
     property bool online: false     // a Lichess challenge
-    // ChessConnector.startComputerGame / startLocalGame's last argument: RandomChess960 (-1) or StandardGame (-2).
-    readonly property int startPosition: chess960 ? -1 : -2
+    // ChessConnector.startComputerGame / startLocalGame's last argument.
+    readonly property int startPosition: chess960 ? ChessConnector.RandomChess960 : ChessConnector.StandardGame
 
     function choose(on) { choice.checkedIndex = on ? 1 : 0 }
     function remember() {

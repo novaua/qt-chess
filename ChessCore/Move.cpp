@@ -292,18 +292,13 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState& gameSta
 		BoardAttackMapAptr attacks;
 		for (bool kingside : { true, false })
 		{
-			if (pieceOffset != kingFrom || !HasCastlingRight(gameState, side, kingside))
+			if (pieceOffset != kingFrom)
 				continue;
-			const auto squares = CastlingSquares::Of(kingFrom, (BoardPosition)(rank * 8 + gameState.Start.RookFile(kingside)));
-
-			auto isFree = [&](int from, int to) {
-				for (int sq = std::min(from, to); sq <= std::max(from, to); ++sq)
-					if (sq != squares.KingFrom && sq != squares.RookFrom && board.At(sq).Type != EMPTY)
-						return false;
-				return true;
-			};
-			if (!isFree(squares.KingFrom, squares.KingTo) || !isFree(squares.RookFrom, squares.RookTo))
+			const auto path = CastlingPath(gameState, side, kingside,
+				[&board](BoardPosition sq) { return board.At(sq).Type != EMPTY; });
+			if (!path)
 				continue;
+			const auto& squares = *path;
 
 			if (!attacks)
 				attacks = gameState.Cache->GetAttackMap(gameState.Board, oppositeSide);
@@ -319,6 +314,25 @@ std::vector<Move> MoveGeneration::GenerateAdvancedMoves(const GameState& gameSta
 	}
 
 	return result;
+}
+
+std::optional<CastlingSquares> MoveGeneration::CastlingPath(const GameState& gameState, PieceColors side, bool kingside,
+                                                            const std::function<bool(BoardPosition)>& taken)
+{
+	if (!HasCastlingRight(gameState, side, kingside))
+		return std::nullopt;
+	const int rank = side == PieceColors::Light ? 0 : 7;
+	const auto squares = CastlingSquares::Of((BoardPosition)(rank * 8 + gameState.Start.KingFile()),
+	                                         (BoardPosition)(rank * 8 + gameState.Start.RookFile(kingside)));
+	auto clear = [&](int from, int to) {
+		for (int sq = std::min(from, to); sq <= std::max(from, to); ++sq)
+			if (sq != squares.KingFrom && sq != squares.RookFrom && taken((BoardPosition)sq))
+				return false;
+		return true;
+	};
+	if (!clear(squares.KingFrom, squares.KingTo) || !clear(squares.RookFrom, squares.RookTo))
+		return std::nullopt;
+	return squares;
 }
 
 bool MoveGeneration::HasCastlingRight(const GameState& gameState, PieceColors side, bool kingside)

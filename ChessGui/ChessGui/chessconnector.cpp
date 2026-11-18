@@ -333,21 +333,9 @@ void ChessConnector::figureSelected(int index)
 	}
 	else
 	{
-		const auto moves = _game->GetAllowedMoves(index);
-		for (auto move : moves)
-		{
-			_possibleMoves[move.To] = QString::number(index);
-		}
-		// Chess960: a castling's dot is on its rook, and on the king's square when no move of its own
-		// goes there (as lichess.org).
-		for (const auto& move : moves)
-		{
-			if (!isChess960Castling(index, move.To))
-				continue;
-			const auto kingTo = Chess::CastlingSquares::Of(BoardPosition(index), move.To).KingTo;
-			if (kingTo != index && _possibleMoves[kingTo] == EmptyFlag)
-				_possibleMoves[kingTo] = QString::number(index);
-		}
+		// A dot wherever a click plays a move (Chess960: also the king's castling square, moveTargets).
+		for (const auto& [square, target] : moveTargets(index))
+			_possibleMoves[square] = QString::number(index);
 		const auto side = _game->IsWhiteMove() ? Chess::PieceColors::Light : Chess::PieceColors::Dark;
 		if (_game->GetPieceAt(index).Color == side)
 			_selectedSquare = index;
@@ -903,17 +891,30 @@ bool ChessConnector::isChess960Castling(int from, int to) const
 	return king.Type == Chess::KING && rook.Type == Chess::ROOK && rook.Color == king.Color;
 }
 
+std::map<int, int> ChessConnector::moveTargets(int from) const
+{
+	std::map<int, int> targets;
+	if (from < 0 || from >= 64)
+		return targets;
+	const auto moves = _game->GetAllowedMoves(from);
+	for (const auto& m : moves)
+		targets[m.To] = m.To;
+	// Chess960 (as lichess.org): the king's castling square castles too, when no move of its own goes
+	// there (emplace keeps that one) and the king leaves its square.
+	for (const auto& m : moves)
+		if (isChess960Castling(from, m.To)) {
+			const int kingTo = Chess::CastlingSquares::Of(BoardPosition(from), m.To).KingTo;
+			if (kingTo != from)
+				targets.emplace(kingTo, m.To);
+		}
+	return targets;
+}
+
 int ChessConnector::moveTarget(int from, int to) const
 {
-	if (from < 0 || from >= 64 || to < 0 || to >= 64)
-		return -1;
-	const auto moves = _game->GetAllowedMoves(from);
-	if (std::any_of(moves.begin(), moves.end(), [to](const Chess::Move& m) { return m.To == to; }))
-		return to;
-	for (const auto& m : moves)
-		if (isChess960Castling(from, m.To) && Chess::CastlingSquares::Of(BoardPosition(from), m.To).KingTo == to)
-			return m.To;
-	return -1;
+	const auto targets = moveTargets(from);
+	const auto it = targets.find(to);
+	return it == targets.end() ? -1 : it->second;
 }
 
 void ChessConnector::restartGame(const Chess::StartPosition& start)
@@ -988,13 +989,16 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 	if (variant == QLatin1String("standard") && startFen.isEmpty())
 		start = Chess::StartPosition();
 	else if (variant == QLatin1String("chess960"))
-		start = Chess::StartPosition::FromFen(startFen.toStdString()); // #518 too: castles as Chess960
+		start = startFen.isEmpty() ? Chess::StartPosition::Chess960(Chess::StartPosition::StandardNumber) // "startpos": #518
+		                           : Chess::StartPosition::FromFen(startFen.toStdString()); // #518 too: castles as Chess960
 	if (!start) {
 		qWarning() << "ChessConnector: Lichess game" << gameId << "can't be played here | variant:" << variant
 		           << "| initialFen:" << startFen;
 		_startTiming.cancel();
-		emit gameStartFailed(QStringLiteral("it is %1, and Chess++ plays standard chess and Chess960. "
-		                                    "Open it on lichess.org.").arg(LichessClient::variantName(variant)));
+		emit gameStartFailed(LichessClient::playableVariant(variant)
+			? QStringLiteral("its start position isn't one Chess++ can play. Open it on lichess.org.")
+			: QStringLiteral("it is %1, and Chess++ plays standard chess and Chess960. "
+			                 "Open it on lichess.org.").arg(LichessClient::variantName(variant)));
 		_lichessClient->stopStream(); // the game on the board (if any) stays as it was
 		return;
 	}
@@ -1030,6 +1034,8 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 
 void ChessConnector::onLichessGameEnded(const QString& status, const QString& winner)
 {
+	if (!isOnlineGame())
+		return; // not the game on the board: its result isn't this game's
 	if (_lichessClient) {
 		_lichessClient->stopStream();
 		_lichessClient->watchForRematch();
@@ -1089,6 +1095,8 @@ void ChessConnector::onLichessOpponentGone(bool gone, int claimWinInSeconds)
 
 void ChessConnector::onLichessClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence)
 {
+	if (!isOnlineGame())
+		return; // a Lichess game that isn't on the board (refused): the local game's clock stays its own
 	_clock->setLowTimeSides(_config.playerPlaysWhite, !_config.playerPlaysWhite);
 	// Real time: the opponent's reply isn't held for our move's slide and pause (up to 0.4 s of our
 	// clock on Lichess, LI-06). Days per move: no hurry, the board shows one thing at a time.
@@ -1435,7 +1443,11 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 		connect(_lichessClient, &LichessClient::clockStarted, this, &ChessConnector::onLichessClockStarted);
 		connect(_lichessClient, &LichessClient::gameConnectionChanged, this, &ChessConnector::onLichessConnectionChanged);
 		connect(_lichessClient, &LichessClient::gameStreamStopped, this, [this]() { setReconnecting(false); });
-		connect(_lichessClient, &LichessClient::clockUpdated, _clock, &GameClock::setSnapshot);
+		connect(_lichessClient, &LichessClient::clockUpdated, this,
+			[this](qint64 whiteMs, qint64 blackMs, bool whiteToMove, bool running) {
+				if (isOnlineGame()) // Lichess's times are for its game only, never a local game's clock
+					_clock->setSnapshot(whiteMs, blackMs, whiteToMove, running);
+			});
 		// An offer that comes with the opponent's move is shown after the move.
 		connect(_lichessClient, &LichessClient::drawOfferReceived, this, [this]() {
 			afterHeldMoves([this] { if (isOnlineGame() && !_gameOver) setPendingOffer(QStringLiteral("draw")); });

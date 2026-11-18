@@ -160,7 +160,7 @@ Item {
             if (robot)   // only a game vs the robot is autosaved; White: no engine needed
                 ChessConnector.startComputerGame(3, 0, limitSec, incSec)
             else
-                ChessConnector.startLocalGame(!shot.black, bob ? bob.id : "", limitSec, incSec, name.startsWith("chess960") ? 3 : -2)
+                ChessConnector.startLocalGame(!shot.black, bob ? bob.id : "", limitSec, incSec, name.startsWith("chess960") ? 3 : ChessConnector.StandardGame)
             if (shot.moves || defaultMoves)
                 ChessConnector.applyMoves(shot.moves || defaultMoves)
             if (clockTimes)
