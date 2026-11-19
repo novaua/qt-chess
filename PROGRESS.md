@@ -4,13 +4,15 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
-## 2026-11-19 — BL-20: the owner's hand tests, first run (branch: docs/bl20ManualResults_191126)
+## 2026-11-19 — BL-20: the hand tests passed, BL-20 done (branch: docs/bl20ManualResults_191126)
 
 ### Done
-- [`docs/BL-20-ManualTests.md`](docs/BL-20-ManualTests.md): scenarios 1 (a game edited), 2 (damaged, copied under another name), 3 (the rating edited), 5 (export / import), 6 (an export edited) and 7 (the owner's own data from before BL-20) passed.
+- [`docs/BL-20-ManualTests.md`](docs/BL-20-ManualTests.md): the owner passed scenarios 1 (a game edited), 2 (damaged, copied under another name), 3 (the rating edited), 5 (export / import), 6 (an export edited) and 7 (the owner's own data from before BL-20).
+- Claude ran 1, 2, 3, 4 and 7 on copies of the owner's folders, starting the Debug build as a player would. Each run was checked through a picture of the window, the log and the files. All passed. Scenario 4 (the statistics edited by hand: restored from a backup, then rebuilt, then no message) counts as passed on that run. Scenario 7 ran without its step-2 game.
+- Scenario 8 (another Windows account, a reinstall) is optional and wasn't run. TASKS.md: BL-20 done.
 
-### Next
-- Scenario 4 (the statistics edited by hand) is still to run; 8 (another Windows account, a reinstall) is optional. BL-20 is done once 4 passes.
+### Notes
+- Files set aside are never deleted by the app. The ones missing from the owner's `games\rejected\` were moved or deleted by hand between scenarios (the owner, 2026-11-19). A set-aside game file put back unedited verifies again, as it should.
 
 ---
 
