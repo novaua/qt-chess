@@ -154,7 +154,12 @@ TestCase {
                                    "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2")
         LichessClient.refreshOngoingGames()   // as the Online page's refresh does
         tryVerify(() => LichessClient.ongoingGames.length === 1, 3000, "the game listed")
-        app.click("continueCard")
+        // BL-24: Continue while the list refreshes (there are several in the first seconds after a start)
+        // still joins the only game, not the Continue list. Called directly, as the card's click does
+        // (ChessGame.continueGames): a click could let the refresh's answer in first.
+        LichessClient.refreshOngoingGames()
+        verify(LichessClient.ongoingGamesLoading, "a refresh in flight")
+        verify(ChessConnector.continueOnlyGame(), "the only game joined, not the list")
         waitRequest("GET /api/board/game/stream/game0002")
         app.waitForPage("game", 10000)
         compare(ChessConnector.OpponentName, "SlowPlayer")

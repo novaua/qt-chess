@@ -130,6 +130,10 @@ public:
 	QString rejoiningGameId() const { return _rejoiningGameId; }
 	QVariantList ongoingGames() const { return _ongoingGames; }
 	bool ongoingGamesLoading() const { return _ongoingGamesLoading; }
+	// The list came from Lichess (or setOngoingGames) at least once for this account: while a refresh is in
+	// flight, ongoingGames() is still the last list, not an empty one that hasn't loaded yet (BL-24).
+	bool ongoingGamesLoaded() const { return _ongoingGamesLoaded; }
+	bool isOngoingGame(const QString& gameId) const; // in ongoingGames()
 	QString ongoingGamesError() const { return _ongoingGamesError; }
 	void setOngoingGames(const QVariantList& games); // tests and screenshot scenes (no network), from C++
 	// Screenshot mode: the refreshes the app starts on its own (refreshAccount, refreshOngoingGames)
@@ -307,6 +311,7 @@ private:
 	QString        _rematchOfferId;             // the opponent's offer we got; empty = none
 	QVariantList   _ongoingGames;
 	bool           _ongoingGamesLoading = false;
+	bool           _ongoingGamesLoaded  = false;
 	QString        _ongoingGamesError;
 	QNetworkReply* _ongoingGamesReply = nullptr; // the refresh in flight: a newer one replaces it
 	bool           _offline = false;
