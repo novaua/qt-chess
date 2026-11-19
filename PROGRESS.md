@@ -4,6 +4,16 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-19 — BL-20: the owner's hand tests, first run (branch: docs/bl20ManualResults_191126)
+
+### Done
+- [`docs/BL-20-ManualTests.md`](docs/BL-20-ManualTests.md): scenarios 1 (a game edited), 2 (damaged, copied under another name), 3 (the rating edited), 5 (export / import), 6 (an export edited) and 7 (the owner's own data from before BL-20) passed.
+
+### Next
+- Scenario 4 (the statistics edited by hand) is still to run; 8 (another Windows account, a reinstall) is optional. BL-20 is done once 4 passes.
+
+---
+
 ## 2026-11-19 — BL-20: the review of #187–#190 fixed (branch: bugs/bl20ReviewFixes_191126)
 
 ### Done

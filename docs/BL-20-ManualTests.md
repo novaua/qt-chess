@@ -67,7 +67,7 @@ Already checked by the tests, no need to look again:
 3. Close and start the app again.
    - **Expected**: no message this time. The two-player game can still be continued.
 
-Result:
+Result: OK (the owner, 2026-11-19)
 
 ## 2. A damaged game file, and one copied under another name
 
@@ -79,7 +79,7 @@ Result:
      `copy-1.json` are in `games\rejected\`. The copied game's original is still listed: copying a game
      doesn't make two of it. The log says "not JSON" and "another game's id".
 
-Result:
+Result: OK (the owner, 2026-11-19)
 
 ## 3. The rating edited by hand
 
@@ -94,7 +94,7 @@ Result:
 4. Close, start again.
    - **Expected**: no message.
 
-Result:
+Result: OK (the owner, 2026-11-19)
 
 ## 4. The statistics edited by hand
 
@@ -112,7 +112,7 @@ Result:
 4. Close, start again.
    - **Expected**: no message; the statistics stay as restored.
 
-Result:
+Result: not run yet
 
 ## 5. Export and import between two data folders
 
@@ -127,7 +127,7 @@ Result:
 3. Close and start the app again on that folder, signed in as the imported profile.
    - **Expected**: no message.
 
-Result:
+Result: OK (the owner, 2026-11-19)
 
 ## 6. An export edited by hand
 
@@ -139,7 +139,7 @@ Result:
      games." The new profile ("Name (2)") has its games and its rating as exported, and statistics counted
      from its games.
 
-Result:
+Result: OK (the owner, 2026-11-19)
 
 ## 7. Your own data from before BL-20, updated
 
@@ -164,7 +164,7 @@ Copy-Item $old "$env:TEMP\chess-bl20-mine" -Recurse
 
 If the only data folder you have was already opened by a build with #188, skip this and write "no old data".
 
-Result:
+Result: OK (the owner, 2026-11-19)
 
 ## 8. Optional: another Windows account, a reinstall
 
@@ -176,4 +176,4 @@ Result:
   build again.
   - **Expected**: every profile's games, rating and statistics as before, with no message.
 
-Result:
+Result: not run (optional)
