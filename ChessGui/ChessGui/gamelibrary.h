@@ -220,14 +220,21 @@ public:
 	static QString rejectedDirOf(const QString& userId);
 	static QString ratingFilePathOf(const QString& userId);
 	static QString legacyFilePathOf(const QString& userId); // games.json of BL-19
+	// The profile has files of BL-20 (rating.json, a game file, games.json.migrated, games/rejected/): a
+	// games.json beside them isn't migrated (it is set aside), and a users.json older than version 3 isn't
+	// trusted (UserManager). Either would be a way around the check.
+	static bool hasSignedFiles(const QString& userId);
 	// A game file's content: {"record": …, "sig": …}, signed with the current key.
 	static QByteArray gameFileContent(const GameRecord& record);
+	// Why a game file failed its check (readGameFile).
+	enum class ReadFailure { None, CantOpen, NotJson, BadSignature, OtherId };
+	static QString describe(ReadFailure why); // for the log
 	// A game file read and checked: its record, or nullopt (why: the reason). resign: it verified with an
 	// older key (to be signed again).
-	static std::optional<GameRecord> readGameFile(const QString& path, QString* why = nullptr, bool* resign = nullptr);
+	static std::optional<GameRecord> readGameFile(const QString& path, ReadFailure* why = nullptr, bool* resign = nullptr);
 	// The same for a game file's content, named `fileId` (its file name without ".json").
 	static std::optional<GameRecord> readGameContent(const QByteArray& content, const QString& fileId,
-	                                                 QString* why = nullptr, bool* resign = nullptr);
+	                                                 ReadFailure* why = nullptr, bool* resign = nullptr);
 
 	// BL-20 step 3: what checkImport found in an imported profile's files.
 	struct ImportCheck
@@ -244,6 +251,9 @@ public:
 	static ImportCheck checkImport(QMap<QString, QByteArray>& files);
 	// A game id that can name a file: letters, digits, '-' and '_' (a UUID).
 	static bool isFileId(const QString& id);
+	// The file id of a games.json record: its id when it can name a file, else a UUID made from it (always
+	// the same one: a migration tried again finds the files it already wrote).
+	static QString fileIdOf(const QString& id);
 	// rating.json's content: {"version", "rating", "sig"}, the rating signed with the current key.
 	static QByteArray ratingFileContent(const LocalRating& rating);
 	// rating.json read and checked: nullopt when it isn't there, isn't JSON or its signature doesn't fit.
@@ -294,8 +304,11 @@ private:
 	void trimOtherProfiles(); // their files, as setKeepCount trims the active one's
 	FileState migrateLegacyFile(); // games.json → a file per game (once; trusted and signed)
 	// After loading (BL-20 §3.4): a rating.json that failed its check is set aside and the rating restored
-	// from the games; one older than the newest rated game (a crash between the two writes) catches up.
+	// from the games; one behind the rated games that continue it (a crash between the two writes) catches up.
 	void recoverRating(RatingState state);
+	// The rating after the rated games that continue `rating` exactly (ratingBefore the rating so far, one
+	// more rated game each): a game of another profile copied here doesn't.
+	static LocalRating continued(LocalRating rating, const QList<GameRecord>& records);
 	void migrateOldSaves(); // chess.autosave / chess.save + their GameSaveInfo → records (once)
 
 	UserManager* _userManager = nullptr;

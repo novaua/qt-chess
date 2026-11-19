@@ -345,9 +345,15 @@ namespace GameLibraryTests
 			QJsonObject newer = QJsonDocument::fromJson(good).object();
 			newer["sig"] = QStringLiteral("9:") + newer.value("sig").toString().mid(2);
 			writeFile(GameLibrary::gameFilePathOf(user, "newerkey"), QJsonDocument(newer).toJson());
-			QString why;
+			GameLibrary::ReadFailure why = GameLibrary::ReadFailure::None;
 			Assert::IsFalse(GameLibrary::readGameFile(GameLibrary::gameFilePathOf(user, "copied"), &why).has_value());
-			Assert::AreEqual(QStringLiteral("another game's id"), why);
+			Assert::IsTrue(why == GameLibrary::ReadFailure::OtherId);
+			Assert::IsFalse(GameLibrary::readGameFile(GameLibrary::gameFilePathOf(user, "garbage"), &why).has_value());
+			Assert::IsTrue(why == GameLibrary::ReadFailure::NotJson);
+			Assert::IsFalse(GameLibrary::readGameFile(GameLibrary::gameFilePathOf(user, "unsigned"), &why).has_value());
+			Assert::IsTrue(why == GameLibrary::ReadFailure::BadSignature);
+			Assert::IsFalse(GameLibrary::readGameFile(GameLibrary::gameFilePathOf(user, "missing"), &why).has_value());
+			Assert::IsTrue(why == GameLibrary::ReadFailure::CantOpen, L"a lock: left where it is, not set aside");
 
 			makeLibrary();
 			Assert::AreEqual(1, _library->count());
@@ -873,15 +879,145 @@ namespace GameLibraryTests
 		TEST_METHOD(ARatingBehindTheNewestRatedGameCatchesUp)
 		{
 			const QString user = addUser("Alice");
-			_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-1)));
+			_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-2)));
 			const LocalRating afterFirst = _library->localRating();
-			_library->put(makeRecord("computer", true, { "d2d4", "d7d5" }));
+			_library->put(makeRecord("computer", true, { "d2d4", "d7d5" }, QDateTime::currentDateTime().addDays(-1)));
+			_library->put(makeRecord("computer", true, { "c2c4", "c7c5" }));
 			const LocalRating real = _library->localRating();
 			_library->flush();
 			writeFile(GameLibrary::ratingFilePathOf(user), GameLibrary::ratingFileContent(afterFirst));
 			makeLibrary();
 			Assert::IsFalse(_library->ratingRestored(), L"not a failed check");
+			Assert::IsTrue(_library->localRating() == real, L"two games behind (rating.json couldn't be written): both");
+		}
+
+		// The catch-up follows only the games that go on from the rating (review of #187-#190): a rated
+		// game of another profile copied here verifies, but doesn't continue this rating.
+		TEST_METHOD(ACopiedRatedGameDoesntMoveTheRating)
+		{
+			const QString alice = addUser("Alice");
+			_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-5)));
+			const LocalRating aliceRating = _library->localRating();
+			const QString bob = addUser("Bob");
+			QString newest;
+			for (int i = 0; i < 3; ++i)
+				newest = _library->put(makeRecord("computer", true, { "e2e4", "e7e5" }, QDateTime::currentDateTime().addDays(-3 + i)));
+			Assert::AreEqual(3, _library->find(newest)->ratedGames);
+			_library->flush();
+			Assert::IsTrue(QFile::copy(GameLibrary::gameFilePathOf(bob, newest), GameLibrary::gameFilePathOf(alice, newest)));
+
+			_users->login(alice);
+			Assert::AreEqual(2, _library->count(), L"the copy verifies: it is a game");
+			Assert::IsTrue(_library->localRating() == aliceRating, L"but not Alice's rating");
+			Assert::IsFalse(_library->ratingRestored());
+		}
+
+		// ── games.json beside signed files, a remove retried, a migration retried (review of #187-#190) ──
+
+		// games.json (BL-19) is trusted once, as this PC's own: beside files of BL-20 it was written by hand
+		// (a way to sign any rating). Set aside, said as a file that failed its check; nothing in it loaded.
+		TEST_METHOD(ALegacyFileBesideSignedFilesIsSetAside)
+		{
+			const QString user = addUser("Alice");
+			_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }));
+			const LocalRating real = _library->localRating();
+			_library->flush();
+			GameRecord fake = makeRecord("computer", true, { "d2d4", "d7d5" });
+			fake.rated = true; fake.ratingBefore = 2480; fake.ratingChange = 20;
+			writeFile(GameLibrary::legacyFilePathOf(user), legacyContent({ fake }, 2500, 60));
+
+			_users = std::make_unique<UserManager>();
+			_library = std::make_unique<GameLibrary>();
+			QSignalSpy setAside(_library.get(), &GameLibrary::gamesSetAside);
+			_library->setUserManager(_users.get());
+			Assert::IsTrue(_library->localRating() == real, L"not its rating");
+			Assert::AreEqual(1, _library->count(), L"not its games");
+			Assert::AreEqual(1, _library->setAsideCount());
+			Assert::AreEqual(1, (int)setAside.count());
+			Assert::IsFalse(QFile::exists(GameLibrary::legacyFilePathOf(user)));
+			Assert::IsTrue(QFile::exists(GameLibrary::rejectedDirOf(user) + "/games.json"), L"kept for a look");
+			Assert::IsFalse(QFile::exists(GameLibrary::legacyFilePathOf(user) + ".migrated"));
+
+			// A game file alone (no rating yet) is enough: the profile is BL-20's.
+			const QString bob = addUser("Bob");
+			_library->put(makeRecord("local", false, { "e2e4" }));
+			_library->flush();
+			writeFile(GameLibrary::legacyFilePathOf(bob), legacyContent({ fake }, 2500, 60));
+			_users->login(user);
+			_users->login(bob);
+			Assert::AreEqual(LocalRating::Start, _library->rating());
+			Assert::AreEqual(1, _library->count());
+			Assert::AreEqual(1, _library->setAsideCount());
+		}
+
+		// A failing rating.json beside a games.json that can't be read now: the rating is restored and said
+		// at once (review of #187-#190: it waited for games.json and went back to 1200 without a word).
+		TEST_METHOD(AFailingRatingBesideALockedLegacyFileIsRestoredAtOnce)
+		{
+			const QString user = addUser("Alice");
+			_library->put(makeRecord("computer", true, { "e2e4", "e7e5" }));
+			const LocalRating real = _library->localRating();
+			_library->flush();
+			writeFile(GameLibrary::ratingFilePathOf(user), "not json");
+			Assert::IsTrue(QDir().mkdir(GameLibrary::legacyFilePathOf(user)), L"a folder in its place: it can't be opened");
+			makeLibrary();
+			Assert::IsTrue(_library->ratingRestored());
 			Assert::IsTrue(_library->localRating() == real);
+		}
+
+		// A game file that can't be removed now (another program holds it) is removed at the next write;
+		// else the deleted game would come back at the next start.
+		TEST_METHOD(ARemoveThatFailsIsTriedAgain)
+		{
+			const QString user = addUser("Alice");
+			const QString id = _library->put(makeRecord("local", true, { "e2e4" }));
+			_library->flush();
+			const QString path = GameLibrary::gameFilePathOf(user, id);
+			const QByteArray content = readFile(path);
+			Assert::IsTrue(QFile::remove(path));
+			Assert::IsTrue(QDir().mkdir(path), L"a folder in its place: QFile::remove fails");
+			Assert::IsTrue(_library->remove(id));
+			_library->flush();
+			Assert::IsTrue(QFileInfo(path).isDir());
+
+			Assert::IsTrue(QDir().rmdir(path));
+			writeFile(path, content); // "released": the file is still there
+			_library->put(makeRecord("local", false, { "d2d4" }));
+			_library->flush();
+			Assert::IsFalse(QFile::exists(path), L"removed at the next write");
+			makeLibrary();
+			Assert::AreEqual(1, _library->count(), L"it doesn't come back");
+		}
+
+		// A games.json record whose id can't name a file gets a UUID made from it, the same each time: a
+		// migration cut short by a failed write and tried again doesn't keep the game twice.
+		TEST_METHOD(AMigrationTriedAgainDoesntKeepAGameTwice)
+		{
+			const QString odd = QStringLiteral("{9b2d1c4e-odd id}");
+			const QString fileId = GameLibrary::fileIdOf(odd);
+			Assert::IsTrue(GameLibrary::isFileId(fileId));
+			Assert::AreEqual(fileId, GameLibrary::fileIdOf(odd), L"always the same");
+			Assert::AreEqual(QStringLiteral("game-b"), GameLibrary::fileIdOf("game-b"), L"a good id stays");
+
+			const QString user = addUser("Alice");
+			GameRecord a = makeRecord("local", true, { "e2e4" }, QDateTime::currentDateTime().addDays(-2));
+			a.id = odd;
+			GameRecord b2 = makeRecord("local", true, { "d2d4" }, QDateTime::currentDateTime().addDays(-1));
+			b2.id = QStringLiteral("game-b");
+			writeFile(GameLibrary::legacyFilePathOf(user), legacyContent({ a, b2 }));
+			const QString path = GameLibrary::gameFilePathOf(user, fileId);
+			Assert::IsTrue(QDir().mkpath(path), L"its file can't be written now");
+			makeLibrary();
+			Assert::IsTrue(QFile::exists(GameLibrary::legacyFilePathOf(user)), L"not migrated yet: kept");
+
+			Assert::IsTrue(QDir().rmdir(path));
+			_library->put(makeRecord("local", false, { "c2c4" }));
+			_library->flush(); // the migration again
+			Assert::AreEqual(3, _library->count(), L"its two games once, and the new one");
+			Assert::IsTrue(_library->find(fileId).has_value());
+			Assert::IsTrue(QFile::exists(GameLibrary::legacyFilePathOf(user) + ".migrated"));
+			makeLibrary();
+			Assert::AreEqual(3, _library->count());
 		}
 
 		// games.json (BL-19) had no ratedGames: the migration counts them back from its rating along the

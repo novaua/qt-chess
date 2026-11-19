@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QByteArray>
+#include <QJsonObject>
 #include <QString>
 
 // BL-20: the signature of what the app keeps on disk (a game, the rating, the statistics), so a file
@@ -21,6 +22,16 @@ public:
 
 	static QString sign(Kind kind, const QByteArray& payload);
 	static bool verify(Kind kind, const QByteArray& payload, const QString& signature);
+	// A JSON object signed as it is written (canonical): a game record, the rating, the statistics.
+	static QString sign(Kind kind, const QJsonObject& json) { return sign(kind, canonical(json)); }
+	static bool verify(Kind kind, const QJsonObject& json, const QString& signature)
+	{
+		return verify(kind, canonical(json), signature);
+	}
+	// What is signed: the object's compact JSON. QJsonObject keeps its keys sorted and Qt writes numbers
+	// in the shortest form that reads back the same, so the object read from a file gives the same bytes
+	// again (GameSignatureTest guards it).
+	static QByteArray canonical(const QJsonObject& json);
 	// The key number a signature names; 0 when it names none.
 	static int keyOf(const QString& signature);
 	// Signed with the newest key (else it is signed again when next written).

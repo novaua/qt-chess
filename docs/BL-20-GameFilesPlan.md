@@ -104,9 +104,19 @@ A small class in ChessGui (`gamesignature.h/cpp`, C++ style as CLAUDE.md asks):
   `games/rejected/`; a missing one while rated games are kept is restored the same way; one that verifies but
   is behind the newest rated game (a crash between the two writes) catches up without a message. A record rated
   before step 2 has no `ratedGames`: the rated games kept up to it are counted.
+- **Review fixes (after step 4):** the catch-up follows only the rated games that continue the rating exactly
+  (`ratingBefore` the rating so far, `ratedGames` one more each), so a rated game copied from another profile
+  (it verifies: no signature names its profile) doesn't move it; a crash or a `rating.json` that couldn't be
+  written for several games still catches up. Restoring a failing or missing `rating.json` still takes the newest
+  rated game, a copied one too: only a signature per profile would close that (not done, the owner's choice).
+  `games.json` is migrated only in a profile without files of BL-20 (`GameLibrary::hasSignedFiles`); beside them
+  it is set aside in `games/rejected/` (it would sign whatever it says). A profile emptied of every BL-20 file
+  by hand is a new profile, and is still trusted once: the limit of trusting an old format at all. Downgrading
+  to a build before BL-20 and back loses the games played there (they go to `games/rejected/games.json`).
 - **As built (step 2):** "before BL-20" for `users.json` is its `version` below 3 (version 3 signs). A player who
   edits the version back and drops the signatures gets the statistics trusted once: a deliberate edit of the
-  format, beyond editing a number (§2.5: a deterrent). The rebuild counts the kept games the statistics had
+  format, beyond editing a number (§2.5: a deterrent). Review fixes: not when a profile already has signed files
+  (`hasSignedFiles`), and an older file is written as version 3 as soon as it is loaded. The rebuild counts the kept games the statistics had
   (`resultRecorded`), and a profile's two-player games kept by the other profile (the one signed in keeps
   them). The window says it: "Alice's statistics couldn't be verified and were restored from a backup." /
   "… rebuilt from the kept games (Lichess and older games aren't in them)." An import checks its own (§3.6).

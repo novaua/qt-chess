@@ -1,5 +1,6 @@
 #pragma once
 #include <QDate>
+#include <QList>
 #include <QMap>
 #include <QObject>
 #include <QString>
@@ -9,6 +10,7 @@
 #include "LichessClient.h"
 
 class LichessAuth;
+struct GameRecord;
 class QJsonArray;
 class QJsonObject;
 
@@ -235,8 +237,10 @@ private:
     bool loadFrom(const QByteArray& json, bool* restored = nullptr);
     // BL-20 §3.4: the newest backup whose statistics for this profile verify; else rebuilt from the kept
     // games of every profile (vs the robot by level, Guest, the other profiles), Lichess and older lost.
-    void recoverStatistics(User& u);
-    QMap<QString, Record> statisticsFromGames(const QString& userId) const;
+    // Each profile's kept games (GameLibrary::keptRecordsOf), read once while statistics are rebuilt.
+    using KeptGames = QMap<QString, QList<GameRecord>>;
+    void recoverStatistics(User& u, KeptGames& kept);
+    QMap<QString, Record> statisticsFromGames(const QString& userId, KeptGames& kept) const;
     void save();
     void rotateBackups(const QByteArray& json);
     void emitAllChanged(); // after a restore: every property may have changed
