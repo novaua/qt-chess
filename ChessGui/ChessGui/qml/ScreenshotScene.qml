@@ -72,12 +72,17 @@ Item {
             if (name === "online-game-menu") {   // LI-10: the Blitz game's menu (it can't be played here)
                 Qt.callLater(() => {
                     const card = findItem(pages.currentItem, "ongoingGame_TiGeHdSm")
+                    if (!card) {
+                        console.warn("online-game-menu: no card for the game TiGeHdSm")
+                        return
+                    }
                     let flick = card.parent
                     while (flick && flick.contentY === undefined)
                         flick = flick.parent
                     if (flick)   // the card in view (Your games is last on the page), its menu over it
                         flick.contentY = Math.max(0, flick.contentHeight - flick.height)
-                    card.openMenu()
+                    // Opened once the scroll is laid out: the menu stays where it opens.
+                    Qt.callLater(() => card.openMenu())
                 })
             }
             if (name === "online-challenges-decline")   // the first challenge's reasons

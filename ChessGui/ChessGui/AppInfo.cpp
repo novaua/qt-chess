@@ -146,8 +146,9 @@ void AppInfo::probeNext()
 
 void AppInfo::copyToClipboard(const QString& text, const QString& message)
 {
-    QGuiApplication::clipboard()->setText(text);
-    emit copied(message);
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    clipboard->setText(text);
+    emit copied(message, clipboard->text() == text);
 }
 
 void AppInfo::setEngine(const QString& name)

@@ -217,7 +217,7 @@ TestCase {
 
     // LI-10: a right click on a Lichess game's card, Your games on the Online page: its menu. A Crazyhouse
     // game (not playable here) has Open on lichess.org and Copy link, no Continue; Copy link puts its URL
-    // on the clipboard and says "Link copied".
+    // on the clipboard and says "Link copied". The Menu key and Shift+F10 on its button open the menu too.
     function test_12_copyGameLink() {
         FakeLichess.addOngoingGame("zhGame01", "Housey", "white", "e2e4", "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
                                    "crazyhouse")
@@ -237,6 +237,21 @@ TestCase {
         mouseClick(copy)
         tryVerify(() => TestRun.clipboardText() === "https://lichess.org/zhGame01", 3000, "the link on the clipboard: " + TestRun.clipboardText())
         app.waitMessage("Link copied")
+        tryVerify(() => !copy.menu.visible, 3000, "the menu closed")
+
+        // The keyboard: the Menu key, then Shift+F10, on the card's button opens the same menu.
+        const button = findChild(card, "actionButton")
+        button.forceActiveFocus()
+        keyClick(Qt.Key_Menu)
+        tryVerify(() => copy.menu.opened, 3000, "the menu by the Menu key")
+        keyClick(Qt.Key_Escape)   // closes the menu, not the page
+        tryVerify(() => !copy.menu.visible, 3000)
+        compare(app.pageName(), "online")
+        button.forceActiveFocus()
+        keyClick(Qt.Key_F10, Qt.ShiftModifier)
+        tryVerify(() => copy.menu.opened, 3000, "the menu by Shift+F10")
+        keyClick(Qt.Key_Escape)
+        tryVerify(() => !copy.menu.visible, 3000)
         keyClick(Qt.Key_Escape)   // Back
         app.waitForPage("home", 5000)
     }

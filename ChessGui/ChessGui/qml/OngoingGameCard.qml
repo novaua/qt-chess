@@ -11,7 +11,7 @@ GameCard {
     id: card
 
     property var game
-    readonly property string url: "https://lichess.org/" + game.gameId
+    readonly property string url: "https://lichess.org/" + (game?.gameId ?? "")
     property bool lichessLabel: false   // "Lichess · " before the details, beside other kinds of games
 
     fen: game.fen
@@ -26,7 +26,9 @@ GameCard {
     actionTip: playable ? "" : "This kind of game can't be played in Chess++ yet"
     busy: ChessConnector.StartingOnlineGame
     starting: ChessConnector.StartingGameId === game.gameId
-    objectName: "ongoingGame_" + game.gameId
+    objectName: "ongoingGame_" + (game?.gameId ?? "")
+    hasMenu: true
+    onMenuRequested: openMenu()
 
     onActivated: {
         if (playable)
@@ -36,7 +38,7 @@ GameCard {
     }
 
     // The menu where the card was right-clicked (also on its board and its button: they take only the
-    // left button); at the action button for openMenu() (the scene).
+    // left button); at the action button for openMenu(): the Menu key or Shift+F10 on it (and the scene).
     function openMenu() { gameMenu.popup(card, Theme.s3, card.height - Theme.s3) }
     TapHandler {
         acceptedButtons: Qt.RightButton

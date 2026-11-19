@@ -1039,7 +1039,12 @@ ApplicationWindow {
     // LI-10: e.g. a Lichess game's link copied from its card.
     Connections {
         target: AppInfo
-        function onCopied(message) { if (message !== "") root.notify(message, "success") }
+        function onCopied(message, ok) {
+            if (!ok)
+                root.notify("Couldn't copy to the clipboard: another program may be using it. Try again.", "critical")
+            else if (message !== "")
+                root.notify(message, "success")
+        }
     }
 
     // Lichess challenge setup: the dialogs and the pending challenge. The game itself starts and
