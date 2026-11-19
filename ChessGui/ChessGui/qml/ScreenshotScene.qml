@@ -206,7 +206,7 @@ Item {
             if (name === "select")
                 ChessConnector.figureSelected(6)   // the g1 knight: tinted square, dots on its moves
             if (name === "capture")
-                ChessConnector.figureSelected(39)   // the h5 queen: corners and the red glow on e5, f7, h7
+                ChessConnector.figureSelected(39)   // the h5 queen: the corners of e5, f7, h7
             if (name === "capture-ep")
                 ChessConnector.figureSelected(27)   // the d4 pawn: c3, and e3 en passant (an empty square)
             if (name === "chess960-select")

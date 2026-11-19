@@ -102,7 +102,7 @@ TestCase {
         compare(ChessConnector.CheckedKing, app.square("e8"), "the check at the end")
     }
 
-    // BL-21: a square the selected piece takes on shows the capture mark (corners and the red glow, under
+    // BL-21: a square the selected piece takes on shows the capture mark (its corners in the dot's colour, under
     // the pieces), not a dot; the other targets keep their dots. Shown or not as the move layers show it.
     function markShown(square) {
         const mark = findChild(app.item("captureLayer"), "captureMark_" + app.square(square))

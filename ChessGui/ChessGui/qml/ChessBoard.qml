@@ -67,7 +67,7 @@ Rectangle {
                 anchors.centerIn: parent
             }
 
-            // BL-21: the capture targets' corners and glow, under the pieces (the dots: over them, below)
+            // BL-21: the capture targets' corners, under the pieces (the dots: over them, below)
             NavigationLayer {
                 objectName: "captureLayer"
                 kind: "captures"
