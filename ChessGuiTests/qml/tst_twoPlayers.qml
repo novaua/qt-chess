@@ -1,6 +1,7 @@
 import QtQuick
 import QtTest
 import ChessPlusPlus
+import "qrc:/qml"   // AppSettings
 
 // Scenarios 2 and 3 (docs/UiTestSuitePlan.md §9): a two-player game played with the mouse.
 TestCase {
@@ -100,5 +101,32 @@ TestCase {
         tryCompare(ChessConnector, "MoveCount", 2, 3000, "e5")
         compare(GameLibrary.games[0].plyCount, 2, "the record follows the game")
         compare(GameLibrary.count, 2, "the same record, not a new one")
+    }
+
+    // Rematch swaps the colours (#193): the player takes Black and the board turns; White still moves
+    // first. With Settings → Gameplay "Rematch swaps colours" off, the colours stay.
+    function test_4_rematchSwapsColours() {
+        compare(AppSettings.rematchSwapsColours, true, "on by default")
+        compare(ChessConnector.PlayerPlaysWhite, true)
+        ChessConnector.rematch()
+        tryCompare(ChessConnector, "MoveCount", 0, 5000, "a new game")
+        compare(ChessConnector.PlayerPlaysWhite, false, "the player plays Black now")
+        tryCompare(app.page().board, "angle", 180, 3000, "the board turned to Black")
+        app.waitBoardIdle()
+        compare(ChessConnector.MovableColor, 1, "White to move")
+        app.clickMove("e2", "e4")
+        tryCompare(ChessConnector, "MoveCount", 1, 3000, "e4 on the turned board")
+
+        ChessConnector.rematch()
+        tryCompare(ChessConnector, "MoveCount", 0, 5000)
+        compare(ChessConnector.PlayerPlaysWhite, true, "swapped back")
+        tryCompare(app.page().board, "angle", 0, 3000)
+
+        AppSettings.rematchSwapsColours = false
+        compare(ChessConnector.RematchSwapsColours, false, "the setting reaches C++")
+        ChessConnector.rematch()
+        tryCompare(ChessConnector, "MoveCount", 0, 5000)
+        compare(ChessConnector.PlayerPlaysWhite, true, "kept with the setting off")
+        AppSettings.rematchSwapsColours = true
     }
 }

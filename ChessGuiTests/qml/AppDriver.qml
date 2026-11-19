@@ -308,6 +308,7 @@ QtObject {
         click("computerCard")
         const dialog = item("computerDialog")
         test.tryVerify(() => dialog.opened, 3000, "the vs computer dialog open")
+        item("computerSide").checkedIndex = 0   // White: the dialog offers the last game's side (a rematch swaps it)
         click("startComputerGameButton")
         waitForPage("game", 10000)
         waitClosed(dialog)
@@ -319,6 +320,7 @@ QtObject {
         click("twoPlayersCard")
         const dialog = item("twoPlayerDialog")
         test.tryVerify(() => dialog.opened, 3000, "the Two players dialog open")
+        item("twoPlayerSide").checkedIndex = 0   // White: the dialog offers the last game's side
         click("startGameButton")
         waitForPage("game", 10000)   // "Starting the game…" first, then the page
         waitClosed(dialog)

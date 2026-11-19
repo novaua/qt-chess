@@ -4,6 +4,19 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-19 — Rematch swaps the colours (#193, branch: bugs/rematchSwapsColours_191126)
+
+### Done
+- A rematch of a robot or two-player game kept the colours; it now gives the player the other side (the board turns; against the robot, the robot opens when it has White), as a Lichess rematch always did (`LichessClient::createRematch`).
+- Settings → Gameplay **Rematch swaps colours**, on by default (`AppSettings.rematchSwapsColours` → `ChessConnector.RematchSwapsColours`); off keeps the colours. Lichess rematches always swap.
+- The setup dialogs still offer the last game's side, so after a swapped rematch New game offers the new one; the UI tests' `startComputerGame` / `startTwoPlayerGame` choose White (`computerSide`, `twoPlayerSide`).
+- UI tests: `tst_twoPlayers` test 4 (swap, the board turned, back, the setting off), `tst_robot` test 7 (the robot opens as White).
+
+### Checked
+- UI tests (Debug) 12 files, 0 failed.
+
+---
+
 ## 2026-11-19 — BL-20: the hand tests passed, BL-20 done (branch: docs/bl20ManualResults_191126)
 
 ### Done

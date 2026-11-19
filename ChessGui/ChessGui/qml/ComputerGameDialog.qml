@@ -67,6 +67,7 @@ AppDialog {
         Label { text: "You play"; color: Theme.textSecondary; font: Theme.caption }
         ChoiceRow {
             id: side
+            objectName: "computerSide"
             options: [{ label: "White" }, { label: "Black" }, { label: "Random" }]
         }
 

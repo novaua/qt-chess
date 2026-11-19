@@ -1511,6 +1511,8 @@ void ChessConnector::rematch()
 		return;
 	}
 	_nextStart = _game->GetStartPosition(); // a Chess960 rematch: the same position (LI-01A)
+	if (_rematchSwapsColours)
+		setPlayerPlaysWhite(!_config.playerPlaysWhite); // the board turns to the player's new side
 	if (_wasVsComputer)
 		startNewGameWithComputer(_config.lastLevel);
 	else
@@ -1691,6 +1693,13 @@ void ChessConnector::setUseFen(bool v)
 	_config.useFen = v;
 	_config.save();
 	emit useFenChanged();
+}
+
+void ChessConnector::setRematchSwapsColours(bool on)
+{
+	if (_rematchSwapsColours == on) return;
+	_rematchSwapsColours = on;
+	emit rematchSwapsColoursChanged();
 }
 
 void ChessConnector::setPlayerPlaysWhite(bool v)

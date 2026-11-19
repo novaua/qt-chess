@@ -120,4 +120,17 @@ TestCase {
         compare(app.pieceAt("d2"), "P", "the pawn back on d2")
         compare(ChessConnector.MovableColor, 1)
     }
+
+    // Rematch swaps the colours (#193): the player takes Black, so the robot opens with its e4.
+    function test_7_rematchSwapsColours() {
+        compare(ChessConnector.PlayerPlaysWhite, true)
+        ChessConnector.rematch()
+        tryCompare(ChessConnector, "MoveCount", 0, 5000, "a new game")
+        compare(ChessConnector.PlayerPlaysWhite, false, "the player plays Black now")
+        compare(ChessConnector.GameMode, "computer")
+        tryCompare(ChessConnector, "MoveCount", 1, thinkMs + 5000, "the robot plays White's first move")
+        compare(ChessConnector.LastMoveFrom, app.square("e2"))
+        app.waitBoardIdle()
+        compare(ChessConnector.MovableColor, 2, "the player's move, as Black")
+    }
 }

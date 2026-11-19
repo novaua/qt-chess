@@ -185,6 +185,16 @@ Page {
                         Accessible.name: "Highlight the last move"
                     }
                 }
+                SettingRow {
+                    title: "Rematch swaps colours"
+                    description: "A rematch against the computer or between two players gives each side the other colour. Lichess rematches always do."
+                    Switch {
+                        objectName: "rematchSwapsColoursSwitch"
+                        checked: AppSettings.rematchSwapsColours
+                        onToggled: AppSettings.rematchSwapsColours = checked
+                        Accessible.name: "Rematch swaps colours"
+                    }
+                }
             }
 
             // ── Computer ──

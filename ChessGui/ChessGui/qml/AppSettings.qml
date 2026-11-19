@@ -22,6 +22,7 @@ Settings {
     property bool confirmResign:      true
     property bool showLegalMoves:     true
     property bool highlightLastMove:  true
+    property bool rematchSwapsColours: true // a robot or two-player rematch gives the player the other colour (ChessConnector.RematchSwapsColours)
     property int  clockLimitSec:      0     // the last new game's time control; 0 and 0: no clock
     property int  clockIncSec:        0
     property bool chess960:           false // the last new game's variant: Chess960 (LI-01A), else standard
