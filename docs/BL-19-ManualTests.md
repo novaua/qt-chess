@@ -5,6 +5,7 @@
 | **Date** | 2026-11-16 |
 | **Build** | `develop` with #162–#170 (Release) |
 | **Plan** | [`BL-19-GamesLibraryPlan.md`](BL-19-GamesLibraryPlan.md) (§5: hand tests 1–8 passed on 2026-11-16) |
+| **Run** | 2026-11-19 by Claude, `develop` at #201 (Release): the app's own window offscreen, driven with real mouse clicks by a throwaway Qt Quick Test file (the UI tests' `AppDriver`), on **Stockfish 19** (`CHESS_ENGINE_PATH`), with real time and files, on throwaway data folders. Not seen there: how it looks and feels in a real window, Windows' own contrast theme, a tooltip on hover (hover doesn't reach items offscreen). |
 
 The UI tests play the games library against FakeUci, a stand-in engine that answers at once and the same
 way every time, and the screenshot scenes show made-up games and a made-up analysis. Only the real app shows
@@ -30,42 +31,30 @@ layout (`analysis`, three sizes), the result card's four buttons (`result`), Set
 
 1. In the throwaway folder, play one two-player game to the end (Fool's mate: f3 e5 g4 Qh4#) and one
    two-player game left unfinished (1. e4, then Home). Close the app.
-2. Add 50 more finished games to the profile's file with this script (PowerShell, the app closed). The
-   profile's folder is the one under `users\` (one profile: one folder).
-
-   ```powershell
-   $file = (Get-ChildItem "$env:TEMP\chess-bl19\users\*\games.json" | Select-Object -First 1).FullName
-   Copy-Item $file "$file.bak"
-   $records = for ($i = 1; $i -le 50; $i++) {
-       $start = (Get-Date '2026-10-01T18:00:00').AddHours($i)
-       [ordered]@{
-           id = [guid]::NewGuid().ToString(); kind = 'local'; finished = $true
-           startedAt = $start.ToString('s'); finishedAt = $start.AddMinutes(5).ToString('s')
-           playerPlaysWhite = $true; opponentName = "Guest $i"; playerAvatar = ''; opponentAvatar = ''
-           moves = @('f2f3', 'e7e5', 'g2g4', 'd8h4')
-           fen = 'rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3'
-           result = '0-1'; resultText = "Guest $i wins by checkmate" } | ConvertTo-Json -Compress
-   }
-   # Into the file's list as text: the app's own records stay exactly as they are.
-   $text = [IO.File]::ReadAllText($file)
-   $text = $text.Replace('"games":[', '"games":[' + ($records -join ',') + ',')
-   [IO.File]::WriteAllText($file, $text)   # UTF-8 without a BOM
-   ```
+2. Add 50 more finished games. Since BL-20 every game is a signed file of its own, which a script can't
+   write (a game file that fails its check is set aside, and a `games.json` beside the game files too), so
+   this step needs the UI tests' `TestRun.addFinishedGames(50)`: the UI tests run it (`tst_games` test 5,
+   52 games), and Claude's run did this scenario with it.
 3. Start the app again (`& $app --data-dir $data`). Ctrl+O: the Games page.
-   - **Expected**: 52 games, 51 finished. The newest is first: your real Fool's mate game.
+   - **Expected**: 52 games, 51 finished. The newest is first: the unfinished 1. e4 (played after the Fool's
+     mate).
 4. Settings → Data → **Games kept: 50**.
    - **Expected**: "Keep only 50 finished games?", saying 1 finished game is deleted for good. Delete it.
-     Back on the Games page: 51 games; "Guest 1" (the oldest, 1 Oct) is gone; the unfinished 1. e4 is still
-     there.
+     Back on the Games page: 51 games; the oldest finished game is gone; the unfinished 1. e4 and the Fool's
+     mate are still there.
 5. Restart the app.
    - **Expected**: still 51 games, Games kept still 50.
 
-Result:
+Result: **OK** (Claude, 2026-11-19). 52 games, 51 finished, the unfinished 1. e4 first. "Keep only 50 finished
+games?": "1 finished game is deleted for good: the oldest beyond 50 of each profile on this computer.
+Unfinished games stay." Delete: 51 games, the oldest finished gone, the 1. e4 and the Fool's mate there. After a
+restart: 51 games, Settings "50 games".
 
 ## 2. Play from here, with Stockfish
 
-1. Play a two-player game for about 10 moves, then Home. Ctrl+O → Open it (a replay). Step back to move 5
-   with ‹.
+1. Play a two-player game for about 10 moves and resign it (an unfinished game's card offers only Continue,
+   and a game going on isn't played from), then Home. Ctrl+O → Open it (a replay; it opens at the start).
+   Go to move 5 with ›.
    - **Expected**: the review bar shows **Play from here**.
 2. Play from here → **vs computer…** → level 3, you take the side to move → Start.
    - **Expected**: the board has the game's first moves; the robot answers when it is its turn. Takeback
@@ -73,7 +62,10 @@ Result:
 3. Play two moves, Home. Games page.
    - **Expected**: a new card "… from move 5" (or the move you chose); the first game is unchanged.
 
-Result:
+Result: **OK** (Claude, 2026-11-19; step 1 as written now: the unfinished game's card said Continue). At ply 8
+of 20: "Move 8 of 20" and Play from here. The dialog: "Play from here vs computer", "From the position after
+4… Nf6: White to move."; level 3, White. Stockfish answered in about 1 s; Ctrl+Z took that back, then "No more
+moves" at ply 8. The new card: "you play White · from move 5 · … · 6 moves"; the first game still 20 plies.
 
 ## 3. The rating vs the robot
 
@@ -89,7 +81,11 @@ Result:
    - **Expected**: not rated, as an aborted game on lichess.org: the rating and the number of rated games stay
      the same; its card has no "· ±NN".
 
-Result:
+Result: **OK** (Claude, 2026-11-19; lost to level 1 by mate, a player of random moves). 1161 → 1123: Home "Rating
+1123?", the card "You lost · −38", Profile → Statistics "Rating vs the robot" 1123?. 2: a mate (1123 → 1085),
+Ctrl+Z: back to 1123, the same rated games; mated again: still 1123, the record not rated. 3: deleting a rated
+game: 1123 stays. 4: Black, resigned after the robot's first move: 1123 and the rated games unchanged, the card
+"You lost" without a change.
 
 ## 4. Analysing a real game
 
@@ -105,7 +101,12 @@ Result:
 4. Home, then Ctrl+O → Open the same game.
    - **Expected**: the analysis is there at once, without analysing again.
 
-Result: (how long it took:)
+Result: **OK** (Claude, 2026-11-19), how long it took: **2.6 s** for 49 positions (24 moves, Normal (14), this
+PC). "Analysing… 3 of 49" while it ran; then White 78 % (1 ?!, 1 ?, 1 ??), Black 97 %; marks in the list, the eval
+bar. 7. Ne4??: "Blunder · Best was e3", −7.8, both arrows. Checked with Stockfish apart (python-chess, depth 18):
+e3 is its first choice there too, and at the ? move; the evals agree (−7.8 / −7.5, −1.3 / −1.2, −0.6 / −0.5), and the
+bar leans to the side the eval favours. F turns the bar with the board; reopened from the Games page the analysis is
+there at once.
 
 ## 5. Analysis depth, Cancel, leaving
 
@@ -120,7 +121,10 @@ Result: (how long it took:)
 4. Analyse again, and close the app while it runs.
    - **Expected**: the app closes within a second or two; Task Manager shows no stockfish.exe left over.
 
-Result:
+Result: **OK** (Claude, 2026-11-19). Deep (18): 16 s against Normal's 2.6 s, the same marks. Cancel at 25 of 49:
+the progress went, the earlier analysis exactly as it was. Home while it ran: it went on (15 of 49 after 5 s),
+and the game reopened showed the progress, then the analysis. Closed while analysing: the process was gone
+0.19 s after the window, no stockfish.exe left.
 
 ## 6. Without the engine
 
@@ -134,7 +138,11 @@ Result:
      More → Analyse are disabled; hovering the panel's button says the analysis needs the chess engine. A
      game analysed before still shows its analysis.
 
-Result:
+Result: **Found a bug** (Claude, 2026-11-19; BL-25). After Settings has been opened: "Chess engine not found"
+(and "C:\no-such-engine.exe didn't answer."), Analyse game in the panel and More → Analyse disabled, the analysed
+game shows its analysis: OK. **But before Settings has been opened in a session, Analyse game is enabled**: the
+engine is probed only when the Settings page is made, and the button counts "checking" as found. Pressing it:
+"The chess engine couldn't analyse the game." Not checked: the tooltip on hover (no hover offscreen).
 
 ## 7. Not during a game
 
@@ -142,7 +150,8 @@ Result:
    - **Expected**: More → Analyse game is disabled; the moves panel has no Analyse button (no hints during a
      game).
 
-Result:
+Result: **OK** (Claude, 2026-11-19). vs the robot (Stockfish, level 1), three moves: More → "Analyse game"
+disabled, no Analyse in the moves panel.
 
 ## 8. Export and import keep the games, the rating and the analysis
 
@@ -154,7 +163,9 @@ This one runs in your normal data folder (no `--data-dir`), or in the throwaway 
    - **Expected**: the same games in the Games page, the same rating on Home, and the analysed game opens
      with its analysis.
 
-Result:
+Result: **OK** (Claude, 2026-11-19; the export and the import called as Settings' buttons call them, without
+the file dialogs). Into another data folder, as a new profile: the same 57 games, rating 1113 (3 rated games),
+nothing set aside; the analysed game opens with its analysis.
 
 ## 9. Dark mode and high contrast
 
@@ -163,7 +174,9 @@ Result:
 2. Windows high contrast (Settings → Accessibility → Contrast themes), the app open.
    - **Expected**: the marks are readable (they take the text colour); the eval bar is still visible.
 
-Result:
+Result: 1 **OK** (Claude, 2026-11-19, from a picture): ?! blue, ? orange, ?? red and the eval bar read well on the
+dark panel. 2 **open, for the owner**: it needs Windows' own contrast theme (forcing the app's high contrast on a
+normal Windows theme mixes its colours, so a picture of that says nothing).
 
 ## Clean up
 
