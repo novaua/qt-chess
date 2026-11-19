@@ -175,6 +175,7 @@ void LichessClient::setToken(const QString& decryptedToken)
     emit canRematchChanged();
     if (changed) {
         setOngoingGames({}); // another account (or none): its games are not ours
+        _ongoingGamesLoaded = false; // and this account's haven't come yet
         _eventStream->close(); // its events too; main.cpp opens it again for a new token
         _eventStreamRetry.stop();
         _challengesSettle.stop();
@@ -225,6 +226,7 @@ void LichessClient::refreshOngoingGames()
             qDebug() << "LichessClient: ongoing games failed:" << _ongoingGamesError;
         } else {
             _ongoingGames = parseOngoingGames(doc.object());
+            _ongoingGamesLoaded = true;
             _ongoingGamesError.clear();
             qDebug() << "LichessClient: ongoing games:" << _ongoingGames.size();
             for (const auto& game : _ongoingGames) {
@@ -246,8 +248,16 @@ void LichessClient::setOngoingGames(const QVariantList& games)
     cancelOngoingGamesRefresh(); // its answer would replace these
     _ongoingGames = games;
     _ongoingGamesLoading = false;
+    _ongoingGamesLoaded = true;
     _ongoingGamesError.clear();
     emit ongoingGamesChanged();
+}
+
+bool LichessClient::isOngoingGame(const QString& gameId) const
+{
+    return std::any_of(_ongoingGames.cbegin(), _ongoingGames.cend(), [&](const QVariant& game) {
+        return game.toMap().value(QStringLiteral("gameId")).toString() == gameId;
+    });
 }
 
 // Like "Join a game", it replaces whatever stream or challenge wait is running: it is offered only
@@ -639,7 +649,10 @@ void LichessClient::handleEventStreamLine(const QByteArray& line)
                 return;
             }
         }
-        if (gameId != _currentGameId && gameId != _acceptingId) // a game started or ended elsewhere: Your games (LI-04)
+        // A game started or ended elsewhere: Your games (LI-04). Not a gameStart of a game already listed:
+        // Lichess sends one for every game going on when the stream opens, and the list has them (BL-24).
+        const bool known = type == QLatin1String("gameStart") && isOngoingGame(gameId);
+        if (gameId != _currentGameId && gameId != _acceptingId && !known)
             _ongoingRefresh.start();
         return;
     }

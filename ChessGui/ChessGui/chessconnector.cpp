@@ -738,13 +738,20 @@ bool ChessConnector::continueOnlyGame()
 {
 	const QList<GameRecord> local = _library ? _library->unfinished() : QList<GameRecord>{};
 	const bool linked = _lichessClient && _userManager && _userManager->lichessConnected();
-	if (linked && _lichessClient->ongoingGamesLoading())
-		return false; // the list shows the local games at once, the Lichess ones when they come
+	// Before the Lichess games have ever come, the list shows the local games at once and the Lichess
+	// ones when they come. Once they have, a refresh in flight (and there are several in the first
+	// seconds after a start) doesn't make the last list wrong: decide on it (BL-24).
+	if (linked && !_lichessClient->ongoingGamesLoaded()) {
+		qDebug() << "ChessConnector: Continue opens the list | local:" << local.size() << "| Lichess games not loaded yet";
+		return false;
+	}
 	const QVariantList online = linked ? _lichessClient->ongoingGames() : QVariantList{};
 	if (local.size() == 1 && online.isEmpty())
 		return continueGame(local.first().id);
 	if (local.isEmpty() && online.size() == 1 && online.first().toMap().value(QStringLiteral("canPlayHere")).toBool())
 		return continueOnlineGame(online.first().toMap().value(QStringLiteral("gameId")).toString());
+	qDebug() << "ChessConnector: Continue opens the list | local:" << local.size() << "| Lichess:" << online.size()
+	         << (linked && _lichessClient->ongoingGamesLoading() ? "(refreshing)" : "");
 	return false;
 }
 

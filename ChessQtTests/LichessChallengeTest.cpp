@@ -333,6 +333,46 @@ namespace LichessTests
 			Assert::AreEqual(1, lichess.count("GET /api/account/playing?nb=50"));
 		}
 
+		// BL-24: the event stream opens with a gameStart for every game going on. One already in Your games
+		// isn't news: no refresh. A game not listed is (started elsewhere): one refresh. And the list stays
+		// "loaded" while a refresh is in flight, so Home's Continue can decide on it.
+		TEST_METHOD(GameStartOfAListedGame_NoRefresh)
+		{
+			FakeLichess lichess;
+			QTcpSocket* events = nullptr;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString& path) {
+				if (path.startsWith("/api/account/playing")) {
+					FakeLichess::json(socket, R"({"nowPlaying":[{"gameId":"g1","fullId":"g1abcdef","color":"white","isMyTurn":true,)"
+					                          R"("speed":"rapid","variant":{"key":"standard"},"opponent":{"username":"Friend"}}]})");
+					return;
+				}
+				FakeLichess::startStream(socket);
+				events = socket;
+				FakeLichess::line(socket, R"({"type":"gameStart","game":{"gameId":"g1","fullId":"g1abcdef"}})");
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			Assert::IsFalse(client.ongoingGamesLoaded(), L"not before the first answer");
+
+			client.refreshOngoingGames();
+			waitUntil([&] { return !client.ongoingGamesLoading(); });
+			Assert::IsTrue(client.ongoingGamesLoaded());
+			Assert::IsTrue(client.isOngoingGame("g1"));
+			Assert::AreEqual(1, lichess.count("GET /api/account/playing?nb=50"));
+
+			client.startEventStream();
+			waitUntil([&] { return events != nullptr; });
+			waitUntil([] { return false; }, 800); // longer than the refresh's 500 ms
+			Assert::AreEqual(1, lichess.count("GET /api/account/playing?nb=50"), L"g1 is listed: no refresh");
+
+			FakeLichess::line(events, R"({"type":"gameStart","game":{"gameId":"g2","fullId":"g2abcdef"}})");
+			waitUntil([&] { return client.ongoingGamesLoading(); });
+			Assert::IsTrue(client.ongoingGamesLoaded(), L"still the last list while it refreshes");
+			Assert::AreEqual(1, (int)client.ongoingGames().size());
+			waitUntil([&] { return !client.ongoingGamesLoading(); });
+			Assert::AreEqual(2, lichess.count("GET /api/account/playing?nb=50"), L"g2 started elsewhere: refreshed");
+		}
+
 		// Lichess refuses Accept: the failure is the challenge's, not a network error. A 400 (e.g. not
 		// allowed): it stays listed, to decline. A 404: it's gone (canceled meanwhile), not a game to
 		// stream as for a link.

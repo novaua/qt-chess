@@ -4,6 +4,21 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-19 — BL-24: Continue opens the list for a single Lichess game (branch: bugs/continueSingleGame_191126)
+
+### Done
+- `ChessConnector::continueOnlyGame()` gave up while the Lichess games reloaded (`ongoingGamesLoading`) and opened the Continue list, even with one game. It now decides on the last list. It opens the list only before the first list has come for the account: `LichessClient::ongoingGamesLoaded()`, reset when the token changes.
+- The event stream's `gameStart` of a game already in Your games no longer reloads the list (`isOngoingGame`). Lichess sends one for every game going on when the stream opens, which made a needless reload 0.5 s after each start.
+- A log line when Continue opens the list, with the counts and why.
+- Tests:
+  - `LichessChallengeTest::GameStartOfAListedGame_NoRefresh`: a listed game's `gameStart` doesn't reload, an unknown one does; the list stays "loaded" during a reload;
+  - `tst_lichess` test 9: Continue during a reload joins the only game.
+
+### Checked
+- ChessQtTests (Lichess) 115 passed; UI tests (Debug) 12 files, 0 failed.
+
+---
+
 ## 2026-11-19 — LI-04: the hand tests passed, LI-04 done (branch: docs/li04HandTestResults_191126)
 
 ### Done
