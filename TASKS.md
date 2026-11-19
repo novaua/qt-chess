@@ -149,6 +149,20 @@ Manual checks, no code (do any time):
   - **Likely cause (not confirmed):** the days row is a `RowLayout` of a `ChoiceRow` (seven buttons) and the "days per move" label, without a width limit (`OnlinePage.qml`). It is wider than the card, so it overflows. The card's column then takes the widest child's width, so the `Layout.fillWidth` items, the username `TextField` among them, get that width and spill out with it.
   - **Fix:** let the row wrap or shrink to the card's width (the label under the buttons, or the buttons in a `Flow`), and keep every row within the card. Check the rest of the page's cards the same way: the time-control tiles, the Variant row, Side.
   - **Tests:** screenshot scenes of the Online page with Days per move chosen, at the default size and narrow (e.g. `-Size 600x900`); a UI test check that the days row and the username field lie inside the card.
+- [ ] BL-24 **Bug**: Home's Continue sometimes opens the list for a single Lichess game [Easy], **not started** (the owner, LI-04 hand test 3, 2026-11-19: seen a few times after restarting the app, not reproduced in 5+ tries).
+  - **Expected:** with one unfinished game, Continue rejoins it directly.
+  - **Seen:** sometimes the "Continue a game" page opened, with the one game on it.
+  - **Cause, from the code (`chessconnector.cpp`, `continueOnlyGame()`):** while `LichessClient` reloads the list of Lichess games (`ongoingGamesLoading`), Continue doesn't decide and opens the list, even though the list it already has is right.
+  - After a start the list reloads several times in the first seconds; the app log of 2026-11-19 20:00–20:03 shows it after each restart:
+    - Home's first load (the first request after a start took 4.4 s);
+    - the event stream opens and Lichess sends a `gameStart` for every game going on. The app takes that as a game started elsewhere and reloads 0.5 s later (`_ongoingRefresh`);
+    - Home's `StackView.onActivated` reloads again.
+  - Each reload is 80–150 ms, so a click on Continue soon after the card shows can fall into one.
+  - **Fix:**
+    - (1) `continueOnlyGame()` decides on the list it has once one has loaded, and opens the list only before the first load;
+    - (2) a `gameStart` from the event stream for a game already in the list doesn't reload it;
+    - (3) a log line when Continue opens the list, with why (local / online counts, loading).
+  - **Tests:** `tst_lichess` (or a C++ test with `FakeLichess`): Continue while a reload is in flight still rejoins the only game; the event stream's opening `gameStart` lines don't trigger a reload.
 
 ---
 

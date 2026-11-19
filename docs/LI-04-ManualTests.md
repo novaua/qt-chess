@@ -73,7 +73,7 @@ Result: 1. as expected, can continue waiting and Your turn are present. 2. Ok, a
    - **Expected**: the card's button shows "Starting…", then the game as in step 1. Play it to the
      end normally (or resign in the friend's browser).
 
-Result: 1. yes, direct rejoin, if exit app and continue list is shown. 2. Ok. 3. Ok as expected. 
+Result: 1. yes, direct rejoin. If single game present it loads without showing list of existing games to continue. 2. Ok. 3. Ok as expected. 
 
 ### 4. Close the window during a game
 
