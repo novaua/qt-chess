@@ -150,18 +150,53 @@ It links only `ChessCore` and does **not** use Qt; tests that need Qt (UCI engin
   3. Expose QML-visible services as typed singletons (`qmlRegisterSingletonInstance`), not context properties: `ChessConnector`, `UserManager`, `LichessClient`, `AvatarProvider`, `AppInfo` and `GameLibrary` in module `ChessPlusPlus` (`AppServices`: made, wired and registered there, for `main.cpp` and the UI tests alike). A QML file that uses them has `import ChessPlusPlus`.
 - `PieceColor` is an `enum class` (Light/Dark); use scoped references (`PieceColor::Light`)
 
-## Resuming Work After a Session Break
+## Tasks and Bugs (`.tasks/`)
 
-At the start of a new session, read these two files to get full context:
+Every task and bug is one Markdown file, `<ID>-<short-kebab-title>.md` (e.g. `LI-10-copy-a-games-link-from-its.md`):
 
-1. `PROGRESS.md` — latest status, what's broken, and numbered next steps
-2. `TASKS.md` — full task checklist; find first unchecked item under "In Progress"
+- `.tasks/open/` — the queue: open and in-progress tickets.
+- `.tasks/archive/` — done tickets, each with its history under `## Resolution`. `_unmatched-progress.md` holds old log entries that match no ticket.
+- IDs: `BL-` the app (bugs included: BL-23 and BL-24 were bugs), `LI-` playing on Lichess, `CE-` the chess rules in `ChessCore`; a variant of a ticket gets a letter (`LI-01A`, `LI-01B`). A new ticket takes the next free number of its prefix, across both folders (`ls .tasks/open .tasks/archive`). `TSK-` / `BUG-` are only the old items that had no ID; don't make new ones.
+- Frontmatter, then `# <ID> <title>` and the ticket's text:
+  ```yaml
+  ---
+  id: LI-10
+  title: "Copy a game's link from its card"
+  type: task        # task | bug
+  status: open      # open | in_progress | done
+  priority: medium  # high | medium | low
+  ---
+  ```
+- A ticket's plan and hand tests stay in `docs/` (`docs/<ID>-…Plan.md`, `docs/<ID>-ManualTests.md`), linked from the ticket.
 
-Then confirm the current branch with `git branch` and `git log --oneline -5` before making any changes.
+Saving tokens:
+
+- **Never** read all of `.tasks/open/`, and **never** read `.tasks/archive/` unless asked to look into a past ticket.
+- To find work: `ls .tasks/open`, or Grep `.tasks/open` for `status: in_progress` / `priority: high` (file names only), then read **only** the ticket being worked on.
+- A bug or follow-up found on the way: create its file in `.tasks/open/` at once (with what was found: cause if known, where, how to see it) instead of writing it into `PROGRESS.md` or another ticket.
+
+Working a ticket:
+
+- Starting it: `status: in_progress`. A ticket done in steps (one PR each, like BL-19 or LI-01A) stays in `open/`; each step's PR appends a short `### <YYYY-MM-DD> — <step> (branch: <branch>)` entry to its `## Resolution`: done, checked, what is left.
+- Closing it (built, tested, and the owner's hand tests passed where the ticket has them):
+  1. Append a short `## Resolution` entry to the ticket: the cause (a bug), the fix, the tests run and their result.
+  2. Set `status: done` in its frontmatter.
+  3. `git mv .tasks/open/<file>.md .tasks/archive/<file>.md`, in the same PR.
+
+## Session Handover (`PROGRESS.md`)
+
+At the start of a session read `PROGRESS.md`, then confirm the branch with `git branch` and `git log --oneline -5` before changing anything.
+
+`PROGRESS.md` is a handover note, **under 15 lines**, not a diary: update it in every PR by overwriting it (the history is in the tickets' `## Resolution`; on a merge conflict keep the newer note). Only:
+
+- **Last completed:** ticket ID, branch, one line on what was done.
+- **Current focus:** the active ticket ID and where it stands, or `None`.
+- **Next up:** the ticket from `.tasks/open/` to take next.
+- **Active gotchas:** blockers and passing environment notes only. Lasting rules go into this file (or the `run-chess-app` skill for screenshots), not there.
 
 ## Branching Workflow
 
-- Start every task on a **new branch from the latest `origin/develop`** (`git fetch` first). Name it `features/<camelCaseTask>_<DDMMYY>` for a feature or task, `bugs/<camelCaseTask>_<DDMMYY>` for a bug fix, `docs/<camelCaseTask>_<DDMMYY>` for a change to docs only (a plan, `TASKS.md`, the README), e.g. `features/removeVcpkg_281026`, `bugs/infoBarsCover_101126`, `docs/bl13Plan_091126`.
+- Start every task on a **new branch from the latest `origin/develop`** (`git fetch` first). Name it `features/<camelCaseTask>_<DDMMYY>` for a feature or task, `bugs/<camelCaseTask>_<DDMMYY>` for a bug fix, `docs/<camelCaseTask>_<DDMMYY>` for a change to docs only (a plan, a ticket in `.tasks/`, the README), e.g. `features/removeVcpkg_281026`, `bugs/infoBarsCover_101126`, `docs/bl13Plan_091126`.
   - `DDMMYY` is the day the branch is created: two digits each for day, month and year (10 Nov 2026 → `101126`). Take it from the local clock (`Get-Date -Format ddMMyy`), not from memory: a session can run past midnight.
   - Branches before 2026-11-10 have no `features/` / `bugs/` prefix (e.g. `infoBarsColumn_091126`, PR #137); don't rename them.
 - Never continue a new task on the branch of a previous task.
