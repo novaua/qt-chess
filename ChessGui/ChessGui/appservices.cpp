@@ -31,6 +31,10 @@ AppServices::AppServices(QObject* owner, bool offline)
 
 void AppServices::start()
 {
+	// The engine looked for once the event loop runs (BL-25): the Analyse buttons are enabled only for
+	// one that answered, from the first game page on (it used to wait for the Settings page).
+	QTimer::singleShot(0, _appInfo, &AppInfo::probeEngine);
+
 	QObject::connect(_userManager, &UserManager::activeUserChanged, &_guard, [this]() {
 		_avatarProvider->setPlayerFromUser(_userManager->activeUserAvatar());
 		updateLichessToken();

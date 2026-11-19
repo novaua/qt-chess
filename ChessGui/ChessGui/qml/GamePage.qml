@@ -323,7 +323,7 @@ Page {
                         height: visible ? implicitHeight : 0
                         text: ChessConnector.Analysis.depth !== undefined ? "Analyse again" : "Analyse game"
                         icon.source: Theme.icon("analyse")
-                        enabled: ChessConnector.CanAnalyse && AppInfo.engineState !== "missing"
+                        enabled: ChessConnector.CanAnalyse && AppInfo.engineFound
                         onTriggered: page.analyse()
                     }
                     MenuSeparator {}
@@ -499,7 +499,7 @@ Page {
                 width: Math.min(area.squaresSize - 2 * Theme.s5, 440)
                 resultText: ChessConnector.ResultText
                 canRematch: page.canRematch
-                canAnalyse: ChessConnector.CanAnalyse && AppInfo.engineState !== "missing"
+                canAnalyse: ChessConnector.CanAnalyse && AppInfo.engineFound
                 onAnalyseRequested: page.analyse()
                 onRematchRequested: ChessConnector.rematch()
                 onNewGameRequested: page.newGameRequested()

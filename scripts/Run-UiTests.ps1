@@ -14,6 +14,8 @@
 
     A test file with a line "// ui-test-runs: 2" runs twice on the same data folder, as the app
     restarted (TestRun.run is 1, then 2); its results are <file>-run1.txt, <file>-run2.txt.
+    A line "// ui-test-engine: none" runs it without a chess engine (CHESS_ENGINE_PATH names a file
+    that isn't there; BL-25), instead of FakeUci.
 
     A failed test function leaves a picture of the app's window: test-results\ui\<TestCase>-<function>.png
     (its path is printed with the failure).
@@ -111,14 +113,19 @@ $env:CHESS_UI_TEST_STEP_MS = "$StepDelay"
 $env:CHESS_UI_TEST_WATCHED = if ($Visible) { '1' } else { '0' }
 $failedFiles = 0
 $started = Get-Date
+$engineBefore = $env:CHESS_ENGINE_PATH   # put back after the runs
 
 # One run of a test file: its results' base name, the run number and the data folder (empty: its own).
-function Invoke-TestRun($file, [string]$baseName, [int]$run, [string]$dataDir) {
+function Invoke-TestRun($file, [string]$baseName, [int]$run, [string]$dataDir, [bool]$noEngine) {
     $txt = Join-Path $OutDir "$baseName.txt"
     $xml = Join-Path $OutDir "$baseName.xml"
     Remove-Item $txt, $xml -ErrorAction SilentlyContinue
     $env:CHESS_UI_TEST_RUN = "$run"
     $env:CHESS_UI_TEST_DATA_DIR = $dataDir
+    # No engine: a path that isn't there (TestSetup sets FakeUci only when none is named).
+    if ($noEngine) { $env:CHESS_ENGINE_PATH = Join-Path $OutDir 'no-such-engine.exe' }
+    elseif ($null -ne $engineBefore) { $env:CHESS_ENGINE_PATH = $engineBefore }
+    else { Remove-Item Env:CHESS_ENGINE_PATH -ErrorAction SilentlyContinue }
     # Qt Quick Test names a function <TestCase name>::<function>: the name comes from the file.
     $caseName = ([regex]::Match((Get-Content $file.FullName -Raw), '(?m)^\s*name:\s*"([^"]+)"')).Groups[1].Value
     $functions = @($Function | ForEach-Object { if ($_ -like '*::*' -or -not $caseName) { $_ } else { "${caseName}::$_" } })
@@ -165,8 +172,9 @@ foreach ($file in $files) {
     if ($caseName) { Remove-Item (Join-Path $OutDir "$caseName-*.png") -ErrorAction SilentlyContinue }   # the last run's failures
     $runs = [regex]::Match($text, '(?m)^\s*//\s*ui-test-runs:\s*(\d+)')
     $runCount = if ($runs.Success) { [int]$runs.Groups[1].Value } else { 1 }
+    $noEngine = $text -match '(?m)^\s*//\s*ui-test-engine:\s*none'
     if ($runCount -le 1) {
-        if (-not (Invoke-TestRun $file $file.BaseName 1 '')) { $failedFiles++ }
+        if (-not (Invoke-TestRun $file $file.BaseName 1 '' $noEngine)) { $failedFiles++ }
         continue
     }
     # The runs share one data folder: what the first leaves (settings, profiles, an autosaved game)
@@ -174,13 +182,14 @@ foreach ($file in $files) {
     $dataDir = Join-Path ([IO.Path]::GetTempPath()) ("chess-ui-test-" + [guid]::NewGuid().ToString('N'))
     try {
         for ($run = 1; $run -le $runCount; $run++) {
-            if (-not (Invoke-TestRun $file "$($file.BaseName)-run$run" $run $dataDir)) { $failedFiles++; break }
+            if (-not (Invoke-TestRun $file "$($file.BaseName)-run$run" $run $dataDir $noEngine)) { $failedFiles++; break }
         }
     } finally {
         Remove-Item $dataDir -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 Remove-Item Env:CHESS_UI_TEST_RUN, Env:CHESS_UI_TEST_DATA_DIR -ErrorAction SilentlyContinue
+if ($null -ne $engineBefore) { $env:CHESS_ENGINE_PATH = $engineBefore } else { Remove-Item Env:CHESS_ENGINE_PATH -ErrorAction SilentlyContinue }
 
 $seconds = [int]((Get-Date) - $started).TotalSeconds
 Write-Host "$($files.Count) test files, $failedFiles failed, $seconds s. Results: $OutDir"

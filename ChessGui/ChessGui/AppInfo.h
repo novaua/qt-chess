@@ -18,6 +18,8 @@ class AppInfo : public QObject
     Q_PROPERTY(bool    windowsAnimationsOff READ windowsAnimationsOff CONSTANT)
     // "checking" until probeEngine() is done, then "ok" or "missing" (none found, or it didn't answer).
     Q_PROPERTY(QString engineState READ engineState NOTIFY engineChanged)
+    // An engine answered (BL-25): what the analysis needs. Not while it is still being looked for.
+    Q_PROPERTY(bool    engineFound READ engineFound NOTIFY engineChanged)
     Q_PROPERTY(QString engineName  READ engineName  NOTIFY engineChanged) // "Stockfish 17.1"
     Q_PROPERTY(QString enginePath  READ enginePath  NOTIFY engineChanged)
 
@@ -33,10 +35,12 @@ public:
     static bool    windowsAnimationsOff();
 
     QString engineState() const { return _engineState; }
+    bool    engineFound() const { return _engineState == QStringLiteral("ok"); }
     QString engineName()  const { return _engineName; }
     QString enginePath()  const { return _enginePath; }
 
     // Starts the engine once with "uci" for its name; once per run (it doesn't change while the app runs).
+    // AppServices::start() asks for it (BL-25: the Analyse buttons need it, not only Settings).
     Q_INVOKABLE void probeEngine();
 
 signals:
