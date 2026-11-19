@@ -2,7 +2,7 @@
 id: BL-19
 title: "Games library: keep every local game, continue, fork, rate, analyse"
 type: task
-status: open
+status: in_progress
 priority: medium
 ---
 
@@ -184,3 +184,17 @@ The owner's two small asks on the game review:
 2. **Play from here not from a game going on**: a robot / two-player game stepped back offers it only once it is over (`playFromHere()` checks the result; `PlayFromHereChanged` follows the review and the result). Replays (also of an unfinished kept game) as before. Scenes `play-from-here` and `play-from-here-menu` now use the replay.
 
 Tests: `tst_analysis` +1 (`test_6_bestMoveArrows`), `tst_games` test 6 (none during the game, offered after resigning, still reviewing). Release: UI tests 10 files, 0 failed. Looked at: scenes `analysis` (narrow, wide 1400x900, Black), `play-from-here-menu`.
+
+### 2026-11-19 — BL-19 hand tests run by Claude (branch: docs/bl19HandTestRun_191126)
+
+#### Done
+- All 9 scenarios of `docs/BL-19-ManualTests.md` run as a throwaway Qt Quick Test file: the app's window offscreen, real mouse clicks (`AppDriver`), **Stockfish 19**, real time and files, throwaway data folders; four runs (a restart, no engine, a second data folder for the import). Results in each scenario's "Result:" line.
+- Passed: 1 ("Games kept" 50 of 51, also after a restart), 2 (Play from here vs Stockfish), 3 (the rating: a loss, Ctrl+Z gives it back, delete, an aborted game), 4 (analysis of a 24-move game: 2.6 s at depth 14; "Best was e3" also Stockfish's own first choice at depth 18, checked apart with python-chess), 5 (Deep 16 s, Cancel, on in the background, the app closed mid-analysis in 0.19 s with no stockfish.exe left), 7, 8 (export, import into another data folder), 9.1 (dark).
+- Found: **BL-25** (scenario 6: Analyse game is enabled without an engine until Settings has been opened; pressing it fails with a message), **BL-26** ("More (1 new messages)").
+- The doc fixed where it no longer matched the app: scenario 1's script (since BL-20 games are signed files a script can't add: `TestRun.addFinishedGames`), the newest card (the unfinished 1. e4), scenario 2's step 1 (an unfinished game's card offers only Continue: resign it first; the replay opens at the start).
+
+#### Checked
+- Looked at, and not app bugs: a picture of a reviewed move taken under 0.5 s after the click still showed the last position (the board was redrawn by 0.5 s; both positions checked against python-chess); the move list's piece figures are blank in the offscreen window only (their `layer.effect`; the screenshot scenes show them).
+
+#### Left for the owner
+- 6: the disabled Analyse game's tooltip on hover (hover doesn't reach items offscreen); 9.2: Windows' own contrast theme; how it looks and feels in a real window. Whether BL-19 is done with these and BL-25 open is the owner's call.
