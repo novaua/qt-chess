@@ -79,6 +79,9 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
 		Q_PROPERTY(bool CanRematch    READ canRematch    NOTIFY canRematchChanged)
+		// A rematch of a local game (the robot, two players) gives the player the other colour; Settings →
+		// Gameplay (AppSettings.rematchSwapsColours binds it), on by default. A Lichess rematch always swaps.
+		Q_PROPERTY(bool RematchSwapsColours READ rematchSwapsColours WRITE setRematchSwapsColours NOTIFY rematchSwapsColoursChanged)
 		Q_PROPERTY(int  FlaggedKing   READ flaggedKing   NOTIFY flaggedKingChanged) // square of a king that resigned / lost on time, or -1
 		Q_PROPERTY(int  CheckedKing   READ checkedKing   NOTIFY lastMoveChanged)    // square of the king in check on the board, or -1
 		// The game on screen: "" (none: Home), "computer", "local" (two players), "replay" (a kept game, BL-19), "online"
@@ -168,6 +171,8 @@ public:
 	bool isOnlineGame()  const { return !_onlineGameId.isEmpty(); }
 	// Local games can always be replayed; a Lichess game needs its settings and a token.
 	bool canRematch()    const { return !_lastGameOnline || (_lichessClient && _lichessClient->canRematch()); }
+	bool rematchSwapsColours() const { return _rematchSwapsColours; }
+	void setRematchSwapsColours(bool on);
 	// Hidden while reviewing earlier moves: the king may not be on that square then.
 	int  flaggedKing()   const { return reviewMode() ? -1 : _flaggedKing; }
 	int  checkedKing()   const;
@@ -240,6 +245,7 @@ signals:
 	void reviewStateChanged();
 	void isOnlineGameChanged();
 	void canRematchChanged();
+	void rematchSwapsColoursChanged();
 	void flaggedKingChanged();
 	void gameInfoChanged();
 	void pendingOfferChanged();
@@ -404,6 +410,7 @@ private:
 	bool startOnlineGame(const QString& gameId, bool playingAsWhite, const Chess::StartPosition& start,
 		const QStringList& joinedMoves);
 	void setPlayerPlaysWhite(bool v);
+	void applyPlayerSide(bool white); // the side of the game on the board, not written to config.json (a rematch)
 	// opponentUserId: the opponent's profile in a two-player game ("" = Guest, or not a local game).
 	void setGameMode(const QString& mode, const QString& opponentName, const QString& opponentUserId = {});
 	void recordResult(int whiteScore); // statistics; 1 White won, 0 draw, -1 Black won
@@ -527,6 +534,7 @@ private:
 	bool _wasVsComputer = false;
 	bool _resuming = false; // Continue replays the saved moves: their checks were heard already
 	bool _lastGameOnline = false; // the current/last game is a Lichess game: rematch goes online
+	bool _rematchSwapsColours = true; // Settings → Gameplay (AppSettings.rematchSwapsColours binds it)
 	int  _flaggedKing    = -1;
 	bool _resultRecorded = false; // stats recorded for this game (mate can recur after undo)
 	bool _resignAfterEngineMove = false; // resign pressed while the robot was thinking

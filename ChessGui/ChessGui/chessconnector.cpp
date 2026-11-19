@@ -1511,6 +1511,10 @@ void ChessConnector::rematch()
 		return;
 	}
 	_nextStart = _game->GetStartPosition(); // a Chess960 rematch: the same position (LI-01A)
+	// The board turns to the player's new side. Not saved here: a robot game's start saves the config once,
+	// and the setup dialogs offer the side chosen in them, not this one (#193).
+	if (_rematchSwapsColours)
+		applyPlayerSide(!_config.playerPlaysWhite);
 	if (_wasVsComputer)
 		startNewGameWithComputer(_config.lastLevel);
 	else
@@ -1693,11 +1697,24 @@ void ChessConnector::setUseFen(bool v)
 	emit useFenChanged();
 }
 
+void ChessConnector::setRematchSwapsColours(bool on)
+{
+	if (_rematchSwapsColours == on) return;
+	_rematchSwapsColours = on;
+	emit rematchSwapsColoursChanged();
+}
+
 void ChessConnector::setPlayerPlaysWhite(bool v)
 {
 	if (_config.playerPlaysWhite == v) return;
-	_config.playerPlaysWhite = v;
+	applyPlayerSide(v);
 	_config.save();
+}
+
+void ChessConnector::applyPlayerSide(bool white)
+{
+	if (_config.playerPlaysWhite == white) return;
+	_config.playerPlaysWhite = white;
 	emit playerPlaysWhiteChanged();
 	updateClaimTurn();
 }

@@ -55,6 +55,7 @@ Manual checks, no code (do any time):
 
 ### Done
 
+- [x] Rematch swaps the colours in a robot or two-player game too (#193, branch `bugs/rematchSwapsColours_191126`): `ChessConnector::rematch()` gives the player the other side, as a Lichess rematch always did; Settings → Gameplay "Rematch swaps colours" (`AppSettings.rematchSwapsColours`, `ChessConnector.RematchSwapsColours`), on by default; the swapped side is for that game only, and the setup dialogs offer the side last chosen in them. The review of #194 (7 findings) fixed.
 - [x] BL-15 Engine kill without crossing threads (branch `engineKillFix_311026`): `UciConnector::Kill()` terminates the engine through its own Win32 process handle and never touches `QProcess` from the GUI thread; `EngineWorker` sets an abandoned flag and kills via an atomic connector pointer; `stopEngineThread()` waits 5 s, terminates, and otherwise leaves a running thread instead of deleting it (the abort). The `robot` scene, which ends a game while the engine thinks, crashed in 2 of 3 offscreen runs before; 5 of 5 pass after.
 - [x] Debug crash 2026-10-31: the log handler wrote the same `QFile` from the GUI and engine threads; the heap corruption surfaced as a `QRingBuffer` assert on the engine thread. Fixed with a `QMutex` + flush per line (branch `logRaceFix_311026`); report, dump analysis and repro in [`docs/bugs/2026-10-31-qringbuffer-assert-crash.md`](docs/bugs/2026-10-31-qringbuffer-assert-crash.md)
 

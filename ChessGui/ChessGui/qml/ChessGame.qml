@@ -1256,6 +1256,7 @@ ApplicationWindow {
         function onStatisticsRestored() { root._tellStatisticsRestored() }
     }
     Binding { target: ChessConnector; property: "AnalysisDepth"; value: AppSettings.analysisDepth } // BL-19 step 6
+    Binding { target: ChessConnector; property: "RematchSwapsColours"; value: AppSettings.rematchSwapsColours }
 
     ConfirmDialog {
         id: gamesKeptConfirm
