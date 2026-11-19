@@ -68,6 +68,12 @@ QtObject {
     readonly property color legalMoveDot: Qt.alpha("#000000", 0.22)
     readonly property color premove:      Qt.alpha("#C42B1C", 0.5)    // a premove's two squares (red, as on Lichess)
     readonly property color premoveDot:   Qt.alpha("#8B1A10", 0.4)    // where a premove may go
+    // BL-21: a square the selected piece takes on: lichess.org's shaded corners instead of a dot (which a
+    // piece hides), and a red glow at the square's edges (not for a premove: its squares are red already).
+    // High contrast: solid corners in the accent colour, no glow.
+    readonly property color captureCorners: highContrast ? accent : Qt.alpha("#000000", 0.45)
+    readonly property color premoveCorners: highContrast ? accent : Qt.alpha("#8B1A10", 0.55)
+    readonly property color captureGlow:    "#E5341F"
     // The analysis's arrows (MoveArrows): the engine's best move green, the move played in its
     // judgement's colour (lichess.org's).
     readonly property color bestMoveArrow: "#2E9E41"

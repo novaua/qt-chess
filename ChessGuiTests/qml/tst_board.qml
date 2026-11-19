@@ -101,4 +101,64 @@ TestCase {
         app.waitPiece("d1", "")
         compare(ChessConnector.CheckedKing, app.square("e8"), "the check at the end")
     }
+
+    // BL-21: a square the selected piece takes on shows the capture mark (corners and the red glow, under
+    // the pieces), not a dot; the other targets keep their dots. Shown or not as the move layers show it.
+    function markShown(square) {
+        const mark = findChild(app.item("captureLayer"), "captureMark_" + app.square(square))
+        return mark !== null && mark.visible && mark.status === Loader.Ready && mark.parent.visible
+    }
+    function dotShown(square) {
+        const dot = findChild(app.item("navigationLayerGrid"), "moveDot_" + app.square(square))
+        return dot !== null && dot.visible && dot.parent.visible
+    }
+    function test_5_captureMarks() {
+        app.leaveToHome()
+        app.startTwoPlayerGame()
+        for (const [from, to] of [["e2", "e4"], ["e7", "e5"], ["d1", "h5"], ["b8", "c6"]])
+            app.clickMove(from, to)
+        app.waitBoardIdle()
+        app.clickSquare("h5")   // the queen: takes on e5 (a dark square), f7 and h7 (light ones)
+        tryCompare(ChessConnector, "SelectedSquare", app.square("h5"), 2000)
+        for (const sq of ["e5", "f7", "h7"]) {
+            tryVerify(() => markShown(sq), 2000, "the capture mark on " + sq)
+            verify(!dotShown(sq), "no dot on " + sq)
+        }
+        for (const sq of ["g5", "f3", "h6"]) {
+            verify(dotShown(sq), "a dot on " + sq)
+            verify(!markShown(sq), "no capture mark on " + sq)
+        }
+        app.clickSquare("a6")   // an empty square, not a target: deselected, nothing shows
+        tryCompare(ChessConnector, "SelectedSquare", -1, 2000)
+        tryVerify(() => !markShown("e5") && !dotShown("g5"), 2000, "the marks gone")
+        app.leaveToHome()
+
+        // En passant: Black's d4 pawn takes the c3 pawn, or on e3 (an empty square); d3 is a dot.
+        app.startTwoPlayerGame()
+        for (const [from, to] of [["c2", "c3"], ["d7", "d5"], ["a2", "a3"], ["d5", "d4"], ["e2", "e4"]])
+            app.clickMove(from, to)
+        app.waitBoardIdle()
+        app.clickSquare("d4")
+        tryCompare(ChessConnector, "SelectedSquare", app.square("d4"), 2000)
+        tryVerify(() => markShown("c3") && markShown("e3"), 2000, "c3, and e3 en passant")
+        verify(dotShown("d3"), "d3: a move, not a capture")
+        verify(!markShown("d3"))
+        app.leaveToHome()
+
+        // A premove (the robot thinks): the f3 knight's premove onto e5's pawn gets the corners; Esc drops it.
+        app.startComputerGame("e2e4 e7e5 g1f3 b8c6", 1500)
+        app.waitBoardIdle()
+        app.clickMove("e2", "e4")
+        tryCompare(ChessConnector, "MoveCount", 2, 5000, "the robot's e5")
+        app.waitBoardIdle()
+        app.clickMove("g1", "f3")
+        tryVerify(() => ChessConnector.EngineThinking, 3000, "the robot thinks")
+        app.clickSquare("f3")
+        tryVerify(() => ChessConnector.PremoveDots, 2000, "premove targets")
+        tryVerify(() => markShown("e5"), 2000, "the premove capture's corners on e5")
+        verify(dotShown("g5"), "g5: a premove, not a capture")
+        app.clickSquare("a6")   // deselected, no premove set
+        tryCompare(ChessConnector, "MoveCount", 4, 5000, "the robot's Nc6")
+        app.leaveToHome()
+    }
 }

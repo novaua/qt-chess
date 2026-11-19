@@ -40,7 +40,7 @@ Item {
         var gameScene = ["game", "leave-online", "drag-off", "continue", "continue-list", "continue-list-robot", "continue-list-starting", "review", "result", "ended", "moves", "select", "drag", "slides",
                          "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate",
                          "captures", "check", "more-menu", "play-from-here", "play-from-here-menu", "replay",
-                         "chess960", "chess960-select", "chess960-castled"].includes(name)
+                         "chess960", "chess960-select", "chess960-castled", "capture", "capture-ep"].includes(name)
         if ((gameScene || name.startsWith("players")) && UserManager.userCount < 2) {
             var me = UserManager.activeUserId
             UserManager.createUser("Bob", "fox")
@@ -137,6 +137,9 @@ Item {
             var middlegame = "e2e4 d7d5 e4d5 d8d5 b1c3 d5a5 d2d4 g8f6 g1f3 c8f5 f1c4 e7e6 c1d2 c7c6 "
                            + "c3d5 a5d8 d5f6 d8f6 d1e2 f5c2"
             var defaultMoves = ({ continue: "e2e4 e7e5", "continue-list": "e2e4 e7e5", "continue-list-robot": "e2e4 e7e5", "continue-list-starting": "e2e4 e7e5", review: middlegame, moves: middlegame, "play-from-here": middlegame, "play-from-here-menu": middlegame, replay: middlegame, select: "e2e4 e7e5", drag: "e2e4 e7e5",
+                                  // BL-21: the h5 queen takes on e5 (a dark square), f7 and h7 (light ones); Black's d4
+                                  // pawn takes the c3 pawn or e3 en passant
+                                  capture: "e2e4 e7e5 d1h5 b8c6", "capture-ep": "c2c3 d7d5 a2a3 d5d4 e2e4",
                                   slides: "e2e4 e7e5", "leave-online": "e2e4 e7e5", "drag-off": "e2e4 e7e5",
                                   result: "f2f3 e7e5 g2g4 d8h4", ended: "f2f3 e7e5 g2g4 d8h4",
                                   clock: "e2e4 e7e5 g1f3", "clock-low": "e2e4 e7e5 g1f3", "clock-flag": "e2e4 e7e5",
@@ -202,6 +205,10 @@ Item {
                 pages.currentItem.openMoreMenu()   // made on its first opening (BL-11)
             if (name === "select")
                 ChessConnector.figureSelected(6)   // the g1 knight: tinted square, dots on its moves
+            if (name === "capture")
+                ChessConnector.figureSelected(39)   // the h5 queen: corners and the red glow on e5, f7, h7
+            if (name === "capture-ep")
+                ChessConnector.figureSelected(27)   // the d4 pawn: c3, and e3 en passant (an empty square)
             if (name === "chess960-select")
                 ChessConnector.figureSelected(5)   // the f1 king: dots on e2, g2 and its rook on g1 (O-O)
             if (name === "drag-off") {
@@ -262,7 +269,7 @@ Item {
             window._addRecent("Couldn't save C:\\Users\\Tester\\Documents\\Chess\\game.pgn", "critical", true, "message", "")
             messagesOpener.enabled = true
         }
-        if (["takeback", "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting", "rejoin",
+        if (["takeback", "clock-online", "clock-correspondence", "premove", "premove-capture", "premove-played", "premove-dropped", "reconnecting", "rejoin",
              "challenge-ingame", "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
              "opponent-left-error"].includes(name)) {
             ChessConnector.screenshotSceneSetUp()   // main.cpp feeds the Lichess game and says when the board is ready

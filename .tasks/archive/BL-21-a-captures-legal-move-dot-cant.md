@@ -2,7 +2,7 @@
 id: BL-21
 title: "a capture's legal-move dot can't be seen"
 type: bug
-status: open
+status: done
 priority: medium
 ---
 
@@ -24,3 +24,15 @@ priority: medium
     - The pop-in animation as for the dots; none with Reduce animations.
     - High contrast: a solid colour.
   - **Tests:** a screenshot scene with a selected piece that can take a white and a black piece, on light and dark squares and in the dark theme; a `tst_board` check that a capture square has its mark visible.
+
+## Resolution
+
+### 2026-11-19 — BL-21: the capture mark (branch: bugs/captureMoveMark_191126)
+
+The owner's choice: **both**, lichess.org's corners and a red glow.
+- **Cause:** as the ticket guessed: `NavigationLayer.qml` drew the same dark dot (black, 22 %) on every target, over the pieces; on a black piece it vanished.
+- **Fix:**
+  - `ChessConnector.CaptureSquares` (C++, per square): the move there takes a piece: the other side's piece is there, or en passant (a pawn going aside onto an empty square; not for a premove). A Chess960 king onto its own rook castles: a dot, as before.
+  - `NavigationLayer.qml` has a `kind`: a second instance **under the pieces** (`captureLayer`) draws a capture target's mark: the shaded corners (a ring-shaped gradient, as lichess.org's) over a red glow along the square's edges (`Theme.captureCorners`, `captureGlow`). The piece itself stays as it is. The dots stay in the instance over the pieces.
+  - A premove target with the other side's piece: corners in the premove red (`Theme.premoveCorners`), no glow (its squares are red already). High contrast: solid corners in the accent colour, no glow. "Show legal moves" off hides them; the pop-in as the dots', none with Reduce animations.
+- **Tests:** `tst_board` test 5: the h5 queen's captures on e5 (dark square), f7, h7 (light) show the mark and no dot, its other targets a dot; Black's en passant onto the empty e3 and the c3 pawn; a premove capture vs FakeUci. Scenes `capture`, `capture-ep`, `premove-capture` (light, dark; `capture` also with `-HighContrast`), looked at.
