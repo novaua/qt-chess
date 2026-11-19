@@ -64,6 +64,11 @@ Item {
             }
             if (name === "online-960")   // LI-01A stage 2: the Variant row's Chess960, its line and the Chess960 rating
                 findItem(pages.currentItem, "variantChoice").checkedIndex = 1
+            if (name === "online-days") {   // BL-23: Days per move, 14 days, a username: all within the card
+                findItem(pages.currentItem, "challengeTimeType").checkedIndex = 2
+                findItem(pages.currentItem, "challengeDays").checkedIndex = 6
+                findItem(pages.currentItem, "challengeOpponent").text = "Friend"
+            }
             if (name === "online-challenges-decline")   // the first challenge's reasons
                 Qt.callLater(() => findItem(pages.currentItem, "declineButton").clicked())
             if (name === "online-challenge") {   // sent to Friend: no link, Lichess isn't asked

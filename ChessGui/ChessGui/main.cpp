@@ -90,7 +90,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 			sceneMap["ongoingGames"] = QVariantList{ sceneMap["ongoingGames"].toList().first() };
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
-	                  "online", "online-empty", "online-blitz", "online-challenge", "online-960", "continue", "continue-online",
+	                  "online", "online-empty", "online-blitz", "online-challenge", "online-960", "online-days", "continue", "continue-online",
 	                  "continue-list", "continue-list-online", "continue-list-starting", "continue-starting", "takeback",
 	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting", "rejoin",
 	                  "challenge", "challenge-accepting", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
@@ -432,7 +432,7 @@ int main(int argc, char* argv[])
 		"continue-list-robot", "continue-list-starting", "continue-starting", "challenge-accepting", "starting", "game", "leave-online", "drag-off", "settings", "about", "restore", "levels",
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
-		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge", "online-960",
+		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge", "online-960", "online-days",
 		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",

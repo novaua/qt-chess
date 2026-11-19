@@ -4,6 +4,24 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-19 — BL-23: the "Challenge a friend" card spilled out of its frame (branch: bugs/challengeCardOverflow_191126)
+
+### Done
+- The cause: with Days per move chosen, the seven day buttons (FluentWinUI3 makes each about 96 px wide) and their label were a `RowLayout`, 710 px in a 640 px card. A row in a layout keeps its whole width, so the card's column grew past the card, and the username field (`Layout.fillWidth`) with it.
+- The fix (`OnlinePage.qml`):
+  - the day buttons are 48 px wide (`ChoiceRow.buttonWidth`, new; 0 keeps the style's width everywhere else);
+  - the buttons and "days per move" are in a `Flow`, so the label wraps under them if even that is too wide.
+  - It now fits the narrowest window (640 px).
+- Scene `online-days` (Days per move, 14 days, a username), also at 640×900, the narrowest window, in `all`. `tst_lichess` test 11 checks the day buttons, their label and the username field inside the card at the default and at the minimum window width. Against the old row it fails ("16 + 710 of 640").
+- objectNames: `challengeCard`, `challengeTimeType`, `challengeDays`, `challengeDaysLabel`.
+
+### Checked
+- UI tests (Debug) 12 files, 0 failed.
+- Screenshots `online-days` (default, 640 and 600 wide), `online-blitz` at 640, and `players` / `computer` with `-Offscreen`: the other ChoiceRows unchanged.
+- Without `-Offscreen` the setup dialogs' scenes showed only the dimmed Home (on plain develop too): the dialog's fade-in doesn't run when the screen is locked, as `Take-Screenshot.ps1` warns.
+
+---
+
 ## 2026-11-19 — BL-24: Continue opens the list for a single Lichess game (branch: bugs/continueSingleGame_191126)
 
 ### Done

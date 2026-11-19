@@ -260,6 +260,7 @@ Page {
 
             // ── New game: a challenge with a link for the friend, or to a named player ──
             SectionCard {
+                objectName: "challengeCard"
                 visible: UserManager.lichessConnected
                 title: "Challenge a friend"
                 subtitle: "You get a link to send, or name a Lichess player to challenge them directly."
@@ -268,6 +269,7 @@ Page {
                 Label { text: "Time control"; color: Theme.textSecondary; font: Theme.caption }
                 ChoiceRow {
                     id: tcType
+                    objectName: "challengeTimeType"
                     checkedIndex: 1
                     options: [{ label: "Unlimited" }, { label: "Real time" }, { label: "Days per move" }]
                 }
@@ -291,17 +293,25 @@ Page {
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
-                // Correspondence: the days each player has for a move (Lichess's choices). Short
-                // labels, so the seven fit a narrow window.
-                RowLayout {
+                // Correspondence: the days each player has for a move (Lichess's choices). Narrow buttons,
+                // so the seven fit the card in the narrowest window; the label wraps under them when
+                // even that is too wide. A row in a layout keeps its whole width and pushed the card's
+                // column, and the username field with it, out of the card (BL-23).
+                Flow {
                     visible: tcType.checkedIndex === 2
                     spacing: Theme.s2
+                    Layout.fillWidth: true
                     ChoiceRow {
                         id: tcDays
+                        objectName: "challengeDays"
                         checkedIndex: 2
+                        buttonWidth: 48
                         options: [1, 2, 3, 5, 7, 10, 14].map(d => ({ label: String(d), days: d }))
                     }
                     Label {
+                        objectName: "challengeDaysLabel"
+                        height: tcDays.height
+                        verticalAlignment: Text.AlignVCenter
                         text: tcDays.checkedIndex === 0 ? "day per move" : "days per move"
                         color: Theme.textSecondary
                     }
