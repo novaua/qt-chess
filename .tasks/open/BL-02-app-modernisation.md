@@ -1,0 +1,229 @@
+---
+id: BL-02
+title: "App modernisation"
+type: task
+status: open
+priority: medium
+---
+
+# BL-02 App modernisation
+
+<!-- migrated from TASKS.md:5 (In Progress) -->
+
+- [ ] **BL-02 / BL-03 App modernisation**: Windows 11 Fluent look, clear user flows, local profiles with a linked Lichess account. Plan: [`docs/AppModernizationPlan.md`](docs/AppModernizationPlan.md), mockups linked there. **All phases coded; manual checks left** (see `PROGRESS.md`).
+  - [x] Review of all screens, plan, design kit (`pics/icons/*.svg`, [`docs/design/ThemeTokens.md`](docs/design/ThemeTokens.md)), mockups (#77)
+  - [x] Decide the QML access rule (plan §9 Q1): game flows through `ChessConnector`, services stay separate typed singletons (CLAUDE.md "Key Conventions")
+  - [x] P1 Foundation (`fluentFoundation_281026`): FluentWinUI3, `Theme.qml`, System/Light/Dark, icons in qrc, `AppDialog`; removed Qt5Compat effects and `NetworkPlayers.qml` (closes BL-01)
+    - [ ] Manual check with a connected Lichess account: Lichess dialog (connected), Challenge dialog, draw/takeback banners (draw and takeback: checked by the owner on 2026-11-03)
+  - [x] P2 Shell and navigation (`shellNavigation_291026`): `StackView` pages, command bar, account menu, Home, setup dialogs, InfoBar; services as typed singletons; game flows into `ChessConnector` (`startComputerGame`, `startLocalGame`, `switchUser`, Lichess game start/end)
+    - [ ] Manual check in a real window: shortcuts (Esc, F, Ctrl+S/Z, ←/→, F1, Ctrl+,), Enter/Esc in the setup dialogs, Switch user confirmation during a game
+    - [ ] Manual check with Lichess: challenge → game page, game end text, draw/takeback InfoBars, opponent gone + Claim victory, rematch (draw/takeback InfoBars: checked on 2026-11-03, both ways, accepted and refused)
+  - [x] P3 Users and Lichess (`usersLichess_291026`): Welcome page, centred profile picker (Lichess badge, last played, export/delete per card), Profile page (name and avatar, Lichess card with ratings, Reconnect after a 401, Cancel while waiting for the browser: closes BL-08 and BL-03; statistics per opponent with draws; export / delete), import with a conflict dialog, restore from backup; `QSaveFile` for `users.json` and `config.json`, 3 rolling backups; Lichess sign-in moved from `ChessConnector` into `UserManager`; 16 new tests in `ChessQtTests`
+    - [ ] Manual check with Lichess: Continue with Lichess on the Welcome page (a new profile named after the account), Link / Cancel / API token on the Profile page, ratings shown, revoke the token on lichess.org → Reconnect
+    - [ ] Manual check in a real window: export a profile, import it on another Windows user (Reconnect Lichess), import conflict (as new / replace), delete a profile, a damaged `users.json` → Restore
+  - [x] P4 Game chrome (`gameChrome_291026`): player cards, captured strip with +N (`MaterialBalance`), side panel or bottom sheet, one result card (Rematch / New game / Review moves), move list (click a move, piece images, `reviewTo`), Copy / Export PGN; `Game::FormatHistorySan` (real mate detection), `FormatPgn`, `MaterialBalance` in ChessCore with 13 tests; `-Offscreen` screenshots for a locked screen
+    - [x] Light-mode after shots in a real window (`docs/design/after-p4/`: light and dark)
+    - [x] Manual check: Copy PGN, Export PGN… (dialog and file), PGN date of a continued game (#83)
+    - [ ] Manual check: Esc closes the move sheet, Review moves / New game on the result card (vs Robot, two players)
+  - [x] P5 Settings and About (`settingsAbout_291026`): `SettingsPage` replaces `SettingsDialog` (Appearance: theme, coordinates around the board or on the squares, reduce animations · Sound: effects switch + volume 1–5 · Gameplay: confirm resign, legal moves, last move · Computer: engine name and path, levels · Data: back up now, restore a chosen backup, export / import, data folder · Advanced: FEN or moves, log folder · About: version, build, licences, links, shortcuts); `AppSettings` singleton (same keys; old "volume 0" and `darkMode` migrated); `AppInfo` service; `UserManager.backups` / `backupNow` / `restoreBackup` with 3 tests; board colours fixed (a1 is dark)
+    - [ ] Manual check in a real window: each switch takes effect in a game (legal-move dots, last move, resign without confirmation, Reduce animations when flipping), the volume preview sound, Back up now / Restore… / Open data folder / Open log folder, the About links
+  - [x] P6 Polish (`polish_291026`): Ctrl+N / Ctrl+O; Enter on Home cards; avatar and opponent pickers as one Tab stop with arrow keys and a `FocusRing`; high contrast (`Theme.highContrast`: system colours, solid borders, `--high-contrast` screenshots); page transitions (fade and rise, off with Reduce animations); Reduce animations also follows Windows' animation effects; new app icon and installer images (`scripts/make_icons.py`, `WizardStyle=modern`); screenshot baselines (`Compare-Screenshots.ps1`, BL-05 step 4)
+    - [ ] Manual check in a real window: Tab through Home, the profile picker (card → More), Create profile and Two players (arrow keys, focus ring), Enter on a Home card, Ctrl+N / Ctrl+O, the page transitions
+    - [ ] Manual check: a Windows contrast theme (Settings → Accessibility → Contrast themes) and 200 % scaling; Windows animation effects off → Settings shows Reduce animations on and disabled
+    - [ ] Manual check: run the built installer once and look at the new wizard images and icons
+
+## Also listed in TASKS.md:82 (In Progress / Backlog)
+
+- [ ] BL-02 Review and modernize all game screens [Hard] → In Progress (plan done)
+
+## Resolution
+
+### 2026-10-28 — App modernisation planned (BL-02/BL-03); next: Phase 1
+
+#### What was done
+- **#76 Screenshot mode:** `ChessGui.exe --screenshot <png> --scene <name>` (with `--moves`, `--black`, `--dark`, `--size`, `--delay`) on a throwaway profile; `--data-dir <dir>` for interactive runs. `scripts\Take-Screenshot.ps1 -Scene all [-Dark] [-Windowed] [-Build]` writes to `test-results\screens\`. The `run-chess-app` skill explains it.
+- **#77 Modernisation plan:** `docs/AppModernizationPlan.md` holds the screen-by-screen review, target flows, roadmap P1–P6 and the mockup link (§10).
+  - Design kit: 38 icons in `ChessGui/ChessGui/pics/icons/` (not in `qml.qrc` yet), `docs/design/ThemeTokens.md`, and "before" screenshots in `docs/design/before/`.
+  - Decisions: Windows 11 Fluent (`FluentWinUI3` style, system theme and accent); local profiles with a linked Lichess account; profile export/import plus backups.
+  - QML ↔ C++ rule (CLAUDE.md "Key Conventions"): game flows go through `ChessConnector`, one call per action; `UserManager` and `LichessClient` stay separate services and become typed singletons in P2.
+- `TASKS.md`: BL-02/BL-03 is at the top of *In Progress*, with one sub-item per phase.
+
+#### Where to continue: P1 Foundation (new branch from `origin/develop`, e.g. `fluentFoundation_<ddmmyy>`)
+Plan first (`/plan`), then implement. Spec: plan §6 and §8, `docs/design/ThemeTokens.md`.
+1. `main.cpp`: `QQuickStyle::setStyle("FluentWinUI3")`. Remove the per-file `background:`/`contentItem:` overrides that fight the style: inline `Button` and `ModeButton` in `ChessGame.qml`, `Button.qml`, `ActionButton.qml`, `CustomSlider.qml`, the primary-button copies in the dialogs. Prefer plain Fluent controls (`highlighted: true` for the primary action).
+2. `qml/Theme.qml` singleton (`qmldir` + `qml.qrc`). It replaces the 16 `Window.window.color` dark-mode blocks. System/Light/Dark sets `Application.styleHints.colorScheme`; migrate `appSettings.darkMode`.
+3. Icons: add `pics/icons/*.svg` to `qml.qrc` and use them via `icon.source` + `icon.color`. This replaces the `ColorOverlay` menu icon and glyph labels ("⚑", "↩", "|<<").
+4. `AppDialog` base: modal, with a scrim and Enter/Esc. Move the existing dialogs onto it (Settings, Profile, Levels, Lichess, Challenge, Select player, Apply moves).
+5. Remove `Qt5Compat.GraphicalEffects` (`ColorOverlay` in `ChessGame.qml`; `Glow` in `ChessFigures.qml`, which becomes an accent square tint) and the unused `NetworkPlayers.qml`. That closes BL-01.
+6. Keep every screenshot scene working (`setUpScreenshotScene()` in `ChessGame.qml`). Before/after shots, light and dark, go in the PR.
+
+Out of scope for P1: the page split and navigation (P2), and piece moving/drag (BL-04).
+
+#### Notes
+- After P1, offscreen screenshots should match windowed ones, because Qt5Compat effects are what rendered blank offscreen.
+- Login cards are left-aligned (`UserLoginScreen.qml` `Flow`); this is fixed in P3, not P1.
+- Manual checks still open (no code): VC++ runtime install, Stockfish install log, Lichess rematch live test. They're listed under *In Progress* in `TASKS.md`.
+
+### 2026-10-29 — BL-02 P1 Foundation done (branch: fluentFoundation_281026); next: P2
+
+#### What was done
+- **Style:** `QQuickStyle::setStyle("FluentWinUI3")` in `main.cpp`. The palette block, inline `Button`/`ModeButton` and every `background:`/`contentItem:` override are gone. `Button.qml`, `ActionButton.qml`, `CustomSlider.qml`, `NetworkPlayers.qml` and `menu_icon.svg` were deleted.
+- **`qml/Theme.qml`** singleton (`qml/qmldir`): colour roles, board, type ramp, spacing and motion as in `docs/design/ThemeTokens.md`; §8 there lists the differences. No `Window.window.color` and no hex colour outside `Theme.qml`.
+- **System / Light / Dark:** `appSettings.theme` (Settings → "App theme"). It sets `Application.styleHints.colorScheme`; until it is set, the old `darkMode` decides. "System" follows Windows; checked live.
+- **Icons:** `pics/icons/*.svg` are in `qml.qrc` under `qrc:/icons/` (`Theme.icon("undo")`). New `IconButton.qml` (icon-only `ToolButton` with tooltip and `Accessible.name`) is used in the command bar and the move panel.
+- **`AppDialog.qml`:** a modal Fluent `Dialog` on the overlay with the `Theme.scrim`. Enter runs `accept()` and Esc runs `reject()`; footers are `DialogButtonBox`es. Settings, Profile/Create profile, Levels, Lichess, Challenge, Select player and Apply moves use it. Shown with `visible: _showX; onClosed: _showX = false`.
+- **Board:** the `Glow` is replaced by an accent tint on the selected piece's square, cleared after a move. Legal-move dots use `Theme.legalMoveDot`, and coordinates use `textSecondary`. The photo shows only behind the start menu and login, faint.
+- **Screenshots:** `-platform offscreen` can't force light/dark, and Fluent falls back to its dark palette there. Screenshot mode now uses a real window that is transparent, frameless, ignores input and has no taskbar button, at 100% scale. `Take-Screenshot.ps1` dropped `-Windowed`. New scenes: `online`, `players`. After shots: `docs/design/after-p1/`.
+- Keyboard checked live: Enter creates a profile, F1 opens levels, Esc closes the dialog. `windeployqt` deploys the FluentWinUI3 plugin and its assets. Debug + Release build OK; `ChessTests` 67/67.
+
+#### Where to continue: P2 Shell and navigation (new branch from `origin/develop`)
+Spec: plan §6 and §8 (P2 row). `StackView` pages, command bar, account menu, Home, InfoBar replaces `Notificator` and the banners, `_show*` flags removed, services as typed singletons, game flows into `ChessConnector`.
+
+#### Notes
+- Not seen in a scene yet: the connected Lichess dialog, the Challenge dialog, the draw/takeback banners and the two resign confirmations. Check them during the Lichess live test (TASKS).
+- `windeployqt --qmldir ChessGui\ChessGui` locally still lists Qt5Compat, but only because stale Qt VS Tools caches (`ChessGui\ChessGui\x64\*\qt\qmake\*\import.qml`) import it. CI starts clean.
+- The board's own animations (elastic flip, InCirc piece rotation) are unchanged; motion tokens come in P6.
+
+### 2026-10-29 — BL-02 P2 Shell and navigation done (branch: shellNavigation_291026); next: P3 or P4
+
+#### What was done
+- **Pages:** `ChessGame.qml` (986 → 491 lines) is the window: a `StackView` holding `UserLoginScreen`, `HomePage` or `GamePage`. `route()` picks the page from `UserManager.isLoggedIn` and `ChessConnector.InGame`. All dialogs live in the window and are opened with `open()`; pages emit signals for them. The `_show*` flags and `screen_1…4` states are gone.
+- **Home:** an account button (avatar and name; menu with Profile and Switch user), Settings, a **Continue game** card (`ChessConnector.ContinueDescription`, e.g. "vs Bob"), and cards for Play vs computer, Two players, Play online (dimmed until Lichess is linked; then it opens Profile) and Open saved game (always enabled; it explains when there is nothing to open). The Exit button is gone.
+- **Setup dialogs:** `ComputerGameDialog` (White/Black/Random and level; its info button swaps to the levels help and back, so dialogs never stack) and `TwoPlayerDialog` (side, and the opponent picked by profile **id** or Guest). Both use the new shared `ChoiceRow`.
+- **Game command bar:** Home, title (`ChessConnector.GameTitle`: "vs Robot · Level 3", "Alice vs Bob", "Lichess · vs X", "Saved game · …"), Prev/Next (replay), Undo/Takeback, **Flip board** (new), Save, Offer draw, Resign (with `ConfirmDialog`), More (Computer levels, Settings, Profile, Switch user). Undo, Draw and Resign are no longer duplicated in the move panel.
+- **InfoBar** replaces `Notificator` and the three banners: one message bar (Check, Game saved, errors, rematch declined) plus bars bound to `ChessConnector.PendingOffer` (draw or takeback) and `OpponentGone`/`ClaimWinSeconds`. Castling is no longer announced.
+- **Game flows in C++:** `startComputerGame(level, side)`, `startLocalGame(white, opponentUserId)`, `switchUser()` (autosave, end the game, log out) and `refreshBoard()` (a new board view fills itself in). Lichess game start and end are handled in `ChessConnector`, which sets the result text, flags the king and sets the opponent's avatar. Game-end text is now `ResultText`, with names: "Bob wins by checkmate", "Alice resigned". `GameSaveInfo.opponentName` is stored for Continue and the title. The avatar is set per mode (the `newGameStarted → randomize` connection in `main.cpp` is gone), so a rematch keeps the opponent's avatar.
+- **Typed singletons:** `qmlRegisterSingletonInstance("ChessPlusPlus", …)` for `ChessConnector`, `UserManager`, `LichessClient` and `AvatarProvider`, parented to the app so they outlive the engine. No `setContextProperty` is left.
+- **Shortcuts** (off while a dialog is open): Esc Home, F flip, Ctrl+S, Ctrl+Z, ←/→/Home/End review, F1 levels, Ctrl+, settings, Alt+S move input. Minimum window size 640×560; the window title shows the game.
+- **Scenes:** `home`, `continue`, `game` (Tester vs Bob), `computer`; `menu` and `board` still work as aliases. After shots: `docs/design/after-p2/`. Debug and Release builds OK; `ChessTests` 67/67; no QML warnings in the scene logs.
+
+#### Not checked live
+- Keyboard shortcuts and Enter/Esc in a real window. Driving the window with SendKeys didn't reach the Qt controls, so the skill now says to add a scene instead.
+- Lichess flows (challenge, game start and end, draw/takeback InfoBars, opponent gone) need a connected account. Add them to the Lichess live test in TASKS.
+
+#### Where to continue
+P3 (Users and Lichess) and P4 (Game chrome) can run in parallel; each needs a new branch from `origin/develop` once this PR is merged. P3 replaces `UserLoginScreen` with the Welcome page and profile picker, and moves `CreateUserDialog`'s Lichess part to a Profile page. P4 replaces `CapturedPanel`, `GameResultDialog`/`GameResultCard` and `MoveHistoryPanel`.
+
+### 2026-10-29 — BL-02 P4 Game chrome done (branch: gameChrome_291026); next: P3
+
+#### What was done
+- **Player cards** (`PlayerCard.qml`) above and below the board: avatar, name (`ChessConnector.PlayerName` / `OpponentName`), the robot's level and Elo, the turn (accent bar and avatar pulse), and a **captured strip** (`CapturedStrip.qml`). The strip groups pieces by type (P N B R Q), overlaps pieces of a type, and shows "+N" (`MaterialBalance`, counted from the board, so promotions count). Captures and material follow the reviewed position. When the board is flipped, the cards swap.
+- **Moves:** a side panel (`MovesPanel` + `MoveList`) at width ≥ 960 or aspect > 1.15; otherwise a **bottom sheet** whose handle shows "Moves 12. Nf3", the status, and Back to live while reviewing. Esc closes the sheet first. The move list has two columns and a move-number column, piece images in the text colour, and tabular figures. **Click a move** to review it (`reviewTo(ply)`; `ShownPly` is highlighted). While reviewing, a slim InfoBar "Viewing 5. Nf3 · Back to live" sits at the bottom of the panel. The blinking button and "Reviewing" are gone.
+- **Result:** one `ResultCard` over the dimmed board in every layout, with Rematch, New game (the setup dialog of the same mode; online goes Home → Lichess dialog) and Review moves. `GameResultDialog`, `GameResultCard`, `MoveHistoryPanel` and `CapturedPanel` were deleted. Their statistics moved to a "Statistics" line in the profile dialog until P3's Profile page.
+- **PGN:** Copy PGN and Export PGN… are in the panel and under More. Export uses a `FileDialog` that suggests "White vs Black yyyy-MM-dd.pgn" and writes with `QSaveFile`; an InfoBar confirms. The tags are Event, Site (the lichess.org URL online), Date, Round, White, Black and Result.
+- **ChessCore:** `Game::FormatHistorySan()` replays the game (in `Game`, so `San` stays free of `Game.h`) and marks '#' from the real mate event, no longer from the result string. `FormatPgn()` escapes tag values and wraps at 80 columns. `PieceValue()`/`MaterialBalance()` are in `Board.h`. `ChessTests` has 80 tests, 13 new (history SAN, PGN, material). En passant now counts in the captured strip.
+- **Scenes:** `review`, `result` and `moves` are new; `game` and `continue` work as before. `Take-Screenshot.ps1 -Offscreen` works when the screen is locked, dark only (see Notes). Debug and Release build OK; no QML warnings in the scene logs.
+
+#### Notes
+- **Locked screen:** while Windows is locked, a real window renders no frames. Animations freeze (half-closed dialogs, empty squares) and the mate scene times out, on `develop` too. Use `-Offscreen` there: Fluent is always dark offscreen, so `Theme.dark` follows it. Dialog backgrounds don't render offscreen. After unlocking, all scenes (including the mate) worked in a real window. `docs/design/after-p4/` has the light shots (real window) and the dark ones (offscreen).
+- Board coordinates are still outside the squares (the inside/outside setting is P5).
+
+#### Where to continue
+P3 (Users and Lichess), on a new branch from `origin/develop` once this PR is merged.
+
+### 2026-10-29 — P4 code review fixes (branch: p4ReviewFixes_291026); next: P3
+
+A `/code-review` of #81 found 10 issues. I checked all of them: 9 were real, and 1 (the overlapping review properties) was mostly style. This branch fixes 9, including the style one; #2 became backlog item BL-09.
+- **Rematch after closing the result card:** the moves panel now shows Rematch and New game, and the sheet handle shows a Result button that reopens the card. The new `ended` scene shows this.
+- **Review moves** on the result card goes to the start position (`reviewFirst()`); in a narrow window it also opens the sheet.
+- **Move list:** after a single move, only that move is formatted. `Game::IsCheckMate()` supplies the mate, and `UndoMove` now clears it. The full replay runs only after undo, load or several moves at once. In `makeMove`, an exception now only covers `DoMove`.
+- **Captured pieces:** they come from `HistoryMove::CapturedPiece()` in ChessCore. A `Game` records en passant as a normal capture, so the old GUI special case never ran.
+- **PGN:** the date is the day the game started. A saved or continued game gets `????.??.??` and no date in the file name. The suggested export name is URL-encoded, so `#` and `%` in names work. Export rejects URLs that aren't local files.
+- Esc no longer needs two presses after the window grows wide with the sheet open. `capturedChanged` fires once per update. `PlyCount` replaced `ReviewIndex`, which QML no longer used.
+- `ChessTests`: 85/85, 5 new (`CapturedPiece` ×3, `IsCheckMate` set by mate and cleared by undo). All 15 scenes OK in a real window.
+- **Not fixed here, now BL-09:** the engine thread changes `_game` while the GUI thread reads it.
+
+### 2026-10-29 — BL-02 P3 Users and Lichess done (branch: usersLichess_291026); next: P5
+
+#### What was done
+- **Pages:** `WelcomePage` on first run: Continue with Lichess (OAuth, then a profile named after the account with a random avatar, or the profile already linked to it), Create local profile, Import a profile. `ProfilePickerPage` replaces `UserLoginScreen`. Its cards are centred and show the avatar, the Lichess username and when the profile last played, and each card has a menu with Export and Delete. With 2 or more profiles the app now starts here; with one, straight to Home. `ProfilePage` (a full page pushed over Home or the game; Back or Esc pops it) replaces the profile dialog: name and avatar apply right away; a Lichess card (ratings for bullet to correspondence, "?" = provisional; Open on lichess.org; Disconnect with confirmation; Advanced: API token); statistics; Export / Delete (Delete is off during a game). `CreateUserDialog` only creates now.
+- **Lichess (BL-08, BL-03):** the sign-in moved from `ChessConnector::loginWithLichess` into `UserManager` (`linkLichess`, `linkLichessToken`, `createUserWithLichess`, `cancelLichessLink`), so the token never passes through QML. `LichessAuth::cancel()` closes the local listener and aborts the token exchange: **Cancel** while "Waiting for the browser…". `LichessClient::refreshAccount()` reads the ratings from `/api/account` (on login, on a new token, 3 s after an online game). Any call made with our token that gets a 401 emits `authExpired`; the profile then shows "Lichess sign-in expired · Reconnect", Home's Play online card says so, and the client drops the token.
+- **Statistics per opponent**, with draws: the robot by level, each profile, Guest, Lichess. `ChessConnector::recordResult()` runs on mate, resignation and a Lichess game end, once per game. A two-player game between profiles counts for both (checked: the `result` scene gives Tester a loss vs Bob and Bob a win vs Tester). `GameSaveInfo.opponentUserId` keeps the opponent of a continued game. Version 1 totals are migrated: robot games become "level not recorded", the rest "Two players, before results were kept". Plan §9 Q2 is decided: a Guest game counts for the profile.
+- **Data safety:** `users.json` and `config.json` are written with `QSaveFile`. On start a readable `users.json` goes to `backups/users-1.json`, and 3 are kept (an unchanged file isn't copied again). If `users.json` doesn't parse, nothing is loaded and an InfoBar offers **Restore** (the newest good backup). The damaged file is kept as `users.damaged-<time>.json`, also when the user starts over instead.
+- **Export / import:** `<name>.chessprofile` (JSON, format version 1) holds the profile, statistics, ratings and both saves (base64), and never the token or a pending challenge. Importing adds the profile; on the same id or name, `ImportConflictDialog` offers Import as new ("Bob (2)") or Replace. Replacing the profile that is playing is refused. An imported Lichess link asks to reconnect.
+- **Tests:** `ChessQtTests` has 16 new tests: `UserManagerTest.cpp` (14: restart, start page, per-opponent stats, v1 migration, delete, backup rotation, unchanged file, damaged file + restore, damaged file kept, export without token, import on another PC, conflict as new / replace, replace refused, bad files, file name) and `parseRatings` ×2. `UserManager.cpp`, `AppConfig.cpp` and `AvatarProvider.cpp` are compiled into the test DLL. All 143 tests pass (ChessTests + ChessQtTests).
+- **Scenes:** `welcome`, `profiles` (`login` is its old name), `profile`, `profile-local`, `profile-expired`, `import`; `create-user` is now the first-run dialog. Their profiles come from `seedScreenshotProfiles()` in `main.cpp` (placeholder token, no network in screenshot mode). All 19 scenes OK, no QML warnings. After shots: `docs/design/after-p3/` (light and dark).
+
+#### Code review fixes (same branch)
+A medium `/code-review` found 10 issues; 8 were real and are fixed, 2 can't happen (Delete is off during a game; the autosave runs only when leaving a game, not per move).
+- A damaged `users.json` is **copied** to `users.damaged-<time>[-n].json`. If that fails, nothing overwrites it. Restore is only offered for a backup that has a `users` array.
+- A login cancels a pending Lichess sign-in, so a late browser sign-in can't switch profiles. A profile made by Continue with Lichess gets "Name (2)" if the name is taken, like an import.
+- The autosave keeps the robot's level (`computerLevel`): Continue plays at that level and the statistics use it, even if another profile changed `lastLevel`. It also keeps `resultRecorded`, so a mate that was undone and then played again after Continue doesn't count twice.
+- Import reads the file once. A 401 is reported once per reply.
+- `ChessQtTests`: 2 more tests (backup without users, autosave level and counted flag). All 145 pass, and all 19 scenes are OK.
+
+#### Not checked live
+- Continue of a game vs the robot at a level other than `lastLevel` (needs Stockfish; the saved fields are unit-tested).
+- Anything that needs lichess.org: OAuth from Welcome and Profile, Cancel, the API token, ratings, a real 401 (revoke the token on lichess.org). Listed in TASKS under P3.
+- Export / import through the real file dialogs, delete, and Restore from a damaged file in a real window (the logic is unit-tested).
+
+#### Where to continue
+P5 (Settings and About pages), on a new branch from `origin/develop` once this PR is merged. Settings → Data can reuse `exportProfile` / `inspectImport` / `importProfile` and `restoreFromBackup`; "Back up now" needs a new `UserManager` call.
+
+### 2026-10-29 — BL-02 P5 Settings and About done (branch: settingsAbout_291026); next: P6
+
+#### What was done
+- **Settings page** (`SettingsPage.qml`, pushed over Home or the game like Profile; Back, Esc, Ctrl+,) replaces `SettingsDialog`. One `SectionCard` per group, one `SettingRow` per setting:
+  - Appearance: theme; **board coordinates** around the board or on the squares (the squares then fill the board item: `Theme.boardSquares`); **Reduce animations** (`Theme.reduceMotion`: no board turn, piece fade, legal-move dot pop, check glow or turn pulse, sheet slide).
+  - Sound: an on/off switch and a volume of 1–5 (muting is the switch only), with a preview sound.
+  - Gameplay: **confirm before resigning** (`root.resign()`), **show legal moves**, **highlight the last move**.
+  - Computer: the engine's name and path from a short `uci` run (`AppInfo.probeEngine()`, e.g. "Stockfish 19"), or "not found" with what to do; Show levels. BL-06 adds "Change…" there.
+  - Data: Back up now, Restore… (`RestoreBackupDialog`: pick a backup; the one equal to `users.json` is disabled; off during a game), Export… / Import…, Open data folder.
+  - Advanced: send the game to the engine as a position (FEN) or the moves (`ChessConnector.UseFen`, `config.json`), Open log folder.
+  - About: icon, version and build (`Built Oct 29, 2026 · Qt 6.10.2`), GitHub and issue links, licences (Chess++ GPLv3, Qt LGPLv3 + source, Stockfish GPLv3 + source), keyboard shortcuts.
+- **`AppSettings.qml`** singleton: the QtCore `Settings` that was `appSettings` in `ChessGame.qml`, with the same keys, so nothing is lost. On load, an unset `theme` comes from the old `darkMode`, and the old "volume 0 = muted" becomes sound off at `lastSoundVolume`. `Theme.scheme` binds to it directly (the `Binding` is gone). Note: `Settings` stores *every* property, so derived values are functions (`effectsVolume()`).
+- **`AppInfo`** (C++ service singleton in `ChessPlusPlus`): version from `APP_VERSION_*` (now also defined for C++ in `Directory.Build.props`), build date, Qt version, data and log folders, engine probe. `UciConnector::EngineCandidates()` is the engine lookup that `Init()` and the probe share.
+- **`UserManager`**: `backups` (number, date, profile names, `current`), `backupNow()`, `restoreBackup(n)`. A restore first backs up the current profiles, so it can be undone, and keeps the active profile logged in when the backup has it. Saved games aren't in backups (the Data card says so). 3 new tests in `ChessQtTests`; all 149 pass (ChessTests + ChessQtTests).
+- **Board colours fixed** (not P5, found while testing the coordinates on the squares): the squares were mirrored, with a1 and h8 light and the queens on the wrong colour. Now a1 is dark (`ChessBoxes.qml`).
+- **Scenes:** `about` (Settings scrolled to About) and `restore` (two seeded backups, the dialog open) are new; `settings` shows the page. All 21 scenes OK in light and dark, no QML warnings. The `run-chess-app` skill explains how to run a scene with other settings (an ini in `--data-dir`). After shots: `docs/design/after-p5/`. Debug and Release build OK.
+
+#### Follow-ups on the same branch
+- **Move list colours** (user report): since P4 every piece was drawn in the text colour, so White's and Black's moves looked alike. Pieces have their own colour again, with a soft glow of the other colour (black glows white, white glows black: `MultiEffect`, `Theme.pieceGlowOnBlack/OnWhite`) so both show on either panel.
+- **Code review** (medium): 10 findings, 6 fixed.
+  - The engine probe tries every candidate, like `UciConnector::Init()`.
+  - `backupsChanged` fires on every save, so "the same as now" stays right; it compares the profiles, not who is logged in.
+  - A restore keeps, for profiles that exist now, the saved-game info (the files aren't restored) and the Lichess sign-in (a removed one doesn't come back).
+  - The piece fade and dot pop start once per piece, so switching Reduce animations doesn't replay them.
+  - The `APP_VERSION_*` C++ defines are for ChessGui only.
+  - Not changed: the coordinates are drawn over the pieces on purpose (as on Lichess); a glow per visible move is cheap (`ListView` only creates the visible rows); `backups` reads 4 small files, only while Settings is open.
+  - 2 more tests; all 151 pass.
+
+#### Not checked live
+- Clicking through the page in a real window: each switch in a game (legal-move dots need a selected piece, resign without confirmation, Reduce animations while flipping), the volume preview sound, Back up now / Restore… / the folder buttons / the About links. Listed in TASKS under P5.
+- The engine line when Stockfish is missing (here it is on the PATH).
+
+#### Where to continue
+P6 (Polish), on a new branch from `origin/develop` once this PR is merged: keyboard and accessibility pass, high contrast, motion tokens (`Theme.reduceMotion` exists now; StackView page transitions don't follow it yet), app icon and installer visuals, screenshot baselines (with BL-05). The plan's Ctrl+N and Ctrl+O shortcuts aren't there yet.
+
+### 2026-10-29 — BL-02 P6 Polish done (branch: polish_291026); BL-02 is coded, manual checks left
+
+#### What was done
+- **Keyboard:** Ctrl+N (Home: new game vs the computer; a finished game: the result card's New game, so a running game is never dropped) and Ctrl+O (Home: open the saved game, or say there is none); both on the cards' tooltips and in About's shortcut list. Home cards take Enter as well as Space. The avatar picker (Create profile, Profile) and the opponent picker (Two players) are one Tab stop each, like radio buttons: arrow keys pick, and the new `FocusRing.qml` outlines the chosen one. A profile card's More button is hidden with opacity instead of `visible`, so Tab still reaches it.
+- **Accessibility:** every icon-only button already had a tooltip and `Accessible.name` (checked); the pickers now have list roles and names. No OK/Yes/No buttons are left.
+- **High contrast:** `Theme.highContrast` follows a Windows contrast theme (`styleHints.accessibility.contrastPreference`, Qt 6.10). The Fluent controls already switch to the system colours; our roles now do too (`SystemPalette`): window, windowText, disabled text, highlight as accent; no selected fill, no scrim, no Home photo; hovered cards get an accent border. The board keeps its colours. `--high-contrast` / `Take-Screenshot.ps1 -HighContrast` forces our part (the Fluent controls can't be forced).
+- **Motion:** page transitions in the `StackView` (fade in and rise 24 px over `Theme.normal`, fade out over `fast`) replace the Basic style's 400 ms slide, and switch off with Reduce animations. `Theme.reduceMotion` is also on when Windows' animation effects are off (`AppInfo.windowsAnimationsOff`, `SPI_GETCLIENTAREAANIMATION`); Settings then shows the switch on and disabled.
+- **App icon and installer:** a new icon (the board's white knight on a rounded tile in the board's green) in `chess.ico` (16–256 px), `pics/app-icon.png` (window, Welcome, About; replaces `chess_icon.svg`), and installer images `installer/art/wizard-*.bmp` for 100–250 % DPI with `WizardStyle=modern`. `scripts/make_icons.py` (Pillow) redraws them all. `Build-Installer.ps1 -SkipBuild` builds the installer with them.
+- **Screenshot baselines (BL-05 step 4):** `scripts/Compare-Screenshots.ps1` compares `test-results\screens` with local baselines (`-Update` accepts), with a tolerance, and writes a diff image per failure. Screenshot mode turns animations off (`Theme.forceReduceMotion`, not saved), so two runs of all 42 scenes (light and dark) match; a swapped picture fails with a diff.
+- Release and Debug build OK; all 151 tests pass; all 42 scenes OK, no QML warnings. The `run-chess-app` skill, `ThemeTokens.md` (§1, §6, §11), the plan's §7 and `UiTestSuitePlan.md` are updated.
+
+#### Code review (medium, same branch)
+9 findings: 8 are fixed (one of them partly), 1 isn't changed.
+- **Pages:** Reduce animations makes the page transitions instant, not disabled. Before, a disabled `popEnter` didn't undo the `pushExit` fade, so Home came back blank after Settings if the switch changed in between. `popEnter` also resets `y` after a push that was cut short.
+- **High contrast:** the shown move in the move list gets an accent border. It had no highlight at all, since high contrast has no selected fill.
+- **Arrow keys:**
+  - In the avatar and opponent pickers, an arrow at an edge leaves the selection alone. Before, Up in the first row jumped to the first avatar.
+  - An arrow that changes nothing no longer saves the profile. Each step that does change it still saves, as a click does.
+- **Profile picker:** on a touchscreen, a tap on the hidden More button now selects the profile instead of opening the menu.
+- **Ctrl+O** just calls `loadGame()`, which says itself when there is no saved game, so there's one message, not two.
+- **Screenshots:**
+  - `Take-Screenshot.ps1` deletes the old picture before each scene, so a scene that fails can't pass with last run's PNG.
+  - `Compare-Screenshots.ps1` fails a baseline that has no new screenshot (`MISSING`), and writes a diff image only for failures.
+  - The `restore` scene's backups get fixed times (9:00 and 9:30), so all 42 scenes now match exactly.
+- Not changed: the opponent picker has no Up/Down. It is a `Flow` with a varying number per row, and Left/Right reach every opponent. The two step functions differ (a grid and a list), so they stay separate.
+
+#### Not checked live
+- Keyboard in a real window: Tab order on Home, the profile picker, Create profile and Two players; the focus ring; Ctrl+N / Ctrl+O; the page transitions. Screenshots can't show focus (the window never takes it).
+- A real Windows contrast theme, 200 % scaling, Windows animation effects off, and the installer's wizard pages. Listed in TASKS under P6.
+
+#### Where to continue
+BL-02 is coded. What's left are the manual checks in TASKS (P1–P6). Next backlog candidates: BL-09 (engine thread vs GUI thread, a real bug), BL-05 (stub engine, Quick tests), BL-06 (engine choice), BL-04 (dragging pieces).
