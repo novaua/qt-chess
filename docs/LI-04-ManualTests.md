@@ -46,7 +46,7 @@ each scenario: **OK**, or what happened instead (and the time, so the app log ca
      turn" (or "· waiting for your opponent"). The friend's browser shows that you left; your clock
      runs there.
 
-Result:
+Result: OK, all as expected.
 
 ### 2. Your games on the Online page
 
@@ -58,7 +58,7 @@ Result:
    - **Expected**: the board shows the friend's move; the card says **Your turn**. (A move doesn't
      update the list by itself: only Refresh, or coming back to Home or to this page.)
 
-Result:
+Result: 1. as expected, can continue waiting and Your turn are present. 2. Ok, as expected.
 
 ### 3. Continue the game
 
@@ -73,7 +73,7 @@ Result:
    - **Expected**: the card's button shows "Starting…", then the game as in step 1. Play it to the
      end normally (or resign in the friend's browser).
 
-Result:
+Result: 1. yes, direct rejoin, if exit app and continue list is shown. 2. Ok. 3. Ok as expected. 
 
 ### 4. Close the window during a game
 
@@ -86,7 +86,7 @@ Result:
    - **Expected**: Home shows **Continue online game**; clicking it rejoins the game as in
      scenario 3.
 
-Result:
+Result: 2. as expected. 5. as expected. All ok.
 
 ### 4b. Resign from the warning (Home and window close)
 
@@ -100,7 +100,7 @@ Result:
    leaves (or quits) anyway; that loss isn't counted in the app (Lichess still has it once you're back
    online).
 
-Result:
+Result: 1. OK, one more loss. 2. No Lichess game at continue or the games history.
 
 ### 5. A kept robot game and an online game
 
@@ -118,7 +118,7 @@ Result:
    - **Expected**: "Switch user?" says "You leave the Lichess game; it keeps running on lichess.org.
      You can come back from Continue or Play online."
 
-Result:
+Result: 2. OK as expected two games. 3. Yes robot card first, OK, 4. OK, 5. OK. 6. as expected.
 
 ### 6. A correspondence game over a day
 
@@ -131,7 +131,8 @@ Result:
 3. Click **Continue**. **Expected**: the game opens in the current position, with the time left for
    the move instead of a running clock; a move is sent.
 
-Result:
+Result: 2. 47 h and 23 h as expected. 3. time left is OK.
+  Noted UI bug, card 'Challenge a friend' [10] ans [14] buttons, going out of this card, alo 'Lichess username (optional) input extends out of the parent frame/card.
 
 ### 7. A game started on lichess.org
 
@@ -145,7 +146,7 @@ Result:
      with the tip "This kind of game can't be played in Chess++ yet"; the button opens it in the
      browser. (A Chess960 Rapid game **can** be continued since LI-01A.)
 
-Result:
+Result: 2. Yes, and unsupported contains a link, would be nice to be able on right button to copy the link not just open.
 
 ### 8. The opponent ends the game while you're away
 
@@ -158,7 +159,7 @@ Result:
 4. Optional: the same, but let your own clock run out while you're away (a 10+0 game, wait 10 min).
    **Expected**: gone from the list too.
 
-Result:
+Result: 3. OK, as expected.
 
 ## Known limits (not bugs)
 

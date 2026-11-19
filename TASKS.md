@@ -145,6 +145,10 @@ Manual checks, no code (do any time):
     - a UI test that turns it on and reads `/fen`;
     - the viewer page checked by hand in Edge and on a phone in the same network;
     - a screenshot of the Settings section.
+- [ ] BL-23 **Bug**: the Online page's "Challenge a friend" card spills out of its frame [Easy], **not started** (the owner, LI-04 hand test 6, 2026-11-19). With **Days per move** chosen, the buttons **10** and **14** go out of the card, and the **Lichess username (optional)** field reaches past the card's right edge too.
+  - **Likely cause (not confirmed):** the days row is a `RowLayout` of a `ChoiceRow` (seven buttons) and the "days per move" label, without a width limit (`OnlinePage.qml`). It is wider than the card, so it overflows. The card's column then takes the widest child's width, so the `Layout.fillWidth` items, the username `TextField` among them, get that width and spill out with it.
+  - **Fix:** let the row wrap or shrink to the card's width (the label under the buttons, or the buttons in a `Flow`), and keep every row within the card. Check the rest of the page's cards the same way: the time-control tiles, the Variant row, Side.
+  - **Tests:** screenshot scenes of the Online page with Days per move chosen, at the default size and narrow (e.g. `-Size 600x900`); a UI test check that the days row and the username field lie inside the card.
 
 ---
 
@@ -245,7 +249,7 @@ Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows
   - a message ("Takeback accepted");
   - resync safety: if the lists disagree in some other way, rebuild the game from Lichess's list;
   - tests: `LichessClientTest` stream lines (a list that shrinks, then grows again), and a scripted check like the step-5 stream hook.
-- [ ] LI-04 Rejoin unfinished Lichess games [Medium] — plan: [`docs/LI-04-RejoinPlan.md`](docs/LI-04-RejoinPlan.md). **Coded (#111–#114): the Online page with Your games and Continue, Days per move, Home's Continue, the leave warning. Left: the owner's manual tests, [`docs/LI-04-ManualTests.md`](docs/LI-04-ManualTests.md) (rewritten 2026-11-19 for the app after BL-10, BL-17, BL-19, LI-02 and LI-01A; branch `docs/li04ManualTestsRefresh_191126`).** (owner's manual check of BL-14 step 5, bugs 2 and 4). Leaving an online game (Home, closing the window, a crash) leaves the game running on Lichess. The opponent sees us disconnect at once, and our clock runs. Today the only way back is pasting the game id into "Join a game" (the `…/game/<id>` link was rejected; fixed on `lichessColorJoinFix_021126`), and nothing warns when leaving. Lichess keeps the game; the Board API can stream it again (`gameFull` with all moves: the step-5 resync). To do:
+- [x] LI-04 Rejoin unfinished Lichess games [Medium] (done 2026-11-19) — plan: [`docs/LI-04-RejoinPlan.md`](docs/LI-04-RejoinPlan.md). **Coded (#111–#114): the Online page with Your games and Continue, Days per move, Home's Continue, the leave warning. The owner's hand tests [`docs/LI-04-ManualTests.md`](docs/LI-04-ManualTests.md) (rewritten in #197 for the app after BL-10, BL-17, BL-19, LI-02 and LI-01A) all passed on 2026-11-19; the optional 4b.3 and 8.4 not run. Found: BL-23, LI-10.** (owner's manual check of BL-14 step 5, bugs 2 and 4). Leaving an online game (Home, closing the window, a crash) leaves the game running on Lichess. The opponent sees us disconnect at once, and our clock runs. Today the only way back is pasting the game id into "Join a game" (the `…/game/<id>` link was rejected; fixed on `lichessColorJoinFix_021126`), and nothing warns when leaving. Lichess keeps the game; the Board API can stream it again (`gameFull` with all moves: the step-5 resync). To do:
   - **List the games**: `GET /api/account/playing` ("Get my ongoing games", real-time and correspondence, most urgent first) gives `gameId`, `color`, `opponent`, `isMyTurn`, `secondsLeft`, `speed`, `variant`, `lastMove`. The event stream (`/api/stream/event`) also sends a `gameStart` for every ongoing game when it opens.
   - **Owner's decision (2026-11-02): an Online page**, which replaces the "Play online" dialog. "Play online" on Home opens a page (pushed like Profile / Settings) that gathers the ways to play online:
     - **"Your games"**: the unfinished games from `/api/account/playing`, one row each (opponent, colour, your turn / waiting, time or days left, speed). **Continue** on a row rejoins the game (`streamGame(id)` → `gameFull` → the step-5 resync), and the player never types an id. The list refreshes when the page opens; it's empty with a short note when there are none.
@@ -315,6 +319,10 @@ Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows
     - `tst_lichess`: a tile starts a game, Cancel stops the wait;
     - scenes `quick-pairing`, `quick-pairing-waiting`, narrow;
     - a hand test on lichess.org (a real opponent; a second account seeking the same tile makes it quick).
+- [ ] LI-10 Copy a game's link from its card [Easy], **not started** (the owner, LI-04 hand test 7, 2026-11-19). A Lichess game Chess++ can't play (lobby Blitz, Bullet, Crazyhouse…) has **Open on lichess.org** on its card (`OngoingGameCard`), which only opens the browser.
+  - A right click on the card or its button opens a menu: **Open on lichess.org**, **Copy link** (`https://lichess.org/<gameId>`, "Link copied" as a short message).
+  - Maybe the same menu on every Lichess game card (Continue, Copy link), and a long press for touch.
+  - Tests: a `tst_lichess` check that Copy link puts the URL on the clipboard; a screenshot scene with the menu open.
 
 ---
 

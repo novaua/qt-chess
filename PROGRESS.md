@@ -4,6 +4,16 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-19 — LI-04: the hand tests passed, LI-04 done (branch: docs/li04HandTestResults_191126)
+
+### Done
+- [`docs/LI-04-ManualTests.md`](docs/LI-04-ManualTests.md) (rewritten in #197): the owner ran every scenario on lichess.org with two accounts, and all passed. That covers leave with Home, Your games, Continue (directly and from the card), closing the window, resign from the warning, a kept robot game beside a Lichess game, a correspondence game over a day ("47 h", "23 h" left), games started on lichess.org, and the opponent resigning while away. The optional steps 4b.3 (resign offline) and 8.4 (the clock running out while away) weren't run. TASKS.md: LI-04 done.
+- Found on the way, as new tasks:
+  - BL-23 (bug): the Online page's "Challenge a friend" card: the Days per move buttons 10 and 14 go out of the card, and so does the "Lichess username (optional)" field;
+  - LI-10: "Copy link" on a card's **Open on lichess.org**, by right click.
+
+---
+
 ## 2026-11-19 — Rematch swaps the colours (#193, branch: bugs/rematchSwapsColours_191126)
 
 ### Done
