@@ -54,6 +54,7 @@ on screen. Shots are at 100% scale whatever the monitor scaling. Then **Read the
   `clock-online` and `clock-correspondence` (a Lichess game fed to the stream parser, no network),
   `online-blitz` (the challenge card with a name: Blitz lit), `online-challenge` (waiting for that player),
   `online-960` (LI-01A stage 2: the challenge card with Chess960 chosen, its line and "Your Chess960 rating"),
+  `online-days` (BL-23: Days per move, 14 days and a username, all inside the card; also `online-days@640x900` in `all`, the narrowest window),
   `premove`, `premove-played`, `premove-dropped` (LI-05: a Lichess game fed to the stream parser, no network:
   Bf1-c4 waiting in red and the d2 pawn's premove dots; Black's Nc6 comes and Bc4 is played (our moves aren't
   posted in screenshot mode); e4-e5 waiting, gone after Nc6), `rejoin` (BL-18: a Lichess game joined with ten moves, grabbed the moment its page is up, no `--delay`: the position after 5… a6, never the start position), `reconnecting` (LI-06: the same game with its

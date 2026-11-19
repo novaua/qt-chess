@@ -187,4 +187,31 @@ TestCase {
         app.waitClosed(dialog)
         compare(FakeLichess.status("game0002"), "resign")
     }
+
+    // BL-23: with Days per move chosen, its seven buttons, their label and the username field stay inside
+    // the "Challenge a friend" card: in this wide window and in the narrowest one (the window's minimum).
+    function test_11_challengeCardFits() {
+        app.click("onlineCard")
+        app.waitForPage("online", 5000)
+        app.clickIn("online", "challengeTimeType_2")
+        app.clickIn("online", "challengeDays_6")
+        compare(app.item("challengeDays").checkedIndex, 6, "14 days")
+        const card = app.item("challengeCard")
+        const wide = app.window.width
+        for (const width of [wide, app.window.minimumWidth]) {
+            app.window.width = width
+            app.laidOut()
+            for (const name of ["challengeDays", "challengeDaysLabel", "challengeOpponent"]) {
+                const it = app.item(name)
+                const left = it.mapToItem(card, 0, 0).x
+                verify(left >= 0 && left + it.width <= card.width,
+                       name + " inside the card at window width " + width + ": " + left + " + " + it.width
+                       + " of " + card.width)
+            }
+        }
+        app.window.width = wide
+        app.laidOut()
+        keyClick(Qt.Key_Escape)   // Back
+        app.waitForPage("home", 5000)
+    }
 }

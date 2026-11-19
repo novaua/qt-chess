@@ -73,7 +73,7 @@ $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue-online', 'continue-list', 'continue-list-online',
              'continue-list-robot', 'game', 'leave-online', 'review', 'result', 'ended', 'moves', 'select', 'drag', 'drag-off',
              'settings', 'about', 'restore', 'levels', 'profile', 'profile-local', 'profile-expired', 'import', 'online', 'online-empty', 'online-disconnected', 'computer', 'players',
-             'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge', 'online-960',
+             'clock', 'clock-low', 'clock-flag', 'clock-flag-draw', 'clock-promotion', 'clock-continue', 'stalemate', 'players-many', 'clock-online', 'clock-correspondence', 'online-blitz', 'online-challenge', 'online-960', 'online-days',
              'premove', 'premove-played', 'premove-dropped', 'reconnecting', 'challenge', 'challenge-unplayable', 'challenge-ingame', 'online-challenges', 'online-challenges-decline',
              'captures', 'check', 'draw-offer', 'home-message', 'messages', 'opponent-left', 'opponent-left-claim', 'opponent-left-turn',
              'opponent-left-error', 'rejoin', 'continue-starting', 'continue-list-starting', 'challenge-accepting', 'starting', 'more-menu',
@@ -85,7 +85,7 @@ $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue
 $engineScenes = @{ 'robot' = 'e2e4 f7f6 d2d4 g7g5 d1h5'; 'premove-robot' = 'e2e4 e7e5 g1f3 b8c6'; 'play' = '' }
 # BL-13: the game page in wide windows (the player column left of the board), and sizes that must
 # keep the cards above and below the board.
-$sizedScenes = 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'captures@1400x900', 'review@1400x900',
+$sizedScenes = 'online-days@640x900', 'game@1920x1080', 'game@1400x900', 'clock-online@1920x1080', 'captures@1400x900', 'review@1400x900',
                'ended@1400x900', 'result@1400x900', 'challenge-ingame@1400x900', 'drag@1400x900@black',
                'reconnecting@1400x900', 'check@1400x900', 'check@960x1040', 'draw-offer@1400x900', 'draw-offer@640x560', 'messages@1400x900', 'opponent-left@1400x900', 'opponent-left-claim@1400x900', 'opponent-left-claim@640x560', 'opponent-left-turn@640x560', 'messages@640x560', 'continue-list@1400x900', 'continue-list@640x560', 'game@1100x900', 'game@960x1040', 'game@1000x560',
                'games@640x560', 'games@1400x900', 'review@640x560', 'replay@640x560', 'play-from-here-menu@640x560', 'analysis@1400x900', 'analysis@640x560',
