@@ -436,6 +436,30 @@ void ChessConnector::setPossibleMoves(const QStringList& moves)
 	emit PossibleMovesChanged();
 }
 
+// BL-21: worked out from the dots when QML reads it (once per change): a dot's square holds the moving
+// piece's square. A capture is a piece of the other side on the target; or, for a legal move (not a
+// premove: its pawn may take whatever stands there then), a pawn going aside onto an empty square:
+// en passant. A Chess960 king onto its own rook castles: not a capture.
+QList<bool> ChessConnector::captureSquares() const
+{
+	QList<bool> captures(64, false);
+	for (int to = 0; to < 64 && to < _possibleMoves.size(); ++to) {
+		if (_possibleMoves[to] == EmptyFlag)
+			continue;
+		bool ok = false;
+		const int from = _possibleMoves[to].toInt(&ok);
+		if (!ok || from < 0 || from >= 64)
+			continue;
+		const Piece mover = _game->GetPieceAt(from);
+		const Piece target = _game->GetPieceAt(to);
+		if (!target.IsEmpty())
+			captures[to] = target.Color != mover.Color;
+		else
+			captures[to] = !_premoveDots && mover.Type == Chess::PAWN && from % 8 != to % 8;
+	}
+	return captures;
+}
+
 namespace {
 	static const char pieceCodes[] = " nbrqkp";
 	// "N" for a white knight, "n" for a black one: the piece image keys QML uses.

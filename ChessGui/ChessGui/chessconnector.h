@@ -49,6 +49,9 @@ class ChessConnector : public QObject
 		Q_PROPERTY(int PremoveFrom READ premoveFrom NOTIFY premoveChanged)
 		Q_PROPERTY(int PremoveTo   READ premoveTo   NOTIFY premoveChanged)
 		Q_PROPERTY(bool PremoveDots READ premoveDots NOTIFY PossibleMovesChanged) // the dots are where a premove may go
+		// BL-21: per square, whether the move there takes a piece: the other side's piece is there, or en
+		// passant (an empty square). The board marks those with corners instead of a dot.
+		Q_PROPERTY(QList<bool> CaptureSquares READ captureSquares NOTIFY PossibleMovesChanged)
 		Q_PROPERTY(int IsWhiteMove READ IsWhiteMove NOTIFY IsWhiteMoveChanged)
 		Q_PROPERTY(int IsOnPlayerMode READ IsOnPlayerMode NOTIFY IsOnPlayerModeChanged)
 		Q_PROPERTY(int LastLevel    READ lastLevel    NOTIFY lastLevelChanged)
@@ -213,6 +216,7 @@ public:
 	int premoveFrom() const { return reviewMode() ? -1 : _premoveFrom; }
 	int premoveTo()   const { return reviewMode() ? -1 : _premoveTo; }
 	bool premoveDots() const { return _premoveDots; }
+	QList<bool> captureSquares() const;
 
 	QStringList& PossibleMoves();
 	void setPossibleMoves(const QStringList& moves);

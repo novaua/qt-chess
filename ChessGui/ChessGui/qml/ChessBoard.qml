@@ -67,6 +67,13 @@ Rectangle {
                 anchors.centerIn: parent
             }
 
+            // BL-21: the capture targets' corners, under the pieces (the dots: over them, below)
+            NavigationLayer {
+                objectName: "captureLayer"
+                kind: "captures"
+                anchors.fill: chessBoxes
+            }
+
             ChessFigures{
                 id:chessPiecesGrid
                 objectName:"chessPiecesGrid"

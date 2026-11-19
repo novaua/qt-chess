@@ -92,7 +92,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
 	                  "online", "online-empty", "online-blitz", "online-challenge", "online-960", "online-days", "continue", "continue-online",
 	                  "continue-list", "continue-list-online", "continue-list-starting", "continue-starting", "takeback",
-	                  "clock-online", "clock-correspondence", "premove", "premove-played", "premove-dropped", "reconnecting", "rejoin",
+	                  "clock-online", "clock-correspondence", "premove", "premove-capture", "premove-played", "premove-dropped", "reconnecting", "rejoin",
 	                  "challenge", "challenge-accepting", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
 	                  "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
 	                  "opponent-left-error", "games", "games-empty", "games-filter", "analysis" }.contains(scene))
@@ -169,7 +169,7 @@ static void playClockScene(ChessConnector* connector, LichessClient* lichess, co
 
 // Scenes "premove", "premove-played" and "premove-dropped" (LI-05): a Lichess game fed to the stream
 // parser, White (us) after 1. e4 e5 2. Nf3, Black to move. premove: Bf1-c4 waits, the d2 pawn shows
-// where it may go. premove-played: Black's Nc6 comes, then Bc4 is played (not posted: offline).
+// where it may go (premove-capture: the f3 knight, which may take on e5, BL-21). premove-played: Black's Nc6 comes, then Bc4 is played (not posted: offline).
 // premove-dropped: e4-e5 waits, and after Nc6 the pawn can't move there: the premove is gone.
 static void playPremoveScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
 {
@@ -183,14 +183,14 @@ static void playPremoveScene(ChessConnector* connector, LichessClient* lichess, 
 			const bool dropped = scene == "premove-dropped";
 			connector->figureSelected(dropped ? Chess::e4 : Chess::f1);
 			connector->figureSelected(dropped ? Chess::e5 : Chess::c4);
-			if (scene == "premove") {
-				connector->figureSelected(Chess::d2);
+			if (scene == "premove" || scene == "premove-capture") {
+				connector->figureSelected(scene == "premove" ? Chess::d2 : Chess::f3);
 				emit connector->screenshotSceneReady();
 			}
 			else
 				lichess->handleGameStreamLine(R"({"type":"gameState","moves":"e2e4 e7e5 g1f3 b8c6","status":"started"})");
 		}
-		else if (*step == 2 && scene != "premove")
+		else if (*step == 2 && scene != "premove" && scene != "premove-capture")
 			emit connector->screenshotSceneReady();
 	});
 }
@@ -433,11 +433,11 @@ int main(int argc, char* argv[])
 		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
 		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge", "online-960", "online-days",
-		"premove", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
+		"premove", "premove-capture", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
 		"opponent-left-error", "timing", "more-menu", "play", "games", "games-empty", "games-filter", "play-from-here", "play-from-here-menu", "replay", "analysis",
-		"chess960", "chess960-select", "chess960-castled", "computer-960"
+		"chess960", "chess960-select", "chess960-castled", "computer-960", "capture", "capture-ep"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();
