@@ -1,3 +1,4 @@
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -254,7 +255,7 @@ namespace UserManagerTests
 			Assert::AreEqual(QString("Alice"), bobStats.value(UserManager::userKey(alice)).opponentName);
 		}
 
-		// A users.json from before version 3 has no signatures: trusted once, signed at the next save.
+		// A users.json from before version 3 has no signatures: trusted once, signed as it is loaded.
 		TEST_METHOD(Statistics_FromBeforeVersion3_TrustedOnceThenSigned)
 		{
 			writeFile(UserManager::usersFilePath(), R"({ "version": 2, "activeUserId": "u1", "users": [
@@ -264,13 +265,27 @@ namespace UserManagerTests
 				UserManager um;
 				Assert::IsTrue(um.takeRestoredStatistics().isEmpty());
 				Assert::AreEqual(4, um.statsOf("u1").value(UserManager::computerKey(2)).wins);
-				um.updateProfile("Old", "fox"); // any save
 			}
 			const QJsonObject root = QJsonDocument::fromJson(readFile(UserManager::usersFilePath())).object();
-			Assert::AreEqual(UserManager::kUsersVersion, root["version"].toInt());
+			Assert::AreEqual(UserManager::kUsersVersion, root["version"].toInt(), L"written at once: trusted only this once");
 			UserManager um;
 			Assert::IsTrue(um.takeRestoredStatistics().isEmpty(), L"they verify now");
 			Assert::AreEqual(4, um.statsOf("u1").value(UserManager::computerKey(2)).wins);
+		}
+
+		// A users.json from before version 3 beside a profile with signed files was written by hand (this
+		// app wrote version 3 there): not trusted, its statistics rebuilt (review of #187-#190).
+		TEST_METHOD(Statistics_Version2BesideSignedFiles_NotTrusted)
+		{
+			writeFile(GameLibrary::ratingFilePathOf("u1"), GameLibrary::ratingFileContent(LocalRating(1227, 1)));
+			writeFile(UserManager::usersFilePath(), R"({ "version": 2, "activeUserId": "u1", "users": [
+				{ "id": "u1", "name": "Old", "avatarName": "cat",
+				  "stats": { "byOpponent": { "computer:2": { "name": "Robot", "games": 40, "wins": 40, "draws": 0, "losses": 0 } } } } ] })");
+			UserManager um;
+			const QVariantList restored = um.takeRestoredStatistics();
+			Assert::AreEqual(1, (int)restored.size());
+			Assert::IsTrue(restored.first().toMap().value("rebuilt").toBool(), L"no backup verifies: from the kept games");
+			Assert::AreEqual(0, um.statsOf("u1").value(UserManager::computerKey(2)).wins, L"none kept");
 		}
 
 		TEST_METHOD(DeleteUser_RemovesProfileAndSaves_LogsOutTheActiveOne)
@@ -396,8 +411,12 @@ namespace UserManagerTests
 			Assert::IsFalse(um.lichessConnected());
 			Assert::IsTrue(um.lichessNeedsReconnect(), L"reconnect in your profile");
 			Assert::AreEqual(QString("a_li"), um.lichessUsername(), L"the account it was linked to is kept");
-			Assert::AreEqual(1, (int)changed.count());
+			Assert::AreEqual(0, (int)changed.count(), L"not told inside the call that asked (review of #187-#190)");
+			QCoreApplication::processEvents();
+			Assert::AreEqual(1, (int)changed.count(), L"told once that call is done");
+			Assert::IsTrue(readFile(UserManager::usersFilePath()).contains("\"lichessExpired\": true"), L"and written");
 			Assert::IsTrue(um.lichessToken().isEmpty(), L"asked again: still nothing, no second change");
+			QCoreApplication::processEvents();
 			Assert::AreEqual(1, (int)changed.count());
 		}
 

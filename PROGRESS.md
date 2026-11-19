@@ -4,6 +4,23 @@ Use this file to record where work stopped and what to do next. Newest entry at 
 
 ---
 
+## 2026-11-19 — BL-20: the review of #187–#190 fixed (branch: bugs/bl20ReviewFixes_191126)
+
+### Done
+- **Ways around the check**: `games.json` (BL-19) is migrated only in a profile without files of BL-20 (`GameLibrary::hasSignedFiles`: `rating.json`, a game file, `games.json.migrated`, `games/rejected/`); beside them it is set aside (counted, said). A `users.json` below version 3 isn't trusted when a profile has signed files, and an old one is written as version 3 as soon as it loads. The rating catches up only along the rated games that continue it exactly (`continued`), so a game copied from another profile doesn't move it (the owner chose this over a signature per profile).
+- **Rare bugs**: a failing `rating.json` beside a `games.json` that can't be read is restored and said at once (it waited, then went back to 1200 silently); a game file that can't be removed is tried again at the next write; a `games.json` record whose id can't name a file gets a UUIDv5 of it (`fileIdOf`), so a migration tried again doesn't keep it twice; `lichessToken()` marks the link expired at once but saves and emits after the call (no re-entrancy).
+- **Cleanup**: `GameLibrary::ReadFailure` instead of comparing the reason's text; `GameSignature::sign/verify/canonical` for JSON objects (one copy); `UserManager` checks game file names with `GameLibrary::isFileId`; `AppConfig::writeFileAtomically` for every file the app keeps; a statistics rebuild reads each profile's games once.
+- Tests: GameLibraryTest +5 (a copied rated game, `games.json` beside signed files, a failing rating beside a locked `games.json`, a remove retried, a migration retried), the catch-up across two games, the read failures; UserManagerTest +1 (version 2 beside signed files), the old file signed at load, the token's change after the call.
+- CLAUDE.md, the plan (review fixes), the hand tests' "already checked", TASKS.md.
+
+### Checked
+- Debug: ChessQtTests 309/309, no warnings; UI tests (Debug) 12 files, 0 failed.
+
+### Next
+- The owner runs `docs/BL-20-ManualTests.md`; BL-20 is done when they pass.
+
+---
+
 ## 2026-11-19 — BL-20 step 4: the hand tests (branch: docs/gameFilesManualTests_191126)
 
 ### Done

@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
@@ -99,8 +100,17 @@ void AppConfig::save() const
 	root["version"]  = 1;
 	root["settings"] = settings;
 
-	// QSaveFile: a crash mid-write leaves the previous file, not a broken one.
-	QSaveFile file(configFilePath());
-	if (!file.open(QIODevice::WriteOnly) || file.write(QJsonDocument(root).toJson()) < 0 || !file.commit())
-		qWarning() << "AppConfig: can't write" << configFilePath() << file.errorString();
+	writeFileAtomically(configFilePath(), QJsonDocument(root).toJson());
+}
+
+bool AppConfig::writeFileAtomically(const QString& path, const QByteArray& data, QString* error)
+{
+	QDir().mkpath(QFileInfo(path).absolutePath());
+	QSaveFile file(path);
+	if (file.open(QIODevice::WriteOnly) && file.write(data) == data.size() && file.commit())
+		return true;
+	qWarning() << "can't write" << path << file.errorString();
+	if (error)
+		*error = file.errorString();
+	return false;
 }

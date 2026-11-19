@@ -48,7 +48,9 @@ Already checked by the tests, no need to look again:
   - the rating is restored from the newest rated game, or starts again;
   - a rating that is behind its newest game catches up;
   - statistics come back from the newest backup that verifies, or are rebuilt from the games of both profiles;
-  - a `users.json` from before BL-20 is trusted once;
+  - a `users.json` from before BL-20 is trusted once, never beside signed files;
+  - a `games.json` dropped beside signed files is set aside, not migrated;
+  - a rated game copied from another profile doesn't move the rating;
   - an export round trip verifies;
   - an old export imports unrated, and an edited export has its failing parts set aside;
 - in `tst_restart`: an edited game and an edited `rating.json` between two runs, and their messages.

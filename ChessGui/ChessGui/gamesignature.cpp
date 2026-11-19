@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "gamesignature.h"
 
+#include <QJsonDocument>
 #include <QMessageAuthenticationCode>
 
 // Key 1, kept as two masked halves put together at run time: a search of the program's strings doesn't
@@ -49,6 +50,11 @@ QString GameSignature::sign(Kind kind, const QByteArray& payload)
 {
 	return QString::number(CurrentKey) + QLatin1Char(':')
 		+ QString::fromLatin1(mac(CurrentKey, kind, payload).toHex());
+}
+
+QByteArray GameSignature::canonical(const QJsonObject& json)
+{
+	return QJsonDocument(json).toJson(QJsonDocument::Compact);
 }
 
 int GameSignature::keyOf(const QString& signature)

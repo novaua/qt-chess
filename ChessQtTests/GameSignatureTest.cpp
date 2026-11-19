@@ -100,10 +100,10 @@ namespace GameSignatureTests
 				Assert::IsTrue(f.open(QIODevice::WriteOnly));
 				f.write(GameLibrary::gameFileContent(r));
 			}
-			QString why;
+			GameLibrary::ReadFailure why = GameLibrary::ReadFailure::None;
 			bool resign = true;
 			const auto read = GameLibrary::readGameFile(path, &why, &resign);
-			Assert::IsTrue(read.has_value(), why.toStdWString().c_str());
+			Assert::IsTrue(read.has_value(), GameLibrary::describe(why).toStdWString().c_str());
 			Assert::IsFalse(resign, L"signed with the current key");
 			Assert::AreEqual(r.opponentName, read->opponentName);
 			Assert::AreEqual(3, read->startPosition().Number());

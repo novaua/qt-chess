@@ -30,6 +30,7 @@
   - [x] 2 the rating and the statistics signed, their recovery (branch `features/signedRating_181126`)
   - [x] 3 an old export imported unrated; the signed rating and statistics in an export (branch `features/signedExport_191126`)
   - [x] 4 docs and hand tests: [`docs/BL-20-ManualTests.md`](docs/BL-20-ManualTests.md) (8 scenarios: a game edited, damaged or copied; the rating and the statistics edited; export / import between two data folders, an edited export; your own data from before BL-20 updated; another Windows account, a reinstall) (branch `docs/gameFilesManualTests_191126`)
+  - [x] The review of #187–#190 (10 findings): `games.json` and a `users.json` below version 3 not trusted beside signed files; the catch-up only along the games that continue the rating; a failed remove tried again; a migration tried again doesn't keep a game twice (`fileIdOf`); `lichessToken()` saves after the call; a read failure enum; one signing and one atomic-write helper; each profile's games read once for a rebuild (branch `bugs/bl20ReviewFixes_191126`)
   - [ ] The owner's hand tests: the task is done when they pass
 
 Manual checks, no code (do any time):

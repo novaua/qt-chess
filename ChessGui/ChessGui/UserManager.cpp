@@ -17,7 +17,6 @@
 #include <QLocale>
 #include <QRandomGenerator>
 #include <QRegularExpression>
-#include <QSaveFile>
 #include <QUuid>
 
 static const QString kExportFormat = QStringLiteral("chessplusplus-profile");
@@ -32,8 +31,9 @@ static const QStringList kProfileFiles = { QStringLiteral("rating.json"), QStrin
 // else under games/ is written on import.
 static bool isGameFileName(const QString& name)
 {
-    static const QRegularExpression gameFile(QRegularExpression::anchoredPattern(QStringLiteral("games/[A-Za-z0-9_-]{1,64}\\.json")));
-    return gameFile.match(name).hasMatch();
+    static const QString prefix = QStringLiteral("games/"), suffix = QStringLiteral(".json");
+    return name.startsWith(prefix) && name.endsWith(suffix)
+        && GameLibrary::isFileId(name.mid(prefix.size(), name.size() - prefix.size() - suffix.size()));
 }
 
 UserManager::UserManager(QObject* parent)
@@ -58,17 +58,6 @@ static QString userDir(const QString& userId)
     return AppConfig::appDataDir() + "/users/" + userId;
 }
 
-static bool writeFileAtomically(const QString& path, const QByteArray& data, QString* error = nullptr)
-{
-    QDir().mkpath(QFileInfo(path).absolutePath());
-    QSaveFile file(path);
-    if (file.open(QIODevice::WriteOnly) && file.write(data) == data.size() && file.commit())
-        return true;
-    qWarning() << "UserManager: can't write" << path << file.errorString();
-    if (error) *error = file.errorString();
-    return false;
-}
-
 static QByteArray readFile(const QString& path)
 {
     QFile file(path);
@@ -82,17 +71,10 @@ static QJsonObject parseObject(const QByteArray& json)
     return err.error == QJsonParseError::NoError && doc.isObject() ? doc.object() : QJsonObject();
 }
 
-// What is signed (BL-20): the JSON as it is written, compact; QJsonObject keeps its keys sorted, so the
-// object read back gives the same bytes.
-static QByteArray canonical(const QJsonObject& o)
-{
-    return QJsonDocument(o).toJson(QJsonDocument::Compact);
-}
-
 // A profile's statistics in users.json (or a backup, an export) fit their signature.
 static bool statsVerify(const QJsonObject& user)
 {
-    return GameSignature::verify(GameSignature::Kind::Statistics, canonical(user.value(QStringLiteral("stats")).toObject()),
+    return GameSignature::verify(GameSignature::Kind::Statistics, user.value(QStringLiteral("stats")).toObject(),
                                  user.value(QStringLiteral("statsSig")).toString());
 }
 
@@ -378,7 +360,13 @@ QString UserManager::lichessToken()
     if (token.isEmpty()) {
         qWarning() << "UserManager: the Lichess sign-in of" << activeUserId()
                    << "can't be decrypted here (linked on another PC or Windows account): reconnect";
-        setLichessExpired();
+        // Expired now (lichessConnected() says so at once), but written and told once the caller is done:
+        // the one asking (AppServices::updateLichessToken, on lichessChanged) isn't run again inside itself.
+        activeUser()->lichessExpired = true;
+        QMetaObject::invokeMethod(this, [this]() {
+            save();
+            emit lichessChanged();
+        }, Qt::QueuedConnection);
     }
     return token;
 }
@@ -632,7 +620,7 @@ static QMap<QString, UserManager::Record> statsFromJson(const QJsonObject& stats
     return result;
 }
 
-void UserManager::recoverStatistics(User& u)
+void UserManager::recoverStatistics(User& u, KeptGames& kept)
 {
     u.statsVerified = true; // as restored: signed at the next save
     for (int n = 1; n <= kBackupCount; ++n) {
@@ -649,7 +637,7 @@ void UserManager::recoverStatistics(User& u)
             return;
         }
     }
-    u.stats = statisticsFromGames(u.id);
+    u.stats = statisticsFromGames(u.id, kept);
     qWarning() << "UserManager: the statistics of" << u.id << "failed their check and no backup verifies; rebuilt from the kept games";
     _restoredStatistics.append(QVariantMap{ { QStringLiteral("name"), u.name }, { QStringLiteral("rebuilt"), true } });
 }
@@ -657,8 +645,15 @@ void UserManager::recoverStatistics(User& u)
 // The rows ChessConnector::recordResult made for the kept games that verify: the profile's own (vs the
 // robot by level, Guest, another profile), and the two-player games another profile kept against this
 // one (the profile signed in keeps the game). Lichess games have no record.
-QMap<QString, UserManager::Record> UserManager::statisticsFromGames(const QString& userId) const
+QMap<QString, UserManager::Record> UserManager::statisticsFromGames(const QString& userId, KeptGames& kept) const
 {
+    // Each profile's games read once, however many profiles are rebuilt.
+    auto keptOf = [&kept](const QString& id) -> const QList<GameRecord>& {
+        auto it = kept.find(id);
+        if (it == kept.end())
+            it = kept.insert(id, GameLibrary::keptRecordsOf(id));
+        return *it;
+    };
     QMap<QString, Record> stats;
     auto add = [&stats](const QString& key, const QString& name, double score) {
         Record& r = stats[key];
@@ -669,7 +664,7 @@ QMap<QString, UserManager::Record> UserManager::statisticsFromGames(const QStrin
         else                  r.draws++;
     };
     auto counted = [](const GameRecord& r) { return r.finished && r.resultRecorded && !r.result.isEmpty(); };
-    for (const GameRecord& r : GameLibrary::keptRecordsOf(userId)) {
+    for (const GameRecord& r : keptOf(userId)) {
         if (!counted(r))
             continue;
         if (r.kind == QLatin1String("computer"))
@@ -682,7 +677,7 @@ QMap<QString, UserManager::Record> UserManager::statisticsFromGames(const QStrin
     for (const User& other : _users) {
         if (other.id == userId)
             continue;
-        for (const GameRecord& r : GameLibrary::keptRecordsOf(other.id))
+        for (const GameRecord& r : keptOf(other.id))
             if (counted(r) && r.kind == QLatin1String("local") && r.opponentUserId == userId)
                 add(userKey(other.id), other.name, 1.0 - r.playerScore());
     }
@@ -700,7 +695,7 @@ QJsonObject UserManager::userToJson(const User& u)
         obj[QStringLiteral("lastPlayed")] = u.lastPlayed.toString(Qt::ISODate);
     const QJsonObject stats = statsToJson(u.stats);
     obj[QStringLiteral("stats")]       = stats;
-    obj[QStringLiteral("statsSig")]    = GameSignature::sign(GameSignature::Kind::Statistics, canonical(stats));
+    obj[QStringLiteral("statsSig")]    = GameSignature::sign(GameSignature::Kind::Statistics, stats);
     obj[QStringLiteral("autoSave")]    = saveInfoToJson(u.autoSave);
     obj[QStringLiteral("savedGame")]   = saveInfoToJson(u.savedGame);
     obj[QStringLiteral("lichessUsername")] = u.lichessUsername;
@@ -742,13 +737,19 @@ bool UserManager::loadFrom(const QByteArray& json, bool* restored)
     if (!isUsersFile(json))
         return false;
     const QJsonObject root = parseObject(json);
-    // Before version 3 nothing was signed: trusted once (BL-20 §3.5), signed when it is next written.
-    const bool signedStats = root.value(QStringLiteral("version")).toInt() >= 3;
-    _users = usersFromJson(root.value(QStringLiteral("users")).toArray(), signedStats);
+    const QJsonArray users = root.value(QStringLiteral("users")).toArray();
+    // Before version 3 nothing was signed: trusted once (BL-20 §3.5), signed when it is next written
+    // (load() writes it at once). Not when a profile already has signed files: this app wrote version 3
+    // there, so an older one is a way around the check (review of #187-#190).
+    bool signedStats = root.value(QStringLiteral("version")).toInt() >= 3;
+    for (const auto& val : users)
+        signedStats = signedStats || GameLibrary::hasSignedFiles(val.toObject().value(QStringLiteral("id")).toString());
+    _users = usersFromJson(users, signedStats);
     bool any = false;
+    KeptGames kept;
     for (User& u : _users) {
         if (!u.statsVerified) {
-            recoverStatistics(u);
+            recoverStatistics(u, kept);
             any = true;
         }
     }
@@ -777,6 +778,10 @@ void UserManager::load()
         return;
     }
     rotateBackups(json);
+    // A file from before the statistics were signed, trusted this once: signed now, so it is never
+    // trusted again (once this profile's games are signed files, an older file isn't: loadFrom).
+    if (parseObject(json).value(QStringLiteral("version")).toInt() < kUsersVersion)
+        save();
 }
 
 // backups/users-1.json is the newest. An unchanged file isn't copied again, so the older copies stay.
@@ -787,7 +792,7 @@ void UserManager::rotateBackups(const QByteArray& json)
     QFile::remove(backupFilePath(kBackupCount));
     for (int n = kBackupCount - 1; n >= 1; --n)
         QFile::rename(backupFilePath(n), backupFilePath(n + 1));
-    writeFileAtomically(backupFilePath(1), json);
+    AppConfig::writeFileAtomically(backupFilePath(1), json);
     emit backupsChanged();
 }
 
@@ -922,7 +927,7 @@ bool UserManager::restoreFromBackup()
         if (restored)
             save(); // its statistics restored, signed
         else
-            writeFileAtomically(usersFilePath(), json);
+            AppConfig::writeFileAtomically(usersFilePath(), json);
         qInfo() << "UserManager: restored users.json from" << backupFilePath(n);
         emitAllChanged();
         if (restored)
@@ -953,7 +958,7 @@ void UserManager::save()
     root[QStringLiteral("activeUserId")] = _activeUserId;
     root[QStringLiteral("users")]        = usersArray;
 
-    writeFileAtomically(usersFilePath(), QJsonDocument(root).toJson());
+    AppConfig::writeFileAtomically(usersFilePath(), QJsonDocument(root).toJson());
     emit backupsChanged(); // which backup is "the same as now" may have changed
 }
 
@@ -990,7 +995,7 @@ QString UserManager::exportProfile(const QString& userId, const QUrl& file)
         { QStringLiteral("files"),    files },
     };
     QString error;
-    if (!writeFileAtomically(file.toLocalFile(), QJsonDocument(root).toJson(), &error))
+    if (!AppConfig::writeFileAtomically(file.toLocalFile(), QJsonDocument(root).toJson(), &error))
         return QStringLiteral("Couldn't save the file: ") + error;
     return {};
 }
@@ -1087,12 +1092,13 @@ QString UserManager::importProfile(const QUrl& file, bool replace)
     // BL-20 step 3: the games and the rating checked before they are written (GameLibrary::checkImport).
     const GameLibrary::ImportCheck check = GameLibrary::checkImport(files);
     for (auto it = files.cbegin(); it != files.cend(); ++it)
-        writeFileAtomically(userDir(imported.id) + "/" + it.key(), it.value());
+        AppConfig::writeFileAtomically(userDir(imported.id) + "/" + it.key(), it.value());
     // Statistics that don't verify (edited, or an export from before BL-20): rebuilt from its games.
     const bool statsRebuilt = !imported.statsVerified;
     if (statsRebuilt) {
         User* u = userById(imported.id);
-        u->stats = statisticsFromGames(imported.id);
+        KeptGames kept;
+        u->stats = statisticsFromGames(imported.id, kept);
         u->statsVerified = true;
         qWarning() << "UserManager: the imported statistics of" << imported.name << "failed their check; rebuilt from its games";
     }

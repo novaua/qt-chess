@@ -15,7 +15,6 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QRegularExpression>
-#include <QSaveFile>
 #include <QTimer>
 #include <QUuid>
 #include <algorithm>
@@ -284,17 +283,28 @@ bool GameLibrary::isFileId(const QString& id)
 	return fileId.match(id).hasMatch();
 }
 
+QString GameLibrary::fileIdOf(const QString& id)
+{
+	if (isFileId(id))
+		return id;
+	static const QUuid ns(QStringLiteral("{6f0c6c55-0f4e-4d0b-9a59-3b2f3c2a1b20}")); // never change it
+	return QUuid::createUuidV5(ns, id).toString(QUuid::WithoutBraces);
+}
+
+bool GameLibrary::hasSignedFiles(const QString& userId)
+{
+	if (userId.isEmpty())
+		return false;
+	const QString dir = gamesDirOf(userId);
+	return QFileInfo::exists(ratingFilePathOf(userId))
+		|| QFileInfo::exists(legacyFilePathOf(userId) + QStringLiteral(".migrated"))
+		|| QFileInfo::exists(rejectedDirOf(userId))
+		|| !QDir(dir).entryList({ QStringLiteral("*.json") }, QDir::Files).isEmpty();
+}
+
 static bool newerFirst(const GameRecord& a, const GameRecord& b)
 {
 	return a.startedAt > b.startedAt;
-}
-
-// What is signed: the record's JSON as it is written. QJsonObject keeps its keys sorted and Qt writes
-// numbers in the shortest form that reads back the same, so the record read from the file gives the
-// same bytes again (GameSignatureTest guards it).
-static QByteArray canonical(const QJsonObject& record)
-{
-	return QJsonDocument(record).toJson(QJsonDocument::Compact);
 }
 
 QByteArray GameLibrary::gameFileContent(const GameRecord& record)
@@ -302,43 +312,55 @@ QByteArray GameLibrary::gameFileContent(const GameRecord& record)
 	const QJsonObject json = record.toJson();
 	const QJsonObject root{
 		{ QStringLiteral("record"), json },
-		{ QStringLiteral("sig"),    GameSignature::sign(GameSignature::Kind::Game, canonical(json)) },
+		{ QStringLiteral("sig"),    GameSignature::sign(GameSignature::Kind::Game, json) },
 	};
 	return QJsonDocument(root).toJson(QJsonDocument::Compact);
 }
 
-std::optional<GameRecord> GameLibrary::readGameFile(const QString& path, QString* why, bool* resign)
+QString GameLibrary::describe(ReadFailure why)
 {
-	auto fail = [why](const char* reason) -> std::optional<GameRecord> {
-		if (why)
-			*why = QString::fromLatin1(reason);
-		return std::nullopt;
-	};
+	switch (why) {
+	case ReadFailure::None:         return {};
+	case ReadFailure::CantOpen:     return QStringLiteral("can't be opened");
+	case ReadFailure::NotJson:      return QStringLiteral("not JSON");
+	case ReadFailure::BadSignature: return QStringLiteral("its signature doesn't fit");
+	case ReadFailure::OtherId:      return QStringLiteral("another game's id");
+	}
+	return {};
+}
+
+std::optional<GameRecord> GameLibrary::readGameFile(const QString& path, ReadFailure* why, bool* resign)
+{
 	QFile file(path);
-	if (!file.open(QIODevice::ReadOnly))
-		return fail("can't be opened");
+	if (!file.open(QIODevice::ReadOnly)) {
+		if (why)
+			*why = ReadFailure::CantOpen;
+		return std::nullopt;
+	}
 	return readGameContent(file.readAll(), QFileInfo(path).completeBaseName(), why, resign);
 }
 
 std::optional<GameRecord> GameLibrary::readGameContent(const QByteArray& content, const QString& fileId,
-                                                       QString* why, bool* resign)
+                                                       ReadFailure* why, bool* resign)
 {
-	auto fail = [why](const char* reason) -> std::optional<GameRecord> {
+	auto fail = [why](ReadFailure reason) -> std::optional<GameRecord> {
 		if (why)
-			*why = QString::fromLatin1(reason);
+			*why = reason;
 		return std::nullopt;
 	};
 	QJsonParseError err;
 	const QJsonDocument doc = QJsonDocument::fromJson(content, &err);
 	if (err.error != QJsonParseError::NoError || !doc.isObject())
-		return fail("not JSON");
+		return fail(ReadFailure::NotJson);
 	const QJsonObject json = doc.object().value(QStringLiteral("record")).toObject();
 	const QString sig = doc.object().value(QStringLiteral("sig")).toString();
-	if (json.isEmpty() || !GameSignature::verify(GameSignature::Kind::Game, canonical(json), sig))
-		return fail("its signature doesn't fit");
+	if (json.isEmpty() || !GameSignature::verify(GameSignature::Kind::Game, json, sig))
+		return fail(ReadFailure::BadSignature);
 	GameRecord record = GameRecord::fromJson(json);
 	if (record.id != fileId)
-		return fail("another game's id"); // a game copied under another name
+		return fail(ReadFailure::OtherId); // a game copied under another name
+	if (why)
+		*why = ReadFailure::None;
 	if (resign)
 		*resign = !GameSignature::isCurrent(sig);
 	return record;
@@ -348,13 +370,14 @@ std::optional<GameRecord> GameLibrary::readGameContent(const QByteArray& content
 static void setAsideFile(const QString& path, const QString& rejectedDir, const QString& why)
 {
 	QDir().mkpath(rejectedDir);
-	QString target = rejectedDir + QLatin1Char('/') + QFileInfo(path).fileName();
+	const QFileInfo info(path);
+	QString target = rejectedDir + QLatin1Char('/') + info.fileName();
 	if (QFileInfo::exists(target))
-		target = rejectedDir + QLatin1Char('/') + QFileInfo(path).completeBaseName()
-			+ QDateTime::currentDateTime().toString(QStringLiteral("-yyyyMMdd-HHmmss")) + QStringLiteral(".json");
+		target = rejectedDir + QLatin1Char('/') + info.completeBaseName()
+			+ QDateTime::currentDateTime().toString(QStringLiteral("-yyyyMMdd-HHmmss.")) + info.suffix();
 	if (!QFile::rename(path, target))
 		qWarning() << "GameLibrary: can't set aside" << path;
-	qWarning() << "GameLibrary:" << QFileInfo(path).fileName() << "set aside:" << why;
+	qWarning() << "GameLibrary:" << info.fileName() << "set aside:" << why;
 }
 
 void GameLibrary::readProfile(const QString& userId, ProfileFile& profileFile, bool setAside)
@@ -362,17 +385,17 @@ void GameLibrary::readProfile(const QString& userId, ProfileFile& profileFile, b
 	profileFile = {};
 	const QString dir = gamesDirOf(userId);
 	for (const QFileInfo& info : QDir(dir).entryInfoList({ QStringLiteral("*.json") }, QDir::Files)) {
-		QString why;
+		ReadFailure why = ReadFailure::None;
 		bool resign = false;
 		const auto record = readGameFile(info.filePath(), &why, &resign);
 		if (!record) {
-			if (why == QLatin1String("can't be opened")) {
+			if (why == ReadFailure::CantOpen) {
 				qWarning() << "GameLibrary: can't read" << info.filePath() << "now; left as it is";
 				continue; // a lock: it is there next time
 			}
 			++profileFile.setAside;
 			if (setAside)
-				setAsideFile(info.filePath(), rejectedDirOf(userId), why);
+				setAsideFile(info.filePath(), rejectedDirOf(userId), describe(why));
 			continue;
 		}
 		if (record->moves.isEmpty())
@@ -429,7 +452,7 @@ QByteArray GameLibrary::ratingFileContent(const LocalRating& rating)
 	const QJsonObject root{
 		{ QStringLiteral("version"), RatingFormatVersion },
 		{ QStringLiteral("rating"),  json },
-		{ QStringLiteral("sig"),     GameSignature::sign(GameSignature::Kind::Rating, canonical(json)) },
+		{ QStringLiteral("sig"),     GameSignature::sign(GameSignature::Kind::Rating, json) },
 	};
 	return QJsonDocument(root).toJson(QJsonDocument::Compact);
 }
@@ -440,7 +463,7 @@ static std::optional<LocalRating> verifiedRating(const QByteArray& content)
 	const QJsonObject root = QJsonDocument::fromJson(content).object();
 	const QJsonObject json = root.value(QStringLiteral("rating")).toObject();
 	if (json.isEmpty()
-		|| !GameSignature::verify(GameSignature::Kind::Rating, canonical(json), root.value(QStringLiteral("sig")).toString()))
+		|| !GameSignature::verify(GameSignature::Kind::Rating, json, root.value(QStringLiteral("sig")).toString()))
 		return std::nullopt;
 	return LocalRating::fromJson(json);
 }
@@ -453,17 +476,38 @@ std::optional<LocalRating> GameLibrary::readRatingFile(const QString& path)
 	return verifiedRating(file.readAll());
 }
 
+LocalRating GameLibrary::continued(LocalRating rating, const QList<GameRecord>& records)
+{
+	for (bool found = true; found;) {
+		found = false;
+		for (const auto& r : records) {
+			if (r.rated && r.ratedGames == rating.games() + 1 && r.ratingBefore == rating.value()) {
+				rating.apply(r.ratingChange);
+				found = true;
+				break;
+			}
+		}
+	}
+	return rating;
+}
+
 void GameLibrary::recoverRating(RatingState state)
 {
+	if (state == RatingState::Verified) {
+		// rating.json is written after its game (two writes): a crash between them leaves it behind. Only
+		// the games that go on from it count, not just any newer one (review of #187-#190: a rated game
+		// of another profile, copied here, verifies too).
+		const LocalRating caughtUp = continued(_rating, _records);
+		if (caughtUp.games() > _rating.games()) {
+			qWarning() << "GameLibrary: rating.json is behind the rated games that continue it; caught up";
+			_rating = caughtUp;
+			_ratingChanged = true;
+		}
+		return;
+	}
 	const auto fromGames = ratingFromGames(_records);
 	switch (state) {
 	case RatingState::Verified:
-		// rating.json is written after its game (two writes): a crash between them leaves it behind.
-		if (fromGames && fromGames->games() > _rating.games()) {
-			qWarning() << "GameLibrary: rating.json is older than the newest rated game; caught up";
-			_rating = *fromGames;
-			_ratingChanged = true;
-		}
 		return;
 	case RatingState::Missing:
 		if (!fromGames)
@@ -481,33 +525,12 @@ void GameLibrary::recoverRating(RatingState state)
 
 bool GameLibrary::writeGameFile(const QString& userId, const GameRecord& record)
 {
-	QDir().mkpath(gamesDirOf(userId));
-	QSaveFile file(gameFilePathOf(userId, record.id));
-	if (!file.open(QIODevice::WriteOnly)) {
-		qWarning() << "GameLibrary: can't write" << file.fileName() << file.errorString();
-		return false;
-	}
-	file.write(gameFileContent(record));
-	if (!file.commit()) {
-		qWarning() << "GameLibrary: can't write" << file.fileName() << file.errorString();
-		return false;
-	}
-	return true;
+	return AppConfig::writeFileAtomically(gameFilePathOf(userId, record.id), gameFileContent(record));
 }
 
 bool GameLibrary::writeRatingFile(const QString& userId, const LocalRating& rating)
 {
-	QSaveFile file(ratingFilePathOf(userId));
-	if (!file.open(QIODevice::WriteOnly)) {
-		qWarning() << "GameLibrary: can't write" << file.fileName() << file.errorString();
-		return false;
-	}
-	file.write(ratingFileContent(rating));
-	if (!file.commit()) {
-		qWarning() << "GameLibrary: can't write" << file.fileName() << file.errorString();
-		return false;
-	}
-	return true;
+	return AppConfig::writeFileAtomically(ratingFilePathOf(userId), ratingFileContent(rating));
 }
 
 // games.json of BL-19: every record and the rating in one file.
@@ -554,13 +577,13 @@ GameLibrary::ImportCheck GameLibrary::checkImport(QMap<QString, QByteArray>& fil
 	for (const QString& name : files.keys()) { // a copy: failing ones move
 		if (!name.startsWith(games) || name.startsWith(rejected))
 			continue;
-		QString why;
+		ReadFailure why = ReadFailure::None;
 		const QString fileName = name.mid(games.size());
 		if (const auto record = readGameContent(files.value(name), QFileInfo(fileName).completeBaseName(), &why)) {
 			verified.append(*record);
 			continue;
 		}
-		qWarning() << "GameLibrary: the imported" << name << "set aside:" << why;
+		qWarning() << "GameLibrary: the imported" << name << "set aside:" << describe(why);
 		files.insert(rejected + fileName, files.take(name));
 		++check.setAside;
 	}
@@ -576,8 +599,7 @@ GameLibrary::ImportCheck GameLibrary::checkImport(QMap<QString, QByteArray>& fil
 		for (GameRecord r : legacy.records) {
 			r.rated = false;
 			r.ratingBefore = r.ratingChange = r.ratedGames = 0;
-			if (!isFileId(r.id))
-				r.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+			r.id = fileIdOf(r.id);
 			const QString name = games + r.id + QStringLiteral(".json");
 			if (!files.contains(name))
 				files.insert(name, gameFileContent(r));
@@ -631,10 +653,9 @@ GameLibrary::FileState GameLibrary::migrateLegacyFile()
 			rated[i]->ratedGames = std::max(i + 1, legacy.rating.games() - (n - 1 - i));
 	int added = 0;
 	for (GameRecord r : legacy.records) {
+		r.id = fileIdOf(r.id);
 		if (find(r.id))
 			continue; // already a file of its own (a migration cut short)
-		if (!isFileId(r.id))
-			r.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
 		_records.append(r);
 		_changed.insert(r.id);
 		++added;
@@ -670,8 +691,15 @@ void GameLibrary::reload()
 	_ratingChanged = false;
 	_ratingRestored = false;
 	if (!_userId.isEmpty()) {
+		// games.json is trusted once, as this PC's own from before BL-20: never beside files of BL-20
+		// (review of #187-#190: a games.json written by hand would sign whatever it says). Set aside.
+		const bool legacyTrusted = !hasSignedFiles(_userId);
 		ProfileFile file;
 		readProfile(_userId, file, true);
+		if (!legacyTrusted && QFileInfo::exists(legacyFilePathOf(_userId))) {
+			setAsideFile(legacyFilePathOf(_userId), rejectedDirOf(_userId), QStringLiteral("beside signed files: not trusted"));
+			++file.setAside;
+		}
 		_records = file.records;
 		_rating = file.rating;
 		_setAside = file.setAside;
@@ -680,7 +708,7 @@ void GameLibrary::reload()
 		if (!_changed.isEmpty())
 			scheduleSave();
 		RatingState ratingState = file.ratingState;
-		switch (migrateLegacyFile()) {
+		switch (legacyTrusted ? migrateLegacyFile() : FileState::Damaged) {
 		case FileState::Unreadable:
 			// There, but not to be read now (another program holds it): its games aren't shown, and it
 			// isn't written over; every write tries it again.
@@ -739,8 +767,17 @@ bool GameLibrary::save()
 		}
 	}
 	bool ok = true;
-	for (const QString& id : std::exchange(_removed, {}))
-		QFile::remove(gameFilePathOf(_userId, id));
+	bool removeLater = false;
+	for (const QString& id : std::exchange(_removed, {})) {
+		const QString path = gameFilePathOf(_userId, id);
+		if (!QFile::remove(path) && QFileInfo::exists(path)) {
+			// Held by another program (an antivirus): tried again at the next write, else the game comes
+			// back at the next start (review of #187-#190).
+			qWarning() << "GameLibrary: can't remove" << path << "now; tried again";
+			_removed.insert(id);
+			removeLater = true;
+		}
+	}
 	const QSet<QString> changed = std::exchange(_changed, {});
 	for (const QString& id : changed) {
 		const auto r = find(id);
@@ -756,7 +793,7 @@ bool GameLibrary::save()
 		else
 			ok = false;
 	}
-	if (!ok || _legacyPending)
+	if (!ok || removeLater || _legacyPending)
 		_dirty = true; // tried again at the next write (games.json: until it can be read)
 	return ok;
 }

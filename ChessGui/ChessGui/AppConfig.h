@@ -21,4 +21,8 @@ public:
 	// vs the robot (users/<id>/rating.json). The folder isn't made here.
 	static QString gamesDirPath(const QString& userId);
 	static QString ratingFilePath(const QString& userId);
+
+	// The app's own files are written whole or not at all (QSaveFile: a crash mid-write leaves the previous
+	// file, not a broken one); the folder is made. false: not written (logged; *error says why).
+	static bool writeFileAtomically(const QString& path, const QByteArray& data, QString* error = nullptr);
 };
