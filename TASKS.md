@@ -84,7 +84,7 @@ Manual checks, no code (do any time):
 - [ ] BL-04 Improve game UI making piece move and dragged by hands, use latest QLM techniques [Medium] → In Progress — plan: [`docs/BL-04-PieceMovePlan.md`](docs/BL-04-PieceMovePlan.md) (pieces with an identity that slide, drag and drop, one board geometry). Steps 1–4 done: `Game::UndoMove` takes back castling / en passant / promotion correctly; `Chess::BoardDiff`; the `BoardPieces` model as `ChessConnector.Pieces` (+ `SelectedSquare`, `MovableColor`, `movePiece`); the QML board on `Pieces` with one geometry and one `TapHandler`; slides and fades (step 5); dragging and the `drag` scene (steps 6–7). **Hand test by the owner (2026-11-12, plan §5 rows 2, 3, 7, 11–14):** OK: a slow drag with dots and the drop outline (A.1), an illegal drop goes back (A.2), Esc during a drag (A.4), no drag or hand cursor for the side not to move (A.5) or after mate (A.8), promotion by drag and by clicks (A.6–7), dragging on a flipped board both ways (B.9–10), the robot's promotion with FakeUci (D.13), Reduce animations (E.15). Found and fixed (branch `bugs/bl04HandTestFixes_121126`): a piece dragged off the board went under the bottom player card and the moves panel (A.3; it is now in the window's overlay, over everything); leaving a two-player game lost its moves without a word (A.4; now "Leave without saving?" with Leave / Save and leave / Stay on Home, Esc and closing the window, when there are moves not saved since; Switch user's confirm no longer says a two-player game is saved). **Rechecked by the owner (2026-11-13): A.3, A.4 and C.11–12 (vs the robot: busy cursor, premove by drag, no drag in review) OK.** Left: E.14 (touch: no touch screen)
 - [x] BL-05 UI test suite for local pre-PR sanity (Qt Quick Test + screenshot diff, optional pywinauto smoke / CI job) — plan: [`docs/UiTestSuitePlan.md`](docs/UiTestSuitePlan.md) [Hard]. **Plan refreshed (2026-11-12, branch `docs/bl05Plan_121126`): Layer 2 (screenshots, diff, `SceneInput`) done; next: `AppServices` out of `main.cpp` and a `ChessGuiTests` project (Qt Quick Test, offscreen, one process per test file) with three scenarios, then a stub UCI engine. The owner chose the recommended Q1–Q4 (2026-11-12). Step 2 done (branch `features/uiTestsAppServices_121126`): `AppServices` (the services' wiring, out of `main.cpp`), the `ChessGuiTests` project (Qt Quick Test, offscreen) with `tst_firstRun` and `tst_twoPlayers` (8 functions: first run, Fool's mate by clicks, a dragged e4), `scripts\Run-UiTests.ps1` (`-Screens`: the pre-PR check). Step 3 done (branch `features/fakeUciEngine_121126`): FakeUci, the stand-in UCI engine (`CHESS_ENGINE_PATH`), `tst_robot` (answer, premove by clicks, leave while it thinks, Continue), the `robot` / `premove-robot` scenes on it and in `all`; fixed on the way: a premove against the robot couldn't be made with the mouse (a click blocker over the board). Step 4a done (branch `features/uiTestsBoard_121126`): `tst_board` (illegal drop, Check, review, saved game replayed), `tst_promotion` (both colours), the takeback in `tst_robot`; 26 test functions. Step 4b done (branch `features/uiTestsSettingsProfiles_121126`): `tst_restart` (runs twice on one data folder: a setting and an autosaved game kept), `tst_profiles` (add, switch during a game, each profile's own game); 38 test functions. Step 4c done (branch `features/uiTestsLichess_121126`): `FakeLichess` (a local Lichess for every test file, the test plays the other side), `tst_lichess` (a challenge declined and one accepted, moves both ways, a draw offer, the connection lost and back, the opponent resigns, an unfinished game continued with its moves, Leave / Resign); 50 test functions. Step 5 done (branch `features/uiTestsCi_121126`): the UI tests in `tests.yml` on every push (Debug, offscreen, ~95 s; the results uploaded on a failure). Step 6 done as the installer's smoke test (branch `features/installerSmokeTest_121126`, instead of pywinauto): every PR and release installs the installer on GitHub, runs the installed app on five screenshot scenes with only the installed files, and uninstalls it.**
 - [ ] BL-06 Implement engine selection. Currently we bundle only with Stockfish. Implement setting to select test and make default another UCI engine.
-- [ ] BL-07 Polish LiChess workflows add full support including chat and different way pof playing.
+- [ ] BL-07 Polish LiChess workflows add full support including chat and different way pof playing. (The chat: LI-08.)
 - [x] BL-09 Engine move off the GUI thread's game [Medium]: `ChessEnginePlayer::DoMove` runs on the engine thread and calls `_game->DoMove()`, while the GUI thread reads the same `Game` (captured pieces, `MaterialBalance`, `LastMoveFrom/To`, review replays). Clicking a move or pressing ← during the robot's turn can read the move history while it reallocates. Fix: the engine thread only finds the move (`EngineWorker` returns the UCI string); `ChessConnector` plays it on the GUI thread. Found in the P4 code review (#81). → done: `ChessEnginePlayer::FindMove(history)` gets a copy of the moves, `ChessConnector::onEngineMoveFound` plays the move; a request number drops answers for an old game or position.
 - [x] BL-08 When authorizing using LiChess, 'Waiting for browser' message is shown, but the browser is not opened or the link lost or user dont wasn to. Add cancel option. → done in BL-02 P3 (Cancel on the Welcome and Profile pages)
 - [ ] BL-10 Lichess challenges as notifications while signed in [Hard] — plan: [`docs/BL-10-ChallengesPlan.md`](docs/BL-10-ChallengesPlan.md), with the owner's choices (2026-11-09): Accept during a game depends on the game (a running real-time Lichess game: Decline only; robot, two-player or correspondence: Accept leaves it), taskbar flash and a sound in the background (no toast), unplayable challenges shown with Open on lichess.org, Your games kept live by the same stream. Steps: 1 `LichessStream` (LI-06's reconnect as a class; done, branch `lichessStream_091126`), 2 the always-open event stream and `incomingChallenges` (done, branch `eventStream_091126`), 3 Accept and the bar (done, branch `challengeBar_091126`), 4 the Online page and Home (done, branch `onlineChallenges_091126`), 5 docs and hand tests (done, branch `bl10Docs_091126`). **Coded (#127–#130); the owner's hand tests are open: [`docs/BL-10-ManualTests.md`](docs/BL-10-ManualTests.md).** Original note: today the app hears Lichess only during its own flows (waiting for a game, and since #89 a rematch offer while the finished game is on screen). A challenge sent to the linked account from lichess.org, or a rematch offered after we left the game, never shows up. Lichess sends both on `/api/stream/event` (`challenge`, `challengeCanceled`, `challengeDeclined`, `gameStart`; a rematch is a `challenge` with `rematchOf`), only to a stream open at that moment. To do: keep one event stream open whenever a Lichess account is linked (reconnect with backoff, stop on sign-out / 401, share it with `waitForGameStart` and the rematch watch); keep a list of incoming challenges (challenger, rating, time control, variant, rated, colour) and show them anywhere in the app (badge or InfoBar on Home and the game page, and a list); Accept (needs `compat.board`, else "open on lichess.org") and Decline with a reason; decide what Accept does during a running game; optionally a Windows notification when the window is minimised; parse tests and a screenshot scene for the notification. See `LichessClient::isRematchOffer` / `watchForRematch` (#89).
@@ -95,6 +95,118 @@ Manual checks, no code (do any time):
 - [ ] BL-12 Smaller Qt deployment — PR #91, **frozen** until the owner picks it up again (more testing and evaluation first) [Medium]: ship only the Qt files the app uses (`installer\Deploy-Qt.ps1`; plugins and QML in `deploy\qt\`; no translations, `opengl32sw`, D3D12 compilers, FFmpeg; `QT_MEDIA_BACKEND=windows`; `QGuiApplication` instead of `QApplication`, no Qt Widgets). Installed size 146 → 67 MB, installer 50.8 → 36 MB. Branch `pruneQtDeploy_301026`: on GitHub still on the old base; a local copy rebased onto `develop` after #93 (e616f08, built and tested, not pushed). To resume: rebase onto the then-current `develop` (expect `PROGRESS.md` / `TASKS.md` conflicts; skip the "spell fix" commit, already in `develop`), Rebuild ChessGui (the Widgets module goes away), then install over the last release and check that the old plugin folders are gone, sounds play, and every page opens.
 - [ ] BL-13 Game page layout for wide screens [Medium] — plan: [`docs/BL-13-WideLayoutPlan.md`](docs/BL-13-WideLayoutPlan.md) (2026-11-09; the owner chose the recommended Q1–Q4). Steps: 1 the column layout with sized screenshot scenes (done, branch `wideGameLayout_091126`), 2 the InfoBars in the column (done, branch `infoBarsColumn_091126`), 3 messages over the command bar and the recent messages (done, branch `features/commandBarMessages_101126`), the code review fixes (done, branch `bugs/bl13Review_101126`), later more move-history views. Original note: on a monitor much wider than it is high, the player cards (avatar, name, captured pieces, +N) should move to a column on the left of the board (opponent at the top, player at the bottom), so the board can take all of the available height. Today, in a wide window (`GamePage.qml`: `area.wide`, width >= 960 or landscape), only the moves panel goes beside the board (on the right); the two cards stay above and below it, so the board loses their height (`area.boardSize`). Keep the current layout when the window is taller than wide (e.g. snapped to half the screen) and in narrow windows (move sheet). The plan should cover: when to switch (aspect ratio, minimum height), the left column's width and what it shows (captured pieces vertical or wrapped, the active-side marker), the moves panel on the right, and screenshot scenes at e.g. `-Size 1920x1080` and `1400x900` with baselines. The owner will add more features to this task, e.g. other ways to show the move history.
 - [ ] BL-14 One thing at a time on the board [Medium] — plan: [`docs/BL-14-MovePacingPlan.md`](docs/BL-14-MovePacingPlan.md). Follow-up of BL-04, from the owner's testing: the robot's answer (level 1) slides together with the player's move; playing Black, the robot moves while the board is still turning; sounds and messages follow the game, not the board; slides sometimes stop for a few ms. Plan: a `MoveGate` that holds moves from outside (robot, Lichess opponent) until the board is idle (page settled, not turning, last slide done, a short pause), so game, board and sounds stay in step; the player's own move stays instant. Step 1 done (branch `boardFreezes_301026`): frame trace, `NavigationLayer` and the move list without rebuilds — numbers in `PROGRESS.md`. Step 2 done (branch `moveGate_301026`): `MoveGate` with 12 tests (fake clock) — holds outside moves until the board is idle, one batch for a resync, `isIdle()` for results without a move. Step 3 done (branch `robotThroughGate_301026`): the robot's answer goes through the gate and `EngineThinking` lasts until it is shown; `GamePage` reports the board settled (1 s, not turning) and the slide time; takeback, review, new game and leave drop a held answer. Step 4 done (branch `resultOnIdle_311026`): the result card comes a beat after the gate is idle (`isBoardIdle()` / `boardIdle`) instead of 1600 ms from the result; a result without a move starts the beat at once. Step 5 done (branch `lichessThroughGate_021126`): the Lichess opponent's moves go through the gate (a resync of more than two at once is shown anew, without slides, with one sound); a game end that arrives with the opponent's last move is shown after that move, and the stream now emits that move (the mating move used to be lost). Next: manual checks with a real Lichess game; step 6 only if the step-1 numbers still show stalls. Open: think during the animation and show after (recommended), or ask the engine only after it
+- [ ] BL-21 **Bug**: a capture's legal-move dot can't be seen [Easy], **not started** (the owner, 2026-11-19). When a selected piece can take, the target square shows no visible dot: the player can't see which pieces can be taken. Noticed after the redesign (BL-02).
+  - **Likely cause (not confirmed):** `NavigationLayer.qml` draws the same dot on every target square, over the pieces: `Theme.legalMoveDot`, black at 22 % opacity, 30 % of the square. On an empty square it shows; on a capture it lies on the piece, and on a black piece it disappears. Before the redesign the dots were probably more opaque or coloured.
+  - **Fix, as on lichess.org:** a capture target gets its own mark instead of the dot. Lichess shades the square's four **corners** (small triangles left by a ring-shaped gradient), so the piece stays fully visible and the mark shows on light and dark squares, under white and black pieces.
+  - **The owner's idea:** additionally or instead, a **red glow** around the square (or the piece) that can be taken. To decide when it is done:
+    - corners only, as on lichess.org (recommended: familiar, and it doesn't clash with the red premove squares or the check's red);
+    - the red glow only;
+    - both.
+  - **Details:**
+    - `ChessConnector.PossibleMoves` would say which targets are captures (en passant too: the square is empty, but it is a capture), or QML checks for a piece on the square.
+    - Premove targets (red dots, LI-05) get the same corners in the premove colour.
+    - Settings → Gameplay "Show legal moves" off hides them as it hides the dots.
+    - The pop-in animation as for the dots; none with Reduce animations.
+    - High contrast: a solid colour.
+  - **Tests:** a screenshot scene with a selected piece that can take a white and a black piece, on light and dark squares and in the dark theme; a `tst_board` check that a capture square has its mark visible.
+- [ ] BL-22 Broadcast: watch the game in a browser, like a chess TV [Medium], **not started; needs a plan** (the owner, 2026-11-19).
+  - **What it is:** the app hosts a small HTTP server. A browser that opens its address sees the game on the board live:
+    - the board, with the last move and a check marked;
+    - the players' names, and the clocks when the game has them;
+    - the move list;
+    - the result when the game ends;
+    - the FEN of the current position on request.
+  - **Off by default:** a Settings section "Broadcast" (or under Advanced) turns it on; until then no server runs and no port is open.
+  - **What is shown:** the game on the board in every mode: vs the robot, two players, a Lichess game, maybe a replay. Between games the page says "No game on the board" and keeps the last result. Only one game, the one in the window: there's no channel list.
+  - **Read only:** a viewer can't move, offer anything or change anything. No profile data beyond the shown names, never the Lichess token.
+  - **Addresses** (to fix in the plan):
+    - `/` the viewer page, from the app's resources (qrc): HTML, CSS and a little JS, the board drawn with the app's own piece images, light and dark, fitting a phone too;
+    - `/fen` the current FEN as `text/plain`;
+    - `/pgn` the game so far (`GamePgn`);
+    - `/api/game` the state as JSON (players, side to move, moves in SAN and UCI, FEN, clocks, result);
+    - `/events` the live updates as **Server-Sent Events** (`text/event-stream`, the browser's `EventSource`, which reconnects on its own). It is simpler than WebSockets, and one direction is all that is needed.
+  - **The server, to choose in the plan:**
+    - **Qt HTTP Server** (`QHttpServer`, a Qt add-on module, as Multimedia is): it would have to be installed, built in and deployed (the installer, `Deploy-Qt.ps1`);
+    - **a small server of our own on `QTcpServer`**, as `FakeLichess` is in the tests: GET only, a few routes, no new dependency. Recommended, since the needs are small.
+  - The server runs on the GUI thread or its own thread. It only reads a snapshot that `ChessConnector` publishes after each change, so viewers never touch the game.
+  - **Settings:**
+    - the switch;
+    - the port (default e.g. 8765; "in use" reported, not a silent failure);
+    - **who can watch**: this computer only (`127.0.0.1`, the default) or the local network (all addresses, Windows' firewall will ask; a warning);
+    - for the network, perhaps a random access code in the URL;
+    - the address shown with Copy and Open in browser, and how many are watching.
+  - **Fair play, a question for the owner:** broadcasting a running Lichess game lets someone watching help the player, which breaks Lichess's rules. Options:
+    - no broadcast of a running Lichess game;
+    - a delay (e.g. N moves or seconds, as Lichess TV delays);
+    - a warning only.
+  - **C++:** a `BroadcastServer` class (ChessGui, its source also in `ChessGuiTests.vcxproj`), owned by `AppServices`, started and stopped by the setting; `ChessConnector` gives the snapshot and a change signal (moves, takebacks, result, a new game, the clock each second).
+  - **Tests:**
+    - `ChessQtTests` with `QNetworkAccessManager` against the server: `/fen` after moves, `/api/game`, an update on `/events` after a move, a takeback, an unknown route 404, the server off when the setting is off;
+    - a UI test that turns it on and reads `/fen`;
+    - the viewer page checked by hand in Edge and on a phone in the same network;
+    - a screenshot of the Settings section.
+
+---
+
+## Chess Core Extensions
+
+Work in `ChessCore` (the `Chess::` rules, no Qt) that opens the way to more kinds of chess.
+
+- [ ] CE-01 Game rules as a part the game is made with [Hard], **not started; needs a plan, made with the owner step by step** (the owner, 2026-11-19). `Game` is made with a variant's **rules**, instead of standard chess's rules hard-wired in `MovesGen`, `Check`, `Game` and `Board`. This is the groundwork for more variants: Lichess's Antichess, Crazyhouse (LI-01B), Atomic, King of the Hill, Three-check, Horde, Racing Kings, and maybe our own.
+  - **Today:** the rules are standard chess, spread over:
+    - `MovesGen` (castling, en passant, promotion);
+    - `Check` (check, mate);
+    - `Game` (stalemate, the draw rules, the result; repetition in `BoardPositionsCache`);
+    - `Board::CanMate` (mating material);
+    - `San` / FEN (notation).
+  - Chess960 (LI-01A) is a `StartPosition` plus a few `IsChess960()` branches (castling in `Move.cpp`, `Game.cpp`, `San.cpp`). That works for one variant, but every further variant would add more such branches.
+  - **What differs between variants** (the plan lists each variant against these):
+    - the start position;
+    - the pieces and how they move;
+    - whether captures are forced (Antichess);
+    - whether there is check at all, and whether the king can be taken (Antichess, Atomic);
+    - what a move does besides moving: Atomic's explosion, Crazyhouse's pocket and drops (`P@e4`);
+    - promotion (to a king in Antichess; a promoted piece goes back to the pocket as a pawn in Crazyhouse);
+    - castling;
+    - how a game is won: mate, losing every piece (Antichess), the king in the centre (King of the Hill), three checks, the king to the 8th rank (Racing Kings);
+    - the draw rules and mating material;
+    - extra state in the position: the pockets, the checks given; FEN's extensions (`[Pp]`, `+1+2`);
+    - the SAN / UCI notation.
+  - **Design (to choose in the plan; candidates):**
+    - **Strategy:** an interface (`Rules` / `Variant`) that `Game` gets at `Restart` (`std::shared_ptr<const Rules>`). Its hooks:
+      - the legal moves;
+      - the side effects of a move, and their undo;
+      - check;
+      - the game's outcome;
+      - mating material;
+      - FEN / SAN.
+      - Standard chess is the default implementation; a variant overrides only what it changes. A **Template Method** in the base keeps the common steps (generate, filter, apply), with the variant's hooks inside.
+    - **Data-driven rules**, as Fairy-Stockfish does (`variants.ini`): a variant is a set of options (forced captures, a king that can be taken, drops, win conditions, piece types). It is cheap for many variants, but some of them (Atomic's explosion) still need code.
+    - **Composition / Decorator:** small rule parts combined into a variant (drops + pocket, forced capture, an extra win condition).
+    - **A factory / registry** keyed by Lichess's variant names (`standard`, `chess960`, `antichess`, `crazyhouse`, …), used by records, `LichessClient::playableVariant` and the setup dialogs.
+    - Recommended to look at first: a Strategy interface with data options for the simple differences, Chess960 moved into it, and the registry.
+  - **Extra state:** the game state gets the variant's own state (pockets, checks given). `HistoryMove` records what is needed to undo it (`Game::UndoMove`, takebacks); `BoardDiff` / `BoardPieces` learn drops and explosions.
+  - **Steps, each a PR:**
+    - 1 the plan, with the owner;
+    - 2 a refactor with **no change in behaviour**: standard chess and Chess960 through the `Rules` interface, `IsChess960()` branches gone, every existing test green (`ChessTests`, the Chess960 reference games, the UI tests);
+    - 3 the first new variant, as the proof: the plan picks it (Antichess is small, Crazyhouse is LI-01B's);
+    - then one variant per task.
+  - **Tests:**
+    - per variant, random games checked ply by ply against **python-chess**, which has all of Lichess's variants (`chess.variant`), as `Chess960Reference.h` is made today (`scripts/make_chess960_reference.py`);
+    - perft counts for known positions;
+    - the outcome rules.
+  - **Out of this task, listed for the plan:**
+    - the UI per variant: pockets, a checks counter, the explosion;
+    - the engine: Stockfish plays only standard and Chess960, so the robot needs a variant engine (Fairy-Stockfish, BL-06) or no robot for those variants;
+    - FakeUci;
+    - the record's `variant`, PGN's `Variant` tag;
+    - Lichess's variants in `playableVariant`.
+  - **The interactive planning stage:** the plan (`docs/CE-01-GameRulesPlan.md`) is written with the owner. First a short survey of where the rules live and of the candidate designs, with a small sketch of each, then the owner's choices asked one question at a time before it is final:
+    - the design;
+    - which variants are in scope and in what order;
+    - the first variant;
+    - whether variants are only for Lichess or also local and against the robot;
+    - the engine.
 
 ---
 
@@ -115,7 +227,7 @@ Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows
     - [x] 2 UI: the Online page's Variant row (`AppSettings.onlineChess960`, the Chess960 rating line), Lichess's variant names, the Profile's Chess960 pool, `FakeLichessServer` variants, scenes, `tst_lichess960` (branch `features/chess960LichessUi_181126`)
     - [x] 3 Docs and hand tests on lichess.org: [`docs/LI-01A-LichessManualTests.md`](docs/LI-01A-LichessManualTests.md) (9 scenarios, two Lichess accounts), `TASKS.md`, `PROGRESS.md` (branch `docs/chess960LichessManualTests_181126`)
     - [ ] The owner runs `LI-01A-LichessManualTests.md` (a 960 challenge both ways, castlings, premove, Continue, rematch's position, correspondence, PGN, the rating, Crazyhouse refused)
-- [ ] LI-01B Crazyhouse [Hard], **needs a plan first; not started** (after LI-01A). Chess-logic work in `ChessCore`, not only the Lichess dialog. The plan should cover:
+- [ ] LI-01B Crazyhouse [Hard], **needs a plan first; not started** (after LI-01A; on CE-01's game rules). Chess-logic work in `ChessCore`, not only the Lichess dialog. The plan should cover:
   - captured pieces go to the capturer's pocket and can be dropped instead of a move (UCI `P@e4`; no pawn drops on the 1st/8th rank);
   - a promoted piece goes back to the pocket as a pawn;
   - drops can give check and parry it (mate detection);
@@ -154,6 +266,55 @@ Improvements to playing on Lichess. Related: BL-07 (polish the Lichess workflows
   - cancel it with a click on an empty square or a right click;
   - when the opponent's move is shown (MoveGate release), play the premove at once with no gate pause if it's legal, otherwise drop it silently;
   - maybe later: a queue of several premoves, and premoves vs the robot (the same mechanism, `Source::Robot`).
+- [ ] LI-07 My Lichess name and picture in a Lichess game [Medium], **not started; the owner's choice below is open** (the owner, 2026-11-19). In a Lichess game the player's card shows the local profile (e.g. "Ninja" with its local avatar), while the opponent sees the Lichess account's name. The owner would like to see the Lichess name, and the Lichess picture if there is one. Today (`chessconnector.cpp`):
+  - the player's card shows `playerName()`, the local profile's name, and `AvatarProvider.playerUrl`, the local avatar;
+  - the opponent's card shows only the Lichess name, with the `unicorn` avatar (`LichessClient` sends no avatar: "Lichess doesn't provide avatar in stream"). Their rating, title (GM, BOT…) and provisional mark come in `gameFull` and aren't shown.
+  - Lichess has no uploaded profile pictures. The nearest is the **flair**, a small emoji the player picks on lichess.org (`flair` in the API's user; images on lichess1.org): to check in the plan whether `gameFull` or `/api/account` gives it. So the local avatar stays the picture, and the flair is shown beside the name.
+  - **Recommended, without a setting:** in a Lichess game both cards show the Lichess identity, as lichess.org does: title, name, flair, rating (`?` when provisional). The player's card keeps the local avatar and adds the local name in its detail line ("Ninja · 1523?"), so both stay visible. The robot and two-player games stay as today.
+  - Alternatives: (a) a setting, Settings → Online "Show my Lichess name in games" (on by default); (b) the owner's idea of one card in two halves, the Lichess side on the left and the local side on the right. (b) crowds the card in a narrow window and in the wide layout's column (BL-13), so it isn't recommended.
+  - Also the game's title ("Lichess · vs X"), the result card and the recent messages: the Lichess names.
+  - Tests: `FakeLichessServer` with a title, flair and rating, and `tst_lichess` checks of both cards; scenes `online` and narrow with them; `LichessClientTest` parsing `gameFull`'s players.
+- [ ] LI-08 Chat in Lichess games [Medium], **not started; needs a plan** (the owner, 2026-11-19; BL-07's chat). Chat with the opponent as lichess.org allows, not as a panel: a **round chat button in the game page's bottom right corner**, over the board area, with a count of unread messages, which opens a small chat window above it. It should look familiar to Lichess players.
+  - **Board API** (to confirm in the plan): the game stream's `chatLine` lines (`room`: `player` or `spectator`, `username`, `text`); `POST /api/board/game/{id}/chat` (`room=player`, `text`); `GET /api/board/game/{id}/chat` for the chat so far when a game is rejoined (LI-04, BL-18). The `board:play` scope covers it. `gameFull` also has the chat's state; to check whether the opponent or Lichess has turned chat off (kid mode, a closed chat).
+  - **The button:** shown only in a Lichess game (not robot, two players or replay) while the chat is on. A badge with the unread count, and a short pulse when a message comes in (still with Reduce animations). A new message plays a soft sound and goes to Recent messages (`MessagesFlyout`). It must not cover the board's squares or the moves panel's controls; in a narrow window it sits above the moves sheet's handle.
+  - **The chat window:** a popup anchored to the button, not modal, so the game goes on behind it, and the board stays playable when it doesn't overlap. It holds:
+    - the lines as on lichess.org: "name: text", the player's own lines marked, Lichess's own lines (draw offered, takeback…) in grey italics;
+    - an input of up to 140 characters (Lichess's limit), sent with Enter;
+    - the preset phrases as chips: Hello, Good luck, Have fun!, You too!, Good game, Well played, Thank you, I've got to go, Bye!;
+    - a switch to turn chat off for the game, as on lichess.org.
+  - Esc or a click outside closes it; opening it marks everything read. It stays open across moves, and closes when the game ends and the result card shows. Keyboard: a shortcut to open it, with focus in the input.
+  - **C++:** `LichessClient` parses `chatLine` and posts chat (`chatReceived(username, text, room)`, `sendChat(text)`; spectator lines ignored); `ChessConnector` keeps the game's chat as a model (`Chat`, `ChatUnread`, `sendChat`), cleared when the game changes. Not kept after the game (Lichess games have no record).
+  - **Tests (chat):** `LichessStreamTest` / `LichessClientTest` for `chatLine` and the POST; `FakeLichessServer` that chats back; `tst_lichess`: the badge counts, the window opens, a phrase is sent, Esc closes it. Scenes: `chat-badge`, `chat-open`, light and dark, narrow. A hand test on lichess.org with two accounts.
+- [ ] LI-09 Quick pairing [Medium], **not started; needs a plan** (the owner, 2026-11-19). Play a random opponent of about the player's rating, as lichess.org's **Quick pairing** tiles do, without a link to share or a name to type. Today a Lichess game starts only from a challenge: to a friend by link, to a named player, or one received (BL-10).
+  - **Board API** (to confirm in the plan): `POST /api/board/seek` makes a public seek, with `time` + `increment` (minutes + seconds), or `days` for correspondence. Its parameters:
+    - `rated`;
+    - `variant` (`standard`, `chess960`: LI-01A);
+    - `ratingRange` (e.g. `1300-1700`).
+    - A real-time seek lasts as long as its HTTP connection stays open: closing it cancels the seek.
+    - When someone takes it, the game comes as a `gameStart` on the event stream, which the app already handles (challenges, BL-10) and which opens the game as today.
+    - A correspondence seek returns at once with the seek's id.
+  - **The Board API's limit:** like challenges (LI-02), seeks may only be **Rapid, Classical or Correspondence**; Bullet and Blitz are for the browser and bots. So of lichess.org's tiles only these work here: 10+0, 10+5, 15+10, 30+0, 30+20, plus Correspondence (days per move). In the plan:
+    - Bullet and Blitz tiles either aren't shown, or are shown greyed with "Open on lichess.org" (recommended: the familiar grid, honest about what this app can do);
+    - a **Custom** tile: the challenge card's `TimeControlPicker` limited to what is allowed.
+  - **The UI:**
+    - a **Quick pairing** section at the top of the Online page (after the challenges to the player): the tiles as on lichess.org, "10+0 Rapid", with the player's rating in that pool;
+    - a Rated / Casual switch;
+    - the Variant row (`AppSettings.onlineChess960`);
+    - optionally a rating range around the player's rating;
+    - perhaps also a Home card or the "Play online" card's menu.
+  - **While it waits:** clicking a tile starts the seek. The tile shows a ring and "Looking for an opponent… 0:12" (`BusyButton`, BL-16); a Cancel closes the seek. Only one seek at a time.
+  - **What ends the wait:**
+    - leaving the page keeps the wait, shown on Home's bar, with Cancel; closing the app or signing out cancels it;
+    - an incoming challenge accepted meanwhile cancels the seek first;
+    - not during a running real-time Lichess game (as `CanAcceptChallenge`).
+  - **Errors:** Lichess's refusal (a 400 for a speed the Board API doesn't allow, a rate limit 429, a provisional account's rating range) as a message, not a silent stop.
+  - **C++:** `LichessClient::seek(…)` / `cancelSeek()`, `Seeking`, `seekFailed`; the seek's connection held open and closed on cancel (a `QNetworkReply` kept, aborted to cancel); `ChessConnector` only through the existing `gameStart` → game start.
+  - **Tests:**
+    - `FakeLichess` takes a seek, holds the connection, and starts a game after a while (a `gameStart` on its event stream), or is cancelled;
+    - `LichessClientTest`: cancel closes the connection, a 400 / 429 is reported;
+    - `tst_lichess`: a tile starts a game, Cancel stops the wait;
+    - scenes `quick-pairing`, `quick-pairing-waiting`, narrow;
+    - a hand test on lichess.org (a real opponent; a second account seeking the same tile makes it quick).
 
 ---
 
