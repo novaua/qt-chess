@@ -67,7 +67,7 @@ Already checked by the tests, no need to look again:
 3. Close and start the app again.
    - **Expected**: no message this time. The two-player game can still be continued.
 
-Result:
+Result: OK (the owner, 2026-11-19). Cross-check OK (Claude, 2026-11-19, on a copy of the owner's folder: the window, the log and the files): the message, the robot game in `games\rejected\` byte for byte as edited, "its signature doesn't fit", Games 5 → 4; no message on the restart.
 
 ## 2. A damaged game file, and one copied under another name
 
@@ -79,7 +79,7 @@ Result:
      `copy-1.json` are in `games\rejected\`. The copied game's original is still listed: copying a game
      doesn't make two of it. The log says "not JSON" and "another game's id".
 
-Result:
+Result: OK (the owner, 2026-11-19). Cross-check OK (Claude, 2026-11-19, on a copy of the owner's folder: the window, the log and the files): the message, both files in `games\rejected\`, "not JSON" and "another game's id", the copied game's original still kept; no message on the restart.
 
 ## 3. The rating edited by hand
 
@@ -94,7 +94,7 @@ Result:
 4. Close, start again.
    - **Expected**: no message.
 
-Result:
+Result: OK (the owner, 2026-11-19). Cross-check OK (Claude, 2026-11-19, on a copy of the owner's folder: the window, the log and the files): the message after the edit and after the delete, 1187 and 1 rated game again; no message on the third start. With a `rating.json` already in `rejected\`, the edited one is kept beside it as `rating-<date>-<time>.json`.
 
 ## 4. The statistics edited by hand
 
@@ -112,7 +112,7 @@ Result:
 4. Close, start again.
    - **Expected**: no message; the statistics stay as restored.
 
-Result:
+Result: OK (Claude, 2026-11-19, on a copy of the owner's folder of scenario 3: the window, the log and `users.json`): step 2 restored from `backups\users-1.json` (the Robot row back to 1 game); step 3 rebuilt (Guest 2 games, 2 losses: only the two finished two-player games still kept); step 4 no message. At 1368 px wide the rebuilt message is cut short with "…" (whole on hover and in Recent messages).
 
 ## 5. Export and import between two data folders
 
@@ -127,7 +127,7 @@ Result:
 3. Close and start the app again on that folder, signed in as the imported profile.
    - **Expected**: no message.
 
-Result:
+Result: OK (the owner, 2026-11-19)
 
 ## 6. An export edited by hand
 
@@ -139,7 +139,7 @@ Result:
      games." The new profile ("Name (2)") has its games and its rating as exported, and statistics counted
      from its games.
 
-Result:
+Result: OK (the owner, 2026-11-19)
 
 ## 7. Your own data from before BL-20, updated
 
@@ -164,7 +164,7 @@ Copy-Item $old "$env:TEMP\chess-bl20-mine" -Recurse
 
 If the only data folder you have was already opened by a build with #188, skip this and write "no old data".
 
-Result:
+Result: OK (the owner, 2026-11-19). Cross-check OK (Claude, 2026-11-19, on a copy of a data folder of a build before #188 (`users.json` version 2, a `games.json` with 12 Chess960 games)): no message, "12 games · 7 unfinished", 12 signed files, `games.json.migrated`, no `rating.json` (Chess960 isn't rated), `users.json` version 3 with `statsSig` and the same statistics, no message on the restart. Step 2's game not played.
 
 ## 8. Optional: another Windows account, a reinstall
 
@@ -176,4 +176,4 @@ Result:
   build again.
   - **Expected**: every profile's games, rating and statistics as before, with no message.
 
-Result:
+Result: not run (optional)
