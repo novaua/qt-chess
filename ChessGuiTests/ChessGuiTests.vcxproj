@@ -168,6 +168,7 @@
     <None Include="qml\tst_analysis.qml" />
     <None Include="qml\tst_chess960.qml" />
     <None Include="qml\tst_lichess960.qml" />
+    <None Include="qml\tst_noEngine.qml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

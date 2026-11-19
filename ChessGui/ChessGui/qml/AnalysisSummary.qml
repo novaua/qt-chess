@@ -12,7 +12,7 @@ ColumnLayout {
     readonly property var analysis: ChessConnector.Analysis
     readonly property var shown: ChessConnector.ShownAnalysis
     readonly property bool analysed: analysis.depth !== undefined
-    readonly property bool engineFound: AppInfo.engineState !== "missing"
+    readonly property bool engineFound: AppInfo.engineFound
 
     signal analyseRequested()   // GamePage.analyse(): also closes the result card
 

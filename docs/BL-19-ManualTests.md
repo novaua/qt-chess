@@ -142,7 +142,7 @@ Result: **Found a bug** (Claude, 2026-11-19; BL-25). After Settings has been ope
 (and "C:\no-such-engine.exe didn't answer."), Analyse game in the panel and More → Analyse disabled, the analysed
 game shows its analysis: OK. **But before Settings has been opened in a session, Analyse game is enabled**: the
 engine is probed only when the Settings page is made, and the button counts "checking" as found. Pressing it:
-"The chess engine couldn't analyse the game." Not checked: the tooltip on hover (no hover offscreen).
+"The chess engine couldn't analyse the game." Not checked: the tooltip on hover (no hover offscreen). **Fixed in BL-25** (the engine is looked for at start).
 
 ## 7. Not during a game
 

@@ -2,7 +2,7 @@
 id: BL-25
 title: "Analyse game is enabled without an engine until Settings has been opened"
 type: bug
-status: open
+status: done
 priority: medium
 ---
 
@@ -17,3 +17,11 @@ Found in Claude's run of `docs/BL-19-ManualTests.md` scenario 6 (2026-11-19) [Ea
   - call `AppInfo.probeEngine()` from wherever the state is shown (the moves panel, More), and treat "checking" as not yet available.
   - Check the More menu's Analyse too (`GamePage.qml`, `analyseMenuItem`) and the vs computer card, if they read the same state.
 - **Tests:** a UI test with `CHESS_ENGINE_PATH` set to a missing file: open a finished game straight from the Games page, Analyse game disabled (no Settings first).
+
+## Resolution
+
+### 2026-11-20 — BL-25: the engine looked for at start (branch: bugs/analyseNeedsEngine_191126)
+
+- **Cause:** as found: `AppInfo.engineState` stayed "checking" until the Settings page called `probeEngine()`, and the three Analyse controls (the moves panel's button, More → Analyse, the result card's) took anything but "missing" as an engine.
+- **Fix:** `AppServices::start()` asks for `AppInfo::probeEngine()` once the event loop runs (the app and the UI tests alike; Settings' own call does nothing then). `AppInfo.engineFound` (an engine answered) is what the three controls read now, so "checking" doesn't count either.
+- **Tests:** `tst_noEngine.qml` (new, 3 functions), run without an engine by a new runner line `// ui-test-engine: none` (`Run-UiTests.ps1` points `CHESS_ENGINE_PATH` at a file that isn't there): looked for at start without Settings, a finished game's result card has no Analyse, the panel's and More's are disabled, also for the kept game opened from the Games page. It failed on the old build ("checking" after 10 s), passes now; `tst_analysis` still passes (FakeUci found at start). UI tests (Release): all files, 0 failed.
