@@ -69,6 +69,17 @@ Item {
                 findItem(pages.currentItem, "challengeDays").checkedIndex = 6
                 findItem(pages.currentItem, "challengeOpponent").text = "Friend"
             }
+            if (name === "online-game-menu") {   // LI-10: the Blitz game's menu (it can't be played here)
+                Qt.callLater(() => {
+                    const card = findItem(pages.currentItem, "ongoingGame_TiGeHdSm")
+                    let flick = card.parent
+                    while (flick && flick.contentY === undefined)
+                        flick = flick.parent
+                    if (flick)   // the card in view (Your games is last on the page), its menu over it
+                        flick.contentY = Math.max(0, flick.contentHeight - flick.height)
+                    card.openMenu()
+                })
+            }
             if (name === "online-challenges-decline")   // the first challenge's reasons
                 Qt.callLater(() => findItem(pages.currentItem, "declineButton").clicked())
             if (name === "online-challenge") {   // sent to Friend: no link, Lichess isn't asked
@@ -306,9 +317,10 @@ Item {
         } else {
             // clock-continue: past the second the clock waits for the page, or the shot races with it.
             // check: "Check" shows once the page has been open a second. online-challenges-decline: the menu has opened.
-            // play-from-here-menu: the menu has opened.
+            // play-from-here-menu, online-game-menu: the menu has opened.
             readyTimer.interval = shot.scene === "clock-continue" || shot.scene === "check" ? 1500
-                                : shot.scene === "online-challenges-decline" || shot.scene === "play-from-here-menu" ? 500 : 0
+                                : shot.scene === "online-challenges-decline" || shot.scene === "play-from-here-menu"
+                                  || shot.scene === "online-game-menu" ? 500 : 0
             readyTimer.start()
         }
     }

@@ -161,4 +161,17 @@ TestCase {
         tryCompare(ChessConnector, "MoveCount", 4, 5000, "the robot's Nc6")
         app.leaveToHome()
     }
+
+    // BL-26: the More button's tip counts the new messages: "1 new message", "2 new messages".
+    function test_6_newMessagesTip() {
+        app.startTwoPlayerGame()
+        const more = app.item("moreButton")
+        app.window.unseenMessages = 1
+        compare(more.tip, "More (1 new message)")
+        app.window.unseenMessages = 2
+        compare(more.tip, "More (2 new messages)")
+        app.window.unseenMessages = 0
+        compare(more.tip, "More")
+        app.leaveToHome()
+    }
 }

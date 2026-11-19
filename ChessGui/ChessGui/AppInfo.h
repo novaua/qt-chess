@@ -43,8 +43,13 @@ public:
     // AppServices::start() asks for it (BL-25: the Analyse buttons need it, not only Settings).
     Q_INVOKABLE void probeEngine();
 
+    // LI-10: text onto the clipboard (QML has none of its own), e.g. a Lichess game's link; `message`
+    // ("Link copied") comes back with copied() for the window's short message ("": none).
+    Q_INVOKABLE void copyToClipboard(const QString& text, const QString& message = {});
+
 signals:
     void engineChanged();
+    void copied(const QString& message);
 
 private:
     void probeNext();

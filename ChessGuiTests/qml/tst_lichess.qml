@@ -214,4 +214,30 @@ TestCase {
         keyClick(Qt.Key_Escape)   // Back
         app.waitForPage("home", 5000)
     }
+
+    // LI-10: a right click on a Lichess game's card, Your games on the Online page: its menu. A Crazyhouse
+    // game (not playable here) has Open on lichess.org and Copy link, no Continue; Copy link puts its URL
+    // on the clipboard and says "Link copied".
+    function test_12_copyGameLink() {
+        FakeLichess.addOngoingGame("zhGame01", "Housey", "white", "e2e4", "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+                                   "crazyhouse")
+        LichessClient.refreshOngoingGames()
+        tryVerify(() => LichessClient.ongoingGames.some(g => g.gameId === "zhGame01"), 3000, "the game listed")
+        app.click("onlineCard")
+        app.waitForPage("online", 5000)
+        tryVerify(() => app.find("ongoingGame_zhGame01") !== null, 3000, "its card")
+        app.scrollIntoView("ongoingGame_zhGame01")
+        const card = app.item("ongoingGame_zhGame01")
+        compare(card.actionText, "Open on lichess.org", "not playable here")
+        mouseClick(card, card.width / 2, card.height / 2, Qt.RightButton)
+        const copy = findChild(card, "gameMenuCopyLink")
+        tryVerify(() => copy.menu.opened, 3000, "the card's menu")
+        verify(!findChild(card, "gameMenuContinue").visible, "no Continue for a game that can't be played here")
+        verify(findChild(card, "gameMenuOpen").visible)
+        mouseClick(copy)
+        tryVerify(() => TestRun.clipboardText() === "https://lichess.org/zhGame01", 3000, "the link on the clipboard: " + TestRun.clipboardText())
+        app.waitMessage("Link copied")
+        keyClick(Qt.Key_Escape)   // Back
+        app.waitForPage("home", 5000)
+    }
 }

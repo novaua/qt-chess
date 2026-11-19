@@ -7,7 +7,9 @@
 #include "LichessClient.h"
 #include "UserManager.h"
 
+#include <QClipboard>
 #include <QCoreApplication>
+#include <QGuiApplication>
 #include <QDir>
 #include <QFile>
 #include <QDebug>
@@ -140,6 +142,11 @@ QString TestSetup::readTextFile(const QUrl& file) const
 {
 	QFile f(file.toLocalFile());
 	return f.open(QIODevice::ReadOnly | QIODevice::Text) ? QString::fromUtf8(f.readAll()) : QString();
+}
+
+QString TestSetup::clipboardText() const
+{
+	return QGuiApplication::clipboard()->text();
 }
 
 // The singletons are global, so a second test file in this process would see the first one's

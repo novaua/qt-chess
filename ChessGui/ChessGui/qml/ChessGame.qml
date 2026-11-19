@@ -1036,6 +1036,11 @@ ApplicationWindow {
         function onAnalysisFailed(gameId, message) { root.notify(message, "critical") }
         function onAnalysisInterrupted(gameId) { root.notify("The other game's analysis stopped: one game is analysed at a time.") }
     }
+    // LI-10: e.g. a Lichess game's link copied from its card.
+    Connections {
+        target: AppInfo
+        function onCopied(message) { if (message !== "") root.notify(message, "success") }
+    }
 
     // Lichess challenge setup: the dialogs and the pending challenge. The game itself starts and
     // ends in ChessConnector.

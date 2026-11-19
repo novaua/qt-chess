@@ -5,7 +5,9 @@
 
 #include <QDate>
 #include <QDebug>
+#include <QClipboard>
 #include <QDir>
+#include <QGuiApplication>
 #include <QLocale>
 #include <QProcess>
 #include <QTimer>
@@ -140,6 +142,12 @@ void AppInfo::probeNext()
 
     probe->start(path, {});
     probe->write("uci\n");
+}
+
+void AppInfo::copyToClipboard(const QString& text, const QString& message)
+{
+    QGuiApplication::clipboard()->setText(text);
+    emit copied(message);
 }
 
 void AppInfo::setEngine(const QString& name)
