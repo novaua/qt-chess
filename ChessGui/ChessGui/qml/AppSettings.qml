@@ -23,6 +23,10 @@ Settings {
     property bool showLegalMoves:     true
     property bool highlightLastMove:  true
     property bool rematchSwapsColours: true // a robot or two-player rematch gives the player the other colour (ChessConnector.RematchSwapsColours)
+    // The side last chosen in each setup dialog (0 White, 1 Black, 2 Random: vs computer only), apart from the
+    // side of the last game, which a rematch swaps (#193); -1: not chosen yet, the last game's side.
+    property int  computerSide:       -1
+    property int  twoPlayerSide:      -1
     property int  clockLimitSec:      0     // the last new game's time control; 0 and 0: no clock
     property int  clockIncSec:        0
     property bool chess960:           false // the last new game's variant: Chess960 (LI-01A), else standard

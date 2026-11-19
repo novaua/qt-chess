@@ -38,7 +38,9 @@ AppDialog {
 
     onOpened: {
         _opponentId = ""
-        side.checkedIndex = _fromHere ? (from.whiteToMove ? 0 : 1) : ChessConnector.PlayerPlaysWhite ? 0 : 1
+        // A new game: the side chosen here last time, not the last game's (a rematch may have swapped that, #193).
+        side.checkedIndex = _fromHere ? (from.whiteToMove ? 0 : 1)
+                          : AppSettings.twoPlayerSide >= 0 ? AppSettings.twoPlayerSide : ChessConnector.PlayerPlaysWhite ? 0 : 1
         clock.restore()
     }
     onClosed: from = ({})   // the next open() is a new game
@@ -48,6 +50,7 @@ AppDialog {
             ChessConnector.startLocalGameFrom(from.gameId, from.ply, side.checkedIndex === 0, _opponentId, clock.limitSec, clock.incSec)
         } else {
             variant.remember()
+            AppSettings.twoPlayerSide = side.checkedIndex
             ChessConnector.startLocalGame(side.checkedIndex === 0, _opponentId, clock.limitSec, clock.incSec,
                                           variant.startPosition)
         }

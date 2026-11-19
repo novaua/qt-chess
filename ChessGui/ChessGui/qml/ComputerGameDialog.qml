@@ -21,7 +21,8 @@ AppDialog {
     function openNew(chess960) {
         from = ({})
         level = ChessConnector.LastLevel
-        side.checkedIndex = ChessConnector.PlayerPlaysWhite ? 0 : 1
+        // The side chosen here last time, not the last game's: a rematch may have swapped that (#193).
+        side.checkedIndex = AppSettings.computerSide >= 0 ? AppSettings.computerSide : ChessConnector.PlayerPlaysWhite ? 0 : 1
         variant.choose(chess960 ?? AppSettings.chess960)
         clock.restore()
         open()
@@ -46,6 +47,7 @@ AppDialog {
             ChessConnector.startComputerGameFrom(from.gameId, from.ply, Math.round(levelSlider.value), side.checkedIndex, clock.limitSec, clock.incSec)
         } else {
             variant.remember()
+            AppSettings.computerSide = side.checkedIndex   // not from Play from here: the side to move chose it
             ChessConnector.startComputerGame(Math.round(levelSlider.value), side.checkedIndex, clock.limitSec, clock.incSec,
                                              variant.startPosition)
         }

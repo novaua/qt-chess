@@ -15,7 +15,10 @@ TestCase {
         app.start()
         app.createFirstProfile("Tester")
     }
-    function cleanup() { app.afterTest() }
+    function cleanup() {
+        AppSettings.rematchSwapsColours = true   // test 4 turns it off: never left so for the next test
+        app.afterTest()
+    }
     function cleanupTestCase() { app.stop() }
 
     // Fool's mate by clicks: 1. f3 e5 2. g4 Qh4#, then the result card.
@@ -103,13 +106,24 @@ TestCase {
         compare(GameLibrary.count, 2, "the same record, not a new one")
     }
 
-    // Rematch swaps the colours (#193): the player takes Black and the board turns; White still moves
-    // first. With Settings → Gameplay "Rematch swaps colours" off, the colours stay.
+    // Rematch swaps the colours (#193): the result card's Rematch after a finished game gives the player
+    // Black and turns the board; White still moves first. Each rematch below starts after a move, so
+    // "no moves" shows a new game began. With Settings → Gameplay "Rematch swaps colours" off, the colours
+    // stay. The Two players dialog still offers the side chosen in it, not the swapped one.
     function test_4_rematchSwapsColours() {
         compare(AppSettings.rematchSwapsColours, true, "on by default")
+        app.leaveToHome()
+        app.startTwoPlayerGame()
         compare(ChessConnector.PlayerPlaysWhite, true)
-        ChessConnector.rematch()
+        const moves = [["f2", "f3"], ["e7", "e5"], ["g2", "g4"], ["d8", "h4"]]
+        for (let i = 0; i < moves.length; ++i) {
+            app.clickMove(moves[i][0], moves[i][1])
+            tryCompare(ChessConnector, "MoveCount", i + 1, 3000, "move " + (i + 1))
+        }
+        tryVerify(() => app.find("resultCard")?.visible, 5000, "the result card")
+        app.click("rematchButton")
         tryCompare(ChessConnector, "MoveCount", 0, 5000, "a new game")
+        compare(ChessConnector.GameResult, "")
         compare(ChessConnector.PlayerPlaysWhite, false, "the player plays Black now")
         tryCompare(app.page().board, "angle", 180, 3000, "the board turned to Black")
         app.waitBoardIdle()
@@ -118,15 +132,33 @@ TestCase {
         tryCompare(ChessConnector, "MoveCount", 1, 3000, "e4 on the turned board")
 
         ChessConnector.rematch()
-        tryCompare(ChessConnector, "MoveCount", 0, 5000)
+        tryCompare(ChessConnector, "MoveCount", 0, 5000, "the second rematch: a new game")
         compare(ChessConnector.PlayerPlaysWhite, true, "swapped back")
         tryCompare(app.page().board, "angle", 0, 3000)
+        app.waitBoardIdle()
+        app.clickMove("d2", "d4")
+        tryCompare(ChessConnector, "MoveCount", 1, 3000)
 
         AppSettings.rematchSwapsColours = false
         compare(ChessConnector.RematchSwapsColours, false, "the setting reaches C++")
         ChessConnector.rematch()
-        tryCompare(ChessConnector, "MoveCount", 0, 5000)
+        tryCompare(ChessConnector, "MoveCount", 0, 5000, "the third rematch: a new game")
         compare(ChessConnector.PlayerPlaysWhite, true, "kept with the setting off")
         AppSettings.rematchSwapsColours = true
+
+        // Swapped to Black once more, then New game: the dialog offers White, as chosen in it.
+        app.waitBoardIdle()
+        app.clickMove("c2", "c4")
+        tryCompare(ChessConnector, "MoveCount", 1, 3000)
+        ChessConnector.rematch()
+        tryCompare(ChessConnector, "MoveCount", 0, 5000)
+        compare(ChessConnector.PlayerPlaysWhite, false)
+        app.leaveToHome()
+        app.click("twoPlayersCard")
+        const dialog = app.item("twoPlayerDialog")
+        tryVerify(() => dialog.opened, 3000, "the Two players dialog open")
+        compare(app.item("twoPlayerSide").checkedIndex, 0, "White, as chosen in the dialog, not the rematch's Black")
+        dialog.close()
+        app.waitClosed(dialog)
     }
 }

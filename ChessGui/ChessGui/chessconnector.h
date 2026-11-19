@@ -410,6 +410,7 @@ private:
 	bool startOnlineGame(const QString& gameId, bool playingAsWhite, const Chess::StartPosition& start,
 		const QStringList& joinedMoves);
 	void setPlayerPlaysWhite(bool v);
+	void applyPlayerSide(bool white); // the side of the game on the board, not written to config.json (a rematch)
 	// opponentUserId: the opponent's profile in a two-player game ("" = Guest, or not a local game).
 	void setGameMode(const QString& mode, const QString& opponentName, const QString& opponentUserId = {});
 	void recordResult(int whiteScore); // statistics; 1 White won, 0 draw, -1 Black won

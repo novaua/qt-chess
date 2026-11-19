@@ -121,15 +121,27 @@ TestCase {
         compare(ChessConnector.MovableColor, 1)
     }
 
-    // Rematch swaps the colours (#193): the player takes Black, so the robot opens with its e4.
-    function test_7_rematchSwapsColours() {
+    // Rematch swaps the colours (#193): a game lost to the robot (1. f3 e5 2. g4 Qh4#), then the result
+    // card's Rematch: the player takes Black, so the robot opens, with its line's first move f3.
+    function test_7_rematchFromTheResultCard() {
+        app.leaveToHome()
+        app.startComputerGame("f2f3 e7e5 g2g4 d8h4", 300)
+        app.waitBoardIdle()
+        app.clickMove("f2", "f3")
+        tryCompare(ChessConnector, "MoveCount", 2, 5000, "f3 and its e5")
+        app.waitBoardIdle()
+        app.clickMove("g2", "g4")
+        tryVerify(() => ChessConnector.GameResult !== "", 5000, "its Qh4#")
+        verify(ChessConnector.ResultText.indexOf("checkmate") >= 0, ChessConnector.ResultText)
+        tryVerify(() => app.find("resultCard")?.visible, 5000, "the result card")
         compare(ChessConnector.PlayerPlaysWhite, true)
-        ChessConnector.rematch()
-        tryCompare(ChessConnector, "MoveCount", 0, 5000, "a new game")
-        compare(ChessConnector.PlayerPlaysWhite, false, "the player plays Black now")
+
+        app.click("rematchButton")
+        tryCompare(ChessConnector, "PlayerPlaysWhite", false, 5000, "the player plays Black now")
         compare(ChessConnector.GameMode, "computer")
-        tryCompare(ChessConnector, "MoveCount", 1, thinkMs + 5000, "the robot plays White's first move")
-        compare(ChessConnector.LastMoveFrom, app.square("e2"))
+        tryCompare(ChessConnector, "MoveCount", 1, 5000, "the robot plays White's first move")
+        compare(ChessConnector.LastMoveFrom, app.square("f2"))
+        compare(ChessConnector.GameResult, "")
         app.waitBoardIdle()
         compare(ChessConnector.MovableColor, 2, "the player's move, as Black")
     }
