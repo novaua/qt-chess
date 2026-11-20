@@ -8,6 +8,8 @@ priority: medium
 
 # LI-09 Quick pairing
 
+Plan: [`docs/LI-09-QuickPairingPlan.md`](../../docs/LI-09-QuickPairingPlan.md) (the owner's decisions of 2026-11-20: greyed Bullet/Blitz tiles, Custom as on lichess.org, rated by default, the seek goes on across pages with an icon in the command bar to cancel it). Five steps, one PR each.
+
 <!-- migrated from TASKS.md:306 (Lichess Improvement Backlog) -->
 
 - [ ] LI-09 Quick pairing [Medium], **not started; needs a plan** (the owner, 2026-11-19). Play a random opponent of about the player's rating, as lichess.org's **Quick pairing** tiles do, without a link to share or a name to type. Today a Lichess game starts only from a challenge: to a friend by link, to a named player, or one received (BL-10).
