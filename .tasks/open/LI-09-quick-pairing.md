@@ -2,7 +2,7 @@
 id: LI-09
 title: "Quick pairing"
 type: task
-status: open
+status: in_progress
 priority: medium
 ---
 
@@ -42,3 +42,11 @@ Plan: [`docs/LI-09-QuickPairingPlan.md`](../../docs/LI-09-QuickPairingPlan.md) (
     - `tst_lichess`: a tile starts a game, Cancel stops the wait;
     - scenes `quick-pairing`, `quick-pairing-waiting`, narrow;
     - a hand test on lichess.org (a real opponent; a second account seeking the same tile makes it quick).
+
+## Resolution
+
+### 2026-11-20 — step 1: LichessClient's seek (branch: features/li09QuickPairing_201126)
+- `LichessClient::startSeek(limitSec, incrementSec, days, rated, variant)` / `cancelSeek()`, the `seek` property (`seekState()`, `seekChanged`), `seekFailed`, `seekSent` (correspondence), `speedOf`. The method is `startSeek`, not the plan's `seek`: QML can't have a method and a property of one name.
+- The real-time seek's POST held open (`_seekReply`, aborted to cancel); its game: the first `gameStart` of source `lobby` / `pool`, of the seek's speed, not a game known when it began; the fallback when Lichess closes the request: Your games polled for a new real-time game of that speed, else after 5 s "No opponent was found: Lichess ended the seek." Ended by `cancelSeek`, any game starting (`streamGame`), `acceptChallenge` / `acceptRematch`, a new token, the destructor; not by `stopStream`.
+- Tests: `ChessQtTests/LichessSeekTest.cpp` (17) against `FakeSeekLichess` (`FakeLichess.h`; `FakeLichess::dropped`: the connections the client closed). All 327 ChessQtTests pass (Debug); ChessGui builds.
+- Left: steps 2–5 (the Online page, the wait beyond the page, Custom, docs and hand tests).

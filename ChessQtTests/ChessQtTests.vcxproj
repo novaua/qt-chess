@@ -123,6 +123,7 @@
     <ClCompile Include="LichessClientTest.cpp" />
     <ClCompile Include="LichessStreamTest.cpp" />
     <ClCompile Include="LichessChallengeTest.cpp" />
+    <ClCompile Include="LichessSeekTest.cpp" />
     <ClCompile Include="UciConnectorTest.cpp" />
     <ClCompile Include="UserManagerTest.cpp" />
     <ClCompile Include="GameLibraryTest.cpp" />
