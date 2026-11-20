@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 
 // The pieces one side has taken, grouped by type (P N B R Q) with pieces of a type overlapping,
 // then "+N" when that side is ahead in material. With `wrapWidth` (the player column, BL-13) the
@@ -80,6 +81,22 @@ Column {
                     required property var modelData
                     width: strip.pieceSize + strip._step * (modelData.count - 1)
                     height: strip.pieceSize
+
+                    // A glow of the other colour, as the move list's figures: a black piece stays visible on
+                    // a dark card (dark mode, a contrast theme), a white one on a light card (BL-27). One per
+                    // group (its pieces are of one colour). The software renderer (-platform offscreen) has no
+                    // shader effects: plain pieces there.
+                    layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true
+                        shadowColor: group.modelData.key === group.modelData.key.toLowerCase()
+                                     ? Theme.pieceGlowOnBlack : Theme.pieceGlowOnWhite
+                        shadowHorizontalOffset: 0
+                        shadowVerticalOffset: 0
+                        shadowBlur: 0.3
+                        shadowScale: 1.05
+                        blurMax: 4
+                    }
 
                     Repeater {
                         model: group.modelData.count
