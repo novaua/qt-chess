@@ -316,6 +316,12 @@ Item {
     }
 
     function startReadyTimer() {
+        // The engine still being looked for: the result card's Analyse and the moves panel's button wait
+        // for it (BL-25), so the picture waits too, not to show them one time and not the next.
+        if (AppInfo.engineState === "checking") {
+            engineWaitTimer.start()
+            return
+        }
         // A finished game: wait until the result card is actually up, not for a guessed delay.
         if (ChessConnector.GameResult !== "") {
             resultCardTimer.start()
@@ -374,6 +380,12 @@ Item {
     Timer {
         id: readyTimer
         onTriggered: ChessConnector.screenshotSceneReady()
+    }
+    Timer {
+        id: engineWaitTimer
+        interval: 50
+        repeat: true
+        onTriggered: if (AppInfo.engineState !== "checking") { stop(); scene.startReadyTimer() }
     }
 
     // Scene "timing": how long opening a page takes to its first frame (its creation and push, then

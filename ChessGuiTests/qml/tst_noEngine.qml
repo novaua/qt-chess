@@ -4,6 +4,7 @@ import ChessPlusPlus
 import ChessGuiTests
 
 // ui-test-engine: none
+// (That line is read by scripts\Run-UiTests.ps1: run this file with it. Run alone, TestSetup gives it FakeUci.)
 // Without a chess engine (BL-25): the app looks for it at start, not only when Settings opens, so a finished
 // game's Analyse is off from the first game page on: the result card has none, the moves panel's button and
 // More → Analyse are disabled; also for a kept game opened from the Games page. Settings says so.
@@ -69,5 +70,20 @@ TestCase {
         compare(AppInfo.engineState, "missing")
         app.clickIn("settings", "backButton")
         app.waitForPage("home", 5000)
+    }
+
+    // The engine there after all (a first start slower than the look at start, e.g. an antivirus scan):
+    // the next game page looks again, and Analyse is on, without a restart (review of #204).
+    function test_4_foundLater() {
+        TestRun.useFakeEngine()
+        compare(AppInfo.engineState, "missing", "not looked again on its own")
+        app.click("gamesCard")
+        app.waitForPage("library", 5000)
+        tryVerify(() => app.find("gameCard_0") !== null, 3000)
+        app.clickIn("gameCard_0", "actionButton")
+        app.waitForPage("game", 10000)
+        tryVerify(() => AppInfo.engineFound, 10000, "found by the game page's look (" + AppInfo.engineState + ")")
+        tryVerify(() => app.find("analyseButton")?.enabled ?? false, 5000, "Analyse game on")
+        app.leaveToHome()
     }
 }

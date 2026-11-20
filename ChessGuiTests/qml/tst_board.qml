@@ -106,7 +106,7 @@ TestCase {
     // the pieces), not a dot; the other targets keep their dots. Shown or not as the move layers show it.
     function markShown(square) {
         const mark = findChild(app.item("captureLayer"), "captureMark_" + app.square(square))
-        return mark !== null && mark.visible && mark.status === Loader.Ready && mark.parent.visible
+        return mark !== null && mark.visible && mark.parent.visible
     }
     function dotShown(square) {
         const dot = findChild(app.item("navigationLayerGrid"), "moveDot_" + app.square(square))
@@ -146,7 +146,7 @@ TestCase {
         app.leaveToHome()
 
         // A premove (the robot thinks): the f3 knight's premove onto e5's pawn gets the corners; Esc drops it.
-        app.startComputerGame("e2e4 e7e5 g1f3 b8c6", 1500)
+        app.startComputerGame("e2e4 e7e5 g1f3 b8c6", 3000)
         app.waitBoardIdle()
         app.clickMove("e2", "e4")
         tryCompare(ChessConnector, "MoveCount", 2, 5000, "the robot's e5")
@@ -157,6 +157,12 @@ TestCase {
         tryVerify(() => ChessConnector.PremoveDots, 2000, "premove targets")
         tryVerify(() => markShown("e5"), 2000, "the premove capture's corners on e5")
         verify(dotShown("g5"), "g5: a premove, not a capture")
+        // A pawn never takes straight ahead: its premove push onto e5's pawn is a dot (review of #203).
+        app.clickSquare("e4")
+        tryCompare(ChessConnector, "SelectedSquare", app.square("e4"), 2000)
+        tryVerify(() => dotShown("e5"), 2000, "e4-e5 premoved: a dot")
+        verify(!markShown("e5"), "no capture corners straight ahead of a pawn")
+        verify(ChessConnector.EngineThinking, "still the robot's turn")
         app.clickSquare("a6")   // deselected, no premove set
         tryCompare(ChessConnector, "MoveCount", 4, 5000, "the robot's Nc6")
         app.leaveToHome()
