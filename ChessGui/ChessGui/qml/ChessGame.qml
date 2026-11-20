@@ -588,6 +588,7 @@ ApplicationWindow {
             onBackRequested:    root.closeOnline()
             onProfileRequested: root.openProfile()
             onCustomSeekRequested: (rated, chess960) => seekDialog.openWith(rated, chess960)
+            customSeekSince: root._customSeekSince
         }
     }
 
@@ -1103,6 +1104,7 @@ ApplicationWindow {
 
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
             challengeDialog.closeAtOnce()   // BL-16: not a fade under "Starting the game…"
+            seekDialog.closeAtOnce()
             clearPendingChallenge()
         }
 
@@ -1188,7 +1190,15 @@ ApplicationWindow {
     TwoPlayerDialog { id: twoPlayerDialog; objectName: "twoPlayerDialog" }
 
     // LI-09 D2: Quick pairing's Custom seek (the Online page's Custom tile).
-    SeekDialog { id: seekDialog; objectName: "seekDialog" }
+    // The Online page's Custom tile shows the seek sent from here (_customSeekSince, its `since`).
+    property real _customSeekSince: 0
+    SeekDialog {
+        id: seekDialog
+        objectName: "seekDialog"
+        available: !LichessClient.seeking && ChessConnector.CanAcceptChallenge && !ChessConnector.StartingOnlineGame
+                   && ChessConnector.AcceptingChallengeId === ""
+        onRealTimeSeekStarted: root._customSeekSince = LichessClient.seek.since
+    }
 
     // Waiting for the opponent to accept a Lichess challenge.
     ChallengeDialog {

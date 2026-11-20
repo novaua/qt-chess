@@ -16,6 +16,7 @@ GridLayout {
 
     property bool chess960: false    // the ratings shown: the Chess960 pool, else the clock's speed
     property bool available: true    // a seek may start now (no game or challenge starting)
+    property real customSince: 0     // the Seek dialog's last real-time seek (its `since`): Custom's
 
     signal seekRequested(int limitSec, int incSec)
     signal customRequested()
@@ -25,10 +26,12 @@ GridLayout {
         .concat([{ label: "Custom", limitSec: 0, incSec: 0, speed: "", lichessOnly: false, custom: true }])
     readonly property var seek: LichessClient.seek
     readonly property bool seeking: LichessClient.seeking
-    // The waiting seek's tile: its clock's, else Custom's.
+    // The waiting seek's tile: Custom's for the dialog's (even with a tile's clock), else its clock's.
     readonly property int seekingIndex: {
         if (!seeking)
             return -1
+        if (seek.since === customSince)
+            return tiles.length - 1
         const i = tiles.findIndex(t => !t.custom && t.limitSec === seek.limitSec && t.incSec === seek.incrementSec)
         return i >= 0 ? i : tiles.length - 1
     }
@@ -104,7 +107,8 @@ GridLayout {
             border.width: isSeeking ? 2 : 1
 
             Accessible.role: Accessible.Button
-            Accessible.name: (modelData.custom ? "Custom" : modelData.label + " " + modelData.speed)
+            Accessible.name: (modelData.custom ? "Custom" + (isSeeking ? " " + TimeControls.label(grid.seek.limitSec, grid.seek.incrementSec) : "")
+                                               : modelData.label + " " + modelData.speed)
                              + (isSeeking ? ", looking for an opponent, " + TimeControls.elapsed(grid.elapsedSec)
                                 : modelData.lichessOnly ? ", on lichess.org" : "")
             Accessible.onPressAction: grid.activate(index)

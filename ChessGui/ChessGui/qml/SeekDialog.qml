@@ -3,18 +3,24 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import ChessPlusPlus
 import "timecontrols.js" as TimeControls
+import "lichess.js" as Lichess
 
 // LI-09 (decision D2): the Quick pairing grid's Custom tile, as lichess.org's "Create a game": a seek
 // with the player's own clock. Real time (minutes and increment on lichess.org's slider steps), or
 // Correspondence (days per move). Rated or casual and the variant come from the Quick pairing card
 // (openWith). The Board API seeks Rapid, Classical and Correspondence only: a faster clock can't be
-// sent, and says why. A real-time seek waits as a tile's does (the Custom tile shows it); a
-// correspondence one is left on Lichess (LichessClient.seekSent, D6). The last choice is remembered.
+// sent, and says why. A real-time seek waits as a tile's does (the Custom tile shows it:
+// realTimeSeekStarted); a correspondence one is left on Lichess (LichessClient.seekSent, D6). The last
+// choice is remembered. available: a seek may start now (ChessGame: no seek waiting, no game starting or
+// running in real time), checked again on Seek, as the state may change while the dialog is open.
 AppDialog {
     id: dialog
 
     property bool rated: true
     property bool chess960: false
+    property bool available: true
+
+    signal realTimeSeekStarted()
 
     // lichess.org's steps: minutes ¼ … 180, increment 0 … 180 s, days per move.
     readonly property var minuteSteps: [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
@@ -29,7 +35,8 @@ AppDialog {
     readonly property int days: daySteps[daysRow.checkedIndex]
     readonly property string speed: LichessClient.speedOf(limitSec, incSec)   // "rapid"
     readonly property bool tooFast: !correspondence && speed !== "rapid" && speed !== "classical"
-    readonly property bool canSeek: !tooFast
+    readonly property bool canSeek: !tooFast && available
+    readonly property string minutesText: TimeControls.label(limitSec, 0).replace(/\+0$/, "")   // "20", "½"
 
     // The card's choices; the clock as last sent from here.
     function openWith(isRated, isChess960) {
@@ -52,13 +59,14 @@ AppDialog {
                 best = i
         return best
     }
-    function speedName(s) { return s === "ultraBullet" ? "UltraBullet" : s.charAt(0).toUpperCase() + s.slice(1) }
 
     title: "Custom seek"
     width: 440
     acceptEnabled: canSeek
 
     onAccepted: {
+        if (!canSeek)   // Seek and Enter are off then; this is the last check
+            return
         AppSettings.seekCorrespondence = correspondence
         if (correspondence) {
             AppSettings.seekDays = days
@@ -68,6 +76,8 @@ AppDialog {
         }
         LichessClient.startSeek(correspondence ? 0 : limitSec, correspondence ? 0 : incSec, correspondence ? days : 0,
                                 rated, chess960 ? "chess960" : "standard")
+        if (!correspondence && LichessClient.seeking)
+            realTimeSeekStarted()
     }
 
     ColumnLayout {
@@ -99,14 +109,14 @@ AppDialog {
         Label {
             objectName: "seekClockText"
             visible: !dialog.correspondence
-            text: TimeControls.label(dialog.limitSec, dialog.incSec) + " · " + dialog.speedName(dialog.speed)
+            text: TimeControls.label(dialog.limitSec, dialog.incSec) + " · " + Lichess.speedName(dialog.speed)
             font: Theme.subtitle
             color: dialog.tooFast ? Theme.critical : Theme.textPrimary
             Layout.topMargin: Theme.s2
         }
         Label {
             visible: !dialog.correspondence
-            text: "Minutes per side: " + TimeControls.label(dialog.limitSec, 0).replace("+0", "")
+            text: "Minutes per side: " + dialog.minutesText
             color: Theme.textSecondary; font: Theme.caption
         }
         Slider {
@@ -116,7 +126,7 @@ AppDialog {
             from: 0; to: dialog.minuteSteps.length - 1; stepSize: 1
             snapMode: Slider.SnapAlways
             Layout.fillWidth: true
-            Accessible.name: "Minutes per side"
+            Accessible.name: "Minutes per side, " + dialog.minutesText   // the value is a step's index
         }
         Label {
             visible: !dialog.correspondence
@@ -130,7 +140,7 @@ AppDialog {
             from: 0; to: dialog.incrementSteps.length - 1; stepSize: 1
             snapMode: Slider.SnapAlways
             Layout.fillWidth: true
-            Accessible.name: "Increment in seconds"
+            Accessible.name: "Increment, " + dialog.incSec + " seconds"
         }
 
         // ── Correspondence: the days each player has for a move ──
@@ -159,8 +169,20 @@ AppDialog {
         Label {
             objectName: "seekTooFast"
             visible: dialog.tooFast
-            text: "Lichess allows this app Rapid, Classical and Correspondence only: from 8 minutes "
-                  + "(minutes + 40 × increment in seconds). Play faster games on lichess.org."
+            text: "Lichess allows this app Rapid, Classical and Correspondence only: the clock's seconds "
+                  + "plus 40 × the increment must reach 480 (8 minutes). Play faster games on lichess.org."
+            color: Theme.critical
+            font: Theme.caption
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+            Layout.topMargin: Theme.s1
+        }
+        // Why Seek is off: something else is under way.
+        Label {
+            objectName: "seekUnavailable"
+            visible: !dialog.available
+            text: LichessClient.seeking ? "A seek is waiting already: cancel it first."
+                                        : "A game is starting or going on: one real-time game at a time."
             color: Theme.critical
             font: Theme.caption
             wrapMode: Text.WordWrap

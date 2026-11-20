@@ -440,13 +440,32 @@ TestCase {
         compare(grid.seekingIndex, -1)
         compare(findChild(custom, "quickTileLabel").text, "Custom")
 
+        // A tile's clock from the dialog (10+0) waits on Custom too, and Custom cancels it.
+        app.click("quickTile_custom")
+        tryVerify(() => dialog.opened, 3000, "the Seek dialog")
+        setClock(10, 0)
+        app.clickIn("seekDialog", "seekButton")
+        app.waitClosed(dialog)
+        tryVerify(() => FakeLichess.seekOpen, 3000)
+        compare(grid.seekingIndex, 11, "on Custom, not on 10+0")
+        compare(findChild(custom, "quickTileLabel").text, "10+0")
+        // While a seek waits the dialog can't send another (the state may change while it is open).
+        dialog.openWith(true, false)
+        tryVerify(() => dialog.opened, 3000)
+        verify(!inDialog("seekButton").enabled, "no second seek")
+        verify(inDialog("seekUnavailable").visible, "and why")
+        keyClick(Qt.Key_Escape)
+        app.waitClosed(dialog)
+        app.click("quickTile_custom")
+        tryVerify(() => closed() === closedBefore + 2, 3000, "Lichess sees the seek closed")
+
         // Correspondence, Casual Chess960 from the card; the last clock remembered.
         app.click("quickRated_1")
         app.click("quickVariantChoice_1")
         app.click("quickTile_custom")
         tryVerify(() => dialog.opened, 3000, "the Seek dialog again")
         compare(inDialog("seekChoices").text, "Casual · Chess960, as chosen on the Quick pairing card.")
-        compare(inDialog("seekClockText").text, "½+12 · Rapid", "the last clock sent")
+        compare(inDialog("seekClockText").text, "10+0 · Rapid", "the last clock sent")
         app.clickIn("seekKind", "seekKind_1")   // a ChoiceRow's button: looked up in its row
         verify(!inDialog("seekMinutes").visible, "no clock for correspondence")
         app.clickIn("seekDays", "seekDays_2")
@@ -460,11 +479,18 @@ TestCase {
         compare(grid.seekingIndex, -1, "nothing waits here")
         verify(!app.item("quickWaiting").visible)
 
+        app.click("quickTile_custom")   // Cancel in the dialog: nothing sent, the message stays
+        tryVerify(() => dialog.opened, 3000)
+        keyClick(Qt.Key_Escape)
+        app.waitClosed(dialog)
+        verify(sentBar.visible, "still said")
+
         app.click("quickTile_10+0")   // a new seek: the old message goes
         tryVerify(() => FakeLichess.seekOpen, 3000)
         verify(!sentBar.visible)
+        compare(grid.seekingIndex, 6, "a tile's seek on its tile")
         app.click("quickCancelButton")
-        tryVerify(() => closed() === closedBefore + 2, 3000)
+        tryVerify(() => closed() === closedBefore + 3, 3000)
 
         AppSettings.quickRated = true
         AppSettings.quickChess960 = false

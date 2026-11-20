@@ -18,6 +18,7 @@ Page {
     signal profileRequested()   // link or reconnect the Lichess account there
     // LI-09 D2: the Custom tile: ChessGame's SeekDialog, with the card's rated and variant.
     signal customSeekRequested(bool rated, bool chess960)
+    property real customSeekSince: 0   // ChessGame: the dialog's last real-time seek, waiting on Custom
 
     // What is under way (BL-16: its button says so): "challenge" or "join"; "" when nothing is. An
     // Accept: ChessConnector.AcceptingChallengeId (shared with the challenge bar).
@@ -92,9 +93,8 @@ Page {
         quickVariant.remember()
         LichessClient.startSeek(limitSec, incSec, 0, AppSettings.quickRated, quickVariant.chess960 ? "chess960" : "standard")
     }
+    // The bars stay until a seek is sent (onSeekChanged, onSeekSent): Cancel in the dialog sends none.
     function _customSeek() {
-        errorBar.visible = false
-        seekSentBar.visible = false
         quickVariant.remember()
         customSeekRequested(AppSettings.quickRated, quickVariant.chess960)
     }
@@ -135,7 +135,16 @@ Page {
             errorBar.show("Couldn't accept the challenge: " + message, "critical")
         }
         function onSeekFailed(message) { errorBar.show("Quick pairing: " + message, "critical") }
-        function onSeekSent(message) { seekSentBar.show(message, "success") }   // D6: correspondence
+        function onSeekSent(message) {   // D6: correspondence
+            errorBar.visible = false
+            seekSentBar.show(message, "success")
+        }
+        function onSeekChanged() {
+            if (LichessClient.seeking) {
+                errorBar.visible = false
+                seekSentBar.visible = false
+            }
+        }
     }
 
     background: Rectangle { color: Theme.windowBg }
@@ -311,6 +320,7 @@ Page {
                     Layout.fillWidth: true
                     onSeekRequested: (limitSec, incSec) => page._seek(limitSec, incSec)
                     onCustomRequested: page._customSeek()
+                    customSince: page.customSeekSince
                 }
                 // While it waits: what, and Cancel (the tile's click cancels too).
                 RowLayout {
