@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "LichessClient.h"
 
+#include <QDateTime>
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -65,6 +66,32 @@ LichessClient::LichessClient(QObject* parent)
     _ongoingRefresh.setSingleShot(true);
     _ongoingRefresh.setInterval(500);
     connect(&_ongoingRefresh, &QTimer::timeout, this, &LichessClient::refreshOngoingGames);
+
+    // LI-09: Lichess closed the seek's request and no game came: it expired (or the game was missed
+    // for longer than the fallback looks).
+    _seekFallback.setSingleShot(true);
+    _seekFallback.setInterval(5000);
+    connect(&_seekFallback, &QTimer::timeout, this, [this]() {
+        if (!seeking())
+            return;
+        qDebug() << "LichessClient: the seek ended without a game";
+        endSeek(true);
+        emit seekFailed(QStringLiteral("No opponent was found: Lichess ended the seek."));
+    });
+    _seekPoll.setSingleShot(true);
+    _seekPoll.setInterval(1000);
+    connect(&_seekPoll, &QTimer::timeout, this, &LichessClient::refreshOngoingGames);
+}
+
+LichessClient::~LichessClient()
+{
+    endSeek(false); // closing the app drops the seek on Lichess
+}
+
+void LichessClient::setSeekTiming(int fallbackMs, int pollMs)
+{
+    _seekFallback.setInterval(fallbackMs);
+    _seekPoll.setInterval(pollMs);
 }
 
 void LichessClient::setStreamTiming(int silenceMs, int firstRetryMs, int moveTimeoutMs, int settleMs,
@@ -174,6 +201,7 @@ void LichessClient::setToken(const QString& decryptedToken)
     qDebug() << "LichessClient: token" << (_token.isEmpty() ? "cleared" : QString("set(%1 chars)").arg(_token.size()));
     emit canRematchChanged();
     if (changed) {
+        endSeek(true);       // the seek was the other account's (LI-09)
         setOngoingGames({}); // another account (or none): its games are not ours
         _ongoingGamesLoaded = false; // and this account's haven't come yet
         _eventStream->close(); // its events too; main.cpp opens it again for a new token
@@ -240,6 +268,8 @@ void LichessClient::refreshOngoingGames()
             }
         }
         emit ongoingGamesChanged();
+        if (_seekClosedByLichess)
+            findSeekGame();
     });
 }
 
@@ -544,6 +574,7 @@ void LichessClient::resumeOpenChallenge(const QString& gameId, const QString& fr
 
 void LichessClient::acceptChallenge(const QString& challengeId, const QString& color)
 {
+    cancelSeek(); // LI-09: one game at a time; before the POST, so no seek pairs meanwhile
     // BL-10: a challenge to the player stays listed until its game starts (gameStart removes it):
     // if Lichess refuses, it's still there to decline.
     const bool incoming = isIncomingChallenge(challengeId);
@@ -647,6 +678,13 @@ void LichessClient::handleEventStreamLine(const QByteArray& line)
             if (!_waitForGameId.isEmpty() && gameId == _waitForGameId) {
                 onGameStartDetected(gameId);
                 return;
+            }
+            if (seeking()) {
+                qDebug() << "LichessClient: gameStart while seeking:" << line; // what a seek's game carries (LI-09)
+                if (isSeekGame(game)) {
+                    onGameStartDetected(gameId);
+                    return;
+                }
             }
         }
         // A game started or ended elsewhere: Your games (LI-04). Not a gameStart of a game already listed:
@@ -832,6 +870,191 @@ void LichessClient::declineChallenge(const QString& challengeId, const QString& 
     });
 }
 
+// static
+QString LichessClient::speedOf(int limitSec, int incrementSec)
+{
+    const int estimate = limitSec + 40 * incrementSec; // Lichess's Speed: the clock's estimated game time
+    return estimate < 30   ? QStringLiteral("ultraBullet")
+         : estimate < 180  ? QStringLiteral("bullet")
+         : estimate < 480  ? QStringLiteral("blitz")
+         : estimate < 1500 ? QStringLiteral("rapid")
+                           : QStringLiteral("classical");
+}
+
+void LichessClient::startSeek(int limitSec, int incrementSec, int days, bool rated, const QString& variant)
+{
+    const bool wasSeeking = seeking();
+    endSeek(false); // one seek at a time
+    const bool realTime = limitSec > 0 || incrementSec > 0;
+    auto fail = [this, wasSeeking](const QString& message) {
+        if (wasSeeking)
+            emit seekChanged();
+        emit seekFailed(message);
+    };
+    if (!realTime && days <= 0) {
+        fail(QStringLiteral("A seek needs a clock or days per move"));
+        return;
+    }
+    if (_token.isEmpty() && !_offline) {
+        fail(QStringLiteral("Not signed in to Lichess"));
+        return;
+    }
+
+    QUrlQuery body;
+    if (realTime) {
+        // Minutes; a custom clock can be a fraction of one (½ + 12 is Rapid).
+        body.addQueryItem(QStringLiteral("time"), limitSec % 60 ? QString::number(limitSec / 60.0)
+                                                                : QString::number(limitSec / 60));
+        body.addQueryItem(QStringLiteral("increment"), QString::number(incrementSec));
+    } else {
+        body.addQueryItem(QStringLiteral("days"), QString::number(days));
+    }
+    body.addQueryItem(QStringLiteral("rated"), rated ? QStringLiteral("true") : QStringLiteral("false"));
+    body.addQueryItem(QStringLiteral("variant"), variant);
+    qDebug() << "LichessClient: seek" << body.toString();
+
+    if (realTime) {
+        _seek = QVariantMap{
+            { QStringLiteral("limitSec"),     limitSec },
+            { QStringLiteral("incrementSec"), incrementSec },
+            { QStringLiteral("speed"),        speedOf(limitSec, incrementSec) },
+            { QStringLiteral("rated"),        rated },
+            { QStringLiteral("variant"),      variant },
+            { QStringLiteral("since"),        QDateTime::currentMSecsSinceEpoch() },
+        };
+        for (const auto& game : _ongoingGames) // a game that is there already isn't the seek's
+            _seekGamesBefore.insert(game.toMap().value(QStringLiteral("gameId")).toString());
+        emit seekChanged();
+    } else if (wasSeeking) {
+        emit seekChanged();
+    }
+    if (_offline)
+        return; // screenshot mode: the waiting state, nothing sent
+
+    startEventStream(); // open already while there is a token: the seek's game comes on it
+    QNetworkRequest req = makeRequest(QStringLiteral("/api/board/seek"));
+    req.setRawHeader("Accept", "application/x-ndjson");
+    auto* reply = _nam.post(req, body.toString(QUrl::FullyEncoded).toUtf8());
+
+    if (!realTime) {
+        // Correspondence: Lichess answers at once with the seek's id; it stays there until someone
+        // takes it, and the API has no call to cancel it.
+        connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+            reply->deleteLater();
+            const QByteArray raw = reply->readAll();
+            const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            qDebug() << "LichessClient: correspondence seek | HTTP" << status << raw.left(300);
+            if (reply->error() != QNetworkReply::NoError) {
+                emit seekFailed(status == 429 ? QStringLiteral("Lichess asks to wait a minute before seeking again")
+                                              : apiErrorMessage(raw, reply));
+                return;
+            }
+            emit seekSent(QStringLiteral("Your seek is on Lichess. When someone takes it, the game shows in Your games. "
+                                         "Only lichess.org can cancel it."));
+        });
+        return;
+    }
+
+    _seekReply = reply;
+    // The answer is keep-alive lines only, while the seek waits: read and dropped. An error's body is
+    // read once, when it has finished.
+    connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
+        if (reply == _seekReply && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() < 400)
+            reply->readAll();
+    });
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() { seekRequestFinished(reply); });
+}
+
+void LichessClient::seekRequestFinished(QNetworkReply* reply)
+{
+    reply->deleteLater();
+    if (reply != _seekReply)
+        return; // canceled or replaced by us
+    _seekReply = nullptr;
+
+    const QByteArray raw = reply->readAll();
+    const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    qDebug() << "LichessClient: seek request ended | HTTP" << status << "| error:" << reply->error() << raw.left(300);
+
+    const bool authExpired = reply->property("authExpiredReported").toBool() || status == 401;
+    if (authExpired || status >= 400 || status == 0) {
+        const QString message = authExpired ? QStringLiteral("Lichess sign-in expired")
+                              : status == 429 ? QStringLiteral("Lichess asks to wait a minute before seeking again")
+                              : apiErrorMessage(raw, reply);
+        endSeek(true);
+        emit seekFailed(message);
+        return;
+    }
+    // Lichess closed it: the seek was taken or expired. Its game comes as a gameStart; in case that
+    // was missed (the event stream reconnecting), Your games tells: a new real-time game there.
+    _seekClosedByLichess = true;
+    _seekFallback.start();
+    refreshOngoingGames();
+}
+
+void LichessClient::findSeekGame()
+{
+    if (!seeking())
+        return;
+    const QString speed = _seek.value(QStringLiteral("speed")).toString();
+    for (const auto& game : _ongoingGames) {
+        const QVariantMap row = game.toMap();
+        const QString gameId = row.value(QStringLiteral("gameId")).toString();
+        if (_seekGamesBefore.contains(gameId) || gameId == _currentGameId
+            || row.value(QStringLiteral("speed")).toString() != speed)
+            continue;
+        qDebug() << "LichessClient: the seek's game, from Your games:" << gameId;
+        onGameStartDetected(gameId);
+        return;
+    }
+    _seekPoll.start(); // not there yet: ask again, until the fallback gives up
+}
+
+// Lichess pairs a seek in its lobby (source "lobby"), or a pool player with it ("pool"); a challenge's
+// game is "friend" or "api". Not a game known before: going on when the seek began (the event stream
+// sends a gameStart for each of those when it reconnects), the one on the board, or one being accepted.
+bool LichessClient::isSeekGame(const QJsonObject& game) const
+{
+    if (!seeking())
+        return false;
+    const QString gameId = game.contains(QStringLiteral("gameId"))
+        ? game.value(QStringLiteral("gameId")).toString() : game.value(QStringLiteral("id")).toString();
+    const QString source = game.value(QStringLiteral("source")).toString();
+    if (gameId.isEmpty() || (source != QLatin1String("lobby") && source != QLatin1String("pool")))
+        return false;
+    if (_seekGamesBefore.contains(gameId) || gameId == _currentGameId || gameId == _acceptingId
+        || gameId == _waitForGameId)
+        return false;
+    const QString speed = game.value(QStringLiteral("speed")).toString();
+    return speed.isEmpty() || speed == _seek.value(QStringLiteral("speed")).toString();
+}
+
+void LichessClient::cancelSeek()
+{
+    if (!seeking() && !_seekReply)
+        return;
+    qDebug() << "LichessClient: seek canceled";
+    endSeek(true);
+}
+
+void LichessClient::endSeek(bool notify)
+{
+    _seekFallback.stop();
+    _seekPoll.stop();
+    _seekClosedByLichess = false;
+    _seekGamesBefore.clear();
+    if (_seekReply) {
+        auto* reply = _seekReply;
+        _seekReply = nullptr; // before abort(): its finished handler must ignore it
+        reply->abort();       // closing the request drops the seek on Lichess
+    }
+    if (_seek.isEmpty())
+        return;
+    _seek.clear();
+    if (notify)
+        emit seekChanged();
+}
+
 void LichessClient::checkGameReady()
 {
     if (_waitForGameId.isEmpty()) {
@@ -893,6 +1116,7 @@ void LichessClient::onGameStartDetected(const QString& gameId)
 
 void LichessClient::streamGame(const QString& gameId)
 {
+    endSeek(true); // LI-09: a game starts (the seek's, or any other): the seek is over
     stopAll(gameId == _acceptingId); // an accepted challenge's game: still accepting until it starts
     _currentGameId   = gameId;
     _lastMovesList.clear();
@@ -1423,6 +1647,7 @@ void LichessClient::acceptRematch()
     const QString id = _rematchOfferId;
     if (id.isEmpty())
         return;
+    cancelSeek(); // LI-09: as acceptChallenge
     stopStream(); // also withdraws our own rematch challenge, if one waits
     auto* reply = _nam.post(
         makeRequest(QStringLiteral("/api/challenge/") + id + QStringLiteral("/accept")),

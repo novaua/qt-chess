@@ -20,6 +20,7 @@ namespace LichessTests
 		std::function<void(QTcpSocket*, const QString& method, const QString& path)> onRequest;
 		QStringList requests; // "GET /api/board/game/stream/g1", ...
 		QStringList bodies;   // their bodies, in the same order ("reason=tooFast"; "" for a GET)
+		QStringList dropped;  // the requests whose connection the client closed (not answer(), json(), close())
 
 		FakeLichess()
 		{
@@ -44,6 +45,11 @@ namespace LichessTests
 						const QString method = QString::fromLatin1(requestLine.value(0));
 						const QString path = QString::fromLatin1(requestLine.value(1));
 						requests << method + " " + path;
+						socket->setProperty("request", method + " " + path);
+						QObject::connect(socket, &QTcpSocket::disconnected, socket, [this, socket]() {
+							if (!socket->property("closedHere").toBool())
+								dropped << socket->property("request").toString();
+						});
 						if (onRequest)
 							onRequest(socket, method, path);
 					});
@@ -62,12 +68,19 @@ namespace LichessTests
 		{
 			socket->write(QByteArray("HTTP/1.1 ") + QByteArray::number(status) + " " + reason
 			              + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
-			socket->disconnectFromHost();
+			close(socket);
 		}
-		static void json(QTcpSocket* socket, const QByteArray& body)
+		static void json(QTcpSocket* socket, const QByteArray& body, int status = 200)
 		{
-			socket->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
+			socket->write("HTTP/1.1 " + QByteArray::number(status) + (status == 200 ? " OK" : " Refused")
+			              + "\r\nContent-Type: application/json\r\nContent-Length: "
 			              + QByteArray::number(body.size()) + "\r\nConnection: close\r\n\r\n" + body);
+			close(socket);
+		}
+		// Lichess ends a stream (a seek taken or expired): not the client's doing.
+		static void close(QTcpSocket* socket)
+		{
+			socket->setProperty("closedHere", true);
 			socket->disconnectFromHost();
 		}
 		static void line(QTcpSocket* socket, const QByteArray& json)
@@ -83,6 +96,82 @@ namespace LichessTests
 
 	private:
 		QTcpServer _server;
+	};
+
+	// LI-09: Lichess's side of quick pairing. The account's event stream; POST /api/board/seek held open
+	// with a keep-alive line until pair() or endSeek() (a correspondence seek, or one refused with
+	// seekStatus, answered at once); Your games (`playing`); a game stream per game; an accept says ok.
+	class FakeSeekLichess: public FakeLichess
+	{
+	public:
+		QTcpSocket* events = nullptr;     // the event stream
+		QTcpSocket* seekSocket = nullptr; // the real-time seek's request, while open
+		QByteArray  playing = R"({"nowPlaying":[]})"; // GET /api/account/playing
+		int         seekStatus = 200;     // else the seek is refused with seekError
+		QByteArray  seekError = R"({"error":"Invalid speed"})";
+
+		static inline const QString Seek = QStringLiteral("POST /api/board/seek");
+
+		FakeSeekLichess()
+		{
+			onRequest = [this](QTcpSocket* socket, const QString& method, const QString& path) {
+				if (path == "/api/stream/event") {
+					startStream(socket);
+					events = socket;
+				} else if (method == "POST" && path == "/api/board/seek") {
+					if (seekStatus != 200)
+						json(socket, seekError, seekStatus);
+					else if (bodies.last().contains("days="))
+						json(socket, R"({"id":"corr0001"})");
+					else {
+						startStream(socket);
+						line(socket, ""); // keep-alive
+						seekSocket = socket;
+						QObject::connect(socket, &QTcpSocket::disconnected, socket, [this, socket]() {
+							if (seekSocket == socket)
+								seekSocket = nullptr;
+						});
+					}
+				} else if (path.startsWith("/api/account/playing")) {
+					json(socket, playing);
+				} else if (path.startsWith("/api/board/game/stream/")) {
+					startStream(socket);
+					line(socket, QByteArray(R"({"type":"gameFull","id":")") + path.mid(23).toLatin1()
+						+ R"(","speed":"rapid","white":{"id":"me","name":"Me"},"black":{"id":"stranger","name":"Stranger"},)"
+						+ R"("state":{"moves":"","status":"started"}})");
+				} else if (method == "POST" && path.endsWith("/accept")) {
+					json(socket, R"({"ok":true})");
+				} else {
+					answer(socket, 404, "Not Found");
+				}
+			};
+		}
+
+		// A gameStart event as Lichess sends it on the event stream.
+		static QByteArray gameStart(const QString& gameId, const char* source, const char* speed = "rapid")
+		{
+			return R"({"type":"gameStart","game":{"gameId":")" + gameId.toLatin1() + R"(","fullId":")" + gameId.toLatin1()
+				+ R"(abcd","color":"white","source":")" + source + R"(","speed":")" + speed
+				+ R"(","rated":true,"variant":{"key":"standard"},"opponent":{"id":"stranger","username":"Stranger"}}})";
+		}
+		// Someone took the seek: its game starts (gameStart), and Lichess closes the seek's request.
+		void pair(const QString& gameId, const char* source = "lobby")
+		{
+			line(events, gameStart(gameId, source));
+			endSeek();
+		}
+		// Lichess closes the seek's request: taken (without the gameStart, as if it was missed) or expired.
+		void endSeek()
+		{
+			if (seekSocket)
+				close(seekSocket);
+		}
+		// A row of Your games (/api/account/playing).
+		static QByteArray playingGame(const char* gameId, const char* speed = "rapid")
+		{
+			return QByteArray(R"({"gameId":")") + gameId + R"(","fullId":")" + gameId + R"(abcd","color":"white","isMyTurn":true,)"
+				+ R"("speed":")" + speed + R"(","source":"lobby","variant":{"key":"standard"},"opponent":{"username":"Stranger"}})";
+		}
 	};
 
 	// Runs the event loop until done() or timeoutMs.

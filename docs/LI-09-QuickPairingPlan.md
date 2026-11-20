@@ -47,8 +47,9 @@ So of lichess.org's twelve tiles, five can seek from here: **10+0, 10+5, 15+10**
 
 ### LichessClient (LiChessConnector)
 
-- `Q_INVOKABLE void seek(int limitSec, int incrementSec, int days, bool rated, const QString& variant)`
-  (seconds: a custom clock can be ¼ minute steps; sent as `time` = `limitSec / 60`);
+- `Q_INVOKABLE void startSeek(int limitSec, int incrementSec, int days, bool rated, const QString& variant)`
+  (seconds: a custom clock can be ¼ minute steps; sent as `time` = `limitSec / 60`, `0.5` for ½; named
+  `startSeek` in step 1: QML can't have a method and a property both called `seek`);
   `Q_INVOKABLE void cancelSeek()`.
 - `Q_PROPERTY(QVariantMap seek READ … NOTIFY seekChanged)`: `{}` when none, else `{ limitSec, incrementSec,
   speed, rated, variant, since }` (`since`: ms since epoch, for the elapsed time). `seekFailed(QString message)`.
