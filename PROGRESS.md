@@ -1,8 +1,8 @@
 # Active Handover
 
-- **Last completed:** BL-27, `bugs/capturedStripGlow_201126`: the captured strip's pieces glow as the move list's (a black piece on a dark card); shader effects only off the software renderer, so offscreen the figures draw plain.
-- **Current focus:** None.
-- **Next up:** the owner's choice: hand tests (LI-01A on Lichess, LI-02, LI-05, LI-06, BL-10, TSK-02, TSK-04), or a plan for one of LI-09 (suggested), LI-08, BL-22, CE-01, LI-01B; LI-07 needs the owner's choice first.
+- **Last completed:** the LI-09 plan, `docs/li09QuickPairingPlan_201126`: `docs/LI-09-QuickPairingPlan.md` with the owner's decisions (2026-11-20).
+- **Current focus:** LI-09 Quick pairing: plan done, no code yet.
+- **Next up:** LI-09 step 1 (LichessClient's seek, FakeLichess, LichessClientTest), on its own branch from `develop`.
 - **Active gotchas:**
   - `.tasks/archive/_unmatched-progress.md`: 7 old log entries that match no ticket, for the owner to file or drop.
   - UI tests offscreen: hover doesn't reach items; no shader effects (the software renderer: pieces drawn without their glow). `// ui-test-engine: none` runs a test file without an engine.
