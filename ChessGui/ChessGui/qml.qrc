@@ -48,6 +48,8 @@
         <file>qml/GamesPage.qml</file>
         <file>qml/games.js</file>
         <file>qml/lichess.js</file>
+        <file>qml/timecontrols.js</file>
+        <file>qml/QuickPairingGrid.qml</file>
         <file>qml/LevelsHelpDialog.qml</file>
         <file>qml/PlayerCard.qml</file>
         <file>qml/CapturedStrip.qml</file>

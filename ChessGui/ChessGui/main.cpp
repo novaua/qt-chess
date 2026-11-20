@@ -91,7 +91,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
 	                  "online", "online-game-menu", "online-empty", "online-blitz", "online-challenge", "online-960", "online-days", "continue", "continue-online",
-	                  "continue-list", "continue-list-online", "continue-list-starting", "continue-starting", "takeback",
+	                  "quick-pairing", "quick-pairing-waiting", "continue-list", "continue-list-online", "continue-list-starting", "continue-starting", "takeback",
 	                  "clock-online", "clock-correspondence", "premove", "premove-capture", "premove-played", "premove-dropped", "reconnecting", "rejoin",
 	                  "challenge", "challenge-accepting", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
 	                  "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
@@ -437,7 +437,8 @@ int main(int argc, char* argv[])
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
 		"opponent-left-error", "timing", "more-menu", "play", "games", "games-empty", "games-filter", "play-from-here", "play-from-here-menu", "replay", "analysis",
-		"chess960", "chess960-select", "chess960-castled", "computer-960", "capture", "capture-ep"
+		"chess960", "chess960-select", "chess960-castled", "computer-960", "capture", "capture-ep",
+		"quick-pairing", "quick-pairing-waiting"
 	};
 	QCommandLineParser parser;
 	const QCommandLineOption helpOption = parser.addHelpOption();

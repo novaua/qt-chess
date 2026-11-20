@@ -131,6 +131,8 @@ DISTFILES += \
     qml/OngoingGamesRefresh.qml \
     qml/ContinueGamesPage.qml \
     qml/lichess.js \
+    qml/timecontrols.js \
+    qml/QuickPairingGrid.qml \
     qml/MarkerColumn.qml \
     qml/MarkerRow.qml \
     qml/MoveArrows.qml \

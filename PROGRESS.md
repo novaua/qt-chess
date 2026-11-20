@@ -1,8 +1,8 @@
 # Active Handover
 
-- **Last completed:** LI-09 step 1, `features/li09QuickPairing_201126`: `LichessClient::startSeek` / `cancelSeek`, the `seek` state, the fallback; `LichessSeekTest.cpp` against `FakeSeekLichess` (2026-11-20).
-- **Current focus:** LI-09 Quick pairing: step 1 (C++) done; steps 2–5 left (`docs/LI-09-QuickPairingPlan.md` §5).
-- **Next up:** LI-09 step 2 (the Online page's Quick pairing card, `QuickPairingGrid`, `fakelichessserver`'s seek route, `tst_lichess`), on its own branch from `develop`.
+- **Last completed:** LI-09 step 2, `features/li09QuickPairingCard_201126`: the Online page's Quick pairing card (`QuickPairingGrid`, Rated / Casual, its Variant row), `tst_lichess` test_13 (2026-11-20).
+- **Current focus:** LI-09 Quick pairing: steps 1–2 done; 3–5 left (`docs/LI-09-QuickPairingPlan.md` §5).
+- **Next up:** LI-09 step 3 (the seek goes on beyond the Online page: `SeekIndicator` in `CommandBar`, the message on leaving; today leaving the page cancels it), on its own branch from `develop`.
 - **Active gotchas:**
   - `.tasks/archive/_unmatched-progress.md`: 7 old log entries that match no ticket, for the owner to file or drop.
   - UI tests offscreen: hover doesn't reach items; no shader effects (the software renderer: pieces drawn without their glow). `// ui-test-engine: none` runs a test file without an engine.

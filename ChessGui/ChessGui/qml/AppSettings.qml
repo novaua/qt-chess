@@ -31,6 +31,8 @@ Settings {
     property int  clockIncSec:        0
     property bool chess960:           false // the last new game's variant: Chess960 (LI-01A), else standard
     property bool onlineChess960:     false // the Online page's last challenge: Chess960 (LI-01A stage 2), apart from the local games'
+    property bool quickRated:         true  // the Online page's quick pairing: rated seeks, as lichess.org's default (LI-09)
+    property bool quickChess960:      false // its variant, apart from the challenge card's: two pickers on one page
 
     // Computer
     property int  analysisDepth:      14    // the engine's search depth per position of an analysis (ChessConnector.AnalysisDepth, BL-19)

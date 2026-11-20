@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "timecontrols.js" as TimeControls
 
 // The clock of a new game, laid out like Lichess's quick pairing: a tile per time control (minutes +
 // increment) with its speed under it, and No clock. One Tab stop, like radio buttons: the arrow keys
@@ -14,10 +15,7 @@ GridLayout {
     property bool online: false
     property bool blitzAllowed: true
 
-    readonly property var presets: [
-        [1, 0, "Bullet"], [2, 1, "Bullet"], [3, 0, "Blitz"], [3, 2, "Blitz"], [5, 0, "Blitz"], [5, 3, "Blitz"],
-        [10, 0, "Rapid"], [10, 5, "Rapid"], [15, 10, "Rapid"], [30, 0, "Classical"], [30, 20, "Classical"]
-    ].map(p => ({ label: p[0] + "+" + p[1], limitSec: p[0] * 60, incSec: p[1], speed: p[2] }))
+    readonly property var presets: TimeControls.presets
      .concat([{ label: "No clock", limitSec: 0, incSec: 0, speed: "" }])
      .filter(p => !online || (p.speed !== "Bullet" && p.speed !== ""))
 
