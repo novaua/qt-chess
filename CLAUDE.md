@@ -149,6 +149,7 @@ It links only `ChessCore` and does **not** use Qt; tests that need Qt (UCI engin
   2. `UserManager` and `LichessClient` stay separate services. QML may call them directly for non-game work: profiles, login, Lichess account and challenge setup, ratings. Don't forward their API through `ChessConnector`.
   3. Expose QML-visible services as typed singletons (`qmlRegisterSingletonInstance`), not context properties: `ChessConnector`, `UserManager`, `LichessClient`, `AvatarProvider`, `AppInfo` and `GameLibrary` in module `ChessPlusPlus` (`AppServices`: made, wired and registered there, for `main.cpp` and the UI tests alike). A QML file that uses them has `import ChessPlusPlus`.
 - `PieceColor` is an `enum class` (Light/Dark); use scoped references (`PieceColor::Light`)
+- `-platform offscreen` (the UI tests, `-Offscreen` screenshots) renders with Qt Quick's software renderer, which has no shader effects: an item with `layer.effect` (`MultiEffect`) isn't drawn at all there. Enable such a layer only with `GraphicsInfo.api !== GraphicsInfo.Software`, so the item is drawn plain (the move list's and the captured strip's piece glow, BL-27)
 
 ## Tasks and Bugs (`.tasks/`)
 

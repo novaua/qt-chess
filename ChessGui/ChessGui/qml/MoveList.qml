@@ -68,7 +68,8 @@ ListView {
             spacing: 1
             // The piece in its own colour, so White's and Black's moves differ at a glance. A glow of
             // the other colour keeps it visible on a light or a dark panel: black glows white,
-            // white glows black.
+            // white glows black. The software renderer (-platform offscreen) has no shader effects: there
+            // the piece is plain (with the effect it wasn't drawn at all).
             Image {
                 visible: cell.piece !== ""
                 anchors.verticalCenter: parent.verticalCenter
@@ -76,7 +77,7 @@ ListView {
                 source: cell.piece === "" ? "" : Theme.piece(cell.piece)
                 fillMode: Image.PreserveAspectFit
                 sourceSize: Qt.size(36, 36)
-                layer.enabled: visible
+                layer.enabled: visible && GraphicsInfo.api !== GraphicsInfo.Software
                 layer.effect: MultiEffect {
                     shadowEnabled: true
                     shadowColor: cell.piece === cell.piece.toLowerCase() ? Theme.pieceGlowOnBlack : Theme.pieceGlowOnWhite

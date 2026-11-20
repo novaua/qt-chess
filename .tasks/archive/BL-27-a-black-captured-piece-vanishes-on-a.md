@@ -2,7 +2,7 @@
 id: BL-27
 title: "A black piece in the captured strip nearly vanishes on a dark card"
 type: bug
-status: open
+status: done
 priority: low
 ---
 
@@ -22,3 +22,11 @@ tests (see the move list); check with the `capture` scenes in `--high-contrast` 
 
 **See it:** a game where White has taken a black piece; Settings → Appearance → Dark, or a Windows contrast theme;
 look at White's player card.
+
+## Resolution
+
+### 2026-11-20 — fixed (branch: bugs/capturedStripGlow_201126)
+
+- **Cause:** as above: the strip's pieces had no glow; a black piece on a dark card (dark mode `#2B2B2B`, a contrast theme's black) all but vanished.
+- **Fix:** `CapturedStrip.qml`: the move list's glow (`MultiEffect` shadow, `Theme.pieceGlowOnBlack` / `pieceGlowOnWhite`), one layer per group (its pieces share a colour). Both glows are on only where shader effects run (`GraphicsInfo.api !== GraphicsInfo.Software`): `-platform offscreen` renders with Qt Quick's software renderer (checked: api 1 offscreen, 4 = D3D11 in a window), where an item with `layer.effect` isn't drawn at all. So the move list's figures now draw in the offscreen UI tests and `-Offscreen` screenshots too (plain); the rule is in CLAUDE.md's Key Conventions.
+- **Checked:** the `captures` scene light, dark, high contrast (dark) and offscreen: black pieces glow white on the dark card, white ones get a faint dark edge on the light one, offscreen plain; the `analysis` scene offscreen: the move list's figures drawn. UI tests (Release): 13 files, 0 failed.
