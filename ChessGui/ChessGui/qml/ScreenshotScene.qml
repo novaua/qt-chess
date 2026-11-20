@@ -55,12 +55,19 @@ Item {
         if (name === "about")    pages.currentItem.showAbout()
         if (name === "levels")   dialogs.levels.open()
         if (name.startsWith("profile") && name !== "profiles") window.openProfile()
-        if (name.startsWith("online") || name.startsWith("quick-pairing")) {
+        if (name === "quick-pairing-indicator") {   // LI-09 D5: Home while a 10+0 seek waits 0:42, its menu open
+            LichessClient.startSeek(600, 0, 0, true, "standard")   // offline: nothing is sent
+            const indicator = findItem(pages.currentItem, "seekIndicator")
+            indicator.fixedElapsed = 42
+            Qt.callLater(() => indicator.clicked())
+        }
+        if (name.startsWith("online") || (name.startsWith("quick-pairing") && name !== "quick-pairing-indicator")) {
             // main.cpp: Tester with a Lichess account for online and online-empty, the games for online.
             window.openOnline()
             if (name === "quick-pairing-waiting") {   // LI-09: 10+0 waits 0:12 (offline: nothing is sent)
                 LichessClient.startSeek(600, 0, 0, true, "standard")
                 findItem(pages.currentItem, "quickPairingGrid").fixedElapsed = 12
+                findItem(pages.currentItem, "seekIndicator").fixedElapsed = 12   // the command bar's too
             }
             if (name === "online-blitz" || name === "online-challenge") {
                 findItem(pages.currentItem, "challengeOpponent").text = "Friend"

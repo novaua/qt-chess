@@ -79,12 +79,9 @@ Page {
     // fires for a ratings update: not that.)
     readonly property bool _connected: UserManager.lichessConnected
     on_ConnectedChanged: _dropStarting()
-    // Back while something is starting: drop it. A seek too, for now (LI-09 step 3: it goes on, shown
-    // in the command bar).
-    StackView.onRemoved: {
-        _dropStarting()
-        LichessClient.cancelSeek()
-    }
+    // Back while something is starting: drop it. Not a quick pairing seek: it goes on, shown in every
+    // page's command bar (LI-09 D5: SeekIndicator; ChessGame says so on Back).
+    StackView.onRemoved: _dropStarting()
 
     // LI-09: a quick pairing tile: a seek with that clock, rated or casual, Standard or Chess960.
     function _seek(limitSec, incSec) {

@@ -318,4 +318,72 @@ TestCase {
         app.waitForPage("home", 5000)
         app.waitClosed(dialog)
     }
+
+    // LI-09 D5: the seek goes on beyond the Online page. Back says so, once a seek; every page's command
+    // bar shows it, and its menu's Cancel seeking closes the request. A seek taken while on Home opens
+    // the game. Switch user ends it (the profile picker keeps the token: a new token isn't what ends it).
+    function test_14_seekBeyondThePage() {
+        const told = "Still looking for an opponent. Cancel it from the icon at the top."
+        const closed = () => FakeLichess.closedByApp("POST /api/board/seek")
+        const indicator = () => findChild(app.page(), "seekIndicator")   // the page's own command bar
+        const seekFrom = label => {
+            app.click("onlineCard")
+            app.waitForPage("online", 5000)
+            app.scrollIntoView("quickPairingGrid")
+            app.click("quickTile_" + label)
+            tryVerify(() => FakeLichess.seekOpen, 3000, "the seek's request open")
+            verify(indicator().visible, "the Online page's command bar shows it too")
+            keyClick(Qt.Key_Escape)   // Back
+            app.waitForPage("home", 5000)
+        }
+        const closedBefore = closed()
+        verify(!indicator().visible, "no seek, no icon")
+
+        seekFrom("10+0")
+        app.waitMessage(told)
+        verify(FakeLichess.seekOpen, "the seek goes on")
+        compare(closed(), closedBefore)
+        tryVerify(() => indicator().visible, 3000, "Home's command bar shows the seek")
+
+        // Back to the page and Back again, the same seek: its tile still waits, nothing said again.
+        app.click("onlineCard")
+        app.waitForPage("online", 5000)
+        compare(app.item("quickPairingGrid").seekingIndex, 6, "10+0 still waits")
+        keyClick(Qt.Key_Escape)
+        app.waitForPage("home", 5000)
+        compare(app.recentMessages().filter(m => m === told).length, 1, "said once a seek")
+
+        // The icon's menu: what is sought, Cancel seeking.
+        mouseClick(indicator())
+        const menuText = findChild(indicator(), "seekMenuText")
+        tryVerify(() => menuText.visible, 3000, "the seek's menu open")
+        verify(menuText.text.startsWith("Looking for an opponent · 10+0 Rapid · Rated · 0:"), menuText.text)
+        const cancelItem = findChild(indicator(), "cancelSeekItem")
+        tryVerify(() => cancelItem.menu.opened, 3000, "the menu opened")
+        mouseClick(cancelItem)
+        tryVerify(() => closed() === closedBefore + 1, 3000, "Lichess sees the seek closed")
+        tryVerify(() => !indicator().visible, 3000, "the icon gone")
+        compare(LichessClient.seek.limitSec, undefined)
+
+        // Taken while on Home: the game opens.
+        seekFrom("15+10")
+        verify(FakeLichess.pairSeek("seek0002", "Wanderer"), "taken")
+        app.waitForPage("game", 10000)
+        compare(ChessConnector.OpponentName, "Wanderer")
+        verify(!indicator().visible, "the seek is over")
+        app.click("homeButton")
+        const dialog = app.item("leaveOnlineDialog")
+        tryVerify(() => dialog.opened, 3000, "Leave the game? asked")
+        app.clickIn("leaveOnlineDialog", "resignButton")
+        waitRequest("POST /api/board/game/seek0002/resign")
+        app.waitForPage("home", 5000)
+        app.waitClosed(dialog)
+
+        // Switch user: the seek was this profile's.
+        seekFrom("30+0")
+        app.switchUserFromHome()
+        tryVerify(() => closed() === closedBefore + 2, 3000, "the seek closed on Switch user")
+        compare(LichessClient.seek.limitSec, undefined)
+        app.pickProfile("Tester")
+    }
 }
