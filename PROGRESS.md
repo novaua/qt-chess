@@ -1,8 +1,8 @@
 # Active Handover
 
-- **Last completed:** the code review fixes of #203 (a pawn's straight premove: no corners; the corners made once per square) and #204 (a missing engine looked for again), `bugs/reviewFixes203and204_201126`. Before it: BL-26 and LI-10 (#205).
-- **Current focus:** None. BL-19 is `in_progress`: the owner decides whether it is done (left for them: scenario 6's tooltip on hover, 9.2 Windows' contrast theme).
-- **Next up:** no small ticket left. The owner's choice: hand tests (LI-01A on Lichess, LI-02, LI-05, LI-06, BL-10, …), or a plan for one of LI-07 (needs the owner's choice first), LI-08, LI-09, BL-22, LI-01B, CE-01.
+- **Last completed:** BL-19 closed, `docs/bl19HandTestsDone_201126`: the owner's hand tests 6 (no engine, the tooltip) and 9.2 (Windows' contrast theme) passed in a real window; BL-27 found (a black captured piece on a dark card).
+- **Current focus:** None.
+- **Next up:** BL-27 (small, low: the captured strip's glow). Then the owner's choice: hand tests (LI-01A on Lichess, LI-02, LI-05, LI-06, BL-10, TSK-02, TSK-04), or a plan for one of LI-09 (suggested), LI-08, BL-22, CE-01, LI-01B; LI-07 needs the owner's choice first.
 - **Active gotchas:**
   - `.tasks/archive/_unmatched-progress.md`: 7 old log entries that match no ticket, for the owner to file or drop.
   - UI tests offscreen: hover doesn't reach items, and the move list's piece figures (a `layer.effect`) don't draw. `// ui-test-engine: none` runs a test file without an engine.

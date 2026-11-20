@@ -2,7 +2,7 @@
 id: BL-19
 title: "Games library: keep every local game, continue, fork, rate, analyse"
 type: task
-status: in_progress
+status: done
 priority: medium
 ---
 
@@ -198,3 +198,12 @@ Tests: `tst_analysis` +1 (`test_6_bestMoveArrows`), `tst_games` test 6 (none dur
 
 #### Left for the owner
 - 6: the disabled Analyse game's tooltip on hover (hover doesn't reach items offscreen); 9.2: Windows' own contrast theme; how it looks and feels in a real window. Whether BL-19 is done with these and BL-25 open is the owner's call.
+
+### 2026-11-20 — the owner's hand tests; BL-19 done (branch: docs/bl19HandTestsDone_201126)
+
+The owner ran what was left of `docs/BL-19-ManualTests.md` in a real window (`develop` at #206, Release, Stockfish, a throwaway data folder):
+- Step 1 (a full game vs the robot, then Analyse): the marks (?! blue, ? orange, ?? light red), the played and best arrows, Play from here, Back to live, Rematch / New game: OK. Scenario 3 at a glance: 1187, provisional (1 of 10 rated games).
+- 6 (no engine): OK, the tooltip too (a disabled Button does get hover here). BL-25's fix holds: Analyse disabled before Settings was opened.
+- 9.2 (Windows' contrast theme): OK. Found on the way: **BL-27** (a black captured piece nearly vanishes on a dark card).
+
+All 9 scenarios pass; BL-19 is done. Follow-up, not in scope: log the Lichess games played here.

@@ -143,6 +143,10 @@ Result: **Found a bug** (Claude, 2026-11-19; BL-25). After Settings has been ope
 game shows its analysis: OK. **But before Settings has been opened in a session, Analyse game is enabled**: the
 engine is probed only when the Settings page is made, and the button counts "checking" as found. Pressing it:
 "The chess engine couldn't analyse the game." Not checked: the tooltip on hover (no hover offscreen). **Fixed in BL-25** (the engine is looked for at start).
+**OK** (the owner, 2026-11-20, `develop` at #206, Release, a real window): without an engine and before Settings was
+opened, the analysed game kept its analysis and More → Analyse again was disabled; a finished game not analysed
+(two players, Fool's mate) showed Analyse game disabled, and hovering it showed "The analysis needs the chess
+engine (Settings → Computer)."; Settings → Computer said "Chess engine not found".
 
 ## 7. Not during a game
 
@@ -177,6 +181,9 @@ nothing set aside; the analysed game opens with its analysis.
 Result: 1 **OK** (Claude, 2026-11-19, from a picture): ?! blue, ? orange, ?? red and the eval bar read well on the
 dark panel. 2 **open, for the owner**: it needs Windows' own contrast theme (forcing the app's high contrast on a
 normal Windows theme mixes its colours, so a picture of that says nothing).
+2 **OK** (the owner, 2026-11-20, Windows' contrast theme, a real window): the marks (in the text colour), the eval
+bar and both arrows read well. Found on the way, not BL-19's: a black piece in a player card's captured strip
+nearly vanishes on the black card (**BL-27**).
 
 ## Clean up
 
