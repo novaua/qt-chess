@@ -8,7 +8,7 @@ priority: medium
 
 # LI-09 Quick pairing
 
-Plan: [`docs/LI-09-QuickPairingPlan.md`](../../docs/LI-09-QuickPairingPlan.md) (the owner's decisions of 2026-11-20: greyed Bullet/Blitz tiles, Custom as on lichess.org, rated by default, the seek goes on across pages with an icon in the command bar to cancel it). Five steps, one PR each.
+Plan: [`docs/LI-09-QuickPairingPlan.md`](../../docs/LI-09-QuickPairingPlan.md) (the owner's decisions of 2026-11-20: greyed Bullet/Blitz tiles, Custom as on lichess.org, rated by default, the seek goes on across pages with an icon in the command bar to cancel it). Five steps, one PR each. Hand tests: [`docs/LI-09-ManualTests.md`](../../docs/LI-09-ManualTests.md) (two Lichess accounts).
 
 <!-- migrated from TASKS.md:306 (Lichess Improvement Backlog) -->
 
@@ -86,3 +86,14 @@ Plan: [`docs/LI-09-QuickPairingPlan.md`](../../docs/LI-09-QuickPairingPlan.md) (
 - Accessibility: the sliders' names carry their minutes and seconds (their value is a step's index); the waiting Custom tile's name has its clock.
 - The reason in seconds ("the clock's seconds plus 40 × the increment must reach 480"); one speed name (`lichess.js` `speedName`, now also in `timecontrols.js` `seekText`).
 - `tst_lichess` test_15: + a tile's clock from the dialog on Custom, no second seek while one waits, Cancel keeps the message. All 13 UI test files pass.
+
+### 2026-11-20 — step 5: docs and hand tests (branch: docs/li09ManualTests_201126)
+- `docs/LI-09-ManualTests.md`: ten scenarios with two Lichess accounts:
+  - a pool tile on lichess.org against the app's seek (Risk 1: does Lichess pair them; a rated seek, aborted before a move);
+  - B joins from the lobby list, Cancel takes the seek off Lichess (the tile, the icon, closing the app), paired while on another page;
+  - a rated seek seen in the lobby, Chess960, a custom clock (20+0, the Blitz refusal, ½+12);
+  - a correspondence seek (joined later; cancelled on lichess.org);
+  - Lichess's refusal while A plays on lichess.org;
+  - a real opponent. Each notes the `gameStart` line's `source` (Risk 2).
+- CLAUDE.md: LichessClient's seek API.
+- Left: the owner runs the hand tests; then LI-09 is closed (`status: done`, moved to `archive/`).
