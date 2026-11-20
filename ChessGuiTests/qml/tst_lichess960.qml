@@ -200,6 +200,20 @@ TestCase {
         const localChoice = AppSettings.chess960
         app.click("onlineCard")
         app.waitForPage("online", 5000)
+
+        // LI-09: Quick pairing's own Variant row: a Chess960 seek, the tiles with the Chess960 rating,
+        // remembered apart from the challenge's.
+        app.scrollIntoView("quickPairingGrid")
+        app.clickIn("online", "quickVariantChoice_1")
+        compare(app.item("quickTile_10+0").rating, "1480?", "the Chess960 pool, provisional")
+        app.click("quickTile_10+0")
+        tryVerify(() => FakeLichess.seekOpen, 3000, "the seek's request open")
+        compare(FakeLichess.bodyOf("POST /api/board/seek"), "time=10&increment=0&rated=true&variant=chess960")
+        compare(AppSettings.quickChess960, true, "remembered")
+        compare(AppSettings.onlineChess960, false, "the challenge's choice untouched")
+        app.click("quickCancelButton")
+        tryVerify(() => FakeLichess.closedByApp("POST /api/board/seek") === 1, 3000, "the seek closed")
+
         app.scrollIntoView("challengeRating")
         app.clickIn("online", "variantChoice_1")
         tryCompare(app.item("challengeRating"), "text", "Your Chess960 rating: 1480?", 2000)

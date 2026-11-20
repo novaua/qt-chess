@@ -27,6 +27,8 @@ class FakeLichessServer : public QObject
 	// Every request so far, "GET /api/stream/event", "POST /api/board/game/g1/move/e7e5", …
 	Q_PROPERTY(QStringList requests READ requests NOTIFY requestsChanged)
 	Q_PROPERTY(bool eventStreamOpen READ eventStreamOpen NOTIFY streamsChanged)
+	// LI-09: a real-time seek's request is open (POST /api/board/seek: Lichess holds it while it waits).
+	Q_PROPERTY(bool seekOpen READ seekOpen NOTIFY streamsChanged)
 
 public:
 	explicit FakeLichessServer(QObject* parent = nullptr);
@@ -35,6 +37,7 @@ public:
 	QString username() const { return QStringLiteral("TesterChess"); }
 	QStringList requests() const { return _server.requests; }
 	bool eventStreamOpen() const;
+	bool seekOpen() const;
 
 	// A challenge to the player (10+5, casual, rapid): on the event stream now, and again each time it
 	// opens, until it is accepted or declined. challengerColor: the challenger's side, "white",
@@ -55,6 +58,13 @@ public:
 	Q_INVOKABLE void endGame(const QString& gameId, const QString& status, const QString& winner);
 	// The game's stream is cut, and for downMs a new one is refused (503, Lichess restarting).
 	Q_INVOKABLE void dropGameStreams(const QString& gameId, int downMs);
+	// LI-09: someone takes the open seek: its game starts (a gameStart of source "lobby" on the event
+	// stream, the player White) and its request is closed, as Lichess does. False without an open seek.
+	Q_INVOKABLE bool pairSeek(const QString& gameId, const QString& opponent);
+	// The next seeks are refused with this HTTP status and Lichess's {"error": message}; 0: taken again.
+	Q_INVOKABLE void refuseSeeks(int status, const QString& message = {});
+	// How many requests made as `request` the app closed itself ("POST /api/board/seek": a seek canceled).
+	Q_INVOKABLE int closedByApp(const QString& request) const { return int(_server.dropped.count(request)); }
 
 	// What the fake has of a game: its moves (UCI, space separated), its status ("" for none).
 	Q_INVOKABLE QString moves(const QString& gameId) const;
@@ -102,5 +112,8 @@ private:
 	QHash<QString, Game> _games;
 	QList<QPointer<QTcpSocket>> _eventStreams;
 	qint64 _streamsDownUntil = 0; // ms since epoch: game streams answer 503 until then
+	QPointer<QTcpSocket> _seek;   // the open real-time seek's request
+	int _seekRefusal = 0;         // refuseSeeks()
+	QString _seekRefusalMessage;
 	QTimer _keepAlive;
 };

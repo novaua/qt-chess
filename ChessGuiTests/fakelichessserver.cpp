@@ -37,6 +37,11 @@ bool FakeLichessServer::eventStreamOpen() const
 	return false;
 }
 
+bool FakeLichessServer::seekOpen() const
+{
+	return _seek && _seek->state() == QAbstractSocket::ConnectedState;
+}
+
 // ── What a test does as the other side ─────────────────────────────────
 
 void FakeLichessServer::challenge(const QString& id, const QString& challenger, int rating, const QString& challengerColor,
@@ -127,6 +132,29 @@ void FakeLichessServer::dropGameStreams(const QString& gameId, int downMs)
 	emit streamsChanged();
 }
 
+bool FakeLichessServer::pairSeek(const QString& gameId, const QString& opponent)
+{
+	if (!seekOpen())
+		return false;
+	Game game;
+	game.id = gameId;
+	game.whiteName = username();
+	game.blackName = opponent;
+	_games.insert(gameId, game);
+	sendEvent(QJsonObject{ { "type", "gameStart" }, { "game", QJsonObject{
+		{ "gameId", gameId }, { "fullId", gameId + "abcd" }, { "color", "white" }, { "source", "lobby" },
+		{ "speed", "rapid" }, { "rated", true }, { "variant", QJsonObject{ { "key", "standard" } } },
+		{ "opponent", QJsonObject{ { "id", opponent.toLower() }, { "username", opponent } } } } } });
+	FakeLichess::close(_seek); // taken: Lichess ends the seek's request
+	return true;
+}
+
+void FakeLichessServer::refuseSeeks(int status, const QString& message)
+{
+	_seekRefusal = status;
+	_seekRefusalMessage = message;
+}
+
 QString FakeLichessServer::moves(const QString& gameId) const
 {
 	return _games.value(gameId).moves.join(QLatin1Char(' '));
@@ -173,6 +201,19 @@ void FakeLichessServer::onRequest(QTcpSocket* socket, const QString& method, con
 			_challengeOrder.removeAll(parts[2]);
 			return ok(socket);
 		}
+	}
+	// LI-09: /api/board/seek: a correspondence seek is answered at once, a real-time one held open
+	// (keep-alive lines) until pairSeek() or the app closes it.
+	if (!get && path == QLatin1String("/api/board/seek")) {
+		if (_seekRefusal != 0)
+			return FakeLichess::json(socket, compact(QJsonObject{ { "error", _seekRefusalMessage } }), _seekRefusal);
+		if (_server.bodies.last().contains(QLatin1String("days=")))
+			return FakeLichess::json(socket, R"({"id":"corrSeek"})");
+		FakeLichess::startStream(socket);
+		_seek = socket;
+		connect(socket, &QTcpSocket::disconnected, this, &FakeLichessServer::streamsChanged);
+		emit streamsChanged();
+		return;
 	}
 	// /api/board/game/stream/<id>
 	if (get && parts.size() == 5 && parts[1] == QLatin1String("board") && parts[3] == QLatin1String("stream"))
@@ -360,6 +401,8 @@ void FakeLichessServer::keepAlive()
 			FakeLichess::line(socket, QByteArray());
 	};
 	ping(_eventStreams);
+	if (seekOpen())
+		FakeLichess::line(_seek, QByteArray());
 	for (Game& game : _games)
 		ping(game.streams);
 }

@@ -2,6 +2,7 @@ import QtQuick
 import QtTest
 import ChessPlusPlus
 import ChessGuiTests
+import "qrc:/qml"   // AppSettings
 
 // Scenario 12 (docs/UiTestSuitePlan.md §9) and the messages from Lichess: Lichess is FakeLichess, a
 // local server the test plays the other side on (TestSetup; nothing reaches lichess.org). Tester is
@@ -193,7 +194,9 @@ TestCase {
     function test_11_challengeCardFits() {
         app.click("onlineCard")
         app.waitForPage("online", 5000)
+        app.scrollIntoView("challengeTimeType")   // under Quick pairing (LI-09)
         app.clickIn("online", "challengeTimeType_2")
+        app.scrollIntoView("challengeDays")
         app.clickIn("online", "challengeDays_6")
         compare(app.item("challengeDays").checkedIndex, 6, "14 days")
         const card = app.item("challengeCard")
@@ -254,5 +257,65 @@ TestCase {
         tryVerify(() => !copy.menu.visible, 3000)
         keyClick(Qt.Key_Escape)   // Back
         app.waitForPage("home", 5000)
+    }
+
+    // LI-09: quick pairing on the Online page. Bullet and Blitz greyed (lichess.org only), the rating in
+    // each tile's pool. 10+0: a rated Standard seek, its tile and the line under the grid wait; Cancel
+    // closes the seek's request. A refusal shows Lichess's reason. 15+10 Casual: someone takes it, the
+    // game page opens with them; Resign ends it.
+    function test_13_quickPairing() {
+        app.click("onlineCard")
+        app.waitForPage("online", 5000)
+        const grid = app.item("quickPairingGrid")
+        const tile = label => app.item("quickTile_" + label)
+        app.scrollIntoView("quickPairingGrid")
+        verify(tile("3+0").opacity < 1, "Blitz greyed")
+        verify(tile("1+0").opacity < 1, "Bullet greyed")
+        compare(tile("10+0").opacity, 1)
+        compare(tile("10+0").rating, "1650", "the rapid rating")
+        compare(tile("30+0").rating, "", "no classical rating yet")
+        compare(AppSettings.quickRated, true, "rated by default")
+
+        app.click("quickTile_10+0")
+        tryVerify(() => FakeLichess.seekOpen, 3000, "the seek's request open")
+        compare(FakeLichess.bodyOf("POST /api/board/seek"), "time=10&increment=0&rated=true&variant=standard")
+        compare(grid.seekingIndex, 6, "10+0 waits")
+        verify(tile("10+0").isSeeking)
+        verify(!tile("15+10").usable, "one seek at a time")
+        verify(app.item("quickWaiting").visible, "Looking for an opponent…")
+        app.click("quickCancelButton")
+        tryVerify(() => FakeLichess.closedByApp("POST /api/board/seek") === 1, 3000, "Lichess sees the seek closed")
+        verify(!app.item("quickWaiting").visible)
+        compare(grid.seekingIndex, -1)
+
+        FakeLichess.refuseSeeks(400, "You have too many games going on")
+        app.click("quickTile_30+0")
+        const errorBar = app.item("onlineErrorBar")
+        tryVerify(() => errorBar.visible, 3000, "the refusal shown")
+        compare(errorBar.text, "Quick pairing: You have too many games going on")
+        compare(grid.seekingIndex, -1)
+        FakeLichess.refuseSeeks(0)
+
+        app.click("quickRated_1")
+        compare(AppSettings.quickRated, false, "Casual remembered")
+        app.click("quickTile_15+10")
+        tryVerify(() => FakeLichess.seekOpen, 3000, "the second seek open")
+        verify(!errorBar.visible, "the old refusal gone")
+        compare(FakeLichess.bodyOf("POST /api/board/seek"), "time=15&increment=10&rated=false&variant=standard")
+        verify(FakeLichess.pairSeek("seek0001", "Stranger"), "taken")
+        app.waitForPage("game", 10000)
+        compare(ChessConnector.GameMode, "online")
+        compare(ChessConnector.OpponentName, "Stranger")
+        compare(LichessClient.seek.limitSec, undefined, "the seek is over")
+        compare(FakeLichess.closedByApp("POST /api/board/seek"), 1, "closed by Lichess, not the app")
+        AppSettings.quickRated = true
+
+        app.click("homeButton")
+        const dialog = app.item("leaveOnlineDialog")
+        tryVerify(() => dialog.opened, 3000, "Leave the game? asked")
+        app.clickIn("leaveOnlineDialog", "resignButton")
+        waitRequest("POST /api/board/game/seek0001/resign")
+        app.waitForPage("home", 5000)
+        app.waitClosed(dialog)
     }
 }

@@ -12,12 +12,15 @@ ColumnLayout {
     readonly property bool chess960: choice.checkedIndex === 1
     property bool rateable: false   // vs the robot: says a Chess960 game isn't rated
     property bool online: false     // a Lichess challenge
+    property bool quick: false      // a Lichess seek (LI-09): remembered apart from the challenge's
     // ChessConnector.startComputerGame / startLocalGame's last argument.
     readonly property int startPosition: chess960 ? ChessConnector.RandomChess960 : ChessConnector.StandardGame
 
     function choose(on) { choice.checkedIndex = on ? 1 : 0 }
     function remember() {
-        if (online)
+        if (quick)
+            AppSettings.quickChess960 = chess960
+        else if (online)
             AppSettings.onlineChess960 = chess960
         else
             AppSettings.chess960 = chess960
@@ -28,13 +31,15 @@ ColumnLayout {
     Label { text: "Variant"; color: Theme.textSecondary; font: Theme.caption }
     ChoiceRow {
         id: choice
-        objectName: "variantChoice"   // its buttons: variantChoice_0, _1 (the UI tests, in the picker's dialog)
+        // Its buttons: variantChoice_0, _1 (the UI tests, in the picker's dialog); quickVariantChoice_ on
+        // the Online page, which has two pickers.
+        objectName: picker.quick ? "quickVariantChoice" : "variantChoice"
         options: [{ label: "Standard" }, { label: "Chess960" }]
     }
     Label {
         visible: picker.chess960
         text: "The pieces behind the pawns are shuffled: one of 960 start positions, "
-              + (picker.online ? "picked by Lichess. " : "at random. ")
+              + (picker.online || picker.quick ? "picked by Lichess. " : "at random. ")
               + "To castle, move the king onto its rook." + (picker.rateable ? " Not rated." : "")
         font: Theme.caption
         color: Theme.textSecondary

@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import ChessPlusPlus
 import "lichess.js" as Lichess
+import "timecontrols.js" as TimeControls
 
 // The ways to play on Lichess (LI-04, docs/LI-04-RejoinPlan.md): the challenges to the player
 // (BL-10), a new challenge, joining by link, and last the player's unfinished games (Continue rejoins
@@ -78,8 +79,19 @@ Page {
     // fires for a ratings update: not that.)
     readonly property bool _connected: UserManager.lichessConnected
     on_ConnectedChanged: _dropStarting()
-    // Back while something is starting: drop it.
-    StackView.onRemoved: _dropStarting()
+    // Back while something is starting: drop it. A seek too, for now (LI-09 step 3: it goes on, shown
+    // in the command bar).
+    StackView.onRemoved: {
+        _dropStarting()
+        LichessClient.cancelSeek()
+    }
+
+    // LI-09: a quick pairing tile: a seek with that clock, rated or casual, Standard or Chess960.
+    function _seek(limitSec, incSec) {
+        errorBar.visible = false
+        quickVariant.remember()
+        LichessClient.startSeek(limitSec, incSec, 0, AppSettings.quickRated, quickVariant.chess960 ? "chess960" : "standard")
+    }
 
     function _start(action) {
         errorBar.visible = false
@@ -116,6 +128,7 @@ Page {
             page._busyAction = ""
             errorBar.show("Couldn't accept the challenge: " + message, "critical")
         }
+        function onSeekFailed(message) { errorBar.show("Quick pairing: " + message, "critical") }
     }
 
     background: Rectangle { color: Theme.windowBg }
@@ -255,6 +268,70 @@ Page {
                             }
                         }
                     }
+                }
+            }
+
+            // ── LI-09: quick pairing, as lichess.org's tiles: a random opponent of about the player's
+            // rating. Rated by default (D3); its own Variant row (AppSettings.quickChess960). ──
+            SectionCard {
+                id: quickCard
+                objectName: "quickPairingCard"
+                visible: UserManager.lichessConnected
+                title: "Quick pairing"
+                subtitle: "Play someone of about your rating: Lichess pairs you as soon as someone takes your seek."
+                Layout.fillWidth: true
+
+                ChoiceRow {
+                    id: quickRated
+                    objectName: "quickRated"
+                    enabled: !quickGrid.seeking
+                    checkedIndex: AppSettings.quickRated ? 0 : 1
+                    options: [{ label: "Rated" }, { label: "Casual" }]
+                    onCheckedIndexChanged: AppSettings.quickRated = checkedIndex === 0
+                }
+                VariantPicker {
+                    id: quickVariant
+                    quick: true
+                    enabled: !quickGrid.seeking
+                    Layout.fillWidth: true
+                    Component.onCompleted: choose(AppSettings.quickChess960)
+                }
+                QuickPairingGrid {
+                    id: quickGrid
+                    objectName: "quickPairingGrid"
+                    chess960: quickVariant.chess960
+                    available: !page._starting && ChessConnector.CanAcceptChallenge
+                    Layout.fillWidth: true
+                    onSeekRequested: (limitSec, incSec) => page._seek(limitSec, incSec)
+                }
+                // While it waits: what, and Cancel (the tile's click cancels too).
+                RowLayout {
+                    objectName: "quickWaiting"
+                    visible: quickGrid.seeking
+                    spacing: Theme.s2
+                    Layout.fillWidth: true
+                    BusyRing {}
+                    Label {
+                        text: "Looking for an opponent… " + TimeControls.elapsed(quickGrid.elapsedSec)
+                        font: Theme.bodyStrong
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                    }
+                    Button {
+                        objectName: "quickCancelButton"
+                        text: "Cancel"
+                        onClicked: LichessClient.cancelSeek()
+                    }
+                }
+                Label {
+                    visible: !quickGrid.seeking
+                    text: ChessConnector.CanAcceptChallenge
+                          ? "Lichess lets this app seek Rapid and Classical games: Bullet and Blitz open lichess.org."
+                          : "Finish your game first: one real-time game at a time."
+                    color: Theme.textSecondary
+                    font: Theme.caption
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
                 }
             }
 
@@ -450,6 +527,7 @@ Page {
     // Over the content, under the header: seen wherever the page is scrolled to.
     InfoBar {
         id: errorBar
+        objectName: "onlineErrorBar"
         anchors { top: parent.top; topMargin: Theme.s2; horizontalCenter: parent.horizontalCenter }
         width: content.width
         z: 1

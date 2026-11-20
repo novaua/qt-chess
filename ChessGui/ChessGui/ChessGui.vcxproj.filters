@@ -284,6 +284,12 @@
     <None Include="qml\lichess.js">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\timecontrols.js">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\QuickPairingGrid.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\AppDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
