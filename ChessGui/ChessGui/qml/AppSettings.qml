@@ -33,6 +33,10 @@ Settings {
     property bool onlineChess960:     false // the Online page's last challenge: Chess960 (LI-01A stage 2), apart from the local games'
     property bool quickRated:         true  // the Online page's quick pairing: rated seeks, as lichess.org's default (LI-09)
     property bool quickChess960:      false // its variant, apart from the challenge card's: two pickers on one page
+    property bool seekCorrespondence: false // its Custom seek (SeekDialog): the last one sent, real time or correspondence
+    property int  seekLimitSec:       1200  // its clock: 20+0 Rapid
+    property int  seekIncSec:         0
+    property int  seekDays:           2     // its days per move
 
     // Computer
     property int  analysisDepth:      14    // the engine's search depth per position of an analysis (ChessConnector.AnalysisDepth, BL-19)

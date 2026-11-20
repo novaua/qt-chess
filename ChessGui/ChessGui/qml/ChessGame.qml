@@ -31,7 +31,7 @@ ApplicationWindow {
     // A dialog is open: the window's shortcuts wait (Esc then closes the dialog).
     readonly property bool _dialogOpen: restoreBackupDialog.visible || levelsHelp.visible
         || computerDialog.visible || twoPlayerDialog.visible
-        || challengeDialog.visible || createUserDialog.visible
+        || challengeDialog.visible || createUserDialog.visible || seekDialog.visible
         || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible || leaveOnlineDialog.visible
         || pgnExportDialog.visible || profileExportDialog.visible || profileImportDialog.visible
         || importConflictDialog.visible || deleteProfileConfirm.visible || disconnectLichessConfirm.visible
@@ -116,6 +116,7 @@ ApplicationWindow {
                 // A dialog still open at the start (the challenge waiting for the opponent) goes at
                 // once: its fade would stay on the screen under the notice.
                 challengeDialog.closeAtOnce()
+                seekDialog.closeAtOnce()
             }
             return
         }
@@ -365,7 +366,8 @@ ApplicationWindow {
             window: root
             pages: stack
             dialogs: ({ challenge: challengeDialog, createUser: createUserDialog, restoreBackup: restoreBackupDialog, levels: levelsHelp,
-                        computer: computerDialog, twoPlayer: twoPlayerDialog, leaveOnline: leaveOnlineDialog })
+                        computer: computerDialog, twoPlayer: twoPlayerDialog, leaveOnline: leaveOnlineDialog,
+                        seek: seekDialog })
         }
     }
 
@@ -585,6 +587,7 @@ ApplicationWindow {
         OnlinePage {
             onBackRequested:    root.closeOnline()
             onProfileRequested: root.openProfile()
+            onCustomSeekRequested: (rated, chess960) => seekDialog.openWith(rated, chess960)
         }
     }
 
@@ -1123,6 +1126,11 @@ ApplicationWindow {
             if (_page !== "online")
                 root.notify("Quick pairing: " + message, "critical")
         }
+        // A correspondence seek is on Lichess (D6). The Online page says it, with Open on lichess.org.
+        function onSeekSent(message) {
+            if (_page !== "online")
+                root.notify(message, "success")
+        }
 
         function onNetworkError(message) {
             if (challengeDialog.visible && _pendingRematch) {
@@ -1178,6 +1186,9 @@ ApplicationWindow {
     }
 
     TwoPlayerDialog { id: twoPlayerDialog; objectName: "twoPlayerDialog" }
+
+    // LI-09 D2: Quick pairing's Custom seek (the Online page's Custom tile).
+    SeekDialog { id: seekDialog; objectName: "seekDialog" }
 
     // Waiting for the opponent to accept a Lichess challenge.
     ChallengeDialog {

@@ -386,4 +386,90 @@ TestCase {
         compare(LichessClient.seek.limitSec, undefined)
         app.pickProfile("Tester")
     }
+
+    // LI-09 D2: the Custom tile's Seek dialog. A clock of one's own (½+12: a fraction of a minute, Rapid
+    // by its increment) is sought as a tile's, and the Custom tile waits with its clock; a Blitz clock
+    // can't be sent and says why; a correspondence seek (days, no time; the card's Casual and Chess960)
+    // is left on Lichess, said with Open on lichess.org.
+    function test_15_customSeek() {
+        const seeks = () => FakeLichess.requests.filter(r => r === "POST /api/board/seek").length
+        const closed = () => FakeLichess.closedByApp("POST /api/board/seek")
+        app.click("onlineCard")
+        app.waitForPage("online", 5000)
+        app.scrollIntoView("quickPairingGrid")
+        const grid = app.item("quickPairingGrid")
+        const custom = app.item("quickTile_custom")
+        const dialog = app.item("seekDialog")
+        const inDialog = name => findChild(dialog, name)
+        const setClock = (minutes, increment) => {
+            inDialog("seekMinutes").value = dialog.minuteSteps.indexOf(minutes)
+            inDialog("seekIncrement").value = dialog.incrementSteps.indexOf(increment)
+        }
+        compare(custom.opacity, 1, "Custom isn't greyed any more")
+
+        app.click("quickTile_custom")
+        tryVerify(() => dialog.opened, 3000, "the Seek dialog")
+        compare(inDialog("seekChoices").text, "Rated · Standard, as chosen on the Quick pairing card.")
+        compare(inDialog("seekClockText").text, "20+0 · Rapid", "the default clock")
+
+        // 5+3 is Blitz: no Seek, by button or Enter, and the reason.
+        setClock(5, 3)
+        compare(inDialog("seekClockText").text, "5+3 · Blitz")
+        verify(!inDialog("seekButton").enabled, "Seek off below Rapid")
+        verify(inDialog("seekTooFast").visible, "the reason shown")
+        const before = seeks()
+        keyClick(Qt.Key_Return)
+        wait(200)
+        verify(dialog.opened, "Enter doesn't send it")
+        compare(seeks(), before, "nothing sent")
+
+        // ½+12: 30 + 40 × 12 = 510 s, Rapid.
+        setClock(0.5, 12)
+        compare(inDialog("seekClockText").text, "½+12 · Rapid")
+        verify(!inDialog("seekTooFast").visible)
+        app.clickIn("seekDialog", "seekButton")
+        app.waitClosed(dialog)
+        tryVerify(() => FakeLichess.seekOpen, 3000, "the seek's request open")
+        compare(FakeLichess.bodyOf("POST /api/board/seek"), "time=0.5&increment=12&rated=true&variant=standard")
+        compare(grid.seekingIndex, 11, "the Custom tile waits")
+        compare(findChild(custom, "quickTileLabel").text, "½+12", "with its clock")
+        verify(app.item("quickWaiting").visible)
+        const closedBefore = closed()
+        app.click("quickTile_custom")   // its click cancels, as a tile's
+        tryVerify(() => closed() === closedBefore + 1, 3000, "Lichess sees the seek closed")
+        compare(grid.seekingIndex, -1)
+        compare(findChild(custom, "quickTileLabel").text, "Custom")
+
+        // Correspondence, Casual Chess960 from the card; the last clock remembered.
+        app.click("quickRated_1")
+        app.click("quickVariantChoice_1")
+        app.click("quickTile_custom")
+        tryVerify(() => dialog.opened, 3000, "the Seek dialog again")
+        compare(inDialog("seekChoices").text, "Casual · Chess960, as chosen on the Quick pairing card.")
+        compare(inDialog("seekClockText").text, "½+12 · Rapid", "the last clock sent")
+        app.clickIn("seekKind", "seekKind_1")   // a ChoiceRow's button: looked up in its row
+        verify(!inDialog("seekMinutes").visible, "no clock for correspondence")
+        app.clickIn("seekDays", "seekDays_2")
+        app.clickIn("seekDialog", "seekButton")
+        app.waitClosed(dialog)
+        const sentBar = app.item("seekSentBar")
+        tryVerify(() => sentBar.visible, 3000, "the seek said to be on Lichess")
+        compare(FakeLichess.bodyOf("POST /api/board/seek"), "days=3&rated=false&variant=chess960")
+        compare(sentBar.text, "Your seek is on Lichess. When someone takes it, the game shows in Your games. "
+                              + "Only lichess.org can cancel it.")
+        compare(grid.seekingIndex, -1, "nothing waits here")
+        verify(!app.item("quickWaiting").visible)
+
+        app.click("quickTile_10+0")   // a new seek: the old message goes
+        tryVerify(() => FakeLichess.seekOpen, 3000)
+        verify(!sentBar.visible)
+        app.click("quickCancelButton")
+        tryVerify(() => closed() === closedBefore + 2, 3000)
+
+        AppSettings.quickRated = true
+        AppSettings.quickChess960 = false
+        app.click("quickVariantChoice_0")
+        keyClick(Qt.Key_Escape)   // Back
+        app.waitForPage("home", 5000)
+    }
 }

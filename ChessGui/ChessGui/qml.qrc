@@ -51,6 +51,7 @@
         <file>qml/timecontrols.js</file>
         <file>qml/QuickPairingGrid.qml</file>
         <file>qml/SeekIndicator.qml</file>
+        <file>qml/SeekDialog.qml</file>
         <file>qml/LevelsHelpDialog.qml</file>
         <file>qml/PlayerCard.qml</file>
         <file>qml/CapturedStrip.qml</file>

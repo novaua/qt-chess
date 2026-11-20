@@ -16,6 +16,8 @@ Page {
 
     signal backRequested()
     signal profileRequested()   // link or reconnect the Lichess account there
+    // LI-09 D2: the Custom tile: ChessGame's SeekDialog, with the card's rated and variant.
+    signal customSeekRequested(bool rated, bool chess960)
 
     // What is under way (BL-16: its button says so): "challenge" or "join"; "" when nothing is. An
     // Accept: ChessConnector.AcceptingChallengeId (shared with the challenge bar).
@@ -86,8 +88,15 @@ Page {
     // LI-09: a quick pairing tile: a seek with that clock, rated or casual, Standard or Chess960.
     function _seek(limitSec, incSec) {
         errorBar.visible = false
+        seekSentBar.visible = false
         quickVariant.remember()
         LichessClient.startSeek(limitSec, incSec, 0, AppSettings.quickRated, quickVariant.chess960 ? "chess960" : "standard")
+    }
+    function _customSeek() {
+        errorBar.visible = false
+        seekSentBar.visible = false
+        quickVariant.remember()
+        customSeekRequested(AppSettings.quickRated, quickVariant.chess960)
     }
 
     function _start(action) {
@@ -126,6 +135,7 @@ Page {
             errorBar.show("Couldn't accept the challenge: " + message, "critical")
         }
         function onSeekFailed(message) { errorBar.show("Quick pairing: " + message, "critical") }
+        function onSeekSent(message) { seekSentBar.show(message, "success") }   // D6: correspondence
     }
 
     background: Rectangle { color: Theme.windowBg }
@@ -300,6 +310,7 @@ Page {
                     available: !page._starting && ChessConnector.CanAcceptChallenge
                     Layout.fillWidth: true
                     onSeekRequested: (limitSec, incSec) => page._seek(limitSec, incSec)
+                    onCustomRequested: page._customSeek()
                 }
                 // While it waits: what, and Cancel (the tile's click cancels too).
                 RowLayout {
@@ -323,7 +334,7 @@ Page {
                 Label {
                     visible: !quickGrid.seeking
                     text: ChessConnector.CanAcceptChallenge
-                          ? "Lichess lets this app seek Rapid and Classical games: Bullet and Blitz open lichess.org."
+                          ? "Lichess lets this app seek Rapid, Classical and correspondence games (Custom): Bullet and Blitz open lichess.org."
                           : "Finish your game first: one real-time game at a time."
                     color: Theme.textSecondary
                     font: Theme.caption
@@ -528,5 +539,18 @@ Page {
         anchors { top: parent.top; topMargin: Theme.s2; horizontalCenter: parent.horizontalCenter }
         width: content.width
         z: 1
+    }
+    // LI-09 D6: a correspondence seek is on Lichess, which alone can cancel it.
+    InfoBar {
+        id: seekSentBar
+        objectName: "seekSentBar"
+        anchors { top: errorBar.visible ? errorBar.bottom : parent.top; topMargin: Theme.s2; horizontalCenter: parent.horizontalCenter }
+        width: content.width
+        z: 1
+        Button {
+            text: "Open on lichess.org"
+            icon.source: Theme.icon("link")
+            onClicked: Qt.openUrlExternally("https://lichess.org/")
+        }
     }
 }
