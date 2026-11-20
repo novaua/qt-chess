@@ -89,6 +89,7 @@ All chess logic, isolated in the `Chess::` namespace. Key types:
 
 Spawns and communicates with external UCI engines via `QProcess`. Main API: `Init()`, `NewGame()`, `GetEngineMove()`; `SetChess960(on)` (LI-01A: `UCI_Chess960`, sent only when it changes something). A Chess960 game's requests are always its start FEN and every move, whatever the `PositionMode` (`ChessEnginePlayer::MakeRequest(history, plies, mode, start)`; `ChessEnginePlayer`, `EngineWorker` and the analysis get the game's `StartPosition`).
 The engine is `./engines/stockfish.exe`, else one on `PATH`; `CHESS_ENGINE_PATH` names the only one instead (the tests' FakeUci).
+The robot's path in the app log: `ENGINE_TRACE` (`engineworker.h`, category `chess.engine`: asked, answered, held by the gate, played, the board settled), on in Debug builds and in `--screenshot` mode, else `QT_LOGGING_RULES="chess.engine.debug=true"`; a scene that times out also logs `ChessConnector::robotState()` and what it waited for (BL-28).
 
 ### FakeUci (console exe, tests only)
 

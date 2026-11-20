@@ -1,6 +1,12 @@
 #include "stdafx.h"
 #include "engineworker.h"
 
+#ifdef _DEBUG
+Q_LOGGING_CATEGORY(chessEngine, "chess.engine")             // debug messages on
+#else
+Q_LOGGING_CATEGORY(chessEngine, "chess.engine", QtInfoMsg)  // off unless a rule turns them on
+#endif
+
 EngineWorker::EngineWorker(Chess::EngineLevel level, Chess::PositionMode mode, const Chess::StartPosition& start,
                            QObject* parent)
     : QObject(parent), _level(level), _mode(mode), _start(start)

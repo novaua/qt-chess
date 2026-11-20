@@ -4,15 +4,16 @@
 #include "ChessEnginePlayer.h"
 #include "EngineLevel.h"
 
-// The robot's requests and answers in the app log, in Debug builds only: if the board stays on
-// "Robot is thinking", the log shows where the answer stopped. Use: ENGINE_TRACE("asked" << request);
-#ifdef _DEBUG
 #include <QDebug>
+#include <QLoggingCategory>
 #include <QThread>
-#define ENGINE_TRACE(...) (qDebug().noquote() << "[Engine trace]" << __VA_ARGS__)
-#else
-#define ENGINE_TRACE(...) ((void)0)
-#endif
+
+// The robot's requests and answers in the app log: if the board stays on "Robot is thinking", the
+// log shows where the answer stopped. Category chess.engine: on in Debug builds and in --screenshot
+// mode (main.cpp: the CI's scenes, BL-28), else QT_LOGGING_RULES="chess.engine.debug=true".
+// Use: ENGINE_TRACE("asked" << request);
+Q_DECLARE_LOGGING_CATEGORY(chessEngine)
+#define ENGINE_TRACE(...) qCDebug(chessEngine).noquote() << "[Engine trace]" << __VA_ARGS__ // a statement (Qt's for-loop)
 
 // Runs on a dedicated QThread so that QProcess (inside UciConnector) is
 // created and used only from its owning thread, satisfying Qt's threading rules.

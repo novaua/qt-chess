@@ -274,6 +274,7 @@ signals:
 	void startFrameShown(); // waitForStartFrame(): the notice is on the screen
 	void acceptingChallengeChanged();
 	void screenshotSceneSetUp(); // the takeback scene: QML is done, C++ plays the rest (main.cpp)
+	void screenshotSceneTimedOut(); // main.cpp gives up on the scene: it logs what it waited for (BL-28)
 	void boardIdle();            // the page has settled and no move waits to be shown (BL-14)
 	void analysisDepthChanged();
 	void analysisChanged();
@@ -343,6 +344,9 @@ public slots:
 	Q_INVOKABLE void setMoveTiming(int slideMs);
 	// The gate: the page has settled, it shows the live position, and no move waits to be shown.
 	Q_INVOKABLE bool isBoardIdle() const;
+	// One line on the robot and the gate for the log (a scene that timed out, BL-28): thinking, the
+	// request waited for, whether a move is held and why.
+	QString robotState() const;
 	void endGame();              // leave the game for Home (an unfinished local game is kept as it is: Continue offers it)
 	// The leave warning's Resign: resign the Lichess game, then endGame() once Lichess has ended it
 	// (so the loss counts), or after a few seconds without an answer. A finished game: endGame().

@@ -40,6 +40,7 @@ public:
 	void clear();                         // new game, takeback, leaving the game, review
 	bool holding() const { return !_queue.empty(); }
 	bool isIdle() const;                  // nothing waits and the board has settled
+	bool stageReady() const { return _stageReady; }
 
 	// Tests: the time now comes from this clock (ms); call tick() after moving it forward.
 	void setClock(std::function<qint64()> clock);

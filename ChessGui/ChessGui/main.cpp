@@ -25,6 +25,7 @@
 #include <QFont>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLoggingCategory>
 #include <QTextStream>
 #include <QDateTime>
 #include <QSettings>
@@ -506,6 +507,9 @@ int main(int argc, char* argv[])
 		useSilentLichess(lichessClient);
 
 	if (screenshotMode) {
+		// The robot's path in the scene's log (ENGINE_TRACE): a scene that waits for its answer in vain
+		// says where it stopped (BL-28). QT_LOGGING_RULES still has the last word.
+		QLoggingCategory::setFilterRules(QStringLiteral("chess.engine.debug=true"));
 		QVariantMap sceneMap{
 			{ "scene", scene },
 			{ "moves", parser.value(movesOption) },
@@ -532,8 +536,10 @@ int main(int argc, char* argv[])
 			});
 		});
 		// The scene never became ready (e.g. a QML error): don't hang a scripted run.
-		QTimer::singleShot(delay + 30000, &app, []() {
+		QTimer::singleShot(delay + 30000, &app, [connector]() {
 			qWarning() << "Screenshot: timed out waiting for the scene";
+			qWarning().noquote() << "Screenshot:" << connector->robotState();
+			emit connector->screenshotSceneTimedOut(); // the scene logs what it waited for
 			QCoreApplication::exit(2);
 		});
 	}
