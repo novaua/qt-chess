@@ -45,6 +45,10 @@ class LICHESSCONNECTOR_EXPORT LichessClient: public QObject
 	// LI-09: the real-time seek waiting for an opponent (startSeek): {} when none, else { limitSec,
 	// incrementSec, speed ("rapid", "classical"), rated, variant, since (ms since the epoch) }.
 	Q_PROPERTY(QVariantMap seek READ seekState NOTIFY seekChanged)
+	Q_PROPERTY(bool seeking READ seeking NOTIFY seekChanged)
+	// The seconds the seek has waited, counted here once for every view (the grid's tile, each page's
+	// SeekIndicator): it changes once a second, only while seeking.
+	Q_PROPERTY(int seekWaitedSec READ seekWaitedSec NOTIFY seekWaitedChanged)
 
 public:
 	explicit LichessClient(QObject* parent = nullptr);
@@ -119,24 +123,30 @@ public:
 	// LI-09 quick pairing: a public seek (POST /api/board/seek) for a random opponent. Real time
 	// (limitSec / incrementSec; the Board API allows Rapid and Classical only, Lichess refuses the rest):
 	// the seek lives while its request stays open, seekState() says so, and its game starts as any
-	// (gameStarted), from the first gameStart of a lobby or pool game that isn't a known one. days > 0
-	// (limitSec 0): a correspondence seek, left on Lichess (seekSent; the API can't cancel it). One seek
-	// at a time: a new one replaces the last. Refused or ended unpaired: seekFailed. Offline (screenshot
-	// mode): the state only, nothing sent.
+	// (gameStarted), from the first gameStart of a lobby or pool game that isn't a known one and is of
+	// the seek's speed, variant and rating (seekMatches). days > 0 (limitSec 0): a correspondence seek,
+	// left on Lichess (seekSent; the API can't cancel it). One seek at a time: a new one replaces the last.
+	// Not while a real-time challenge of ours waits (one game at a time): refused. Refused or ended
+	// unpaired: seekFailed. Offline (screenshot mode): the state only, nothing sent.
 	Q_INVOKABLE void startSeek(int limitSec, int incrementSec, int days, bool rated, const QString& variant);
-	// Closes the real-time seek's request: Lichess drops the seek. Also a game starting (streamGame), an
-	// accept (acceptChallenge, acceptRematch), another token or none. Not stopStream(): a seek outlives
-	// leaving a game.
+	// Closes the real-time seek's request: Lichess drops the seek. Also a game starting (streamGame; a
+	// rejoin once its game is there, so a rejoin that fails keeps the seek), an accept (acceptChallenge,
+	// acceptRematch), a real-time challenge of ours (createOpenChallenge, challengePlayer), another token
+	// or none, ChessConnector::switchUser. Not stopStream(): a seek outlives leaving a game.
 	Q_INVOKABLE void cancelSeek();
 	QVariantMap seekState() const { return _seek; }
 	bool seeking() const { return !_seek.isEmpty(); }
+	int seekWaitedSec() const { return _seekWaitedSec; }
+	// Screenshot scenes: the waited time shown, the same every run (the count stops).
+	Q_INVOKABLE void fixSeekWaited(int seconds);
 	// Lichess's speed of a clock: limit + 40 × increment seconds: "ultraBullet", "bullet", "blitz",
 	// "rapid", "classical".
 	Q_INVOKABLE static QString speedOf(int limitSec, int incrementSec);
-	// A gameStart event's game ({ gameId, source, speed, … }) that is the running seek's.
+	// A gameStart event's game ({ gameId, source, speed, variant, rated, hasMoved, … }) that is the
+	// running seek's.
 	bool isSeekGame(const QJsonObject& game) const;
-	// Tests: Lichess closed the seek's request (paired or expired): Your games is asked every pollMs
-	// for its game, given up after fallbackMs.
+	// Tests: Lichess closed the seek's request (paired or expired): Your games is asked quietly (not
+	// the visible list's refresh) every pollMs for its game, given up after fallbackMs.
 	void setSeekTiming(int fallbackMs, int pollMs);
 	// A "challenge" event ({ challenge, compat }) as a row of incomingChallenges.
 	static QVariantMap parseChallenge(const QJsonObject& challengeEvent);
@@ -263,6 +273,7 @@ signals:
 	// reconnects. networkError says why.
 	void gameStreamStopped();
 	void seekChanged();
+	void seekWaitedChanged();
 	void seekFailed(QString message); // LI-09: Lichess refused the seek, or ended it unpaired
 	void seekSent(QString message);   // LI-09: a correspondence seek is on Lichess
 
@@ -299,7 +310,16 @@ private:
 	void cancelOngoingGamesRefresh(); // drop the /api/account/playing request in flight
 	void endSeek(bool notify);        // close the seek's request, stop its fallback; seekChanged if notify
 	void seekRequestFinished(QNetworkReply* reply);
-	void findSeekGame();              // the fallback: a new real-time game in Your games is the seek's
+	void pollSeekGame();              // the fallback: Your games asked quietly for the seek's game
+	bool findSeekGame(const QVariantList& games); // a game there is the seek's: it starts
+	// One rule for a gameStart and a row of Your games: a game Lichess paired (lobby, pool), new (not
+	// known when the seek began, nor on the board or being accepted, no move of ours yet), of the seek's
+	// speed, variant and rating. An empty speed or a missing rating: not told, not against it.
+	bool seekMatches(const QString& gameId, const QString& source, const QString& speed, const QString& variant,
+	                 const QVariant& rated, bool hasMoved) const;
+	bool challengeWaiting() const;    // ours, created and waiting for the opponent (the challenge dialog)
+	void openGameStream(const QString& gameId); // streamGame() without ending the seek (a rejoin)
+	void updateSeekWaited();
 
 	QNetworkAccessManager _nam;
 	QString               _token;
@@ -353,6 +373,11 @@ private:
 	QNetworkReply* _seekReply = nullptr;        // POST /api/board/seek, open while the seek waits
 	QSet<QString>  _seekGamesBefore;            // Your games when it began: not its game
 	bool           _seekClosedByLichess = false; // its request ended on Lichess's side: the fallback runs
+	bool           _seekConnectionLost = false; // ended by the network, not Lichess: the fallback's message
+	QNetworkReply* _seekPollReply = nullptr;    // the fallback's quiet GET /api/account/playing
+	QTimer         _seekWaitedTick;             // seekWaitedSec while seeking
+	int            _seekWaitedSec = 0;
+	bool           _seekWaitedFixed = false;    // fixSeekWaited: screenshot scenes
 	QTimer         _seekFallback;               // the fallback's end: no game came
 	QTimer         _seekPoll;                   // the fallback's next look at Your games
 };

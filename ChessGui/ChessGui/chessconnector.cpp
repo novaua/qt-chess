@@ -2301,6 +2301,10 @@ void ChessConnector::endGame()
 void ChessConnector::switchUser()
 {
 	endGame(); // keeps the game for the user who played it
+	// LI-09: a quick pairing seek is this profile's. The profile picker keeps its Lichess token, so a
+	// new token wouldn't end it, and a game paired meanwhile would start behind the picker.
+	if (_lichessClient)
+		_lichessClient->cancelSeek();
 	if (_userManager)
 		_userManager->logout();
 }

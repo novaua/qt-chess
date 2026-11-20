@@ -18,6 +18,7 @@ namespace LichessTests
 			QStringList failed;  // seekFailed's messages
 			QStringList sent;    // seekSent's messages
 			int         changes = 0;
+			int         waitedChanges = 0;
 
 			explicit Watch(LichessClient& client)
 			{
@@ -25,6 +26,7 @@ namespace LichessTests
 				QObject::connect(&client, &LichessClient::seekFailed, [this](QString message) { failed << message; });
 				QObject::connect(&client, &LichessClient::seekSent, [this](QString message) { sent << message; });
 				QObject::connect(&client, &LichessClient::seekChanged, [this]() { ++changes; });
+				QObject::connect(&client, &LichessClient::seekWaitedChanged, [this]() { ++waitedChanges; });
 			}
 		};
 
@@ -252,7 +254,8 @@ namespace LichessTests
 		}
 
 		// Not the seek's: a challenge's game (source friend), another speed, a game going on before the
-		// seek (resent when the event stream reconnects). And leaving a game (stopStream) keeps the seek.
+		// seek (resent when the event stream reconnects), a casual or Chess960 one (the seek is rated
+		// Standard), one with a move of ours already. And leaving a game (stopStream) keeps the seek.
 		TEST_METHOD(OtherGamesStart_NotTaken)
 		{
 			FakeSeekLichess lichess;
@@ -267,6 +270,10 @@ namespace LichessTests
 			FakeLichess::line(lichess.events, FakeSeekLichess::gameStart("frnd0001", "friend"));
 			FakeLichess::line(lichess.events, FakeSeekLichess::gameStart("clas0001", "lobby", "classical"));
 			FakeLichess::line(lichess.events, FakeSeekLichess::gameStart("old00001", "lobby"));
+			FakeLichess::line(lichess.events, FakeSeekLichess::gameStart("casu0001", "lobby", "rapid", false));
+			FakeLichess::line(lichess.events, FakeSeekLichess::gameStart("c9600001", "lobby", "rapid", true, "chess960"));
+			// Going on, but not in Your games (it hadn't loaded, or failed): a move of ours tells.
+			FakeLichess::line(lichess.events, FakeSeekLichess::gameStart("movd0001", "lobby", "rapid", true, "standard", true));
 			client.stopStream();
 			waitUntil([] { return false; }, 300);
 
@@ -277,6 +284,118 @@ namespace LichessTests
 			lichess.pair("seek0004");
 			waitUntil([&] { return !watch.started.isEmpty(); });
 			Assert::AreEqual(QString("seek0004"), watch.started.join(","));
+		}
+
+		// The fallback takes only a game the seek could have made: not a friend's game, not a casual
+		// one; and it asks Your games quietly, without the visible list's loading state or contents.
+		TEST_METHOD(Fallback_OnlyTheSeeksKindOfGame_Quietly)
+		{
+			FakeSeekLichess lichess;
+			LichessClient client;
+			setUp(client, lichess);
+			Watch watch(client);
+			int listChanges = 0;
+			QObject::connect(&client, &LichessClient::ongoingGamesChanged, [&]() { ++listChanges; });
+
+			seek(client, lichess);
+			lichess.playing = "{\"nowPlaying\":[" + FakeSeekLichess::playingGame("frnd0002", "rapid", "friend") + ","
+				+ FakeSeekLichess::playingGame("casu0002", "rapid", "lobby", false) + "]}";
+			lichess.endSeek();
+			waitUntil([&] { return !watch.failed.isEmpty(); });
+
+			Assert::AreEqual(QString("No opponent was found: Lichess ended the seek."), watch.failed.join(","));
+			Assert::IsTrue(watch.started.isEmpty());
+			Assert::IsTrue(lichess.count("GET /api/account/playing?nb=50") >= 2, L"Your games asked");
+			Assert::AreEqual(0, listChanges, L"the visible list untouched");
+			Assert::IsTrue(client.ongoingGames().isEmpty());
+		}
+
+		// The seek's request dropped by the network, not ended by Lichess: said as a lost connection.
+		TEST_METHOD(ConnectionLost_Reported)
+		{
+			FakeSeekLichess lichess;
+			LichessClient client;
+			setUp(client, lichess);
+			Watch watch(client);
+
+			seek(client, lichess);
+			lichess.seekSocket->abort();
+			waitUntil([&] { return !watch.failed.isEmpty(); });
+
+			Assert::AreEqual(QString("The connection to Lichess was lost, and the seek with it. Try again."),
+			                 watch.failed.join(","));
+			Assert::IsFalse(client.seeking());
+		}
+
+		// A real-time challenge of ours closes the seek: one real-time game at a time. And a seek isn't
+		// started while such a challenge waits.
+		TEST_METHOD(Challenge_CancelsTheSeek_AndBlocksANewOne)
+		{
+			FakeSeekLichess lichess;
+			LichessClient client;
+			setUp(client, lichess);
+			Watch watch(client);
+
+			seek(client, lichess);
+			client.challengePlayer("friend", 600, 0, 0, "random", "standard");
+			Assert::IsFalse(client.seeking());
+			waitUntil([&] { return lichess.dropped.contains(FakeSeekLichess::Seek) && lichess.count("POST /api/challenge/friend") == 1; });
+			Assert::IsTrue(lichess.dropped.contains(FakeSeekLichess::Seek));
+
+			client.startSeek(600, 0, 0, true, "standard");
+			Assert::IsFalse(client.seeking());
+			Assert::AreEqual(QString("A challenge of yours is waiting: cancel it first"), watch.failed.join(","));
+			waitUntil([] { return false; }, 200);
+			Assert::AreEqual(1, lichess.count(FakeSeekLichess::Seek), L"no second seek sent");
+			client.stopStream();
+		}
+
+		// Rejoining a game keeps the seek until that game is there: a rejoin that fails leaves it
+		// waiting; one that starts ends it.
+		TEST_METHOD(Rejoin_EndsTheSeekOnlyWhenItsGameStarts)
+		{
+			FakeSeekLichess lichess;
+			LichessClient client;
+			setUp(client, lichess);
+			Watch watch(client);
+			QStringList rejoinFailed;
+			QObject::connect(&client, &LichessClient::rejoinFailed, [&](QString id) { rejoinFailed << id; });
+
+			seek(client, lichess);
+			client.rejoinGame("gone0001");
+			waitUntil([&] { return !rejoinFailed.isEmpty(); });
+			Assert::AreEqual(QString("gone0001"), rejoinFailed.join(","));
+			Assert::IsTrue(client.seeking(), L"the seek goes on");
+			Assert::IsFalse(lichess.dropped.contains(FakeSeekLichess::Seek));
+
+			client.rejoinGame("cont0001");
+			waitUntil([&] { return !watch.started.isEmpty(); });
+			Assert::AreEqual(QString("cont0001"), watch.started.join(","));
+			Assert::IsFalse(client.seeking());
+			waitUntil([&] { return lichess.dropped.contains(FakeSeekLichess::Seek); });
+			Assert::IsTrue(lichess.dropped.contains(FakeSeekLichess::Seek));
+		}
+
+		// The waited seconds, counted once here for every view: from 0, once a second, 0 when it ends.
+		TEST_METHOD(SeekWaited_CountsSeconds)
+		{
+			FakeSeekLichess lichess;
+			LichessClient client;
+			setUp(client, lichess);
+			Watch watch(client);
+
+			seek(client, lichess);
+			Assert::IsTrue(client.seekWaitedSec() <= 1);
+			waitUntil([&] { return client.seekWaitedSec() >= 2; }, 4000);
+			Assert::IsTrue(client.seekWaitedSec() >= 2);
+			Assert::IsTrue(watch.waitedChanges <= 5, L"once a second, not every tick");
+
+			client.fixSeekWaited(42);
+			waitUntil([] { return false; }, 1200);
+			Assert::AreEqual(42, client.seekWaitedSec(), L"fixed: the count stops");
+
+			client.cancelSeek();
+			Assert::AreEqual(0, client.seekWaitedSec());
 		}
 
 		// Accepting a challenge meanwhile closes the seek first: one game at a time.

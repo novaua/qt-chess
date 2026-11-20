@@ -100,7 +100,8 @@ namespace LichessTests
 
 	// LI-09: Lichess's side of quick pairing. The account's event stream; POST /api/board/seek held open
 	// with a keep-alive line until pair() or endSeek() (a correspondence seek, or one refused with
-	// seekStatus, answered at once); Your games (`playing`); a game stream per game; an accept says ok.
+	// seekStatus, answered at once); Your games (`playing`); a game stream per game (a game id starting
+	// "gone": 404, the game is over); an accept says ok; a challenge to a player held open (waiting).
 	class FakeSeekLichess: public FakeLichess
 	{
 	public:
@@ -124,8 +125,12 @@ namespace LichessTests
 					else if (bodies.last().contains("days="))
 						json(socket, R"({"id":"corr0001"})");
 					else {
-						startStream(socket);
-						line(socket, ""); // keep-alive
+						// Chunked, as Lichess's stream: a clean end is the last chunk (endSeek), and a
+						// connection dropped without it (abort) is a network error to the client.
+						socket->write("HTTP/1.1 200 OK\r\nContent-Type: application/x-ndjson\r\n"
+						              "Transfer-Encoding: chunked\r\n\r\n");
+						socket->write("1\r\n\n\r\n"); // keep-alive: an empty line
+						socket->flush();
 						seekSocket = socket;
 						QObject::connect(socket, &QTcpSocket::disconnected, socket, [this, socket]() {
 							if (seekSocket == socket)
@@ -134,6 +139,10 @@ namespace LichessTests
 					}
 				} else if (path.startsWith("/api/account/playing")) {
 					json(socket, playing);
+				} else if (path.startsWith("/api/board/game/stream/gone")) {
+					answer(socket, 404, "Not Found");
+				} else if (method == "POST" && path.startsWith("/api/challenge/") && !path.endsWith("/accept")) {
+					startStream(socket); // keepAliveStream: the challenge waits while this stays open
 				} else if (path.startsWith("/api/board/game/stream/")) {
 					startStream(socket);
 					line(socket, QByteArray(R"({"type":"gameFull","id":")") + path.mid(23).toLatin1()
@@ -148,11 +157,13 @@ namespace LichessTests
 		}
 
 		// A gameStart event as Lichess sends it on the event stream.
-		static QByteArray gameStart(const QString& gameId, const char* source, const char* speed = "rapid")
+		static QByteArray gameStart(const QString& gameId, const char* source, const char* speed = "rapid",
+		                            bool rated = true, const char* variant = "standard", bool hasMoved = false)
 		{
 			return R"({"type":"gameStart","game":{"gameId":")" + gameId.toLatin1() + R"(","fullId":")" + gameId.toLatin1()
 				+ R"(abcd","color":"white","source":")" + source + R"(","speed":")" + speed
-				+ R"(","rated":true,"variant":{"key":"standard"},"opponent":{"id":"stranger","username":"Stranger"}}})";
+				+ R"(","rated":)" + (rated ? "true" : "false") + R"(,"hasMoved":)" + (hasMoved ? "true" : "false")
+				+ R"(,"variant":{"key":")" + variant + R"("},"opponent":{"id":"stranger","username":"Stranger"}}})";
 		}
 		// Someone took the seek: its game starts (gameStart), and Lichess closes the seek's request.
 		void pair(const QString& gameId, const char* source = "lobby")
@@ -163,14 +174,18 @@ namespace LichessTests
 		// Lichess closes the seek's request: taken (without the gameStart, as if it was missed) or expired.
 		void endSeek()
 		{
-			if (seekSocket)
+			if (seekSocket) {
+				seekSocket->write("0\r\n\r\n"); // the last chunk: Lichess ended the request cleanly
 				close(seekSocket);
+			}
 		}
 		// A row of Your games (/api/account/playing).
-		static QByteArray playingGame(const char* gameId, const char* speed = "rapid")
+		static QByteArray playingGame(const char* gameId, const char* speed = "rapid", const char* source = "lobby",
+		                              bool rated = true)
 		{
 			return QByteArray(R"({"gameId":")") + gameId + R"(","fullId":")" + gameId + R"(abcd","color":"white","isMyTurn":true,)"
-				+ R"("speed":")" + speed + R"(","source":"lobby","variant":{"key":"standard"},"opponent":{"username":"Stranger"}})";
+				+ R"("speed":")" + speed + R"(","source":")" + source + R"(","rated":)" + (rated ? "true" : "false")
+				+ R"(,"hasMoved":false,"variant":{"key":"standard"},"opponent":{"username":"Stranger"}})";
 		}
 	};
 

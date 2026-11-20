@@ -75,12 +75,18 @@ LichessClient::LichessClient(QObject* parent)
         if (!seeking())
             return;
         qDebug() << "LichessClient: the seek ended without a game";
+        // The network dropped the request (not Lichess's clean end): the seek is gone with it.
+        const QString message = _seekConnectionLost
+            ? QStringLiteral("The connection to Lichess was lost, and the seek with it. Try again.")
+            : QStringLiteral("No opponent was found: Lichess ended the seek.");
         endSeek(true);
-        emit seekFailed(QStringLiteral("No opponent was found: Lichess ended the seek."));
+        emit seekFailed(message);
     });
     _seekPoll.setSingleShot(true);
-    _seekPoll.setInterval(1000);
-    connect(&_seekPoll, &QTimer::timeout, this, &LichessClient::refreshOngoingGames);
+    _seekPoll.setInterval(1500);
+    connect(&_seekPoll, &QTimer::timeout, this, &LichessClient::pollSeekGame);
+    _seekWaitedTick.setInterval(250); // seekWaitedChanged only when the second changes
+    connect(&_seekWaitedTick, &QTimer::timeout, this, &LichessClient::updateSeekWaited);
 }
 
 LichessClient::~LichessClient()
@@ -268,8 +274,6 @@ void LichessClient::refreshOngoingGames()
             }
         }
         emit ongoingGamesChanged();
-        if (_seekClosedByLichess)
-            findSeekGame();
     });
 }
 
@@ -297,7 +301,9 @@ void LichessClient::rejoinGame(const QString& gameId)
     if (gameId.isEmpty())
         return;
     qDebug() << "LichessClient: rejoin" << gameId;
-    streamGame(gameId); // stops whatever ran, an earlier rejoin too
+    // Stops whatever ran, an earlier rejoin too. Not the seek (LI-09): it ends once this game is
+    // there (gameStarted), so a rejoin that fails leaves it waiting.
+    openGameStream(gameId);
     setRejoiningGameId(gameId);
 }
 
@@ -393,6 +399,7 @@ QVariantList LichessClient::parseOngoingGames(const QJsonObject& playing)
             { QStringLiteral("lastMove"),       game.value(QStringLiteral("lastMove")).toString() },
             { QStringLiteral("fen"),            game.value(QStringLiteral("fen")).toString() },
             { QStringLiteral("rated"),          game.value(QStringLiteral("rated")).toBool() },
+            { QStringLiteral("hasMoved"),       game.value(QStringLiteral("hasMoved")).toBool() }, // the player's
         });
     }
     return games;
@@ -468,6 +475,8 @@ void LichessClient::createOpenChallenge(int minutes, int increment, const QStrin
 void LichessClient::createOpenChallengeSec(int limitSec, int incrementSec, int days,
                                            const QString& color, const QString& variant, const QString& startFen)
 {
+    if (limitSec > 0 || incrementSec > 0)
+        cancelSeek(); // LI-09: one real-time game at a time; the challenge is the player's newer choice
     QUrlQuery body;
     addTimeControl(body, limitSec, incrementSec, days);
     // No "color" here: /api/challenge/open has none (Lichess answers "color":"random" and picks a
@@ -899,6 +908,10 @@ void LichessClient::startSeek(int limitSec, int incrementSec, int days, bool rat
         fail(QStringLiteral("Not signed in to Lichess"));
         return;
     }
+    if (realTime && challengeWaiting()) { // one real-time game at a time: either could start
+        fail(QStringLiteral("A challenge of yours is waiting: cancel it first"));
+        return;
+    }
 
     QUrlQuery body;
     if (realTime) {
@@ -922,9 +935,14 @@ void LichessClient::startSeek(int limitSec, int incrementSec, int days, bool rat
             { QStringLiteral("variant"),      variant },
             { QStringLiteral("since"),        QDateTime::currentMSecsSinceEpoch() },
         };
-        for (const auto& game : _ongoingGames) // a game that is there already isn't the seek's
+        // A game that is there already isn't the seek's. Your games may not have loaded yet (or failed):
+        // seekMatches also refuses a game with a move of ours, which a new one hasn't.
+        for (const auto& game : _ongoingGames)
             _seekGamesBefore.insert(game.toMap().value(QStringLiteral("gameId")).toString());
+        _seekWaitedSec = 0;
+        _seekWaitedTick.start();
         emit seekChanged();
+        emit seekWaitedChanged();
     } else if (wasSeeking) {
         emit seekChanged();
     }
@@ -986,28 +1004,53 @@ void LichessClient::seekRequestFinished(QNetworkReply* reply)
         return;
     }
     // Lichess closed it: the seek was taken or expired. Its game comes as a gameStart; in case that
-    // was missed (the event stream reconnecting), Your games tells: a new real-time game there.
+    // was missed (the event stream reconnecting), Your games tells: a new real-time game there. A
+    // network error after the headers (the connection dropped): the same look, since Lichess may have
+    // paired it as the connection went; no game, and it is said as a lost connection.
     _seekClosedByLichess = true;
+    _seekConnectionLost = reply->error() != QNetworkReply::NoError;
     _seekFallback.start();
-    refreshOngoingGames();
+    pollSeekGame();
 }
 
-void LichessClient::findSeekGame()
+// Not refreshOngoingGames(): that one is the visible list's (its loading state, a refresh the player
+// started), and it would flicker on the Online page every poll.
+void LichessClient::pollSeekGame()
+{
+    if (!seeking() || _seekPollReply || _token.isEmpty())
+        return;
+    auto* reply = _nam.get(makeRequest(QStringLiteral("/api/account/playing?nb=50")));
+    _seekPollReply = reply;
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        if (reply != _seekPollReply)
+            return; // the seek ended meanwhile
+        _seekPollReply = nullptr;
+        const auto doc = QJsonDocument::fromJson(reply->readAll());
+        if (reply->error() == QNetworkReply::NoError && doc.isObject()
+            && findSeekGame(parseOngoingGames(doc.object())))
+            return;
+        if (seeking())
+            _seekPoll.start(); // not there yet: ask again, until the fallback gives up
+    });
+}
+
+bool LichessClient::findSeekGame(const QVariantList& games)
 {
     if (!seeking())
-        return;
-    const QString speed = _seek.value(QStringLiteral("speed")).toString();
-    for (const auto& game : _ongoingGames) {
+        return false;
+    for (const auto& game : games) {
         const QVariantMap row = game.toMap();
         const QString gameId = row.value(QStringLiteral("gameId")).toString();
-        if (_seekGamesBefore.contains(gameId) || gameId == _currentGameId
-            || row.value(QStringLiteral("speed")).toString() != speed)
+        if (!seekMatches(gameId, row.value(QStringLiteral("source")).toString(),
+                         row.value(QStringLiteral("speed")).toString(), row.value(QStringLiteral("variant")).toString(),
+                         row.value(QStringLiteral("rated")), row.value(QStringLiteral("hasMoved")).toBool()))
             continue;
         qDebug() << "LichessClient: the seek's game, from Your games:" << gameId;
         onGameStartDetected(gameId);
-        return;
+        return true;
     }
-    _seekPoll.start(); // not there yet: ask again, until the fallback gives up
+    return false;
 }
 
 // Lichess pairs a seek in its lobby (source "lobby"), or a pool player with it ("pool"); a challenge's
@@ -1019,14 +1062,53 @@ bool LichessClient::isSeekGame(const QJsonObject& game) const
         return false;
     const QString gameId = game.contains(QStringLiteral("gameId"))
         ? game.value(QStringLiteral("gameId")).toString() : game.value(QStringLiteral("id")).toString();
-    const QString source = game.value(QStringLiteral("source")).toString();
-    if (gameId.isEmpty() || (source != QLatin1String("lobby") && source != QLatin1String("pool")))
+    const QJsonValue rated = game.value(QStringLiteral("rated"));
+    return seekMatches(gameId, game.value(QStringLiteral("source")).toString(),
+                       game.value(QStringLiteral("speed")).toString(), variantOf(game),
+                       rated.isBool() ? QVariant(rated.toBool()) : QVariant(),
+                       game.value(QStringLiteral("hasMoved")).toBool());
+}
+
+bool LichessClient::seekMatches(const QString& gameId, const QString& source, const QString& speed,
+                                const QString& variant, const QVariant& rated, bool hasMoved) const
+{
+    if (!seeking() || gameId.isEmpty() || (source != QLatin1String("lobby") && source != QLatin1String("pool")))
         return false;
     if (_seekGamesBefore.contains(gameId) || gameId == _currentGameId || gameId == _acceptingId
         || gameId == _waitForGameId)
         return false;
-    const QString speed = game.value(QStringLiteral("speed")).toString();
-    return speed.isEmpty() || speed == _seek.value(QStringLiteral("speed")).toString();
+    if (hasMoved) // a game going on (its gameStart resent when the event stream reconnects)
+        return false;
+    if (!speed.isEmpty() && speed != _seek.value(QStringLiteral("speed")).toString())
+        return false;
+    if (variant != _seek.value(QStringLiteral("variant")).toString())
+        return false;
+    return !rated.isValid() || rated.toBool() == _seek.value(QStringLiteral("rated")).toBool();
+}
+
+bool LichessClient::challengeWaiting() const
+{
+    return _openChallengeReply || !_waitForGameId.isEmpty() || (_directChallengeReply && _directKeepAlive);
+}
+
+void LichessClient::fixSeekWaited(int seconds)
+{
+    _seekWaitedFixed = true;
+    _seekWaitedTick.stop();
+    _seekWaitedSec = seconds;
+    emit seekWaitedChanged();
+}
+
+void LichessClient::updateSeekWaited()
+{
+    if (!seeking() || _seekWaitedFixed)
+        return;
+    const qint64 since = _seek.value(QStringLiteral("since")).toLongLong();
+    const int waited = int(qMax<qint64>(0, (QDateTime::currentMSecsSinceEpoch() - since) / 1000));
+    if (waited == _seekWaitedSec)
+        return;
+    _seekWaitedSec = waited;
+    emit seekWaitedChanged();
 }
 
 void LichessClient::cancelSeek()
@@ -1041,8 +1123,16 @@ void LichessClient::endSeek(bool notify)
 {
     _seekFallback.stop();
     _seekPoll.stop();
+    _seekWaitedTick.stop();
+    _seekWaitedFixed = false;
     _seekClosedByLichess = false;
+    _seekConnectionLost = false;
     _seekGamesBefore.clear();
+    if (_seekPollReply) {
+        auto* reply = _seekPollReply;
+        _seekPollReply = nullptr; // before abort(): its finished handler must ignore it
+        reply->abort();
+    }
     if (_seekReply) {
         auto* reply = _seekReply;
         _seekReply = nullptr; // before abort(): its finished handler must ignore it
@@ -1051,8 +1141,11 @@ void LichessClient::endSeek(bool notify)
     if (_seek.isEmpty())
         return;
     _seek.clear();
-    if (notify)
+    _seekWaitedSec = 0;
+    if (notify) {
         emit seekChanged();
+        emit seekWaitedChanged();
+    }
 }
 
 void LichessClient::checkGameReady()
@@ -1117,6 +1210,11 @@ void LichessClient::onGameStartDetected(const QString& gameId)
 void LichessClient::streamGame(const QString& gameId)
 {
     endSeek(true); // LI-09: a game starts (the seek's, or any other): the seek is over
+    openGameStream(gameId);
+}
+
+void LichessClient::openGameStream(const QString& gameId)
+{
     stopAll(gameId == _acceptingId); // an accepted challenge's game: still accepting until it starts
     _currentGameId   = gameId;
     _lastMovesList.clear();
@@ -1216,6 +1314,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
             _sentMoves.clear();
             setRejoiningGameId({}); // a rejoin has its game
             setAcceptingId({});     // so has an accepted challenge (its row goes)
+            endSeek(true);          // LI-09: a rejoined game is there: the seek is over (one game at a time)
             const int stops = _stops;
             emit gameStarted(_currentGameId, isWhite, opponentName, opponentAvatarUrl, moves,
                              variantOf(obj), startFenOf(obj));
@@ -1487,8 +1586,10 @@ void LichessClient::challengeUser(const RematchInfo& game, const QString& color)
     // With keepAliveStream the challenge lives while this request is open, and the server ends it
     // with {"done":"accepted"|...}.
     _directKeepAlive = needsKeepAlive(game);
-    if (_directKeepAlive)
+    if (_directKeepAlive) {
         body.addQueryItem(QStringLiteral("keepAliveStream"), QStringLiteral("true"));
+        cancelSeek(); // LI-09: as createOpenChallengeSec
+    }
 
     QNetworkRequest req = makeRequest(QStringLiteral("/api/challenge/") + game.opponentId);
     req.setRawHeader("Accept", "application/x-ndjson");

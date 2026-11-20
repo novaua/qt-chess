@@ -68,9 +68,10 @@ So of lichess.org's twelve tiles, five can seek from here: **10+0, 10+5, 15+10**
   connection without our abort. Then `refreshOngoingGames()`, and a real-time game that wasn't in
   `ongoingGames` when the seek began is its game. None after 5 s: `seekFailed("No opponent was found:
   Lichess ended the seek.")`.
-- **What ends a seek**: `cancelSeek()`, a game starting (`streamGame`: the seek's, a challenge accepted,
-  a rejoin), `acceptChallenge` (before its POST), a new token or none (another profile, sign out,
-  expired), the destructor. **Not** `stopStream()` / `stopAll()`: those end a game or a challenge, and a
+- **What ends a seek**: `cancelSeek()`, a game starting (`streamGame`: the seek's, a challenge accepted;
+  a rejoin once its game is there), `acceptChallenge` (before its POST), a real-time challenge of ours
+  (and no seek while one waits), a new token or none (another profile, sign out, expired), Switch user
+  (`ChessConnector::switchUser`), the destructor. **Not** `stopStream()` / `stopAll()`: those end a game or a challenge, and a
   seek outlives leaving a robot game (D5).
 - **Correspondence** (D2, D6): the POST answers `{"id"}` at once: `seekSent(QString message)`, no state
   kept.

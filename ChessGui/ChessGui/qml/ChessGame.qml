@@ -136,8 +136,20 @@ ApplicationWindow {
             stack.push(_pushedPages[name])
     }
     function _closePage(name) {
-        if (_page === name)
-            stack.pop()
+        if (_page !== name)
+            return
+        stack.pop()
+        if (name === "online")
+            _tellSeekGoesOn()
+    }
+    // LI-09 (D5): Back from the Online page while a quick pairing seek waits: it goes on, said once a seek.
+    property real _seekToldSince: 0
+    function _tellSeekGoesOn() {
+        const seek = LichessClient.seek
+        if (seek.since === undefined || seek.since === _seekToldSince)
+            return
+        _seekToldSince = seek.since
+        notify("Still looking for an opponent. Cancel it from the icon at the top.")
     }
     function openProfile()   { _openPage("profile") }
     function closeProfile()  { _closePage("profile") }
@@ -1103,6 +1115,13 @@ ApplicationWindow {
         function onChallengeAcceptFailed(challengeId, message) {
             if (_page !== "online")
                 root.notify("Couldn't accept the challenge: " + message, "critical")
+        }
+
+        // LI-09: a seek waiting beyond the Online page ended without a game (Lichess refused or ended
+        // it). The page shows its own.
+        function onSeekFailed(message) {
+            if (_page !== "online")
+                root.notify("Quick pairing: " + message, "critical")
         }
 
         function onNetworkError(message) {

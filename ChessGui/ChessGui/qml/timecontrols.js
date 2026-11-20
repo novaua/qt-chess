@@ -21,3 +21,10 @@ function elapsed(seconds) {
     const s = Math.max(0, Math.floor(seconds))
     return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0")
 }
+
+// A quick pairing seek (LichessClient.seek) as its menu says it: "10+0 Rapid · Rated", "· Chess960".
+function seekText(seek) {
+    const speed = seek.speed ? seek.speed.charAt(0).toUpperCase() + seek.speed.slice(1) : ""   // "rapid" → "Rapid"
+    return label(seek.limitSec, seek.incrementSec) + " " + speed + " · " + (seek.rated ? "Rated" : "Casual")
+           + (seek.variant === "chess960" ? " · Chess960" : "")
+}
