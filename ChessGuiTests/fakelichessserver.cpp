@@ -4,6 +4,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QTcpSocket>
+#include <QUrlQuery>
 
 using LichessTests::FakeLichess;
 
@@ -141,9 +142,16 @@ bool FakeLichessServer::pairSeek(const QString& gameId, const QString& opponent)
 	game.whiteName = username();
 	game.blackName = opponent;
 	_games.insert(gameId, game);
+	// The game as Lichess makes it from the seek: its clock's speed, variant and rating.
+	const QUrlQuery seek(bodyOf(QStringLiteral("POST /api/board/seek")));
+	const double minutes = seek.queryItemValue(QStringLiteral("time")).toDouble();
+	const int estimate = int(minutes * 60) + 40 * seek.queryItemValue(QStringLiteral("increment")).toInt();
+	const QString speed = estimate < 1500 ? QStringLiteral("rapid") : QStringLiteral("classical");
 	sendEvent(QJsonObject{ { "type", "gameStart" }, { "game", QJsonObject{
 		{ "gameId", gameId }, { "fullId", gameId + "abcd" }, { "color", "white" }, { "source", "lobby" },
-		{ "speed", "rapid" }, { "rated", true }, { "variant", QJsonObject{ { "key", "standard" } } },
+		{ "speed", speed }, { "rated", seek.queryItemValue(QStringLiteral("rated")) == QLatin1String("true") },
+		{ "hasMoved", false },
+		{ "variant", QJsonObject{ { "key", seek.queryItemValue(QStringLiteral("variant")) } } },
 		{ "opponent", QJsonObject{ { "id", opponent.toLower() }, { "username", opponent } } } } } });
 	FakeLichess::close(_seek); // taken: Lichess ends the seek's request
 	return true;

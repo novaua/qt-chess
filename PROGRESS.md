@@ -1,6 +1,6 @@
 # Active Handover
 
-- **Last completed:** LI-09 step 3, `features/li09SeekIndicator_201126`: the seek goes on beyond the Online page (`SeekIndicator` in every `CommandBar`, said on Back), `tst_lichess` test_14 (2026-11-20).
+- **Last completed:** LI-09 step 3, `features/li09SeekIndicator_201126`: the seek goes on beyond the Online page (`SeekIndicator` in every `CommandBar`, said on Back), `tst_lichess` test_14; with the code review of steps 1–3 fixed there (the seek's game matched strictly, a quiet fallback, one real-time game at a time; see the ticket) (2026-11-20).
 - **Current focus:** LI-09 Quick pairing: steps 1–3 done; 4–5 left (`docs/LI-09-QuickPairingPlan.md` §5).
 - **Next up:** LI-09 step 4 (Custom: `SeekDialog`, real time and correspondence, `seekSent`; today the Custom tile opens lichess.org), on its own branch from `develop`.
 - **Active gotchas:**

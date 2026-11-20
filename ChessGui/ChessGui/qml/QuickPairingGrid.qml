@@ -16,7 +16,6 @@ GridLayout {
 
     property bool chess960: false    // the ratings shown: the Chess960 pool, else the clock's speed
     property bool available: true    // a seek may start now (no game or challenge starting)
-    property int fixedElapsed: -1    // screenshot scenes: the waited time shown, the same every run
 
     signal seekRequested(int limitSec, int incSec)
 
@@ -24,7 +23,7 @@ GridLayout {
             lichessOnly: p.speed === "Bullet" || p.speed === "Blitz", custom: false }, p))
         .concat([{ label: "Custom", limitSec: 0, incSec: 0, speed: "", lichessOnly: false, custom: true }])
     readonly property var seek: LichessClient.seek
-    readonly property bool seeking: seek.limitSec !== undefined
+    readonly property bool seeking: LichessClient.seeking
     // The waiting seek's tile: its clock's, else Custom's.
     readonly property int seekingIndex: {
         if (!seeking)
@@ -32,18 +31,8 @@ GridLayout {
         const i = tiles.findIndex(t => !t.custom && t.limitSec === seek.limitSec && t.incSec === seek.incrementSec)
         return i >= 0 ? i : tiles.length - 1
     }
-    property real _now: Date.now()
-    readonly property int elapsedSec: fixedElapsed >= 0 ? fixedElapsed
-                                    : seeking ? Math.max(0, (_now - seek.since) / 1000) : 0
+    readonly property int elapsedSec: LichessClient.seekWaitedSec   // counted once, in C++, for every view
     property int current: 6   // the keyboard's tile: 10+0 to start with
-
-    Timer {
-        interval: 250
-        repeat: true
-        running: grid.seeking && grid.fixedElapsed < 0
-        triggeredOnStart: true
-        onTriggered: grid._now = Date.now()
-    }
 
     function usable(index) {
         const tile = tiles[index]

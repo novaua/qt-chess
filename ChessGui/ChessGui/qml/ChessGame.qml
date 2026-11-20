@@ -291,9 +291,6 @@ ApplicationWindow {
     function _doSwitchUser() {
         if (_pendingRematch && _pendingChallengeId !== "")
             LichessClient.cancelChallenge(_pendingChallengeId)
-        // LI-09: a quick pairing seek is this profile's (the picker keeps its token: picking it again
-        // wouldn't end the seek, and a game paired meanwhile would start behind the picker).
-        LichessClient.cancelSeek()
         ChessConnector.switchUser()
     }
 

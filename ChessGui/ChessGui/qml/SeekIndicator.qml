@@ -11,15 +11,11 @@ ToolButton {
     id: indicator
 
     property bool showTime: true
-    property int fixedElapsed: -1    // screenshot scenes: the waited time shown, the same every run
 
-    readonly property var seek: LichessClient.seek
-    readonly property bool seeking: seek.limitSec !== undefined
-    property real _now: Date.now()
-    readonly property int elapsedSec: fixedElapsed >= 0 ? fixedElapsed
-                                    : seeking ? Math.max(0, (_now - seek.since) / 1000) : 0
-    readonly property string elapsedText: TimeControls.elapsed(elapsedSec)
-    readonly property string seekText: seeking ? TimeControls.seekText(seek) : ""
+    readonly property bool seeking: LichessClient.seeking
+    // Counted once, in C++, for every view (each page's bar, the grid's tile): once a second.
+    readonly property string elapsedText: seeking ? TimeControls.elapsed(LichessClient.seekWaitedSec) : ""
+    readonly property string seekText: seeking ? TimeControls.seekText(LichessClient.seek) : ""
 
     objectName: "seekIndicator"
     visible: seeking
@@ -31,14 +27,6 @@ ToolButton {
 
     // Ended (paired, cancelled, failed): its menu goes with it.
     onSeekingChanged: if (!seeking) menu.close()
-
-    Timer {
-        interval: 250
-        repeat: true
-        running: indicator.seeking && indicator.fixedElapsed < 0
-        triggeredOnStart: true
-        onTriggered: indicator._now = Date.now()
-    }
 
     contentItem: Row {
         spacing: Theme.s1
