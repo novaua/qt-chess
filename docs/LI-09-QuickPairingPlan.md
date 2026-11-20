@@ -94,7 +94,7 @@ comes (`onLichessGameStarted` already begins "Lichess game" when nothing runs).
   Keyboard: one Tab stop, arrows, Enter seeks (the picker's way).
 - **`SeekDialog.qml`** (D2): Real time / Correspondence (a `ChoiceRow`); minutes and increment as two
   sliders with lichess.org's steps (minutes ¼ … 180, increment 0 … 180), the clock and its speed
-  ("20+10 · Rapid") above them; Correspondence: the days. **Seek** disabled below Rapid, with "Lichess
+  ("20+0 · Rapid") above them; Correspondence: the days. **Seek** disabled below Rapid, with "Lichess
   allows this app Rapid, Classical and Correspondence only." A real-time custom seek waits like a tile's
   (the Custom tile shows the ring and the clock); a correspondence one is sent and done (D6).
 - **`SeekIndicator.qml`** (D5): in `CommandBar` itself, so every page has it, while `LichessClient.seek`

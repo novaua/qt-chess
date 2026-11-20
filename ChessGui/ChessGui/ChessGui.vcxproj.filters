@@ -293,6 +293,9 @@
     <None Include="qml\SeekIndicator.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\SeekDialog.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\AppDialog.qml">
       <Filter>Source Files\Qml</Filter>
     </None>

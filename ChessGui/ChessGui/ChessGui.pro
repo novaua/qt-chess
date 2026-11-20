@@ -134,6 +134,7 @@ DISTFILES += \
     qml/timecontrols.js \
     qml/QuickPairingGrid.qml \
     qml/SeekIndicator.qml \
+    qml/SeekDialog.qml \
     qml/MarkerColumn.qml \
     qml/MarkerRow.qml \
     qml/MoveArrows.qml \

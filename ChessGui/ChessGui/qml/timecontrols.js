@@ -1,4 +1,5 @@
 .pragma library
+.import "lichess.js" as Lichess
 
 // lichess.org's quick pairing clocks (LI-09): the setup dialogs' and the challenge card's clock tiles
 // (TimeControlPicker) and the Online page's quick pairing grid (QuickPairingGrid) show the same eleven.
@@ -24,7 +25,6 @@ function elapsed(seconds) {
 
 // A quick pairing seek (LichessClient.seek) as its menu says it: "10+0 Rapid · Rated", "· Chess960".
 function seekText(seek) {
-    const speed = seek.speed ? seek.speed.charAt(0).toUpperCase() + seek.speed.slice(1) : ""   // "rapid" → "Rapid"
-    return label(seek.limitSec, seek.incrementSec) + " " + speed + " · " + (seek.rated ? "Rated" : "Casual")
+    return label(seek.limitSec, seek.incrementSec) + " " + Lichess.speedName(seek.speed ?? "") + " · " + (seek.rated ? "Rated" : "Casual")
            + (seek.variant === "chess960" ? " · Chess960" : "")
 }

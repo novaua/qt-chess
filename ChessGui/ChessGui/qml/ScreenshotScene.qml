@@ -61,12 +61,20 @@ Item {
             const indicator = findItem(pages.currentItem, "seekIndicator")
             Qt.callLater(() => indicator.clicked())
         }
-        if (name.startsWith("online") || (name.startsWith("quick-pairing") && name !== "quick-pairing-indicator")) {
+        if (name.startsWith("online") || name.startsWith("seek-dialog")
+                || (name.startsWith("quick-pairing") && name !== "quick-pairing-indicator")) {
             // main.cpp: Tester with a Lichess account for online and online-empty, the games for online.
             window.openOnline()
             if (name === "quick-pairing-waiting") {   // LI-09: 10+0 waits 0:12 (offline: nothing is sent)
                 LichessClient.startSeek(600, 0, 0, true, "standard")
                 LichessClient.fixSeekWaited(12)   // the tile's, the line's and the command bar's
+            }
+            // LI-09 D2: the Custom seek: 20+0 Rapid; 5+3 Blitz (Seek off, the reason); 3 days per move.
+            if (name.startsWith("seek-dialog")) {
+                dialogs.seek.openWith(true, false)
+                dialogs.seek.setClock(name === "seek-dialog-blitz" ? 300 : 1200, name === "seek-dialog-blitz" ? 3 : 0)
+                findItem(dialogs.seek.contentItem, "seekKind").checkedIndex = name === "seek-dialog-days" ? 1 : 0
+                findItem(dialogs.seek.contentItem, "seekDays").checkedIndex = 2
             }
             if (name === "online-blitz" || name === "online-challenge") {
                 findItem(pages.currentItem, "challengeOpponent").text = "Friend"

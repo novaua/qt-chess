@@ -72,3 +72,17 @@ Plan: [`docs/LI-09-QuickPairingPlan.md`](../../docs/LI-09-QuickPairingPlan.md) (
 - Switch user cancels the seek in `ChessConnector::switchUser` (one call per user action), not in QML.
 - The time waited is counted once, in C++ (`LichessClient.seekWaitedSec`, once a second; `seeking`), for the grid and every page's `SeekIndicator`: no QML timer per view; `fixSeekWaited` for the scenes.
 - Tests: `LichessSeekTest` +5 (the fallback's kind of game and its quiet poll, the lost connection, a challenge cancels and blocks a seek, a rejoin ends it only when its game starts, the waited count), `OtherGamesStart_NotTaken` with a casual, a Chess960 and a moved game; `FakeSeekLichess`'s seek is chunked (a clean end vs a dropped connection). The UI tests' `pairSeek` makes the game from the seek's own clock, variant and rating.
+
+### 2026-11-20 — step 4: Custom, the Seek dialog (branch: features/li09SeekDialog_201126)
+- The grid's Custom tile opens `SeekDialog` (D2; in `ChessGame.qml`, asked by the Online page's `customSeekRequested`) instead of lichess.org: Real time (minutes ¼ … 180 and increment 0 … 180 s on lichess.org's slider steps) or Correspondence (days per move 1 … 14); the clock and its speed as it changes ("½+12 · Rapid"); below Rapid Seek is off (button and Enter) and says why. Rated / Casual and the variant come from the card; the last choice is remembered (`AppSettings.seekCorrespondence`, `seekLimitSec`, `seekIncSec`, `seekDays`; 20+0 to start: 20+10 is Classical by Lichess's rule, so the plan's example was wrong).
+- A real-time custom seek waits on the Custom tile (the ring, the time and its clock, "½+12"; a click cancels); a correspondence one says `seekSent`'s message in the Online page's `seekSentBar` with **Open on lichess.org** (D6), or `ChessGame.notify` off the page.
+- Tests: `tst_lichess` test_15 (Blitz refused with the reason and nothing sent, ½+12's request `time=0.5&increment=12`, the Custom tile waiting and cancelling, a casual Chess960 correspondence request `days=3` and its message). Scenes `seek-dialog` (also `640x560`), `seek-dialog-blitz`, `seek-dialog-days`. All UI test files pass.
+- Left: step 5 (docs, the hand tests with two Lichess accounts).
+
+### 2026-11-20 — the code review of step 4 (branch: features/li09SeekDialog_201126)
+- A real-time seek from the dialog waits on the Custom tile even with a tile's clock (10+0), and Custom cancels it (`ChessGame._customSeekSince`: the seek's `since`, passed to the grid's `customSince`).
+- The dialog checks again that a seek may start (`available`: no seek waiting, no game starting or running in real time; Seek off with the reason, `onAccepted` checks too) and closes when a Lichess game starts (`onGameStarted`).
+- The Online page's bars go only when a seek is sent: Cancel in the dialog keeps the correspondence seek's message.
+- Accessibility: the sliders' names carry their minutes and seconds (their value is a step's index); the waiting Custom tile's name has its clock.
+- The reason in seconds ("the clock's seconds plus 40 × the increment must reach 480"); one speed name (`lichess.js` `speedName`, now also in `timecontrols.js` `seekText`).
+- `tst_lichess` test_15: + a tile's clock from the dialog on Custom, no second seek while one waits, Cancel keeps the message. All 13 UI test files pass.

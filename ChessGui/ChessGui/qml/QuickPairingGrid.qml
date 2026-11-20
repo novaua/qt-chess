@@ -7,27 +7,31 @@ import "timecontrols.js" as TimeControls
 // LI-09: lichess.org's quick pairing grid, on the Online page. Each tile is an action: a click seeks a
 // random opponent with that clock (seekRequested; LichessClient.startSeek). The Board API seeks only
 // Rapid and Classical: the Bullet and Blitz tiles are greyed, and open lichess.org's lobby (the owner's
-// decision D1). The twelfth tile, Custom, opens lichess.org's own "Create a game" for now (step 4: a
-// dialog here). While a seek waits (LichessClient.seek), its tile shows a ring and the time it has
-// waited, and a click on it cancels the seek; the others wait. One Tab stop: the arrows move between
+// decision D1). The twelfth tile, Custom, asks for the Seek dialog (customRequested, D2): a clock of
+// the player's own, or correspondence. While a seek waits (LichessClient.seek), its tile shows a ring and
+// the time it has waited (Custom: its clock too), and a click on it cancels the seek; the others wait. One Tab stop: the arrows move between
 // the tiles, Enter or Space clicks one.
 GridLayout {
     id: grid
 
     property bool chess960: false    // the ratings shown: the Chess960 pool, else the clock's speed
     property bool available: true    // a seek may start now (no game or challenge starting)
+    property real customSince: 0     // the Seek dialog's last real-time seek (its `since`): Custom's
 
     signal seekRequested(int limitSec, int incSec)
+    signal customRequested()
 
     readonly property var tiles: TimeControls.presets.map(p => Object.assign({
             lichessOnly: p.speed === "Bullet" || p.speed === "Blitz", custom: false }, p))
         .concat([{ label: "Custom", limitSec: 0, incSec: 0, speed: "", lichessOnly: false, custom: true }])
     readonly property var seek: LichessClient.seek
     readonly property bool seeking: LichessClient.seeking
-    // The waiting seek's tile: its clock's, else Custom's.
+    // The waiting seek's tile: Custom's for the dialog's (even with a tile's clock), else its clock's.
     readonly property int seekingIndex: {
         if (!seeking)
             return -1
+        if (seek.since === customSince)
+            return tiles.length - 1
         const i = tiles.findIndex(t => !t.custom && t.limitSec === seek.limitSec && t.incSec === seek.incrementSec)
         return i >= 0 ? i : tiles.length - 1
     }
@@ -44,9 +48,11 @@ GridLayout {
             LichessClient.cancelSeek()
         else if (tile.lichessOnly)
             Qt.openUrlExternally("https://lichess.org/")
+        else if (!usable(index))
+            return
         else if (tile.custom)
-            Qt.openUrlExternally("https://lichess.org/?any#hook")   // lichess.org's "Create a game"
-        else if (usable(index))
+            customRequested()
+        else
             seekRequested(tile.limitSec, tile.incSec)
     }
     function move(delta) {
@@ -87,23 +93,24 @@ GridLayout {
             readonly property string rating: grid.ratingText(modelData)
             readonly property string tip: modelData.lichessOnly
                 ? "Bullet and Blitz from this app: only a direct challenge. Play it on lichess.org"
-                : modelData.custom ? "Create a game with your own clock on lichess.org"
-                : isSeeking ? "Cancel seeking" : ""
+                : isSeeking ? "Cancel seeking"
+                : modelData.custom ? "Your own clock, or correspondence" : ""
 
             objectName: "quickTile_" + (modelData.custom ? "custom" : modelData.label)
             Layout.fillWidth: true
             Layout.preferredHeight: 76
             radius: Theme.radiusCard
-            opacity: modelData.lichessOnly || modelData.custom ? 0.45 : usable ? 1 : 0.6
+            opacity: modelData.lichessOnly ? 0.45 : usable ? 1 : 0.6
             color: isSeeking ? Theme.selectedBg
                  : tileMouse.containsMouse && usable ? Theme.cardBgHover : Theme.layerBg
             border.color: isSeeking ? Theme.accent : Theme.cardStroke
             border.width: isSeeking ? 2 : 1
 
             Accessible.role: Accessible.Button
-            Accessible.name: (modelData.custom ? "Custom" : modelData.label + " " + modelData.speed)
+            Accessible.name: (modelData.custom ? "Custom" + (isSeeking ? " " + TimeControls.label(grid.seek.limitSec, grid.seek.incrementSec) : "")
+                                               : modelData.label + " " + modelData.speed)
                              + (isSeeking ? ", looking for an opponent, " + TimeControls.elapsed(grid.elapsedSec)
-                                : modelData.lichessOnly || modelData.custom ? ", on lichess.org" : "")
+                                : modelData.lichessOnly ? ", on lichess.org" : "")
             Accessible.onPressAction: grid.activate(index)
 
             ToolTip.visible: tip !== "" && tileMouse.containsMouse
@@ -114,10 +121,13 @@ GridLayout {
                 anchors.centerIn: parent
                 spacing: 2
 
+                // Custom while its seek waits: that seek's clock ("20+10").
                 Text {
-                    text: tile.modelData.label
+                    objectName: "quickTileLabel"
+                    text: tile.modelData.custom && tile.isSeeking
+                          ? TimeControls.label(grid.seek.limitSec, grid.seek.incrementSec) : tile.modelData.label
                     color: Theme.textPrimary
-                    font: tile.modelData.custom ? Theme.bodyStrong : Theme.subtitle
+                    font: tile.modelData.custom && !tile.isSeeking ? Theme.bodyStrong : Theme.subtitle
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
                 // The speed, or while it seeks: the ring and the time it has waited.
