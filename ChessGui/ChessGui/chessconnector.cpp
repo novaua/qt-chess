@@ -2006,6 +2006,7 @@ void ChessConnector::showHeldMoves()
 
 void ChessConnector::setBoardSettled(bool settled)
 {
+	ENGINE_TRACE("board" << (settled ? "settled" : "not settled") << ", gate holding" << _gate->holding());
 	_gate->setStageReady(settled);
 }
 
@@ -2056,6 +2057,18 @@ void ChessConnector::setMoveTiming(int slideMs)
 bool ChessConnector::isBoardIdle() const
 {
 	return _gate->isIdle();
+}
+
+QString ChessConnector::robotState() const
+{
+	return QStringLiteral("robot: %1, thinking %2, request %3, auto-play %4; gate: holding %5, board settled %6, idle %7; "
+	                      "%8 plies, %9, review %10")
+		.arg(_engineWorker ? QStringLiteral("running") : QStringLiteral("none"))
+		.arg(_engineThinking).arg(_engineRequest).arg(_engineAutoPlay)
+		.arg(_gate->holding()).arg(_gate->stageReady()).arg(_gate->isIdle())
+		.arg(_game->GetMoveCount())
+		.arg(_gameResult.isEmpty() ? QStringLiteral("no result") : _gameResult)
+		.arg(reviewMode());
 }
 
 void ChessConnector::onEngineMoveError(int request, const QString& message, const QString& details)

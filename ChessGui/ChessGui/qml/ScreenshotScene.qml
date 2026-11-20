@@ -14,6 +14,7 @@ Item {
 
     readonly property var shot: ChessConnector.ScreenshotScene
     property bool _waitsForEngine: false
+    property string _waitingFor: "its set-up"   // for the log when main.cpp gives up on the scene (BL-28)
 
     // After ChessGame.qml's route(): the first page is there.
     Component.onCompleted: Qt.callLater(setUp)
@@ -309,8 +310,12 @@ Item {
             ChessConnector.screenshotSceneSetUp()   // main.cpp feeds the Lichess game and says when the board is ready
             return
         }
-        if (ChessConnector.EngineThinking) _waitsForEngine = true   // the robot's move comes later
-        else                               startReadyTimer()
+        if (ChessConnector.EngineThinking) {   // the robot's move comes later
+            _waitsForEngine = true
+            _waitingFor = "the robot's answer (EngineThinking)"
+        } else {
+            startReadyTimer()
+        }
     }
 
     Connections {
@@ -337,13 +342,16 @@ Item {
         // The engine still being looked for: the result card's Analyse and the moves panel's button wait
         // for it (BL-25), so the picture waits too, not to show them one time and not the next.
         if (AppInfo.engineState === "checking") {
+            _waitingFor = "the engine probe (AppInfo.engineState checking)"
             engineWaitTimer.start()
             return
         }
         // A finished game: wait until the result card is actually up, not for a guessed delay.
         if (ChessConnector.GameResult !== "") {
+            _waitingFor = "the result card"
             resultCardTimer.start()
         } else {
+            _waitingFor = "the grab"
             // clock-continue: past the second the clock waits for the page, or the shot races with it.
             // check: "Check" shows once the page has been open a second. online-challenges-decline: the menu has opened.
             // play-from-here-menu, online-game-menu: the menu has opened.
@@ -366,6 +374,20 @@ Item {
                 readyTimer.interval = 0
                 readyTimer.start()
             }
+        }
+    }
+
+    // main.cpp gave up on the scene: what it waited for, and the game page's side of the board's gate.
+    Connections {
+        target: ChessConnector
+        function onScreenshotSceneTimedOut() {
+            const page = pages.currentItem
+            let text = "Screenshot: the scene waited for " + scene._waitingFor + "; page "
+                       + (page ? page.objectName : "none")
+            if (page && page.objectName === "game")
+                text += ", open a second " + page._openSecondPassed + ", settled " + page._boardSettled
+                        + ", result pending " + page._resultPending + ", result shown " + page._resultShown
+            console.warn(text)
         }
     }
 

@@ -1,7 +1,7 @@
 # Active Handover
 
-- **Last completed:** LI-09 step 5, `docs/li09ManualTests_201126`: `docs/LI-09-ManualTests.md` (ten scenarios with two Lichess accounts) and CLAUDE.md's seek API (2026-11-20).
-- **Current focus:** LI-09 Quick pairing: all five steps done; waits for the owner's hand tests (`docs/LI-09-ManualTests.md`) before it is closed.
+- **Last completed:** BL-28 step 1, `bugs/robotSceneEngineNoAnswer_211126`: the robot's path in every scene's log (`chess.engine`, on in `--screenshot` mode) and a timed-out scene names what it waited for; cause not found (40 local runs passed) (2026-11-21).
+- **Current focus:** BL-28 waits for a next occurrence in CI (keep its `installer-test-results` artifact; read the scene log's `[Engine trace]` and `Screenshot:` lines). LI-09 waits for the owner's hand tests (`docs/LI-09-ManualTests.md`).
 - **Next up:** after the hand tests, close LI-09 (Resolution, `status: done`, `git mv` to `archive/`); then the next ticket from `.tasks/open/` (ask the owner).
 - **Active gotchas:**
   - `.tasks/archive/_unmatched-progress.md`: 7 old log entries that match no ticket, for the owner to file or drop.
