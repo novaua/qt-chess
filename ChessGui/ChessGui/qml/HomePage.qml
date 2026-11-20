@@ -56,7 +56,7 @@ Page {
             id: accountButton
             objectName: "accountButton"
             text: UserManager.activeUserName
-            Accessible.name: "Account: " + text + (page.unseenMessages > 0 ? ", " + page.unseenMessages + " new messages" : "")
+            Accessible.name: "Account: " + text + (page.unseenMessages > 0 ? ", " + page.unseenMessages + (page.unseenMessages === 1 ? " new message" : " new messages") : "")
             // Own content: the style tints the icon and draws the text in icon.color, and the
             // avatar must keep its colours.
             contentItem: Row {

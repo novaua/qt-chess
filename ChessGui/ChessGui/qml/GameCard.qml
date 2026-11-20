@@ -25,8 +25,10 @@ Rectangle {
     property bool   starting: false     // this card's game is the one starting: "Starting…" (BL-16)
     property bool   deletable: false    // a Delete button beside the action (the Games page, BL-19)
     property bool   exportable: false   // an Export PGN button beside the action (the Games page)
+    property bool   hasMenu: false      // the Menu key / Shift+F10 on its button asks for its menu (LI-10)
 
     signal activated()
+    signal menuRequested()
     signal deleteRequested()
     signal exportRequested()
 
@@ -94,6 +96,13 @@ Rectangle {
                 ToolTip.text: card.actionTip
                 ToolTip.delay: 400
                 onClicked: card.activated()
+                Keys.onPressed: (event) => {
+                    if (card.hasMenu && (event.key === Qt.Key_Menu
+                                         || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier)))) {
+                        card.menuRequested()
+                        event.accepted = true
+                    }
+                }
             }
             IconButton {
                 objectName: "exportButton"

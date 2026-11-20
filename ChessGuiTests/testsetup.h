@@ -57,6 +57,8 @@ public:
 	// A file in the test's data folder, as a URL (e.g. for Export PGN), and a text file's contents.
 	Q_INVOKABLE QUrl fileUrl(const QString& name) const;
 	Q_INVOKABLE QString readTextFile(const QUrl& file) const;
+	// The clipboard's text (LI-10: a game's Copy link).
+	Q_INVOKABLE QString clipboardText() const;
 
 public slots:
 	void applicationAvailable();

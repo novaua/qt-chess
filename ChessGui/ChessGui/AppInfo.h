@@ -5,7 +5,8 @@
 #include <QUrl>
 
 // What Settings shows about the app: version and build, the data and log folders, and the chess
-// engine (found by a short "uci" run of stockfish.exe, the way UciConnector finds it).
+// engine (found by a short "uci" run of stockfish.exe, the way UciConnector finds it). Also the
+// clipboard for QML, which has none (LI-10: a Lichess game's link).
 class AppInfo : public QObject
 {
     Q_OBJECT
@@ -43,8 +44,14 @@ public:
     // AppServices::start() asks for it (BL-25: the Analyse buttons need it, not only Settings).
     Q_INVOKABLE void probeEngine();
 
+    // LI-10: text onto the clipboard (QML has none of its own), e.g. a Lichess game's link; `message`
+    // ("Link copied") comes back with copied() for the window's short message ("": none). ok: false when
+    // the clipboard doesn't hold the text after (Windows' clipboard held open by another program).
+    Q_INVOKABLE void copyToClipboard(const QString& text, const QString& message = {});
+
 signals:
     void engineChanged();
+    void copied(const QString& message, bool ok);
 
 private:
     void probeNext();

@@ -32,7 +32,7 @@
 param(
     # welcome, create-user, profiles, home, continue, continue-online, game, leave-online, review, result, ended, moves, select, drag, drag-off, settings, about, restore, levels,
     # profile, profile-local, profile-expired, import, online, online-empty, online-disconnected, computer, players, captures, games, games-empty, games-filter,
-    # chess960, chess960-select, chess960-castled, computer-960 (LI-01A), capture, capture-ep, premove-capture (BL-21), or all
+    # chess960, chess960-select, chess960-castled, computer-960 (LI-01A), capture, capture-ep, premove-capture (BL-21), online-game-menu (LI-10), or all
     # A scene can name its own window size and side: scene@WxH[@black], e.g. game@1920x1080 (all runs
     # the list in $sizedScenes after the others).
     # (not in all: robot, premove-robot, slides, takeback, timing, play)
@@ -78,7 +78,7 @@ $allScenes = 'welcome', 'create-user', 'profiles', 'home', 'continue', 'continue
              'captures', 'check', 'draw-offer', 'home-message', 'messages', 'opponent-left', 'opponent-left-claim', 'opponent-left-turn',
              'opponent-left-error', 'rejoin', 'continue-starting', 'continue-list-starting', 'challenge-accepting', 'starting', 'more-menu',
              'games', 'games-empty', 'games-filter', 'play-from-here', 'play-from-here-menu', 'replay', 'analysis', 'robot', 'premove-robot',
-             'chess960', 'chess960-select', 'chess960-castled', 'computer-960', 'capture', 'capture-ep', 'premove-capture'
+             'chess960', 'chess960-select', 'chess960-castled', 'computer-960', 'capture', 'capture-ep', 'premove-capture', 'online-game-menu'
 # The scenes with the robot play against FakeUci (BL-05 step 3), the game it follows: robot (White)
 # mates with Qh5#; premove-robot: 1... e5 after e4, then Nc6 after the premoved Nf3; play: its first
 # legal moves. -Stockfish: the real engine instead (their pictures then vary).

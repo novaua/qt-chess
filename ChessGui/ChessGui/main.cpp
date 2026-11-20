@@ -65,7 +65,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 		return;
 	}
 	// The Online page's "Your games" and Home's Continue (LI-04): fixed rows, no network.
-	if (scene == "online" || scene == "continue" || scene == "continue-online" || scene == "continue-list"
+	if (scene == "online" || scene == "online-game-menu" || scene == "continue" || scene == "continue-online" || scene == "continue-list"
 	    || scene == "continue-list-online" || scene == "continue-list-starting" || scene == "continue-starting") {
 		sceneMap["ongoingGames"] = LichessClient::parseOngoingGames(QJsonDocument::fromJson(R"({ "nowPlaying": [
 			{ "gameId": "aEPqtBMc", "color": "white", "isMyTurn": true, "secondsLeft": 540,
@@ -90,7 +90,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 			sceneMap["ongoingGames"] = QVariantList{ sceneMap["ongoingGames"].toList().first() };
 	}
 	if (!QStringList{ "profiles", "login", "profile", "profile-local", "profile-expired", "import",
-	                  "online", "online-empty", "online-blitz", "online-challenge", "online-960", "online-days", "continue", "continue-online",
+	                  "online", "online-game-menu", "online-empty", "online-blitz", "online-challenge", "online-960", "online-days", "continue", "continue-online",
 	                  "continue-list", "continue-list-online", "continue-list-starting", "continue-starting", "takeback",
 	                  "clock-online", "clock-correspondence", "premove", "premove-capture", "premove-played", "premove-dropped", "reconnecting", "rejoin",
 	                  "challenge", "challenge-accepting", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
@@ -430,7 +430,7 @@ int main(int argc, char* argv[])
 	static const QStringList screenshotScenes = {
 		"welcome", "create-user", "profiles", "home", "continue", "continue-online", "continue-list", "continue-list-online",
 		"continue-list-robot", "continue-list-starting", "continue-starting", "challenge-accepting", "starting", "game", "leave-online", "drag-off", "settings", "about", "restore", "levels",
-		"profile", "profile-local", "profile-expired", "import", "online", "online-empty", "online-disconnected",
+		"profile", "profile-local", "profile-expired", "import", "online", "online-game-menu", "online-empty", "online-disconnected",
 		"computer", "players", "review", "result", "ended", "moves", "select", "drag", "robot", "login", "menu", "board", "slides",
 		"takeback", "clock", "clock-low", "clock-flag", "clock-flag-draw", "clock-promotion", "clock-continue", "stalemate", "players-many", "clock-online", "clock-correspondence", "online-blitz", "online-challenge", "online-960", "online-days",
 		"premove", "premove-capture", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",

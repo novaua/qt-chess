@@ -294,7 +294,7 @@ Page {
             id: moreButton
             objectName: "moreButton"
             icon.source: Theme.icon("more")
-            tip: page.unseenMessages > 0 ? "More (" + page.unseenMessages + " new messages)" : "More"
+            tip: page.unseenMessages > 0 ? "More (" + page.unseenMessages + (page.unseenMessages === 1 ? " new message)" : " new messages)") : "More"
             Accessible.name: tip
             onClicked: page.openMoreMenu()
 
