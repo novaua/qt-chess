@@ -75,9 +75,10 @@ QUrl AppInfo::logFolder()
 
 void AppInfo::probeEngine()
 {
-    if (_probed)
+    if (_engineState == QStringLiteral("ok") || _probing)
         return;
-    _probed = true;
+    _probing = true;
+    _candidates.clear();
     for (const std::string& path : UciConnector::EngineCandidates())
         _candidates.append(QString::fromStdString(path));
     probeNext();
@@ -87,7 +88,8 @@ void AppInfo::probeEngine()
 void AppInfo::probeNext()
 {
     if (_candidates.isEmpty()) {
-        qWarning() << "AppInfo: no UCI engine answered" << _enginePath;
+        if (_engineState != QStringLiteral("missing"))   // once, not for each look again
+            qWarning() << "AppInfo: no UCI engine answered" << _enginePath;
         setEngine({});
         return;
     }
@@ -153,7 +155,11 @@ void AppInfo::copyToClipboard(const QString& text, const QString& message)
 
 void AppInfo::setEngine(const QString& name)
 {
+    _probing = false;
+    const QString state = name.isEmpty() ? QStringLiteral("missing") : QStringLiteral("ok");
+    if (state == _engineState && name == _engineName)
+        return;
     _engineName = name;
-    _engineState = name.isEmpty() ? QStringLiteral("missing") : QStringLiteral("ok");
+    _engineState = state;
     emit engineChanged();
 }

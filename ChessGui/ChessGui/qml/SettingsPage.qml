@@ -30,7 +30,7 @@ Page {
                                               flick.contentHeight - flick.height))
     }
 
-    Component.onCompleted: AppInfo.probeEngine()
+    Component.onCompleted: AppInfo.probeEngine()   // found at start (AppServices); looks again if it wasn't
 
     SoundEffect { id: previewMove;     source: "qrc:/sounds/move.wav";          volume: AppSettings.effectsVolume() }
     SoundEffect { id: previewOpponent; source: "qrc:/sounds/move_opponent.wav"; volume: AppSettings.effectsVolume() }
@@ -204,7 +204,7 @@ Page {
 
                 // BL-06 adds a "Change…" button here once other UCI engines can be chosen.
                 SettingRow {
-                    title: AppInfo.engineState === "ok" ? AppInfo.engineName
+                    title: AppInfo.engineFound ? AppInfo.engineName
                          : AppInfo.engineState === "checking" ? "Looking for the chess engine…"
                          : "Chess engine not found"
                     description: AppInfo.engineState === "missing"

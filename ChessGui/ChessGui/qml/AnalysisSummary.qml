@@ -13,6 +13,8 @@ ColumnLayout {
     readonly property var shown: ChessConnector.ShownAnalysis
     readonly property bool analysed: analysis.depth !== undefined
     readonly property bool engineFound: AppInfo.engineFound
+    // Not found at start: looked for again with each game page (BL-25 review; nothing once found).
+    Component.onCompleted: AppInfo.probeEngine()
 
     signal analyseRequested()   // GamePage.analyse(): also closes the result card
 
@@ -32,7 +34,8 @@ ColumnLayout {
             text: "Analyse game"
             icon.source: Theme.icon("analyse")
             ToolTip.visible: hovered && !enabled
-            ToolTip.text: "The analysis needs the chess engine (Settings → Computer)."
+            ToolTip.text: AppInfo.engineState === "checking" ? "Looking for the chess engine…"
+                                                              : "The analysis needs the chess engine (Settings → Computer)."
             onClicked: summary.analyseRequested()
         }
     }

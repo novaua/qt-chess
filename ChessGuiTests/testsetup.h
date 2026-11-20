@@ -39,6 +39,9 @@ public:
 	// The robot of the next game (FakeUci, read when its engine starts): the game it follows, in UCI
 	// ("e2e4 e7e5 …", it plays its own half), and how long it thinks before each answer.
 	Q_INVOKABLE void setEngine(const QString& moves, int delayMs = 0);
+	// From now on the engine is FakeUci, in a file run without one (// ui-test-engine: none): as if it
+	// was found late, e.g. a first start slower than the look at start (BL-25 review).
+	Q_INVOKABLE void useFakeEngine();
 	// The active profile linked to Lichess as `username` (FakeLichess's player), as the sign-in ends:
 	// the account, the ongoing games and the event stream follow, from FakeLichess. Lichess's sign-in
 	// page itself (LichessAuth) is lichess.org's: not in a test.

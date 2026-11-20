@@ -36,3 +36,9 @@ The owner's choice: **both**, lichess.org's corners and a red glow; after a look
   - `NavigationLayer.qml` has a `kind`: a second instance **under the pieces** (`captureLayer`) draws a capture target's mark: its four corners in the dot's colour (`Theme.legalMoveDot`; a ring-shaped gradient, as lichess.org's), so the piece and the square stay as they are. The dots stay in the instance over the pieces.
   - A premove target with the other side's piece: the corners in the premove dot's colour. "Show legal moves" off hides them; the pop-in as the dots', none with Reduce animations.
 - **Tests:** `tst_board` test 5: the h5 queen's captures on e5 (dark square), f7, h7 (light) show the mark and no dot, its other targets a dot; Black's en passant onto the empty e3 and the c3 pawn; a premove capture vs FakeUci. Scenes `capture`, `capture-ep`, `premove-capture` (light, dark), looked at.
+
+### 2026-11-20 — the code review of #203 (branch: bugs/reviewFixes203and204_201126)
+
+- **A pawn's straight premove** onto a piece (e4-e5 onto Black's pawn) had the capture corners; a pawn never takes straight ahead: a dot now (`captureSquares`). `tst_board` test 5 checks it.
+- **The marks made once:** the corners are a clipped Rectangle ring per square (the square minus a circle of 0.8 of the half diagonal, as before), only shown and hidden; no Shape, no Loader made on each click (BL-14's rule). Each layer makes only its own marks (no hidden dots under the pieces, no unused corners over them), and `ChessBoard` reads the targets, the captures and PremoveDots once for both layers (BL-11).
+- **Not changed:** a premove "through" a piece onto the next one keeps its corners (as lichess.org's premoves: any occupied target); the flags can't go stale: a Lichess opponent's move re-selects (`refreshSelection`: two PossibleMovesChanged), the robot's clears the dots.

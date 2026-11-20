@@ -166,30 +166,35 @@ function Invoke-TestRun($file, [string]$baseName, [int]$run, [string]$dataDir, [
     return $false
 }
 
-foreach ($file in $files) {
-    $text = Get-Content $file.FullName -Raw
-    $caseName = ([regex]::Match($text, '(?m)^\s*name:\s*"([^"]+)"')).Groups[1].Value
-    if ($caseName) { Remove-Item (Join-Path $OutDir "$caseName-*.png") -ErrorAction SilentlyContinue }   # the last run's failures
-    $runs = [regex]::Match($text, '(?m)^\s*//\s*ui-test-runs:\s*(\d+)')
-    $runCount = if ($runs.Success) { [int]$runs.Groups[1].Value } else { 1 }
-    $noEngine = $text -match '(?m)^\s*//\s*ui-test-engine:\s*none'
-    if ($runCount -le 1) {
-        if (-not (Invoke-TestRun $file $file.BaseName 1 '' $noEngine)) { $failedFiles++ }
-        continue
-    }
-    # The runs share one data folder: what the first leaves (settings, profiles, an autosaved game)
-    # the next one finds, as after a restart. A failed run ends the file.
-    $dataDir = Join-Path ([IO.Path]::GetTempPath()) ("chess-ui-test-" + [guid]::NewGuid().ToString('N'))
-    try {
-        for ($run = 1; $run -le $runCount; $run++) {
-            if (-not (Invoke-TestRun $file "$($file.BaseName)-run$run" $run $dataDir $noEngine)) { $failedFiles++; break }
+# The test runs set the engine and the run's environment: put back as it was however the runs end
+# (Ctrl+C, an error), so the shell isn't left with tst_noEngine's missing engine.
+try {
+    foreach ($file in $files) {
+        $text = Get-Content $file.FullName -Raw
+        $caseName = ([regex]::Match($text, '(?m)^\s*name:\s*"([^"]+)"')).Groups[1].Value
+        if ($caseName) { Remove-Item (Join-Path $OutDir "$caseName-*.png") -ErrorAction SilentlyContinue }   # the last run's failures
+        $runs = [regex]::Match($text, '(?m)^\s*//\s*ui-test-runs:\s*(\d+)')
+        $runCount = if ($runs.Success) { [int]$runs.Groups[1].Value } else { 1 }
+        $noEngine = $text -match '(?m)^\s*//\s*ui-test-engine:\s*none'
+        if ($runCount -le 1) {
+            if (-not (Invoke-TestRun $file $file.BaseName 1 '' $noEngine)) { $failedFiles++ }
+            continue
         }
-    } finally {
-        Remove-Item $dataDir -Recurse -Force -ErrorAction SilentlyContinue
+        # The runs share one data folder: what the first leaves (settings, profiles, an autosaved game)
+        # the next one finds, as after a restart. A failed run ends the file.
+        $dataDir = Join-Path ([IO.Path]::GetTempPath()) ("chess-ui-test-" + [guid]::NewGuid().ToString('N'))
+        try {
+            for ($run = 1; $run -le $runCount; $run++) {
+                if (-not (Invoke-TestRun $file "$($file.BaseName)-run$run" $run $dataDir $noEngine)) { $failedFiles++; break }
+            }
+        } finally {
+            Remove-Item $dataDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
+} finally {
+    Remove-Item Env:CHESS_UI_TEST_RUN, Env:CHESS_UI_TEST_DATA_DIR -ErrorAction SilentlyContinue
+    if ($null -ne $engineBefore) { $env:CHESS_ENGINE_PATH = $engineBefore } else { Remove-Item Env:CHESS_ENGINE_PATH -ErrorAction SilentlyContinue }
 }
-Remove-Item Env:CHESS_UI_TEST_RUN, Env:CHESS_UI_TEST_DATA_DIR -ErrorAction SilentlyContinue
-if ($null -ne $engineBefore) { $env:CHESS_ENGINE_PATH = $engineBefore } else { Remove-Item Env:CHESS_ENGINE_PATH -ErrorAction SilentlyContinue }
 
 $seconds = [int]((Get-Date) - $started).TotalSeconds
 Write-Host "$($files.Count) test files, $failedFiles failed, $seconds s. Results: $OutDir"

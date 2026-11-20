@@ -1,105 +1,108 @@
 import QtQuick
-import QtQuick.Shapes
 import ChessPlusPlus
 
 // The selected piece's legal moves: a dot on each target square (ChessBoard.squareX/Y), or, where the
 // move takes a piece, the square's four corners in the dot's colour, as on lichess.org (BL-21: a dot lay
 // on the piece and vanished on a black one): the dot's colour moved out to where no piece covers it; the
-// square and the piece stay as they are. Two of these: `kind` "captures" under the pieces (the marks around a piece leave it as it
-// is, as on lichess.org), "dots" over them. The 64 marks stay; a selection only shows and hides them
+// square and the piece stay as they are. Two of these: `kind` "captures" under the pieces, "dots" over
+// them; each makes only its own marks. The 64 marks stay; a selection only shows and hides them
 // (rebuilding them on every click made slides stop, BL-14).
 Item {
     id: navigationLayer
     property string kind: "dots"
-    // Read once per change, not by each of the 64 squares: " " = no move to that square.
-    readonly property var moves: ChessConnector.PossibleMoves
-    readonly property var captures: ChessConnector.CaptureSquares
-    // Also once for all squares (BL-11): PremoveDots changes with every selection.
-    readonly property bool premove: ChessConnector.PremoveDots
+    // From ChessBoard, read there once per change for both layers (BL-11): " " = no move to that square;
+    // which targets take a piece (ChessConnector.CaptureSquares); premove targets.
+    required property var moves
+    required property var captures
+    required property bool premove
     readonly property color dotColor: premove ? Theme.premoveDot : Theme.legalMoveDot
+    readonly property bool captureLayer: kind === "captures"
 
-    // A capture's mark: the square's corners in the dot's colour (a ring-shaped gradient leaves the
-    // middle, where the piece stands, clear). Made only on such a square.
-    component CaptureMark: Shape {
+    // One square's mark, on its square: shown while the square is a target of this layer's kind (a
+    // capture or not), popping in when it appears.
+    component MoveMark: Item {
         id: mark
-        preferredRendererType: Shape.CurveRenderer
-        ShapePath {
-            strokeWidth: -1
-            fillGradient: RadialGradient {
-                centerX: mark.width / 2; centerY: mark.height / 2
-                focalX: centerX; focalY: centerY
-                centerRadius: mark.width * 0.71   // the corners: half the square's diagonal
-                GradientStop { position: 0.0;  color: "transparent" }
-                GradientStop { position: 0.79; color: "transparent" }
-                GradientStop { position: 0.8;  color: navigationLayer.dotColor }
-                GradientStop { position: 1.0;  color: navigationLayer.dotColor }
+        required property int index
+        default property alias content: body.data
+        readonly property bool target: AppSettings.showLegalMoves && (navigationLayer.moves[index] ?? " ") !== " "
+        readonly property bool capture: target && (navigationLayer.captures[index] ?? false)
+        x: chessBoard.squareX(index)
+        y: chessBoard.squareY(index)
+        width: chessBoard.squareSize
+        height: width
+
+        Item {
+            id: body
+            anchors.fill: parent
+            visible: mark.target && mark.capture === navigationLayer.captureLayer
+            // Hiding stops the pop-in: a quick selection change would otherwise leave an invisible
+            // animation running, which keeps the board rendering.
+            onVisibleChanged: {
+                if (visible) {
+                    if (!Theme.reduceMotion) popIn.restart()
+                } else {
+                    popIn.stop()
+                    body.scale = 1
+                }
             }
-            PathRectangle { width: mark.width; height: mark.height }
+        }
+        PropertyAnimation {
+            id: popIn
+            target: body
+            property: "scale"
+            easing.type: Easing.InOutCirc
+            from: 0
+            to: 1.0
+            duration: 450
         }
     }
 
-    Repeater{
-        id:navigationLayerRptr
-        objectName: "navigationLayerRptr"
-        model: 64
-        delegate:
-            Item{
-            id:navigationLayerItm
-            required property int index
-            readonly property bool target: AppSettings.showLegalMoves && (navigationLayer.moves[index] ?? " ") !== " "
-            readonly property bool capture: target && (navigationLayer.captures[index] ?? false)
-            readonly property bool shown: target && capture === (navigationLayer.kind === "captures")
-            x: chessBoard.squareX(index)
-            y: chessBoard.squareY(index)
-            width: chessBoard.squareSize
-            height: width
-
-            // The dot or the corners; pops in when it appears.
-            Item {
-                id: navigationLayerRec
-                anchors.fill: parent
-                visible: navigationLayerItm.shown
-                // Hiding stops it: a quick selection change would otherwise leave an invisible animation
-                // running, which keeps the board rendering.
-                onVisibleChanged: {
-                    if (visible) {
-                        if (!Theme.reduceMotion) navigationLayerPopIn.restart()
-                    } else {
-                        navigationLayerPopIn.stop()
-                        navigationLayerRec.scale = 1
-                    }
-                }
-
-                Rectangle {
-                    objectName: "moveDot_" + navigationLayerItm.index
-                    visible: navigationLayer.kind === "dots"
-                    color: navigationLayer.dotColor
-                    anchors.centerIn: parent
-                    smooth: true
-                    antialiasing: true
-                    height: 0.3 * parent.height
-                    width: height
-                    radius: 0.5 * height
-                }
-                Loader {
-                    objectName: "captureMark_" + navigationLayerItm.index
-                    anchors.fill: parent
-                    active: navigationLayer.kind === "captures" && navigationLayerItm.capture
-                    visible: active
-                    sourceComponent: CaptureMark {}
-                }
-            }
-
-            PropertyAnimation {
-                id: navigationLayerPopIn
-                target: navigationLayerRec;
-                property: "scale";
-                easing.type: Easing.InOutCirc
-                from: 0;
-                to: 1.0;
-                duration: 450;
-                loops: 1;
+    Component {
+        id: dotMark
+        MoveMark {
+            id: square
+            Rectangle {
+                objectName: "moveDot_" + square.index
+                color: navigationLayer.dotColor
+                anchors.centerIn: parent
+                antialiasing: true
+                height: 0.3 * parent.height
+                width: height
+                radius: 0.5 * height
             }
         }
+    }
+    Component {
+        id: cornersMark
+        MoveMark {
+            id: square
+            // The square minus a circle (its radius 0.8 of the half diagonal, as lichess.org's gradient):
+            // a ring whose inner edge is that circle, wide enough to reach past the corners, clipped
+            // to the square.
+            Item {
+                objectName: "captureMark_" + square.index
+                anchors.fill: parent
+                clip: true
+                Rectangle {
+                    readonly property real inner: 0.8 * Math.SQRT1_2 * parent.width
+                    readonly property real outer: Math.SQRT1_2 * parent.width + 1
+                    anchors.centerIn: parent
+                    width: 2 * outer
+                    height: width
+                    radius: outer
+                    color: "transparent"
+                    border.width: outer - inner
+                    border.color: navigationLayer.dotColor
+                    antialiasing: true
+                }
+            }
+        }
+    }
+
+    Repeater {
+        id: navigationLayerRptr
+        objectName: "navigationLayerRptr"
+        model: 64
+        delegate: navigationLayer.captureLayer ? cornersMark : dotMark
     }
 }

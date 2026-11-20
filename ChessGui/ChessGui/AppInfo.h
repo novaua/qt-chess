@@ -40,8 +40,11 @@ public:
     QString engineName()  const { return _engineName; }
     QString enginePath()  const { return _enginePath; }
 
-    // Starts the engine once with "uci" for its name; once per run (it doesn't change while the app runs).
-    // AppServices::start() asks for it (BL-25: the Analyse buttons need it, not only Settings).
+    // Starts the engine with "uci" for its name. AppServices::start() asks first (BL-25: the Analyse
+    // buttons need it, not only Settings). Once found, that's it for the run; while it is "missing",
+    // a later call looks again (Settings, a game page's moves panel): a first start that took longer
+    // than the 5 s (an antivirus scan of a new stockfish.exe) mustn't turn the analysis off for the
+    // session. The state stays "missing" while it looks again; one probe at a time.
     Q_INVOKABLE void probeEngine();
 
     // LI-10: text onto the clipboard (QML has none of its own), e.g. a Lichess game's link; `message`
@@ -61,5 +64,5 @@ private:
     QString     _engineName;
     QString     _enginePath;
     QStringList _candidates;   // not tried yet
-    bool        _probed = false;
+    bool        _probing = false;
 };

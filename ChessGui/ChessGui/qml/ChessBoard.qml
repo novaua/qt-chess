@@ -62,6 +62,12 @@ Rectangle {
         anchors.fill: parent
         active: layoutGate.open
         sourceComponent: Item {
+            id: boardLayers
+            // The move marks' state, read once per change for both NavigationLayers (BL-11).
+            readonly property var moveTargets: ChessConnector.PossibleMoves
+            readonly property var captureTargets: ChessConnector.CaptureSquares
+            readonly property bool premoveTargets: ChessConnector.PremoveDots
+
             ChessBoxes{
                 id: chessBoxes
                 anchors.centerIn: parent
@@ -71,6 +77,9 @@ Rectangle {
             NavigationLayer {
                 objectName: "captureLayer"
                 kind: "captures"
+                moves: boardLayers.moveTargets
+                captures: boardLayers.captureTargets
+                premove: boardLayers.premoveTargets
                 anchors.fill: chessBoxes
             }
 
@@ -224,6 +233,9 @@ Rectangle {
             NavigationLayer{
                 id:navigationLayerGrid
                 objectName:"navigationLayerGrid"
+                moves: boardLayers.moveTargets
+                captures: boardLayers.captureTargets
+                premove: boardLayers.premoveTargets
                 anchors.fill: chessBoxes
             }
 

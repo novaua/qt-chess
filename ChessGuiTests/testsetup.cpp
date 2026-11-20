@@ -62,6 +62,11 @@ void TestSetup::applicationAvailable()
 }
 
 // The engine process gets this process's environment when it starts.
+void TestSetup::useFakeEngine()
+{
+	qputenv("CHESS_ENGINE_PATH", QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/FakeUci.exe").toUtf8());
+}
+
 void TestSetup::setEngine(const QString& moves, int delayMs)
 {
 	qputenv("FAKEUCI_MOVES", moves.toUtf8());
