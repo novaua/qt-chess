@@ -9,6 +9,7 @@
 #include <QDate>
 #include <QDateTime>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -763,6 +764,7 @@ bool UserManager::loadFrom(const QByteArray& json, bool* restored)
 
 void UserManager::load()
 {
+    recoverInterruptedImports();
     if (!QFile::exists(usersFilePath()))
         return; // first run
     const QByteArray json = readFile(usersFilePath());
@@ -978,12 +980,20 @@ QString UserManager::exportProfile(const QString& userId, const QUrl& file)
     if (!u) return QStringLiteral("There is no such profile");
     if (!file.isLocalFile()) return QStringLiteral("Choose a file on this computer");
 
+    QElapsedTimer timer;
+    timer.start();
     QJsonObject files;
     QStringList names = kProfileFiles;
     for (const auto& game : QDir(userDir(userId) + "/games").entryList({ QStringLiteral("*.json") }, QDir::Files))
         names.append(QStringLiteral("games/") + game); // signed as they are: they verify on import (BL-20)
     for (const auto& name : names) {
-        const QByteArray data = readFile(userDir(userId) + "/" + name);
+        QFile f(userDir(userId) + "/" + name);
+        if (!f.exists())
+            continue; // a file the profile doesn't have (no rating yet, no old save)
+        // BL-29: one that is there but can't be read (locked) fails the export, not left out unsaid.
+        if (!f.open(QIODevice::ReadOnly))
+            return QStringLiteral("Couldn't read %1: %2").arg(name, f.errorString());
+        const QByteArray data = f.readAll();
         if (!data.isEmpty())
             files[name] = QString::fromLatin1(data.toBase64());
     }
@@ -997,6 +1007,7 @@ QString UserManager::exportProfile(const QString& userId, const QUrl& file)
     QString error;
     if (!AppConfig::writeFileAtomically(file.toLocalFile(), QJsonDocument(root).toJson(), &error))
         return QStringLiteral("Couldn't save the file: ") + error;
+    qInfo() << "[Timing] profile export:" << files.size() << "files," << timer.elapsed() << "ms";
     return {};
 }
 
@@ -1076,23 +1087,35 @@ QString UserManager::importProfile(const QUrl& file, bool replace)
     if (!error.isEmpty())
         return error;
     imported.lichessExpired = false; // no token: the profile asks to reconnect Lichess
+    QElapsedTimer timer;
+    timer.start();
 
     const QString conflictId = conflict ? conflict->id : QString();
-    if (replace && !conflictId.isEmpty()) {
+    const bool replacing = replace && !conflictId.isEmpty();
+    if (replacing) {
         if (_isLoggedIn && conflictId == _activeUserId)
             return QStringLiteral("This profile is in use. Switch user first, then import it.");
         imported.id = conflictId;
-        QDir(userDir(conflictId)).removeRecursively();
-        *userById(conflictId) = imported;
     } else {
         imported.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
         imported.name = uniqueName(imported.name);
-        _users.append(imported);
     }
     // BL-20 step 3: the games and the rating checked before they are written (GameLibrary::checkImport).
     const GameLibrary::ImportCheck check = GameLibrary::checkImport(files);
-    for (auto it = files.cbegin(); it != files.cend(); ++it)
-        AppConfig::writeFileAtomically(userDir(imported.id) + "/" + it.key(), it.value());
+    // BL-29: written beside the profile and swapped in whole; nothing (the old folder, the profiles)
+    // changes before every file is written.
+    const QString staging = userDir(imported.id) + QStringLiteral(".importing");
+    QString failed = stageProfileFiles(staging, files);
+    if (failed.isEmpty())
+        failed = swapInProfileDir(imported.id, staging);
+    if (!failed.isEmpty()) {
+        qWarning() << "UserManager: import of" << imported.name << "failed, nothing changed |" << failed;
+        return failed;
+    }
+    if (replacing)
+        *userById(conflictId) = imported;
+    else
+        _users.append(imported);
     // Statistics that don't verify (edited, or an export from before BL-20): rebuilt from its games.
     const bool statsRebuilt = !imported.statsVerified;
     if (statsRebuilt) {
@@ -1109,6 +1132,8 @@ QString UserManager::importProfile(const QUrl& file, bool replace)
         { QStringLiteral("statsRebuilt"),   statsRebuilt },
     };
     save();
+    QDir(userDir(imported.id) + QStringLiteral(".replaced")).removeRecursively(); // the old one, now replaced
+    qInfo() << "[Timing] profile import:" << files.size() << "files," << timer.elapsed() << "ms";
     emit usersChanged();
     if (imported.id == _activeUserId) {
         emit activeUserChanged();
@@ -1116,4 +1141,64 @@ QString UserManager::importProfile(const QUrl& file, bool replace)
         emit lichessChanged();
     }
     return {};
+}
+
+QString UserManager::stageProfileFiles(const QString& staging, const QMap<QString, QByteArray>& files)
+{
+    QDir dir(staging);
+    if (dir.exists() && !dir.removeRecursively())
+        return QStringLiteral("Couldn't write the profile: an earlier import's files are in use");
+    if (!QDir().mkpath(staging))
+        return QStringLiteral("Couldn't write the profile: its folder can't be made");
+    for (auto it = files.cbegin(); it != files.cend(); ++it) {
+        QString error;
+        // Not flushed one by one (3 s for 500 games on an SSD with Defender): the staging folder only
+        // counts once all are written and it is swapped in; the .chessprofile is still there (BL-29).
+        if (!AppConfig::writeFileUnflushed(staging + "/" + it.key(), it.value(), &error)) {
+            dir.removeRecursively();
+            return QStringLiteral("Couldn't write the profile (%1): %2").arg(it.key(), error);
+        }
+    }
+    return {};
+}
+
+QString UserManager::swapInProfileDir(const QString& userId, const QString& staging)
+{
+    const QString target = userDir(userId);
+    const QString aside = target + QStringLiteral(".replaced");
+    QDir().rmdir(target); // an empty folder (nothing kept yet) is no profile to set aside
+    const bool hadFolder = QFileInfo::exists(target);
+    if (hadFolder) {
+        QDir(aside).removeRecursively(); // a leftover recoverInterruptedImports() kept
+        if (!QDir().rename(target, aside)) {
+            QDir(staging).removeRecursively();
+            return QStringLiteral("Couldn't replace the profile: one of its files is in use. Close what uses it and try again.");
+        }
+    }
+    if (!QDir().rename(staging, target)) {
+        if (hadFolder)
+            QDir().rename(aside, target);
+        QDir(staging).removeRecursively();
+        return QStringLiteral("Couldn't write the profile: its folder can't be replaced");
+    }
+    return {};
+}
+
+void UserManager::recoverInterruptedImports()
+{
+    const QDir users(AppConfig::appDataDir() + QStringLiteral("/users"));
+    for (const QString& name : users.entryList({ QStringLiteral("*.importing") }, QDir::Dirs | QDir::NoDotAndDotDot)) {
+        qWarning() << "UserManager: an interrupted import's files removed |" << name;
+        QDir(users.filePath(name)).removeRecursively();
+    }
+    const QString suffix = QStringLiteral(".replaced");
+    for (const QString& name : users.entryList({ QStringLiteral("*") + suffix }, QDir::Dirs | QDir::NoDotAndDotDot)) {
+        const QString target = users.filePath(name.chopped(suffix.size()));
+        if (!QFileInfo::exists(target)) {
+            qWarning() << "UserManager: a profile set aside by an interrupted import put back |" << name;
+            QDir().rename(users.filePath(name), target);
+        } else {
+            qWarning() << "UserManager: a replaced profile's old files kept aside |" << users.filePath(name);
+        }
+    }
 }

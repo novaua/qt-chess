@@ -12,6 +12,7 @@
 #include <QString>
 
 static QString g_appDataDir;
+static QString g_failWritesForTest; // failWritesForTest()
 
 QString AppConfig::appDataDir()
 {
@@ -103,8 +104,38 @@ void AppConfig::save() const
 	writeFileAtomically(configFilePath(), QJsonDocument(root).toJson());
 }
 
+void AppConfig::failWritesForTest(const QString& pathPart)
+{
+	g_failWritesForTest = pathPart;
+}
+
+bool AppConfig::writeFileUnflushed(const QString& path, const QByteArray& data, QString* error)
+{
+	if (!g_failWritesForTest.isEmpty() && path.contains(g_failWritesForTest)) {
+		if (error)
+			*error = QStringLiteral("test: write refused");
+		return false;
+	}
+	QDir().mkpath(QFileInfo(path).absolutePath());
+	QFile file(path);
+	if (file.open(QIODevice::WriteOnly | QIODevice::Truncate) && file.write(data) == data.size()) {
+		file.close();
+		if (file.error() == QFileDevice::NoError)
+			return true;
+	}
+	qWarning() << "can't write" << path << file.errorString();
+	if (error)
+		*error = file.errorString();
+	return false;
+}
+
 bool AppConfig::writeFileAtomically(const QString& path, const QByteArray& data, QString* error)
 {
+	if (!g_failWritesForTest.isEmpty() && path.contains(g_failWritesForTest)) {
+		if (error)
+			*error = QStringLiteral("test: write refused");
+		return false;
+	}
 	QDir().mkpath(QFileInfo(path).absolutePath());
 	QSaveFile file(path);
 	if (file.open(QIODevice::WriteOnly) && file.write(data) == data.size() && file.commit())
