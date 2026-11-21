@@ -1,8 +1,8 @@
 # Active Handover
 
-- **Last completed:** BL-29, `bugs/safeProfileImport_211126`: a profile import is staged and swapped in, so a failed Replace no longer loses the old profile; 500 games import in 0.67 s (was 3.3 s) (2026-11-21).
-- **Current focus:** None. BL-28 waits for a next occurrence in CI (keep its `installer-test-results` artifact). LI-09 waits for the owner's hand tests (`docs/LI-09-ManualTests.md`).
-- **Next up:** close LI-09 after its hand tests; then LI-12 (Lichess requests without a timeout).
+- **Last completed:** LI-09 follow-up, `features/quickPairingNoRating_221126`: the owner's first hand tests written into `docs/LI-09-ManualTests.md`; the Quick pairing tiles without the rating; fast games on our own service noted in TSK-13 (2026-11-22). BL-29 (PR #221): a profile import can't lose the old profile.
+- **Current focus:** LI-11, the flair and a standard avatar for Lichess players (Qt Image Formats to add): plan next. BL-28 waits for a next occurrence in CI.
+- **Next up:** LI-11; LI-09's remaining hand tests (scenarios 1, 3–9); LI-12 (Lichess requests without a timeout).
 - **Active gotchas:**
   - `.tasks/archive/_unmatched-progress.md`: 7 old log entries that match no ticket, for the owner to file or drop.
   - UI tests offscreen: hover doesn't reach items; no shader effects (the software renderer: pieces drawn without their glow; dialogs' backgrounds not drawn). `// ui-test-engine: none` runs a test file without an engine.

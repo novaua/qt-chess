@@ -10,11 +10,11 @@ import "timecontrols.js" as TimeControls
 // decision D1). The twelfth tile, Custom, asks for the Seek dialog (customRequested, D2): a clock of
 // the player's own, or correspondence. While a seek waits (LichessClient.seek), its tile shows a ring and
 // the time it has waited (Custom: its clock too), and a click on it cancels the seek; the others wait. One Tab stop: the arrows move between
-// the tiles, Enter or Space clicks one.
+// the tiles, Enter or Space clicks one. A tile shows its clock and speed only, as lichess.org's: no rating (the
+// owner's hand tests, 2026-11-22: "1500?" read as a setting; the ratings are on the Profile page).
 GridLayout {
     id: grid
 
-    property bool chess960: false    // the ratings shown: the Chess960 pool, else the clock's speed
     property bool available: true    // a seek may start now (no game or challenge starting)
     property real customSince: 0     // the Seek dialog's last real-time seek (its `since`): Custom's
 
@@ -60,12 +60,6 @@ GridLayout {
         if (next >= 0 && next < tiles.length)
             current = next
     }
-    function ratingText(tile) {
-        if (tile.custom)
-            return ""
-        const perf = UserManager.lichessRatings[chess960 ? "chess960" : tile.speed.toLowerCase()]
-        return perf ? String(perf.rating) + (perf.prov ? "?" : "") : ""
-    }
 
     columns: 3
     columnSpacing: Theme.s2
@@ -90,7 +84,6 @@ GridLayout {
             required property int index
             readonly property bool isSeeking: grid.seekingIndex === index
             readonly property bool usable: grid.usable(index)
-            readonly property string rating: grid.ratingText(modelData)
             readonly property string tip: modelData.lichessOnly
                 ? "Bullet and Blitz from this app: only a direct challenge. Play it on lichess.org"
                 : isSeeking ? "Cancel seeking"
@@ -153,13 +146,6 @@ GridLayout {
                         color: Theme.textPrimary
                         font: Theme.caption
                     }
-                }
-                Text {
-                    visible: !tile.isSeeking && text !== ""
-                    text: tile.rating
-                    color: Theme.textSecondary
-                    font: Theme.caption
-                    anchors.horizontalCenter: parent.horizontalCenter
                 }
             }
 
