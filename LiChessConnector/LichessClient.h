@@ -9,6 +9,30 @@
 class QNetworkReply;
 class QJsonObject;
 
+// LI-07: a player of a Lichess game, as gameFull gives them (the Board API's GameEventPlayer): name,
+// title ("GM", "BOT", …), rating and whether it is provisional. Lichess's AI has no name, only its level.
+// gameFull has no flair (only /api/account and /api/user do).
+class LICHESSCONNECTOR_EXPORT LichessPlayer
+{
+public:
+	LichessPlayer() = default;
+	static LichessPlayer fromJson(const QJsonObject& player);
+
+	QString name() const;  // "Stockfish level 3" for the AI; "" for an anonymous player
+	QString title() const { return _title; }
+	int     rating() const { return _rating; }  // 0: none (anonymous, the AI)
+	bool    provisional() const { return _provisional; }
+	QString ratingText() const;  // "1523", "1523?" (provisional, as lichess.org writes it), "" without one
+	bool    isAi() const { return _aiLevel > 0; }
+
+private:
+	QString _name;
+	QString _title;
+	int     _rating = 0;
+	bool    _provisional = false;
+	int     _aiLevel = 0;
+};
+
 // Settings of the last game, kept so a rematch can recreate it with colors swapped.
 struct RematchInfo
 {
@@ -195,6 +219,8 @@ public:
 	// A "challenge" event's challenge that is the opponent's rematch offer after lastGameId.
 	static bool isRematchOffer(const QJsonObject& challenge, const QString& lastGameId, const QString& username);
 	const RematchInfo& lastGame() const { return _lastGame; }
+	// LI-07: the current game's players, from its gameFull (set before gameStarted); empty before one.
+	const LichessPlayer& gamePlayer(bool white) const { return white ? _white : _black; }
 
 	// Settings of the game described by a Board API "gameFull" stream line, from our side.
 	static RematchInfo parseRematchInfo(const QJsonObject& gameFull, const QString& username);
@@ -360,6 +386,7 @@ private:
 	bool           _directChallengeDone     = false; // a {"done":...} line arrived
 	QTimer         _pollTimer;
 	RematchInfo    _lastGame;
+	LichessPlayer  _white, _black;               // the current game's players (LI-07)
 	bool           _watchingForRematch = false; // keep the event stream open for the opponent's offer
 	QString        _rematchOfferId;             // the opponent's offer we got; empty = none
 	QVariantList   _ongoingGames;

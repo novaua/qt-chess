@@ -28,6 +28,12 @@ FakeLichessServer::FakeLichessServer(QObject* parent)
 	_keepAlive.setInterval(1000);
 	connect(&_keepAlive, &QTimer::timeout, this, &FakeLichessServer::keepAlive);
 	_keepAlive.start();
+	_players.insert(username(), Player{ {}, 1650, false });
+}
+
+void FakeLichessServer::setPlayer(const QString& name, const QString& title, int rating, bool provisional)
+{
+	_players.insert(name, Player{ title, rating, provisional });
 }
 
 bool FakeLichessServer::eventStreamOpen() const
@@ -67,6 +73,8 @@ void FakeLichessServer::challenge(const QString& id, const QString& challenger, 
 			{ "color", challengerColor },
 		} },
 	};
+	if (!_players.contains(challenger))
+		_players.insert(challenger, Player{ {}, rating, false });
 	if (!_challenges.contains(id))
 		_challengeOrder << id;
 	_challenges.insert(id, event);
@@ -338,9 +346,18 @@ QByteArray FakeLichessServer::playing() const
 	return compact(QJsonObject{ { "nowPlaying", nowPlaying } });
 }
 
+// As gameFull's players (GameEventPlayer): with a title, rating and provisional when set (LI-07).
 QJsonObject FakeLichessServer::player(const QString& name) const
 {
-	return QJsonObject{ { "id", name.toLower() }, { "name", name } };
+	QJsonObject p{ { "id", name.toLower() }, { "name", name } };
+	const auto it = _players.constFind(name);
+	if (it == _players.constEnd())
+		return p;
+	p.insert("title", it->title.isEmpty() ? QJsonValue() : QJsonValue(it->title)); // null, as Lichess sends it
+	if (it->rating > 0)
+		p.insert("rating", it->rating);
+	p.insert("provisional", it->provisional);
+	return p;
 }
 
 QByteArray FakeLichessServer::gameFull(const Game& game) const

@@ -152,14 +152,16 @@ static void playTakebackScene(ChessConnector* connector, LichessClient* lichess)
 	});
 }
 
-// Scenes "clock-online" and "clock-correspondence" (LI-02): a Lichess game with its clock, fed to the
+// Scenes "clock-online" and "clock-correspondence" (LI-02): a Lichess game with its clock (clock-online:
+// the players' titles and ratings on the cards, LI-07), fed to the
 // stream parser as the Board API sends it. Time stands still, so the times are the ones sent here.
 static void playClockScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
 {
 	lichess->setCurrentGameId(QStringLiteral("clock1"));
 	lichess->handleGameStreamLine(scene == "clock-online"
 		? R"({"type":"gameFull","id":"clock1","clock":{"initial":600000,"increment":5000},
-			"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},
+			"white":{"id":"testerchess","name":"TesterChess","rating":1523,"provisional":true},
+			"black":{"id":"friend","name":"Friend","title":"FM","rating":2105,"provisional":false},
 			"state":{"moves":"e2e4 e7e5 g1f3 b8c6","wtime":431000,"btime":8400,"winc":5000,"binc":5000,"status":"started"}})"
 		: R"({"type":"gameFull","id":"clock1","daysPerTurn":3,
 			"white":{"id":"testerchess","name":"TesterChess"},"black":{"id":"friend","name":"Friend"},

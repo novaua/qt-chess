@@ -730,11 +730,48 @@ QString ChessConnector::playerName() const
 
 QString ChessConnector::sideName(bool white) const
 {
-	return white == _config.playerPlaysWhite ? playerName() : _opponentName;
+	return white == _config.playerPlaysWhite ? shownPlayerName() : _opponentName;
 }
 
 // The source has no /utf-8: non-ASCII characters only as \u escapes in u"" (QStringLiteral) strings.
 static const QString Dot = QStringLiteral(" \u00B7 ");
+
+// LI-07: a Lichess game shows the Lichess players (the result, the title and the messages name them too).
+QString ChessConnector::shownPlayerName() const
+{
+	if (isOnlineGame() && !_lichessMe.name().isEmpty())
+		return _lichessMe.name();
+	return playerName();
+}
+
+QString ChessConnector::playerTitle() const
+{
+	return isOnlineGame() ? _lichessMe.title() : QString();
+}
+
+QString ChessConnector::opponentTitle() const
+{
+	return isOnlineGame() ? _lichessOpponent.title() : QString();
+}
+
+// The player's profile stays visible beside the Lichess name: "Ninja", Dot, "1523?".
+QString ChessConnector::playerDetail() const
+{
+	if (!isOnlineGame())
+		return {};
+	QStringList parts;
+	const QString profile = playerName();
+	if (profile.compare(shownPlayerName(), Qt::CaseInsensitive) != 0)
+		parts << profile;
+	if (const QString rating = _lichessMe.ratingText(); !rating.isEmpty())
+		parts << rating;
+	return parts.join(Dot);
+}
+
+QString ChessConnector::opponentDetail() const
+{
+	return isOnlineGame() ? _lichessOpponent.ratingText() : QString();
+}
 
 static QString vsRobotTitle(int level)
 {
@@ -747,7 +784,8 @@ QString ChessConnector::gameTitle() const
 	if (_gameMode == QLatin1String("computer"))
 		title = vsRobotTitle(_config.lastLevel);
 	else if (_gameMode == QLatin1String("online"))
-		title = QStringLiteral("Lichess") + Dot + QStringLiteral("vs ") + _opponentName;
+		title = QStringLiteral("Lichess") + Dot + QStringLiteral("vs ")
+			+ (opponentTitle().isEmpty() ? QString() : opponentTitle() + QLatin1Char(' ')) + _opponentName;
 	else if (_gameMode == QLatin1String("replay"))
 		title = sideName(true) + QStringLiteral(" vs ") + sideName(false)
 			+ (_gameDate.isValid() ? Dot + _gameDate.toString(QStringLiteral("d MMM yyyy")) : QString());
@@ -1052,6 +1090,8 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 	_gameMode = QStringLiteral("online");
 	_opponentName = opponent;
 	_opponentUserId.clear();
+	_lichessMe       = _lichessClient->gamePlayer(playingAsWhite);
+	_lichessOpponent = _lichessClient->gamePlayer(!playingAsWhite);
 	if (!startOnlineGame(gameId, playingAsWhite, *start, joined ? moves : QStringList{})) {
 		emit gameStartFailed(QStringLiteral("Lichess sent a move Chess++ can't play"));
 		endGame(); // stops the stream; back where the player was (Home), not a board out of step with Lichess

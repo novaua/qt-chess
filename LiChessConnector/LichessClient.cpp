@@ -1301,10 +1301,11 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
                 emit networkError(QStringLiteral("Your move didn't reach Lichess. Play it again."));
         } else {
             _lastGame = parseRematchInfo(obj, _username);
+            _white = LichessPlayer::fromJson(white); // LI-07: both cards show the Lichess players
+            _black = LichessPlayer::fromJson(black);
             emit canRematchChanged();
 
-            const QJsonObject opponent = isWhite ? black : white;
-            const QString opponentName      = opponent.value(QStringLiteral("name")).toString();
+            const QString opponentName      = (isWhite ? _black : _white).name();
             const QString opponentAvatarUrl = {}; // Lichess doesn't provide avatar in stream
 
             // The moves played before we joined (a rejoin) come with the start (BL-18): the board
@@ -1882,6 +1883,32 @@ QString LichessClient::colorFromUrl(const QString& url)
         QStringLiteral("(?:[?&]color=|lichess\\.org/(?:game/)?[A-Za-z0-9]{8}/)(white|black)\\b"));
     const auto match = re.match(url);
     return match.hasMatch() ? match.captured(1) : QString();
+}
+
+// static
+LichessPlayer LichessPlayer::fromJson(const QJsonObject& player)
+{
+    LichessPlayer p;
+    p._name        = player.value(QStringLiteral("name")).toString();
+    p._title       = player.value(QStringLiteral("title")).toString(); // null when none
+    p._rating      = player.value(QStringLiteral("rating")).toInt();
+    p._provisional = player.value(QStringLiteral("provisional")).toBool();
+    p._aiLevel     = player.value(QStringLiteral("aiLevel")).toInt();
+    return p;
+}
+
+QString LichessPlayer::name() const
+{
+    if (_name.isEmpty() && isAi())
+        return QStringLiteral("Stockfish level %1").arg(_aiLevel); // as lichess.org names it
+    return _name;
+}
+
+QString LichessPlayer::ratingText() const
+{
+    if (_rating <= 0)
+        return {};
+    return QString::number(_rating) + (_provisional ? QStringLiteral("?") : QString());
 }
 
 // static

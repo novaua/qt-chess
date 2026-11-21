@@ -51,6 +51,9 @@ public:
 	Q_INVOKABLE void addOngoingGame(const QString& id, const QString& opponent, const QString& playerColor,
 	                                const QString& moves, const QString& fen,
 	                                const QString& variant = QStringLiteral("standard"), const QString& startFen = {});
+	// LI-07: a player's Lichess title ("GM", "BOT", "" none) and rating (0: none) in a game's gameFull from
+	// now on. A challenger has the rating of its challenge; TesterChess 1650, the account's rapid rating.
+	Q_INVOKABLE void setPlayer(const QString& name, const QString& title, int rating, bool provisional);
 	// The opponent: a move, a draw offer, or the game's end (status "resign", "mate", "draw", …;
 	// winner "white", "black" or "").
 	Q_INVOKABLE void play(const QString& gameId, const QString& uciMove);
@@ -110,6 +113,13 @@ private:
 	QHash<QString, QJsonObject> _challenges; // pending, by id: the event stream's "challenge" lines
 	QStringList _challengeOrder;
 	QHash<QString, Game> _games;
+	struct Player
+	{
+		QString title;
+		int rating = 0;
+		bool provisional = false;
+	};
+	QHash<QString, Player> _players; // setPlayer(), by name
 	QList<QPointer<QTcpSocket>> _eventStreams;
 	qint64 _streamsDownUntil = 0; // ms since epoch: game streams answer 503 until then
 	QPointer<QTcpSocket> _seek;   // the open real-time seek's request

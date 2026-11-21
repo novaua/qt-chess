@@ -2,7 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// A player beside the board: avatar, name, a detail (the robot's level), the pieces they have taken
+// A player beside the board: avatar, title and name (a Lichess player's: "GM", LI-07), a detail (the
+// robot's level, a Lichess player's rating), the pieces they have taken
 // with "+N", whose turn it is (an accent bar and a pulse on the avatar) and their clock.
 // In a row above or below the board, or `stacked` in the player column left of it (BL-13): the clock
 // on its own row and the captured pieces wrapping; `clockFirst` puts the clock at the card's top (the
@@ -13,6 +14,7 @@ Rectangle {
     property string avatarUrl
     property string avatarTip: ""   // tooltip; empty = the avatar is not clickable
     property string name
+    property string title: ""   // a Lichess title ("GM", "BOT"), before the name as on lichess.org
     property string detail
     property bool   isActive:  false
     property var    pieces:    []
@@ -31,7 +33,7 @@ Rectangle {
     border.color: Theme.cardStroke
 
     Accessible.role: Accessible.Pane
-    Accessible.name: name + (isActive ? ", to move" : "") + (clockText !== "" ? ", " + clockText : "")
+    Accessible.name: (title !== "" ? title + " " : "") + name + (detail !== "" ? ", " + detail : "") + (isActive ? ", to move" : "") + (clockText !== "" ? ", " + clockText : "")
 
     // The side to move: an accent bar on the left edge.
     Rectangle {
@@ -96,6 +98,14 @@ Rectangle {
     component NameRow: RowLayout {
         spacing: Theme.s2
         Label {
+            objectName: "playerTitle"
+            text: card.title
+            visible: text !== ""
+            font: Theme.bodyStrong
+            color: text === "BOT" ? Theme.botTitle : Theme.playerTitle
+        }
+        Label {
+            objectName: "playerName"
             text: card.name
             font: Theme.bodyStrong
             elide: Text.ElideRight
@@ -103,6 +113,7 @@ Rectangle {
         }
         Label {
             id: detailLabel
+            objectName: "playerDetail"
             text: card.detail
             visible: text !== ""
             font: Theme.caption
