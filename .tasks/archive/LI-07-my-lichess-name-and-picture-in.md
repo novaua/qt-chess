@@ -2,7 +2,7 @@
 id: LI-07
 title: "My Lichess name and picture in a Lichess game"
 type: task
-status: in_progress
+status: done
 priority: medium
 ---
 
@@ -28,4 +28,7 @@ The owner chose the recommended option (2026-11-21): both cards show the Lichess
 - `ChessConnector`: `PlayerName` is the Lichess name in a Lichess game (`shownPlayerName()`; also the result text and messages through `sideName`), new `PlayerTitle` / `OpponentTitle` / `PlayerDetail` ("Tester · 1650": the profile's name when it differs, then the rating) / `OpponentDetail` ("1712?"); the game title "Lichess · vs FM FriendlyRival". `playerName()` stays the profile's (kept games, statistics). Robot and two-player games unchanged.
 - `PlayerCard`: the title before the name (Theme `playerTitle`, `botTitle` for BOT); the cards' objectNames `playerCard` / `opponentCard`.
 - Tests: `LichessStaticTests::GameStream_GameFull_Players_Test`; `tst_lichess` test_03 checks both cards (`FakeLichess.setPlayer`); the `clock-online` scene has a title and ratings.
-- Left (step 2): the flair beside the name: the player's from `/api/account`, the opponent's from `/api/user/{name}` (one request per game), its image from lichess.org; check the image URL first.
+- Merged as PR #216: `LichessStaticTests` 61/61, the UI suite 13 files / 0 failed (Release), the `clock-online` scene checked narrow and wide.
+
+### 2026-11-21 — closed without the flair (branch: docs/closeLi07_211126)
+The flair images on lichess.org are WebP only, which Qt reads only with the Qt Image Formats add-on (not installed or deployed). The owner chose to close LI-07 with step 1 and leave the flair to a follow-up: **LI-11** (what was found, and the steps).
