@@ -696,6 +696,38 @@ namespace LichessTests
 				L"passed on: the connector refuses it");
 		}
 
+		// LI-07: gameFull's players (title, rating, provisional), for both cards; gameStarted names the
+		// opponent from them, the AI by its level. Ready when gameStarted comes.
+		TEST_METHOD(GameStream_GameFull_Players_Test)
+		{
+			LichessClient client;
+			client.setUsername("me");
+			QString opponent, meAtStart;
+			QObject::connect(&client, &LichessClient::gameStarted, [&](QString, bool, QString name) {
+				opponent = name;
+				meAtStart = client.gamePlayer(false).name();
+			});
+			client.handleGameStreamLine(R"({"type":"gameFull","myColor":"black",
+				"white":{"id":"magnus","name":"Magnus","title":"GM","rating":2850,"provisional":false},
+				"black":{"id":"me","name":"Me","title":null,"rating":1523,"provisional":true},
+				"state":{"moves":"","status":"started"}})");
+			Assert::AreEqual(QString("Magnus"), opponent);
+			Assert::AreEqual(QString("Me"), meAtStart, L"the players are there when gameStarted comes");
+			const LichessPlayer& white = client.gamePlayer(true);
+			const LichessPlayer& black = client.gamePlayer(false);
+			Assert::AreEqual(QString("GM"), white.title());
+			Assert::AreEqual(QString("2850"), white.ratingText());
+			Assert::AreEqual(QString(), black.title(), L"null: no title");
+			Assert::AreEqual(QString("1523?"), black.ratingText(), L"provisional, as lichess.org writes it");
+
+			const LichessPlayer ai = LichessPlayer::fromJson(QJsonDocument::fromJson(R"({"aiLevel":3})").object());
+			Assert::AreEqual(QString("Stockfish level 3"), ai.name());
+			Assert::IsTrue(ai.isAi());
+			Assert::AreEqual(QString(), ai.ratingText());
+			const LichessPlayer anonymous = LichessPlayer::fromJson(QJsonDocument::fromJson(R"({"id":null})").object());
+			Assert::AreEqual(QString(), anonymous.name(), L"anonymous: no name (the connector says Anonymous)");
+		}
+
 		TEST_METHOD(GameStream_GameState_OnlyNewMoves_Test)
 		{
 			LichessClient client;

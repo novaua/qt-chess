@@ -91,8 +91,17 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool    InGame    READ inGame    NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString GameMode  READ gameMode  NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString GameTitle READ gameTitle NOTIFY gameInfoChanged) // e.g. "vs Robot · Level 3", "Alice vs Bob"
-		Q_PROPERTY(QString PlayerName   READ playerName   NOTIFY gameInfoChanged) // the bottom player card
-		Q_PROPERTY(QString OpponentName READ opponentName NOTIFY gameInfoChanged) // the top one
+		// The bottom player card and the top one. LI-07: in a Lichess game the Lichess players, as
+		// lichess.org shows them: the name (the player's Lichess name, not the profile's), the title ("GM",
+		// "BOT", "" for none) and the detail line: the opponent's rating ("1523?" when provisional), the
+		// player's profile name (when it isn't the Lichess one) and rating, joined by a middle dot ("Ninja", "1523?"). Other games:
+		// the profile's name and no title or detail (the robot's detail is its level, in QML).
+		Q_PROPERTY(QString PlayerName     READ shownPlayerName NOTIFY gameInfoChanged)
+		Q_PROPERTY(QString OpponentName   READ opponentName    NOTIFY gameInfoChanged)
+		Q_PROPERTY(QString PlayerTitle    READ playerTitle     NOTIFY gameInfoChanged)
+		Q_PROPERTY(QString OpponentTitle  READ opponentTitle   NOTIFY gameInfoChanged)
+		Q_PROPERTY(QString PlayerDetail   READ playerDetail    NOTIFY gameInfoChanged)
+		Q_PROPERTY(QString OpponentDetail READ opponentDetail  NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString ResultText READ resultText NOTIFY gameResultChanged) // e.g. "Bob wins by checkmate"
 		Q_PROPERTY(QString PendingOffer READ pendingOffer NOTIFY pendingOfferChanged) // Lichess opponent offers: "", "draw", "takeback", "rematch"
 		Q_PROPERTY(bool CanOfferDraw    READ canOfferDraw    NOTIFY canOfferDrawChanged) // Lichess: from ply 2, then 20 plies after our last offer
@@ -182,8 +191,13 @@ public:
 	bool    inGame()     const { return !_gameMode.isEmpty(); }
 	QString gameMode()   const { return _gameMode; }
 	QString gameTitle()  const;
-	QString playerName() const;
+	QString playerName() const;      // the active profile's name ("You" without one)
+	QString shownPlayerName() const; // the player's card: the Lichess name in a Lichess game (LI-07)
 	QString opponentName() const { return _opponentName; }
+	QString playerTitle() const;
+	QString opponentTitle() const;
+	QString playerDetail() const;
+	QString opponentDetail() const;
 	QString resultText() const { return _resultText; }
 	QString pendingOffer() const { return _pendingOffer; }
 	bool    canOfferDraw() const;
@@ -552,6 +566,7 @@ private:
 	QString _gameMode;
 	QString _opponentName;
 	QString _opponentUserId;
+	LichessPlayer _lichessMe, _lichessOpponent; // LI-07: a Lichess game's players, from its gameFull
 	QString _pendingOffer;
 	int  _drawOfferPly = -1; // ply of our last Lichess draw offer; -1 = none in this game
 	ClaimWin* _claimWin = nullptr; // the opponent left: the countdown and when the win can be claimed

@@ -54,6 +54,9 @@ QtObject {
     readonly property color blunder:       critical
     readonly property color successBg:     highContrast ? _sys.window : dark ? "#393D1B" : "#DFF6DD"   // InfoBar backgrounds (WinUI)
     readonly property color cautionBg:     highContrast ? _sys.window : dark ? "#433519" : "#FFF4CE"
+    // LI-07: a Lichess title before a player's name, as lichess.org colours it (BOT apart)
+    readonly property color playerTitle:   highContrast ? _sys.windowText : dark ? "#E0A43A" : "#9A5F07"
+    readonly property color botTitle:      highContrast ? _sys.windowText : dark ? "#D58BF2" : "#8A3BB0"
     readonly property color textOnColor:   "#FFFFFF"   // on a saturated fill, e.g. the level badges
     readonly property real  homeBackdropOpacity: highContrast ? 0 : dark ? 0.10 : 0.18
     // Selected card / list row (avatar pickers, current level); high contrast: the accent border only.

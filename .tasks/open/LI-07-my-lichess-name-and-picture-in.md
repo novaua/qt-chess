@@ -2,7 +2,7 @@
 id: LI-07
 title: "My Lichess name and picture in a Lichess game"
 type: task
-status: open
+status: in_progress
 priority: medium
 ---
 
@@ -18,3 +18,14 @@ priority: medium
   - Alternatives: (a) a setting, Settings → Online "Show my Lichess name in games" (on by default); (b) the owner's idea of one card in two halves, the Lichess side on the left and the local side on the right. (b) crowds the card in a narrow window and in the wide layout's column (BL-13), so it isn't recommended.
   - Also the game's title ("Lichess · vs X"), the result card and the recent messages: the Lichess names.
   - Tests: `FakeLichessServer` with a title, flair and rating, and `tst_lichess` checks of both cards; scenes `online` and narrow with them; `LichessClientTest` parsing `gameFull`'s players.
+
+## Resolution
+
+The owner chose the recommended option (2026-11-21): both cards show the Lichess identity, no setting. Checked in the API spec (`GameEventPlayer`): `gameFull`'s players have `title`, `rating`, `provisional` (and `aiLevel`), **no `flair`**; the flair is only on the user (`/api/account`, `/api/user/{name}`), a string naming an image on lichess.org. So it is done in two steps:
+
+### 2026-11-21 — step 1: the Lichess identity from gameFull (branch: features/lichessIdentityInGame_211126)
+- `LichessPlayer` (`LichessClient.h`): a gameFull player's name, title, rating, provisional; the AI is "Stockfish level N"; `LichessClient::gamePlayer(white)`, set before `gameStarted`.
+- `ChessConnector`: `PlayerName` is the Lichess name in a Lichess game (`shownPlayerName()`; also the result text and messages through `sideName`), new `PlayerTitle` / `OpponentTitle` / `PlayerDetail` ("Tester · 1650": the profile's name when it differs, then the rating) / `OpponentDetail` ("1712?"); the game title "Lichess · vs FM FriendlyRival". `playerName()` stays the profile's (kept games, statistics). Robot and two-player games unchanged.
+- `PlayerCard`: the title before the name (Theme `playerTitle`, `botTitle` for BOT); the cards' objectNames `playerCard` / `opponentCard`.
+- Tests: `LichessStaticTests::GameStream_GameFull_Players_Test`; `tst_lichess` test_03 checks both cards (`FakeLichess.setPlayer`); the `clock-online` scene has a title and ratings.
+- Left (step 2): the flair beside the name: the player's from `/api/account`, the opponent's from `/api/user/{name}` (one request per game), its image from lichess.org; check the image URL first.

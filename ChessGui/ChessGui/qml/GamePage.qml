@@ -386,13 +386,16 @@ Page {
     // A player card bound to the player (bottom) or the opponent (top).
     component SideCard: PlayerCard {
         property bool isPlayer
+        objectName: isPlayer ? "playerCard" : "opponentCard"
         readonly property bool white: isPlayer === ChessConnector.PlayerPlaysWhite
         readonly property var level: ChessConnector.Levels[ChessConnector.LastLevel - 1]
         readonly property bool isRobot: !isPlayer && page.mode === "computer"
 
         avatarUrl: isPlayer ? AvatarProvider.playerUrl : AvatarProvider.opponentUrl
         name:      isPlayer ? ChessConnector.PlayerName : ChessConnector.OpponentName
-        detail:    isRobot ? "Level " + level.level + " · " + level.rating : ""
+        title:     isPlayer ? ChessConnector.PlayerTitle : ChessConnector.OpponentTitle   // LI-07: Lichess's
+        detail:    isRobot ? "Level " + level.level + " · " + level.rating
+                 : isPlayer ? ChessConnector.PlayerDetail : ChessConnector.OpponentDetail
         avatarTip: isRobot ? "Robot · Level " + level.level + " — " + level.name + "\n" + level.rating
                              + "\nClick for level info"
                            : ""

@@ -60,7 +60,10 @@ TestCase {
 
     // Another one, accepted: the game page, the board turned for Black (the challenger plays White),
     // FriendlyRival named, nothing played yet; FriendlyRival's 1. e4 comes over the stream.
+    // LI-07: both cards show the Lichess players: FM FriendlyRival 1712?, and TesterChess with the
+    // profile's name and the rating ("Tester · 1650").
     function test_03_challengeAccepted() {
+        FakeLichess.setPlayer("FriendlyRival", "FM", 1712, true)
         FakeLichess.challenge("game0001", "FriendlyRival", 1712, "white")
         tryVerify(() => bar().visible, 3000, "the challenge bar")
         compare(bar().text, "FriendlyRival (1712) challenges you · 10+5 · Casual · You play Black")
@@ -69,6 +72,15 @@ TestCase {
         app.waitForPage("game", 10000)
         compare(ChessConnector.GameMode, "online")
         compare(ChessConnector.OpponentName, "FriendlyRival")
+        compare(ChessConnector.GameTitle, "Lichess · vs FM FriendlyRival")
+        const opponent = app.item("opponentCard"), player = app.item("playerCard")
+        compare(findChild(opponent, "playerTitle").text, "FM")
+        verify(findChild(opponent, "playerTitle").visible, "the opponent's title shown")
+        compare(findChild(opponent, "playerName").text, "FriendlyRival")
+        compare(findChild(opponent, "playerDetail").text, "1712?", "provisional, as lichess.org writes it")
+        compare(findChild(player, "playerName").text, me, "the player's Lichess name, not the profile's")
+        verify(!findChild(player, "playerTitle").visible, "no title")
+        compare(findChild(player, "playerDetail").text, "Tester · 1650", "the profile and the rating")
         tryVerify(() => !bar().visible, 3000, "the challenge is the game now: the bar gone")
         app.waitBoardIdle()
         compare(ChessConnector.MoveCount, 0)
