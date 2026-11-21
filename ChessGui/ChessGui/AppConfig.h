@@ -25,4 +25,9 @@ public:
 	// The app's own files are written whole or not at all (QSaveFile: a crash mid-write leaves the previous
 	// file, not a broken one); the folder is made. false: not written (logged; *error says why).
 	static bool writeFileAtomically(const QString& path, const QByteArray& data, QString* error = nullptr);
+	// The same without the flush to disk (QSaveFile's commit, ~3-6 ms a file): for many files that are
+	// made safe another way, e.g. a profile import's staging folder swapped in once all are written (BL-29).
+	static bool writeFileUnflushed(const QString& path, const QByteArray& data, QString* error = nullptr);
+	// Tests only: while set, a write whose path contains pathPart fails ("" ends it; BL-29).
+	static void failWritesForTest(const QString& pathPart);
 };
