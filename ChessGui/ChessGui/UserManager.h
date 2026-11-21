@@ -231,7 +231,7 @@ private:
     // signedStats: the file is of a version that signs statistics, so each user's are checked
     // (statsVerified); else they are trusted.
     static QList<User> usersFromJson(const QJsonArray& array, bool signedStats = false);
-    void load();
+    void load(); // also recoverInterruptedImports()
     // false: not a users file. Statistics that fail their check are restored (recoverStatistics); true
     // in *restored then, and users.json is to be written.
     bool loadFrom(const QByteArray& json, bool* restored = nullptr);
@@ -249,6 +249,13 @@ private:
     // An export file: its profile (token-free), its saves and the profile here with the same id or
     // name. Returns "" or an error.
     QString readImport(const QUrl& file, User& user, QMap<QString, QByteArray>& files, const User*& conflict) const;
+    // BL-29: an import is written into users/<id>.importing, then swapped in by rename (the old folder
+    // to users/<id>.replaced until the profiles are saved). "" or what failed; on a failure the old
+    // folder is as it was and the staging one is gone.
+    static QString stageProfileFiles(const QString& staging, const QMap<QString, QByteArray>& files);
+    static QString swapInProfileDir(const QString& userId, const QString& staging);
+    // At load: what a crash mid-swap left (a staging folder; an old folder set aside and not put back).
+    static void recoverInterruptedImports();
     void startLichessAuth(bool newUser);
     void finishLichessAuth();
     User*       activeUser();

@@ -1,5 +1,6 @@
 #include <QCoreApplication>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -11,6 +12,10 @@
 #include "UserManager.h"
 #include "gamelibrary.h"
 #include "TestSupport.h"
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h> // Export_UnreadableGameFile_Fails: a file opened without sharing
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -101,6 +106,7 @@ namespace UserManagerTests
 
 		TEST_METHOD_CLEANUP(TearDown)
 		{
+			AppConfig::failWritesForTest({});
 			AppConfig::setAppDataDir({});
 			_dir.reset();
 		}
@@ -869,6 +875,173 @@ namespace UserManagerTests
 				"profile": { "id": "x", "name": "Future" } })");
 			Assert::AreNotEqual(QString(), um.importProfile(QUrl::fromLocalFile(newer), false));
 			Assert::AreEqual(0, um.userCount());
+		}
+
+		// ── BL-29: an import that fails changes nothing ─────────────────────
+
+		static GameRecord keptGame(int n)
+		{
+			GameRecord game;
+			game.id = QStringLiteral("0b0f6c5e-1a2b-4c3d-9e8f-%1").arg(n, 12, 10, QLatin1Char('0'));
+			game.kind = QStringLiteral("local");
+			game.opponentName = QStringLiteral("Guest");
+			game.startedAt = QDateTime(QDate(2026, 11, 18), QTime(18, 0)).addSecs(n);
+			game.moves = { "e2e4", "e7e5" };
+			return game;
+		}
+		static void keep(const QString& userId, const GameRecord& game)
+		{
+			writeFile(GameLibrary::gameFilePathOf(userId, game.id), GameLibrary::gameFileContent(game));
+		}
+		static bool kept(const QString& userId, const GameRecord& game)
+		{
+			return GameLibrary::readGameFile(GameLibrary::gameFilePathOf(userId, game.id)).has_value();
+		}
+		// Bob with game 1, exported; then game 2 and a result after the export, logged out.
+		QString bobExportedThenPlayedOn(UserManager& um, const QString& file)
+		{
+			um.createUser("Bob", "fox");
+			const QString bob = um.activeUserId();
+			keep(bob, keptGame(1));
+			Assert::AreEqual(QString(), um.exportProfile(bob, QUrl::fromLocalFile(file)));
+			keep(bob, keptGame(2));
+			um.recordResult(bob, 1, "guest", "Guest");
+			um.logout();
+			return bob;
+		}
+		QStringList leftovers() const
+		{
+			return QDir(_dir->path() + "/users").entryList({ "*.importing", "*.replaced" }, QDir::Dirs);
+		}
+
+		// A write that fails part-way (disk full, a file locked): the old profile as it was, the import refused.
+		TEST_METHOD(Import_Replace_WriteFails_OldProfileKept)
+		{
+			UserManager um;
+			const QString file = _dir->path() + "/Bob.chessprofile";
+			const QString bob = bobExportedThenPlayedOn(um, file);
+
+			AppConfig::failWritesForTest(QStringLiteral("/games/"));
+			const QString error = um.importProfile(QUrl::fromLocalFile(file), true);
+			AppConfig::failWritesForTest({});
+
+			Assert::IsTrue(error.startsWith(QStringLiteral("Couldn't write the profile")), error.toStdWString().c_str());
+			Assert::IsTrue(kept(bob, keptGame(1)) && kept(bob, keptGame(2)), L"both old games still there");
+			Assert::AreEqual(1, um.statsOf(bob).value("guest").games, L"the statistics as they were");
+			Assert::AreEqual(1, UserManager().statsOf(bob).value("guest").games, L"users.json as it was");
+			Assert::AreEqual(0, (int)leftovers().size(), L"no staging folder left");
+		}
+
+		// The old folder can't be moved aside (one of its files open): refused, nothing changed.
+		TEST_METHOD(Import_Replace_FolderLocked_OldProfileKept)
+		{
+			UserManager um;
+			const QString file = _dir->path() + "/Bob.chessprofile";
+			const QString bob = bobExportedThenPlayedOn(um, file);
+
+			QString error;
+			{
+				QFile open(GameLibrary::gameFilePathOf(bob, keptGame(2).id));
+				Assert::IsTrue(open.open(QIODevice::ReadOnly));
+				error = um.importProfile(QUrl::fromLocalFile(file), true);
+			}
+			Assert::IsTrue(error.startsWith(QStringLiteral("Couldn't replace the profile")), error.toStdWString().c_str());
+			Assert::IsTrue(kept(bob, keptGame(1)) && kept(bob, keptGame(2)));
+			Assert::AreEqual(1, um.statsOf(bob).value("guest").games);
+			Assert::AreEqual(0, (int)leftovers().size());
+
+			// Once nothing holds it, the same import replaces the profile with the exported one.
+			Assert::AreEqual(QString(), um.importProfile(QUrl::fromLocalFile(file), true));
+			Assert::IsTrue(kept(bob, keptGame(1)));
+			Assert::IsFalse(kept(bob, keptGame(2)), L"the profile as exported");
+			Assert::AreEqual(0, um.statsOf(bob).value("guest").games);
+			Assert::AreEqual(0, (int)leftovers().size(), L"the old folder removed once saved");
+		}
+
+		// An import as a new profile whose write fails adds nothing.
+		TEST_METHOD(Import_New_WriteFails_NoProfileAdded)
+		{
+			UserManager um;
+			const QString file = _dir->path() + "/Bob.chessprofile";
+			bobExportedThenPlayedOn(um, file);
+
+			AppConfig::failWritesForTest(QStringLiteral("/games/"));
+			const QString error = um.importProfile(QUrl::fromLocalFile(file), false);
+			AppConfig::failWritesForTest({});
+
+			Assert::AreNotEqual(QString(), error);
+			Assert::AreEqual(1, um.userCount());
+			Assert::AreEqual(1, (int)QDir(_dir->path() + "/users").entryList(QDir::Dirs | QDir::NoDotAndDotDot).size(),
+				L"only Bob's folder");
+		}
+
+		// A crash between moving the old folder aside and putting the new one in: the next start puts the
+		// old one back and removes the unfinished import.
+		TEST_METHOD(Load_RecoversAnInterruptedReplace)
+		{
+			QString bob;
+			{
+				UserManager um;
+				um.createUser("Bob", "fox");
+				bob = um.activeUserId();
+				keep(bob, keptGame(1));
+				um.logout();
+			}
+			const QString users = _dir->path() + "/users/";
+			Assert::IsTrue(QDir().rename(users + bob, users + bob + ".replaced"));
+			writeFile(users + bob + ".importing/games/x.json", "half written");
+
+			UserManager um;
+			Assert::IsTrue(kept(bob, keptGame(1)), L"the old folder put back");
+			Assert::AreEqual(0, (int)leftovers().size());
+		}
+
+		// A game file that can't be read fails the export instead of being left out unsaid.
+		TEST_METHOD(Export_UnreadableGameFile_Fails)
+		{
+			UserManager um;
+			um.createUser("Bob", "fox");
+			const QString bob = um.activeUserId();
+			keep(bob, keptGame(1));
+			const QString path = GameLibrary::gameFilePathOf(bob, keptGame(1).id);
+			const HANDLE locked = CreateFileW(reinterpret_cast<const wchar_t*>(path.utf16()), GENERIC_READ, 0, nullptr,
+				OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr); // no sharing: as antivirus may hold it
+			Assert::IsTrue(locked != INVALID_HANDLE_VALUE);
+			const QString error = um.exportProfile(bob, QUrl::fromLocalFile(_dir->path() + "/Bob.chessprofile"));
+			CloseHandle(locked);
+			Assert::IsTrue(error.startsWith(QStringLiteral("Couldn't read games/")), error.toStdWString().c_str());
+		}
+
+		// 500 kept games (Games kept's maximum) through export and a Replace import: all of them back,
+		// and the times in the test log ([Timing] lines too) for BL-29's step 2. CHESS_TEST_DATA_DIR: run it
+		// in a folder there instead (a slow disk, e.g. a USB hard disk), removed afterwards.
+		TEST_METHOD(ExportImport_500Games_Timing)
+		{
+			std::unique_ptr<QTemporaryDir> elsewhere;
+			if (const QString base = qEnvironmentVariable("CHESS_TEST_DATA_DIR"); !base.isEmpty()) {
+				elsewhere = std::make_unique<QTemporaryDir>(base + "/ChessTest-XXXXXX");
+				Assert::IsTrue(elsewhere->isValid(), L"CHESS_TEST_DATA_DIR can't be written");
+				AppConfig::setAppDataDir(elsewhere->path());
+			}
+			const QString root = elsewhere ? elsewhere->path() : _dir->path();
+			UserManager um;
+			um.createUser("Bob", "fox");
+			const QString bob = um.activeUserId();
+			for (int n = 0; n < 500; ++n)
+				keep(bob, keptGame(n));
+			const QString file = root + "/Bob.chessprofile";
+			QElapsedTimer timer;
+			timer.start();
+			Assert::AreEqual(QString(), um.exportProfile(bob, QUrl::fromLocalFile(file)));
+			const qint64 exportMs = timer.restart();
+			um.logout();
+			Assert::AreEqual(QString(), um.importProfile(QUrl::fromLocalFile(file), true));
+			const qint64 importMs = timer.elapsed();
+			Logger::WriteMessage(QStringLiteral("500 games: export %1 ms, Replace import %2 ms\n")
+				.arg(exportMs).arg(importMs).toStdWString().c_str());
+			Assert::AreEqual(500, (int)QDir(GameLibrary::gamesDirOf(bob)).entryList({ "*.json" }, QDir::Files).size());
+			Assert::IsTrue(kept(bob, keptGame(499)));
+			Assert::AreEqual(0, (int)QDir(root + "/users").entryList({ "*.importing", "*.replaced" }, QDir::Dirs).size());
 		}
 
 		TEST_METHOD(ExportFileName_StripsCharactersWindowsRefuses)
