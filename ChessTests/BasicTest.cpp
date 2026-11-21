@@ -70,7 +70,7 @@ namespace ChessTests
 
 		TEST_METHOD(MovesSerialization_Works_Test)
 		{
-			auto tempPath = fs::path(std::string(std::getenv("TEMP")));
+			auto tempPath = fs::temp_directory_path();
 			tempPath /= "tempFile";
 
 			Move moves[] = {
@@ -174,7 +174,7 @@ namespace ChessTests
 			game->DoMove(e2, e4);
 			game->DoMove(e7, e5);
 
-			auto tempPath = fs::path(std::string(std::getenv("TEMP")));
+			auto tempPath = fs::temp_directory_path();
 			tempPath /= "tempFile1";
 
 			Assert::IsTrue(game->Save(tempPath.generic_string()));
@@ -193,7 +193,7 @@ namespace ChessTests
 			game->Restart();
 			game->DoMove(e2, e4);
 
-			auto missingFolder = fs::path(std::string(std::getenv("TEMP"))) / "no-such-folder-qtchess" / "game.sav";
+			auto missingFolder = fs::temp_directory_path() / "no-such-folder-qtchess" / "game.sav";
 			Assert::IsFalse(game->Save(missingFolder.generic_string()));
 		}
 
