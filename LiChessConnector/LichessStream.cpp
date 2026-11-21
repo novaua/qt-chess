@@ -81,7 +81,8 @@ void LichessStream::start()
     connect(reply, &QNetworkReply::readyRead, this, [this, reply]() {
         while (reply == _reply && reply->canReadLine()) {
             const QByteArray text = reply->readLine().trimmed();
-            qDebug() << "LichessClient:" << _name << "line:" << text.left(300);
+            if (!text.isEmpty()) // a keep-alive (every ~7 s) isn't logged (BL-31: the log's size)
+                qDebug() << "LichessClient:" << _name << "line:" << text.left(300);
             emit line(text);
         }
         if (reply == _reply && _reconnect)
