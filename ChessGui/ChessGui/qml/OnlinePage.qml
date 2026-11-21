@@ -315,7 +315,6 @@ Page {
                 QuickPairingGrid {
                     id: quickGrid
                     objectName: "quickPairingGrid"
-                    chess960: quickVariant.chess960
                     available: !page._starting && ChessConnector.CanAcceptChallenge
                     Layout.fillWidth: true
                     onSeekRequested: (limitSec, incSec) => page._seek(limitSec, incSec)

@@ -97,3 +97,9 @@ Plan: [`docs/LI-09-QuickPairingPlan.md`](../../docs/LI-09-QuickPairingPlan.md) (
   - a real opponent. Each notes the `gameStart` line's `source` (Risk 2).
 - CLAUDE.md: LichessClient's seek API.
 - Left: the owner runs the hand tests; then LI-09 is closed (`status: done`, moved to `archive/`).
+
+### 2026-11-22 — the owner's first hand tests; no rating on the tiles (branch: features/quickPairingNoRating_221126)
+- The owner played Quick pairing against real Lichess players: every Rapid tile paired, the games played to the end, Cancel stopped a search. Written into `docs/LI-09-ManualTests.md` ("Results so far"): scenario 10 OK, 2 and 3 partly, 1 and 4–9 not run yet.
+- The tiles no longer show the player's rating in that pool ("1500?" read as a setting; lichess.org's tiles show none): `QuickPairingGrid` without `ratingText` / `chess960`; `tst_lichess` test_13 checks there is none; the plan's QML section and D4 say so.
+- A service of our own for Bullet and Blitz (which the Board API refuses): noted in TSK-13.
+- Left: scenarios 1 and 3–9 of the hand tests; then LI-09 is closed.

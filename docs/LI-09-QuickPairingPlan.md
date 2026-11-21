@@ -39,7 +39,7 @@ So of lichess.org's twelve tiles, five can seek from here: **10+0, 10+5, 15+10**
 | D1 | Bullet and Blitz tiles | **Shown greyed**, as lichess.org's grid, with "Bullet and Blitz from this app: only a direct challenge. Play it on lichess.org" on hover; a click opens lichess.org's lobby. The familiar grid, honest about the limit. |
 | D2 | The twelfth tile | **Custom, as on lichess.org**: its "Create a game" dialog, here the **Seek dialog**: Real time (minutes and increment, lichess.org's slider steps) or Correspondence (days per move: 1, 2, 3, 5, 7, 10, 14). The clock's speed is shown as it changes; one below Rapid (`minutes × 60 + 40 × increment` < 480 s) can't be sent, with the reason. Variant and Rated / Casual come from the card. |
 | D3 | Rated or casual | **Rated by default**, as lichess.org, with a Rated / Casual switch above the tiles, remembered (`AppSettings.quickRated`). Today every challenge from the app is casual. |
-| D4 | Rating range | **None** (Lichess's advice). Not in this ticket. |
+| D4 | Rating range | **None** (Lichess's advice). Not in this ticket. The tiles show no rating either (2026-11-22, the owner's hand tests). |
 | D5 | Leaving the Online page while it seeks | **The seek goes on, and the player is told so and can cancel it at any time**: leaving the page says "Still looking for an opponent. Cancel it from the icon at the top." (`ChessGame.notify`), and **every page's command bar shows a seek icon** while it seeks (a turning ring, the elapsed time beside it in a wide window); a click opens its menu: "Looking for an opponent · 10+0 Rapid · Rated · 0:42" and **Cancel seeking**. The game opens when paired, from any page. Closing the app, signing out or another profile cancels it. |
 | D6 | A correspondence seek (D2) | Sent, it says "Your seek is on Lichess. When someone takes it, the game shows in Your games. Only lichess.org can cancel it." with **Open on lichess.org**. The app can't follow or cancel it (the API has no call for that): its game comes through the event stream's `gameStart` and the Your games refresh, as a game started elsewhere does today. |
 
@@ -87,8 +87,9 @@ comes (`onLichessGameStarted` already begins "Lichess game" when nothing runs).
 - **`timecontrols.js`**: the presets of `TimeControlPicker` (`[1, 0, "Bullet"] … [30, 20, "Classical"]`),
   shared by the picker and the new grid.
 - **`QuickPairingGrid.qml`**: lichess.org's 3 × 4 grid of action tiles (a click seeks; not a choice
-  like the picker's): the clock large, the speed under it, and the player's rating in that pool
-  (`UserManager.lichessRatings`; Chess960: its one pool; `?` when provisional). The seeking tile: a
+  like the picker's): the clock large and the speed under it. (Built first with the player's rating in
+  that pool under the speed; taken out after the owner's hand tests on 2026-11-22: "1500?" read as a
+  setting, and lichess.org's tiles show none. The ratings stay on the Profile page.) The seeking tile: a
   `BusyRing` and the elapsed time ("0:12") in place of the speed, its border the accent; the other
   tiles disabled; a click on it cancels. Greyed Bullet/Blitz tiles (D1), the Custom tile (D2).
   Keyboard: one Tab stop, arrows, Enter seeks (the picker's way).

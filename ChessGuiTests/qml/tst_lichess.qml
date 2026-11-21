@@ -271,8 +271,8 @@ TestCase {
         app.waitForPage("home", 5000)
     }
 
-    // LI-09: quick pairing on the Online page. Bullet and Blitz greyed (lichess.org only), the rating in
-    // each tile's pool. 10+0: a rated Standard seek, its tile and the line under the grid wait; Cancel
+    // LI-09: quick pairing on the Online page. Bullet and Blitz greyed (lichess.org only), no rating on
+    // the tiles (the owner's hand tests). 10+0: a rated Standard seek, its tile and the line under the grid wait; Cancel
     // closes the seek's request. A refusal shows Lichess's reason. 15+10 Casual: someone takes it, the
     // game page opens with them; Resign ends it.
     function test_13_quickPairing() {
@@ -284,8 +284,7 @@ TestCase {
         verify(tile("3+0").opacity < 1, "Blitz greyed")
         verify(tile("1+0").opacity < 1, "Bullet greyed")
         compare(tile("10+0").opacity, 1)
-        compare(tile("10+0").rating, "1650", "the rapid rating")
-        compare(tile("30+0").rating, "", "no classical rating yet")
+        verify(tile("10+0").rating === undefined, "no rating on a tile, as lichess.org's")
         compare(AppSettings.quickRated, true, "rated by default")
 
         app.click("quickTile_10+0")

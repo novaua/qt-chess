@@ -2,7 +2,7 @@
 
 | | |
 | :---- | :---- |
-| **Date** | 2026-11-20 |
+| **Date** | 2026-11-20; results 2026-11-22 |
 | **Build** | `develop` with #210–#213 (Release) |
 | **Plan** | [`LI-09-QuickPairingPlan.md`](LI-09-QuickPairingPlan.md) (§5 step 5, §6 Risks) |
 | **Lichess** | <https://lichess.org/api#tag/Board/operation/apiBoardSeek> |
@@ -45,6 +45,29 @@ Already checked by the tests and the screenshot scenes, no need to look again:
   ends it; so does a new token.
 - **Errors:** a refusal and a lost connection are reported.
 
+## Results so far (2026-11-22, the owner; real players on lichess.org, account A only)
+
+The owner played Quick pairing against **real Lichess players** rather than with a second account B, so
+the scenarios with B (1–9) are only partly covered; scenario 10 is the closest match.
+
+- **Every Rapid tile (10+0, 10+5, 15+10, …)**: a click starts the search; **Cancel** shows and the tile
+  waits. Paired after different waits; a game opened each time and played without trouble; won and lost a
+  few (scenarios 2 and 10, partly).
+- **Cancel** after 30 s and more stopped the search (scenario 3, the app's side; the lobby list not
+  checked).
+- **Colour:** the player got Black in most of the games. The seek sends no colour, so Lichess picks one
+  at random (its seek also takes `color=white|black` if a choice is wanted); a handful of games is within
+  chance. Not a bug.
+- **Changed after these tests:** the tiles no longer show the player's rating ("1500?", the Lichess rating
+  in that pool, provisional): it read as a setting. The tiles show the clock and the speed only, as
+  lichess.org's.
+- **Not run yet:** 1 (a pool tile on lichess.org meets the seek), 3's lobby side, 4 (paired on another
+  page), 5 (rated, B's view), 6 (Chess960), 7 (Custom clock), 8 (correspondence), 9 (Lichess refuses).
+  LI-09 stays open until they are.
+- **Ideas from the tests:** Bullet and Blitz can't be sought through Lichess's Board API (Lichess's own
+  site and app play them); a service of our own for fast games is noted in TSK-13. The opponent's avatar in
+  a Lichess game: a standard avatar and the Lichess flair (LI-11).
+
 ## 1. A pool tile on lichess.org meets the app's seek (Risk 1)
 
 lichess.org's Quick pairing tiles are rated pools, so the app's seek is rated here.
@@ -64,7 +87,7 @@ lichess.org's Quick pairing tiles are rated pools, so the app's seek is rated he
    - **Expected**: the game ends as aborted in the app too; no rating change on A's Profile page.
 4. Set the card back to **Casual**.
 
-Result:
+Result: **Not run** (needs B on lichess.org's tile). Step 1 seen with real players: the tile waits and **Cancel** shows (2026-11-22).
 
 ## 2. B joins A's seek from the lobby list
 
@@ -80,7 +103,7 @@ Result:
 4. Play two moves each; then B resigns.
    - **Expected**: the moves go both ways; the result card.
 
-Result:
+Result: **Partly OK** with real players instead of B (2026-11-22): the game opened at once each time, moves both ways, games won and lost to the end. Not checked: the lobby row, the `source` in the log.
 
 ## 3. Cancel takes the seek off Lichess
 
@@ -97,7 +120,7 @@ Result:
 5. Again 30+0, then close the app (the window's ×).
    - **Expected**: the seek is gone from B's lobby list.
 
-Result:
+Result: **Partly OK** (2026-11-22): Cancel after 30 s and more stopped the search in the app. Not checked: the seek gone from the lobby list, Back with the icon, closing the app.
 
 ## 4. Paired while on another page
 
@@ -106,7 +129,7 @@ Result:
    - **Expected**: the app opens the game with B from the Games page, without a click.
 3. B resigns.
 
-Result:
+Result: Not run yet.
 
 ## 5. A rated seek (not played)
 
@@ -114,7 +137,7 @@ Result:
    - **Expected**: B's lobby list shows A's seek as **Rated**.
 2. A cancels it (the tile). Don't let B take it.
 
-Result:
+Result: Not run yet.
 
 ## 6. Chess960
 
@@ -126,7 +149,7 @@ Result:
      - the pieces behind the pawns are the same as in the browser.
 3. B resigns.
 
-Result:
+Result: Not run yet.
 
 ## 7. A custom clock
 
@@ -145,7 +168,7 @@ Result:
    - **Expected**: B's lobby shows "½+12", or note what Lichess shows or refuses.
    - Cancel from the Custom tile.
 
-Result:
+Result: Not run yet.
 
 ## 8. A correspondence seek
 
@@ -162,7 +185,7 @@ Result:
    Correspondence tab.
    - **Expected**: it is gone from B's list; the app shows nothing of it (it never followed it).
 
-Result:
+Result: Not run yet.
 
 ## 9. Lichess refuses
 
@@ -174,7 +197,7 @@ Result:
    - If it waits, cancel it.
 3. Finish the browser game (resign).
 
-Result:
+Result: Not run yet.
 
 ## 10. A real opponent (optional, any time)
 
@@ -182,4 +205,9 @@ With B away: A seeks **10+0** (or 15+10) **Rated** and waits, at a busy hour.
 - **Note**:
   - how long it waits until someone takes it (or 3 minutes without);
   - the `gameStart` line's `source`;
-  - after the game, A's rating change on the Profile page and on the 10+0 tile.
+  - after the game, A's rating change on the Profile page (the tiles no longer show a rating).
+
+Result: **OK** (2026-11-22, the owner): every Rapid tile (10+x and the others) paired with real players after
+different waits (some seeks cancelled after 30 s and more); the games played well, won and lost. Mostly
+Black: Lichess's random colour (the seek sends none). Not noted: the `source`, the exact waits, a rating
+change.
