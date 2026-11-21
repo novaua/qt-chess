@@ -1,6 +1,6 @@
 # Active Handover
 
-- **Last completed:** the async review of file and network code (`docs/asyncReviewTickets_211126`): no broad move to async APIs needed (the Lichess code is already asynchronous); five tickets filed: LI-12, LI-13, BL-29, BL-30, BL-31 (2026-11-21).
+- **Last completed:** BL-31, `features/rotateAppLog_211126`: the app log rolls over at 5 MB, 10 files in all; Lichess keep-alive lines no longer logged (2026-11-21).
 - **Current focus:** None. BL-28 waits for a next occurrence in CI (keep its `installer-test-results` artifact). LI-09 waits for the owner's hand tests (`docs/LI-09-ManualTests.md`).
 - **Next up:** close LI-09 after its hand tests; then BL-29 (a Replace import can lose the old profile) or LI-12 (Lichess requests without a timeout).
 - **Active gotchas:**
