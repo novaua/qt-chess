@@ -337,6 +337,28 @@ ApplicationWindow {
         root.notify("Check", "caution")
     }
 
+    // BL-34: the game's end sounds (mate, the win) come once the board has settled, so the mating move is
+    // seen before it is heard: they wait for ChessConnector's boardIdle (the slide and a beat). A result
+    // without a move (resignation, time) or one that comes while reviewing plays at once.
+    property var _endSounds: []
+    function _endSoundWhenIdle(sound) {
+        if (!AppSettings.musicEnabled)
+            return
+        root._endSounds = root._endSounds.concat([sound])
+        // A mate comes with its move, which marks the board busy in the same call: ask on the next pass.
+        Qt.callLater(root._playEndSoundsIfIdle)
+    }
+    function _playEndSoundsIfIdle() {
+        if (ChessConnector.isBoardIdle() || ChessConnector.ReviewMode)
+            root._playEndSounds()
+    }
+    function _playEndSounds() {
+        const sounds = root._endSounds
+        root._endSounds = []
+        for (const sound of sounds)
+            sound.play()
+    }
+
     function clearPendingChallenge() {
         if (_pendingOpponentName === "")   // else a saved link isn't this challenge's
             UserManager.clearPendingChallenge()
@@ -1008,6 +1030,8 @@ ApplicationWindow {
     Connections {
         target: ChessConnector
         function onGameInfoChanged() {
+            if (!ChessConnector.InGame)
+                root._endSounds = []   // the page is gone: no idle comes for them
             root.route()
             if (!ChessConnector.InGame && root._resigning) {   // resignAndLeave() is through
                 root._resigning = false
@@ -1027,13 +1051,13 @@ ApplicationWindow {
                 snd.play()
         }
         function onCheckNotify() { root.announceCheck() }
-        function onCheckMateNotify() {
-            if (AppSettings.musicEnabled)
-                sndCheckmate.play()
-        }
-        function onCheckMateResult(winner) {
-            if (AppSettings.musicEnabled)
-                sndWin.play()
+        function onCheckMateNotify()         { root._endSoundWhenIdle(sndCheckmate) }
+        function onCheckMateResult(winner)   { root._endSoundWhenIdle(sndWin) }
+        function onBoardIdle()               { root._playEndSounds() }
+        function onNewGameStarted()          { root._endSounds = [] }
+        function onGameResultChanged() {
+            if (ChessConnector.GameResult === "")   // a takeback resumed the game
+                root._endSounds = []
         }
         function onNoMoreMovesNotify() { root.notify("No more moves") }
         function onPgnCopied()         { root.notify("PGN copied to the clipboard", "success") }

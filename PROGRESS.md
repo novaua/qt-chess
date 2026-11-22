@@ -1,6 +1,6 @@
 # Active Handover
 
-- **Last completed:** the new `CLAUDE.md` files, rules and skills checked against the code (`docs/claudeMdFactCheck_221126`): 14 claims corrected, the LI-09 scenes listed, README's UI tests. Before it: BL-32 done (#234).
+- **Last completed:** BL-34 (`bugs/checkmateSoundAfterMove_221126`): the checkmate and win sounds wait for the board (`boardIdle`), so the mating move is seen before it is heard. Before it: the `CLAUDE.md` fact check (#235).
 - **Current focus:** None. BL-28 waits for a next occurrence in CI.
 - **Next up:** LI-14 (plan first); LI-09's remaining hand tests (scenarios 1, 3–9); LI-12; BL-33.
 - **Active gotchas:**
