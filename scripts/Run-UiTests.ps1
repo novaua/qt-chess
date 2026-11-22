@@ -113,7 +113,8 @@ $env:CHESS_UI_TEST_STEP_MS = "$StepDelay"
 $env:CHESS_UI_TEST_WATCHED = if ($Visible) { '1' } else { '0' }
 $failedFiles = 0
 $started = Get-Date
-$engineBefore = $env:CHESS_ENGINE_PATH   # put back after the runs
+# Put back after the runs; an empty one counts as none (BL-37), so it isn't passed on empty.
+$engineBefore = if ($env:CHESS_ENGINE_PATH) { $env:CHESS_ENGINE_PATH } else { $null }
 
 # One run of a test file: its results' base name, the run number and the data folder (empty: its own).
 function Invoke-TestRun($file, [string]$baseName, [int]$run, [string]$dataDir, [bool]$noEngine) {
