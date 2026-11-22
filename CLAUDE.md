@@ -22,12 +22,11 @@ a folder, Read its `CLAUDE.md`** (Grep and Glob don't load it).
 | `ChessGui/ChessGui/CLAUDE.md` | the app's folder: its C++ by area, assets, which lists a new file goes into |
 | `.claude/rules/chessgui-cpp.md` | ChessGui's C++ class by class, invariants (loads with a `.h` / `.cpp` there) |
 | `ChessGui/ChessGui/qml/CLAUDE.md` | the QML: rules, the window and pages, the board's layers, shared components, dialogs |
+| `ChessGuiTests/CLAUDE.md` | the UI tests: running, how a run is set up, FakeUci and `FakeLichess`, writing a test, waiting right |
 | `installer/CLAUDE.md` | the installer, Stockfish's download, the smoke test, the icons |
 | `.claude/rules/cpp-style.md` | C++ style (loads with any `.h` / `.cpp`) |
 | `.claude/rules/tasks.md` | the ticket format and working a ticket (loads with a ticket) |
-| `.claude/skills/run-chess-app/` | running the app, screenshots and their scenes |
-
-ChessGuiTests is still described under Running Tests (BL-32 moves it next).
+| `.claude/skills/run-chess-app/` | running the app, screenshots, baselines; its `scenes.md`: every scene |
 
 ## Build System
 
@@ -54,7 +53,7 @@ vstest.console.exe x64\Debug\ChessQtTests.dll
 
 - `ChessTests/` — chess logic, plain C++, no Qt (`ChessTests/CLAUDE.md`).
 - `ChessQtTests/` — the Qt parts (UciConnector, Lichess, ChessGui's C++): Qt's `bin` on `PATH`, some tests need Stockfish; not run by GitHub (`ChessQtTests/CLAUDE.md`).
-- `ChessGuiTests/` — the UI tests (BL-05, `docs/UiTestSuitePlan.md`): **Qt Quick Test**, a console exe, not in Test Explorer; GitHub runs them on every push (`tests.yml`, Debug; a failure uploads `test-results\ui` as `ui-test-results`). `qml/tst_*.qml` (first run, two players, the board, promotion, the robot, profiles, a restart, Lichess, the games library, the analysis, Chess960, Chess960 on Lichess, no engine) play the app's own window (`ChessGame.qml`) with real mouse events, offscreen (also with the screen locked); `qml/AppDriver.qml` has the helpers (`clickMove`, `dragPiece`, `pieceAt`, `waitPiece`, `waitBoardIdle`, `waitMessage`, `startTwoPlayerGame`, `leaveToHome`, `scrollIntoView`, …), items are found by `objectName`. One test file per process on a fresh profile (`TestSetup`, the app's `AppServices`; a file with `// ui-test-runs: 2` runs twice on one data folder, `TestRun.run`: a restart; `// ui-test-engine: none` runs it without an engine, `tst_noEngine`); the robot is FakeUci (`app.startComputerGame(line, thinkMs)`), no Stockfish needed; Lichess is `FakeLichess` (`fakelichessserver.h`, a local server the test plays the other side on; a challenge or ongoing game can be another variant, with a start FEN; `setPlayer` gives a player a title and rating in gameFull; `TestRun.linkLichess`), never lichess.org; `TestRun.addFinishedGames(n)` fills the games library without playing. It builds every ChessGui `.cpp` except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too** (the link fails without it). Run:
+- `ChessGuiTests/` — the UI tests: Qt Quick Test, the app's window played with the mouse, offscreen, FakeUci and `FakeLichess` (never lichess.org); GitHub runs them on every push (`ChessGuiTests/CLAUDE.md`). Run:
 
 ```
 scripts\Run-UiTests.ps1 -Build              # every test file (Release, the default: without -Build an old Release exe runs; -Configuration Debug for the Debug build); -Name tst_twoPlayers -Function test_2_newGameAndDrag for one
@@ -104,6 +103,7 @@ FakeUci, ChessTests → ChessCore;   ChessQtTests, ChessGuiTests → all four ab
   2. `UserManager` and `LichessClient` stay separate services. QML may call them directly for non-game work: profiles, login, Lichess account and challenge setup, ratings. Don't forward their API through `ChessConnector`.
   3. Expose QML-visible services as typed singletons (`qmlRegisterSingletonInstance`), not context properties: `ChessConnector`, `UserManager`, `LichessClient`, `AvatarProvider`, `AppInfo` and `GameLibrary` in module `ChessPlusPlus` (`AppServices`: made, wired and registered there, for `main.cpp` and the UI tests alike). A QML file that uses them has `import ChessPlusPlus`.
 - The Lichess token never reaches QML and is never exported (`UserManager::lichessToken()` is C++ only).
+- **A new ChessGui source goes into `ChessGuiTests.vcxproj` too** (the link fails without it); the other lists it goes into: `ChessGui/ChessGui/CLAUDE.md`.
 
 ## Tasks and Bugs (`.tasks/`)
 
