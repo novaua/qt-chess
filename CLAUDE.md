@@ -49,13 +49,8 @@ A failed test function leaves a picture of the window: `test-results\ui\<TestCas
 local baselines (`-Update` accepts the current look). Details: the `run-chess-app` skill
 (`.claude/skills/run-chess-app/SKILL.md`).
 
-The installer's smoke test (BL-05 step 6): `installer\Test-Installer.ps1`, run by `release.yml` on every PR and
-release after the installer is built: installs it silently, runs the installed app on five screenshot scenes
-with Qt off `PATH` (only installed files count), checks exit codes, pictures and logs, uninstalls. Locally only
-`-AppDir <folder>` (it refuses to install where Chess++ is installed).
-
-App icon and installer images: `python scripts\make_icons.py` (Pillow) redraws `chess.ico`,
-`pics/app-icon.png` and `installer/art/*.bmp`.
+The installer (`release.yml`, Stockfish's download, the smoke test `Test-Installer.ps1`) and the app icon
+(`scripts\make_icons.py`): `installer/CLAUDE.md`.
 
 ## Architecture
 
@@ -155,36 +150,19 @@ It links only `ChessCore` and does **not** use Qt; tests that need Qt (UCI engin
 
 ## Tasks and Bugs (`.tasks/`)
 
-Every task and bug is one Markdown file, `<ID>-<short-kebab-title>.md` (e.g. `LI-10-copy-a-games-link-from-its.md`):
+Every task and bug is one Markdown file. Its format (file name, frontmatter, the next free number, plan and
+hand tests in `docs/`) and working a ticket (start, step entries, closing) are in `.claude/rules/tasks.md`: it
+loads when a ticket is read or edited; Read it before writing a new ticket.
 
 - `.tasks/open/` — the queue: open and in-progress tickets.
 - `.tasks/archive/` — done tickets, each with its history under `## Resolution`. `_unmatched-progress.md` holds old log entries that match no ticket.
-- IDs: `BL-` the app (bugs included: BL-23 and BL-24 were bugs), `LI-` playing on Lichess, `CE-` the chess rules in `ChessCore`; a variant of a ticket gets a letter (`LI-01A`, `LI-01B`). A new ticket takes the next free number of its prefix, across both folders (`ls .tasks/open .tasks/archive`). `TSK-` / `BUG-` are only the old items that had no ID; don't make new ones.
-- Frontmatter, then `# <ID> <title>` and the ticket's text:
-  ```yaml
-  ---
-  id: LI-10
-  title: "Copy a game's link from its card"
-  type: task        # task | bug
-  status: open      # open | in_progress | done
-  priority: medium  # high | medium | low
-  ---
-  ```
-- A ticket's plan and hand tests stay in `docs/` (`docs/<ID>-…Plan.md`, `docs/<ID>-ManualTests.md`), linked from the ticket.
+- IDs: `BL-` the app (bugs included: BL-23 and BL-24 were bugs), `LI-` playing on Lichess, `CE-` the chess rules in `ChessCore`; a variant of a ticket gets a letter (`LI-01A`, `LI-01B`). `TSK-` / `BUG-` are only the old items that had no ID; don't make new ones.
 
 Saving tokens:
 
 - **Never** read all of `.tasks/open/`, and **never** read `.tasks/archive/` unless asked to look into a past ticket.
 - To find work: `ls .tasks/open`, or Grep `.tasks/open` for `status: in_progress` / `priority: high` (file names only), then read **only** the ticket being worked on.
 - A bug or follow-up found on the way: create its file in `.tasks/open/` at once (with what was found: cause if known, where, how to see it) instead of writing it into `PROGRESS.md` or another ticket.
-
-Working a ticket:
-
-- Starting it: `status: in_progress`. A ticket done in steps (one PR each, like BL-19 or LI-01A) stays in `open/`; each step's PR appends a short `### <YYYY-MM-DD> — <step> (branch: <branch>)` entry to its `## Resolution`: done, checked, what is left.
-- Closing it (built, tested, and the owner's hand tests passed where the ticket has them):
-  1. Append a short `## Resolution` entry to the ticket: the cause (a bug), the fix, the tests run and their result.
-  2. Set `status: done` in its frontmatter.
-  3. `git mv .tasks/open/<file>.md .tasks/archive/<file>.md`, in the same PR.
 
 ## Session Handover (`PROGRESS.md`)
 
