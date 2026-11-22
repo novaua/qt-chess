@@ -7,7 +7,9 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
 ## Rules
 - The game only through `ChessConnector`, one call per user action (the root's Key Conventions, rule 1).
 - A file that uses the services has `import ChessPlusPlus`.
-- Pages ask for dialogs through signals; `ChessGame.qml` owns every dialog and InfoBar.
+- Pages ask for the app's dialogs through signals; `ChessGame.qml` owns them and the window's InfoBars. A page's
+  own confirm or note stays in it (`GamesPage`'s Delete `ConfirmDialog`; the InfoBars of `MovesPanel`,
+  `OnlinePage`, `ProfilePage`).
 - Every short message goes through `ChessGame.notify()`.
 - An item a UI test needs has an `objectName` (`ChessGuiTests/` finds items by it).
 - Colours from `Theme` (light, dark, high contrast); the app's options in `AppSettings` (the QtCore `Settings`).

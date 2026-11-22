@@ -21,6 +21,12 @@ link and statistics from `seedScreenshotProfiles()` in `main.cpp`). Read this fi
   `online-blitz` (the challenge card with a name: Blitz lit), `online-challenge` (waiting for that player),
   `online-960` (LI-01A stage 2: the challenge card with Chess960 chosen, its line and "Your Chess960 rating"),
   `online-days` (BL-23: Days per move, 14 days and a username, all inside the card; also `online-days@640x900` in `all`, the narrowest window),
+  `quick-pairing` (LI-09: the Online page's Quick pairing tiles, Rapid and Classical lit, Bullet and Blitz greyed),
+  `quick-pairing-waiting` (a 10+0 seek waiting 0:12: the tile, its line and the command bar's indicator; offline,
+  nothing is sent), `quick-pairing-indicator` (Home while a 10+0 seek waits 0:42, the `SeekIndicator`'s menu open;
+  at `640x560` the icon without the time), `seek-dialog` (Custom: a 20+0 Rapid seek), `seek-dialog-blitz` (5+3:
+  Seek off, the reason shown), `seek-dialog-days` (3 days per move); the first three and `seek-dialog` also at
+  `640x560` in `all`,
   `premove`, `premove-capture`, `premove-played`, `premove-dropped` (LI-05: a Lichess game fed to the stream parser, no network:
   Bf1-c4 waiting in red and the d2 pawn's premove dots; `premove-capture` (BL-21): the f3 knight instead, its premove onto e5's pawn in the premove dot's colour, in the corners; Black's Nc6 comes and Bc4 is played (our moves aren't
   posted in screenshot mode); e4-e5 waiting, gone after Nc6), `rejoin` (BL-18: a Lichess game joined with ten moves, grabbed the moment its page is up, no `--delay`: the position after 5… a6, never the start position), `reconnecting` (LI-06: the same game with its

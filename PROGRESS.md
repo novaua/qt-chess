@@ -1,6 +1,6 @@
 # Active Handover
 
-- **Last completed:** BL-32 done (`docs/bl32FinalTrim_221126`, step 6): root `CLAUDE.md` 118 lines (from 207), per-folder `CLAUDE.md`, path rules, the `ticket` skill; ticket archived. Before it: step 5 (#233).
+- **Last completed:** the new `CLAUDE.md` files, rules and skills checked against the code (`docs/claudeMdFactCheck_221126`): 14 claims corrected, the LI-09 scenes listed, README's UI tests. Before it: BL-32 done (#234).
 - **Current focus:** None. BL-28 waits for a next occurrence in CI.
 - **Next up:** LI-14 (plan first); LI-09's remaining hand tests (scenarios 1, 3–9); LI-12; BL-33.
 - **Active gotchas:**

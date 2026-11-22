@@ -48,6 +48,8 @@ $vstest = & $vswhere -latest -find '**\vstest.console.exe' | Select-Object -Firs
 & $vstest x64\Release\ChessTests.dll x64\Release\ChessQtTests.dll
 ```
 
+UI tests (the app's window played with the mouse, offscreen, on a throwaway profile; no Stockfish or Lichess needed): `.\scripts\Run-UiTests.ps1 -Build`.
+
 Screenshots of the app's views, without opening a window: `.\scripts\Take-Screenshot.ps1 -Scene all` (see the script's help: `Get-Help .\scripts\Take-Screenshot.ps1`).
 
 ## Build the installer locally

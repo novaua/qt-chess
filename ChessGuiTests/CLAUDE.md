@@ -23,12 +23,14 @@ except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too
 
 ## How a run is set up
 - One test file per process on a fresh profile (`TestSetup`, `testsetup.h/cpp`, which uses the app's
-  `AppServices`); `main.cpp` sets the app's style and names.
+  `AppServices`): a temporary data folder, or `CHESS_UI_TEST_DATA_DIR` (`Run-UiTests.ps1` sets it, so a
+  restart's second run finds the first's data); `main.cpp` sets the app's style and names.
 - `// ui-test-runs: 2` in a file runs it twice on one data folder: a restart (`tst_restart.qml`); each function
   skips itself in the other run (`TestRun.run`).
 - `// ui-test-engine: none` runs it without an engine (`tst_noEngine`).
-- `TestRun` (`TestSetup` as a QML singleton, module `ChessGuiTests`, with `FakeLichess`): `linkLichess`, `addFinishedGames(n)` (fills the games library without
-  playing), `addDamagedGame`, `addEditedGame`, `editRatingFile`, `setEngine`, `readTextFile`, `clipboardText`.
+- `TestRun` (`TestSetup` as a QML singleton, module `ChessGuiTests`, with `FakeLichess`): `linkLichess`,
+  `addFinishedGames(n)` (fills the games library without playing), `addDamagedGame`, `addEditedGame`,
+  `editRatingFile`, `setEngine`, `readTextFile`, `clipboardText`.
 - **The robot is FakeUci** (`FakeUci/CLAUDE.md`), no Stockfish: `app.startComputerGame("e2e4 e7e5 …", thinkMs)`
   gives it the game to follow and how long it thinks (`tst_robot.qml`).
 - **Lichess is `FakeLichess`** (QML singleton, `fakelichessserver.h`), a local server the test plays the other

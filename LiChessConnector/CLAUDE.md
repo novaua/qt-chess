@@ -12,7 +12,9 @@ against `FakeLichess`).
   personal API token (`useToken`). The token goes to `UserManager` (ChessGui), which stores it.
 
 ## LichessClient by area
-- **Variants (LI-01A stage 2):** `playableVariant` (standard, chess960: `canPlayHere`); `variantName` (Lichess's
+- **Variants (LI-01A stage 2):** `playableVariant` (standard, chess960); a challenge's or ongoing game's
+  `canPlayHere` is false for another variant, and for what the Board API can't play (Bullet, UltraBullet, and Blitz
+  except from a friend, the API or the AI); `variantName` (Lichess's
   names, QML too); `gameStarted` ends with the game's `variant` and start FEN (`""` for `startpos`):
   `ChessConnector::onLichessGameStarted` starts from it or refuses the game with `gameStartFailed`;
   `challengePlayer(…, variant)`; a Chess960 rematch sends the game's `fen` (the same position); the `chess960`
@@ -26,9 +28,9 @@ against `FakeLichess`).
   reconnects on its own (`LichessStream`: the 1 → 15 s backoff, a 4xx stops it); its `gameFull` is then a resync,
   as is a move POST without an answer: `gameConnectionChanged`, `ChessConnector.Reconnecting`.
   `setBaseUrl` / `setStreamTiming` for the fake-server tests.
-- **Joining (BL-17, BL-18):** `gameStarted` carries the game's moves so far, which `ChessConnector::playJoinedMoves`
-  puts on the board before the game page opens. `rejoinGame` has its own `rejoiningGameId` / `rejoinFailed`, not
-  `networkError`.
+- **Joining (BL-17, BL-18):** `gameStarted` carries the game's moves so far, which
+  `ChessConnector::startOnlineGame(…, joinedMoves)` puts on the board before the game page opens. `rejoinGame`
+  has its own `rejoiningGameId` / `rejoinFailed`, not `networkError`.
 - **Ongoing games (LI-04, BL-24):** `ongoingGames`, the unfinished Lichess games (`refreshOngoingGames`,
   `GET /api/account/playing`); `ongoingGamesLoaded`: while a refresh is in flight the last list stays.
 - **The account's event stream (BL-10):** open while there is a token (`startEventStream`, from `AppServices`);
@@ -50,5 +52,7 @@ against `FakeLichess`).
 - The token never reaches QML: `UserManager::lichessToken()` is C++ only, and profile exports never carry it.
 - One event stream per token.
 - One seek at a time; none while a real-time challenge of ours waits.
-- Chess++ plays only standard and chess960; any other variant is refused when its game starts, not here.
-- Tests never reach lichess.org through a game or a stream: `FakeLichess` on 127.0.0.1 (`setBaseUrl`).
+- Chess++ plays only standard and chess960 (`playableVariant`): another variant is listed with `canPlayHere`
+  false, and a game of one that starts anyway is refused by `ChessConnector::onLichessGameStarted`.
+- Tests never play against lichess.org: `FakeLichess` on 127.0.0.1 (`setBaseUrl`). The one exception,
+  `LichessNetworkTests`, only checks a fake token there.
