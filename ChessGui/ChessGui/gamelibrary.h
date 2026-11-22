@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <memory>
 #include <optional>
+#include "LichessClient.h"
 #include "StartPosition.h"
 
 class GameAnalysis;
@@ -53,14 +54,48 @@ private:
 	int _games = 0;
 };
 
-// One local game of the active profile, as the games library keeps it (BL-19): who, when, the moves
-// in UCI, the result, the clock as it was left. Every game vs the robot or between two players is kept
-// from its first move, finished or left, so Continue, the Games page, the rating and the analysis all
-// read from here. The player's own name isn't stored: it is the profile's (renamed with it).
+// LI-14: what a kept Lichess game knows beyond a local record: its id on lichess.org, whether it was rated
+// there, its speed and days per move, and both players as its gameFull gave them, with the ratings from
+// before the game (the change isn't in the Board API's stream: the profile's Lichess ratings catch up at the
+// next account sync). A record of kind "lichess" has one, as its JSON's "lichess" object.
+class LichessGameInfo
+{
+public:
+	LichessGameInfo() = default;
+	LichessGameInfo(const QString& gameId, bool rated, const QString& speed, int daysPerTurn,
+	                const LichessPlayer& white, const LichessPlayer& black);
+
+	QString gameId() const { return _gameId; }
+	bool    isEmpty() const { return _gameId.isEmpty(); }
+	bool    rated() const { return _rated; }
+	QString speed() const { return _speed; }             // "rapid", "classical", "correspondence", …; "" unknown
+	int     daysPerTurn() const { return _daysPerTurn; } // a correspondence game's; 0 otherwise
+	const LichessPlayer& player(bool white) const { return white ? _white : _black; }
+	QString url() const;                                 // https://lichess.org/<id>
+
+	QJsonObject toJson() const;
+	static LichessGameInfo fromJson(const QJsonObject& o); // empty when there is none
+
+private:
+	QString _gameId;
+	bool    _rated = false;
+	QString _speed;
+	int     _daysPerTurn = 0;
+	LichessPlayer _white;
+	LichessPlayer _black;
+};
+
+// One game of the active profile, as the games library keeps it (BL-19): who, when, the moves in UCI, the
+// result, the clock as it was left. Every game vs the robot or between two players is kept from its first
+// move, finished or left, so Continue, the Games page, the rating and the analysis all read from here; a
+// Lichess game only once it has finished here (LI-14). The player's own name isn't stored: it is the
+// profile's (renamed with it).
 struct GameRecord
 {
-	QString   id;                 // a uuid
-	QString   kind;               // "computer" (vs the robot) or "local" (two players on this computer)
+	QString   id;                 // a uuid; a Lichess game's: lichessRecordId(its Lichess id)
+	// "computer" (vs the robot), "local" (two players on this computer) or "lichess" (LI-14: a finished
+	// Lichess game, never rated, continued or Played from here).
+	QString   kind;
 	bool      finished = false;   // false: Continue offers it
 	QDateTime startedAt;
 	QDateTime finishedAt;         // when the result came (finished only)
@@ -93,7 +128,11 @@ struct GameRecord
 	// BL-20: the player's rated games after this one, so the newest rated game gives the whole rating
 	// (ratingBefore + ratingChange, ratedGames) when rating.json fails its check; 0 in records rated before.
 	int       ratedGames = 0;
+	LichessGameInfo lichess;      // a Lichess game's own facts (kind "lichess"); empty otherwise
 
+	// A Lichess game's record id: "lichess-<gameId>", a file name (isFileId), so a game is never kept twice.
+	static QString lichessRecordId(const QString& lichessGameId) { return QStringLiteral("lichess-") + lichessGameId; }
+	bool isLichess() const { return kind == QLatin1String("lichess"); }
 	bool chess960() const { return !startFen.isEmpty() || !start; }
 	// The standard one unless startFen is a Chess960 start (also for one that can't be read: replay() fails then).
 	Chess::StartPosition startPosition() const { return start.value_or(Chess::StartPosition()); }

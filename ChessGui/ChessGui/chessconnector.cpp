@@ -2464,7 +2464,7 @@ void ChessConnector::replayMoves(const QStringList& uciMoves)
 bool ChessConnector::continueGame(const QString& gameId)
 {
 	const auto rec = _library ? _library->find(gameId) : std::nullopt;
-	if (!rec || rec->finished || rec->moves.isEmpty())
+	if (!rec || rec->finished || rec->isLichess() || rec->moves.isEmpty()) // a Lichess game goes on on Lichess (LI-04)
 		return false;
 	// All of its moves, or the game isn't touched: going on from fewer would keep only those (the record
 	// is written again with the next move).
@@ -2544,7 +2544,7 @@ bool ChessConnector::continueGame(const QString& gameId)
 std::optional<ChessConnector::StartFrom> ChessConnector::startFrom(const QString& gameId, int ply) const
 {
 	const auto rec = _library ? _library->find(gameId) : std::nullopt;
-	if (!rec || ply < 1 || ply > rec->plyCount())
+	if (!rec || rec->isLichess() || ply < 1 || ply > rec->plyCount()) // LI-14: a Lichess game isn't Played from here
 		return std::nullopt;
 	const QStringList moves = rec->moves.mid(0, ply);
 	const auto game = rec->replay(ply);

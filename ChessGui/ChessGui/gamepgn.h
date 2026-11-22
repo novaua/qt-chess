@@ -8,6 +8,7 @@
 #include "StartPosition.h"
 
 struct GameRecord;
+class LichessGameInfo;
 
 // A game as PGN (BL-19): the tags that say what game it was, then its moves in SAN. The game on the
 // board (ChessConnector::pgn) and a kept game (a Games card's Export PGN) are both written by it, so
@@ -15,7 +16,8 @@ struct GameRecord;
 //
 // Tags: the seven of the PGN standard (Event, Site, Date, Round, White, Black, Result), then the
 // robot's Elo (WhiteElo or BlackElo; the player's in a rated game: the rating before it, BL-19 step 5) and
-// TimeControl ("300+2", "-" for none; left out for a Lichess game: Lichess's own PGN has it). A Chess960
+// TimeControl ("300+2", "-" for none; left out for the Lichess game on the board: Lichess's own PGN has it;
+// a kept Lichess game has its players' Elo and its TimeControl, LI-14). A Chess960
 // game (LI-01A) adds Variant "Chess960", SetUp "1" and its start FEN, as lichess.org writes them.
 class GamePgn
 {
@@ -32,6 +34,9 @@ public:
 	void setTwoPlayers();                            // two players at this computer
 	void setPlayerElo(int elo, bool playerPlaysWhite); // the player's rating before a rated game (after setRobot)
 	void setLichessGame(const QString& gameId);      // Site: the game on lichess.org
+	// LI-14: a kept Lichess game: Site, the Event as lichess.org names it ("Rated Rapid game"), both
+	// players' ratings from before the game. Its TimeControl is the record's (setTimeControl).
+	void setLichessRecord(const LichessGameInfo& info);
 	void setTimeControl(int limitSec, int incSec);   // a local game's clock; 0 and 0: none
 	void setStartPosition(const Chess::StartPosition& start); // a Chess960 one is tagged
 

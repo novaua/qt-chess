@@ -18,14 +18,24 @@ std::optional<GamePgn> GamePgn::ofRecord(const GameRecord& record, const QString
 	const auto game = record.replay();
 	if (!game)
 		return std::nullopt;
-	const QString opponent = record.opponentName.isEmpty() ? QStringLiteral("Guest") : record.opponentName;
-	GamePgn pgn(record.playerPlaysWhite ? playerName : opponent,
-	            record.playerPlaysWhite ? opponent : playerName,
+	QString player = playerName;
+	QString opponent = record.opponentName.isEmpty() ? QStringLiteral("Guest") : record.opponentName;
+	if (record.isLichess()) { // LI-14: the Lichess names, as lichess.org's PGN has them
+		const QString me = record.lichess.player(record.playerPlaysWhite).name();
+		const QString them = record.lichess.player(!record.playerPlaysWhite).name();
+		if (!me.isEmpty())
+			player = me;
+		opponent = !them.isEmpty() ? them : record.opponentName.isEmpty() ? QStringLiteral("Anonymous") : record.opponentName;
+	}
+	GamePgn pgn(record.playerPlaysWhite ? player : opponent,
+	            record.playerPlaysWhite ? opponent : player,
 	            Chess::Game::FormatHistorySan(game->GetGameRecord(), game->GetStartPosition()));
 	pgn.setStartPosition(game->GetStartPosition());
 	pgn.setDate(record.startedAt.date());
 	pgn.setResult(record.result);
-	if (record.kind == QLatin1String("computer")) {
+	if (record.isLichess()) {
+		pgn.setLichessRecord(record.lichess);
+	} else if (record.kind == QLatin1String("computer")) {
 		pgn.setRobot(record.level, !record.playerPlaysWhite);
 		if (record.rated)
 			pgn.setPlayerElo(record.ratingBefore, record.playerPlaysWhite);
@@ -58,6 +68,17 @@ void GamePgn::setLichessGame(const QString& gameId)
 {
 	_site = QStringLiteral("https://lichess.org/") + gameId;
 	_timeControl.clear();
+}
+
+void GamePgn::setLichessRecord(const LichessGameInfo& info)
+{
+	_site = info.url();
+	QString speed = info.speed();
+	if (!speed.isEmpty())
+		speed = speed.left(1).toUpper() + speed.mid(1) + QLatin1Char(' ');
+	_event = (info.rated() ? QStringLiteral("Rated ") : QStringLiteral("Casual ")) + speed + QStringLiteral("game");
+	_whiteElo = info.player(true).rating();
+	_blackElo = info.player(false).rating();
 }
 
 void GamePgn::setTimeControl(int limitSec, int incSec)

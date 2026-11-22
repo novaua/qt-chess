@@ -644,8 +644,9 @@ void UserManager::recoverStatistics(User& u, KeptGames& kept)
 }
 
 // The rows ChessConnector::recordResult made for the kept games that verify: the profile's own (vs the
-// robot by level, Guest, another profile), and the two-player games another profile kept against this
-// one (the profile signed in keeps the game). Lichess games have no record.
+// robot by level, Guest, another profile, Lichess), and the two-player games another profile kept against
+// this one (the profile signed in keeps the game). Only the Lichess games that finished here have a record
+// (LI-14): the others aren't rebuilt.
 QMap<QString, UserManager::Record> UserManager::statisticsFromGames(const QString& userId, KeptGames& kept) const
 {
     // Each profile's games read once, however many profiles are rebuilt.
@@ -670,6 +671,8 @@ QMap<QString, UserManager::Record> UserManager::statisticsFromGames(const QStrin
             continue;
         if (r.kind == QLatin1String("computer"))
             add(computerKey(r.level), QStringLiteral("Robot"), r.playerScore());
+        else if (r.isLichess()) // LI-14: as ChessConnector::recordResult counts it
+            add(QStringLiteral("lichess"), QStringLiteral("Lichess"), r.playerScore());
         else if (r.opponentUserId.isEmpty())
             add(QStringLiteral("guest"), QStringLiteral("Guest"), r.playerScore());
         else

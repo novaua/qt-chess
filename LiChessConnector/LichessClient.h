@@ -17,6 +17,9 @@ class LICHESSCONNECTOR_EXPORT LichessPlayer
 public:
 	LichessPlayer() = default;
 	static LichessPlayer fromJson(const QJsonObject& player);
+	// The player as gameFull has them, plus the flair once it came ("flairUrl"): fromJson reads it back
+	// (LI-14: a kept Lichess game's players).
+	QJsonObject toJson() const;
 
 	QString name() const;  // "Stockfish level 3" for the AI; "" for an anonymous player
 	QString title() const { return _title; }

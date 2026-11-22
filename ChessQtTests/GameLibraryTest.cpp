@@ -164,6 +164,66 @@ namespace GameLibraryTests
 			Assert::IsFalse(v.value("analysed").toBool());
 		}
 
+		// LI-14: a finished Lichess game, its id from the Lichess id, both players (as gameFull gives them, with
+		// the opponent's flair) through the signed file. Never rated; it counts under the same cap.
+		TEST_METHOD(ALichessGame_KeptWithItsPlayers_NeverRated)
+		{
+			const QString user = addUser("Alice");
+			const QDateTime t0 = QDateTime::currentDateTime().addDays(-1);
+			GameRecord r = makeRecord("lichess", true, { "e2e4", "e7e5" }, t0);
+			r.id = GameRecord::lichessRecordId("abcd1234");
+			r.opponentName = QStringLiteral("Magnus");
+			r.clockLimitSec = 600;
+			r.clockIncSec = 5;
+			r.resultRecorded = true;
+			const LichessPlayer me = LichessPlayer::fromJson(QJsonObject{
+				{ "id", "alice" }, { "name", "Alice" }, { "rating", 1500 }, { "provisional", true } });
+			LichessPlayer them = LichessPlayer::fromJson(QJsonObject{
+				{ "id", "magnus" }, { "name", "Magnus" }, { "title", "GM" }, { "rating", 2850 } });
+			them.setFlairUrl(QStringLiteral("https://lichess1.org/assets/flair/img/people.crown.webp"));
+			r.lichess = LichessGameInfo("abcd1234", true, "rapid", 0, me, them);
+			Assert::IsTrue(r.isLichess());
+			Assert::IsFalse(r.rateable(), L"only robot games are rated here");
+			Assert::IsTrue(GameLibrary::isFileId(r.id));
+			Assert::AreEqual(QStringLiteral("lichess-abcd1234"), _library->put(r), L"the id is kept as given");
+			_library->flush();
+
+			makeLibrary(); // read again from the signed file
+			const auto kept = _library->find(QStringLiteral("lichess-abcd1234"));
+			Assert::IsTrue(kept.has_value());
+			Assert::IsTrue(kept->isLichess());
+			Assert::IsTrue(kept->finished);
+			Assert::IsFalse(kept->rated);
+			Assert::AreEqual(1200, _library->rating());
+			Assert::AreEqual(0, _library->ratedGames());
+			const LichessGameInfo& info = kept->lichess;
+			Assert::AreEqual(QStringLiteral("abcd1234"), info.gameId());
+			Assert::AreEqual(QStringLiteral("https://lichess.org/abcd1234"), info.url());
+			Assert::IsTrue(info.rated());
+			Assert::AreEqual(QStringLiteral("rapid"), info.speed());
+			Assert::AreEqual(QStringLiteral("Alice"), info.player(true).name());
+			Assert::AreEqual(QStringLiteral("alice"), info.player(true).id());
+			Assert::AreEqual(QStringLiteral("1500?"), info.player(true).ratingText(), L"provisional");
+			Assert::AreEqual(QStringLiteral("GM"), info.player(false).title());
+			Assert::AreEqual(2850, info.player(false).rating());
+			Assert::AreEqual(them.flairUrl(), info.player(false).flairUrl());
+			Assert::AreEqual(QStringLiteral("e2e4 e7e5"), kept->moves.join(' '));
+
+			// Lichess's AI keeps its level (its name is made from it), an anonymous player has none.
+			const LichessPlayer ai = LichessPlayer::fromJson(LichessPlayer::fromJson(QJsonObject{ { "aiLevel", 3 } }).toJson());
+			Assert::IsTrue(ai.isAi());
+			Assert::AreEqual(QStringLiteral("Stockfish level 3"), ai.name());
+			Assert::IsTrue(LichessPlayer().toJson().isEmpty());
+			Assert::IsTrue(GameRecord::fromJson(makeRecord("local", true, { "e2e4" }).toJson()).lichess.isEmpty(),
+				L"a local game has none");
+
+			// One cap for every finished game: a newer robot game pushes the Lichess one out.
+			_library->put(makeRecord("computer", true, { "e2e4" }, t0.addSecs(3600)));
+			_library->setKeepCount(1);
+			Assert::IsFalse(_library->find(QStringLiteral("lichess-abcd1234")).has_value());
+			Assert::AreEqual(1, _library->count());
+		}
+
 		TEST_METHOD(PutWithTheSameIdReplaces)
 		{
 			addUser("Alice");

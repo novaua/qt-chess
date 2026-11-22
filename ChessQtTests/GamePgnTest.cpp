@@ -114,6 +114,43 @@ namespace GamePgnTests
 			Assert::IsTrue(has(text, "[Date \"????.??.??\"]"), L"no date given");
 		}
 
+		// LI-14: a kept Lichess game as lichess.org's PGN has it: the Lichess names (the player's too, not
+		// the profile's), the Event, both ratings from before the game, the record's clock.
+		TEST_METHOD(LichessRecord_SiteEventNamesEloAndClock)
+		{
+			GameRecord r = record("lichess", false, { "e2e4", "e7e5" });
+			r.opponentName = QStringLiteral("Magnus");
+			r.finished = true;
+			r.result = QStringLiteral("1-0");
+			r.clockLimitSec = 600;
+			r.clockIncSec = 5;
+			r.lichess = LichessGameInfo("abcd1234", true, "rapid", 0,
+				LichessPlayer::fromJson(QJsonObject{ { "name", "Magnus" }, { "title", "GM" }, { "rating", 2850 } }),
+				LichessPlayer::fromJson(QJsonObject{ { "name", "alice_lichess" }, { "rating", 1500 } }));
+			const auto pgn = GamePgn::ofRecord(r, QStringLiteral("Alice"));
+			Assert::IsTrue(pgn.has_value());
+			const QString text = pgn->text();
+			Assert::AreEqual(QStringLiteral("Rated Rapid game"), pgn->event());
+			Assert::IsTrue(has(text, "[Site \"https://lichess.org/abcd1234\"]"), text.toStdWString().c_str());
+			Assert::IsTrue(has(text, "[White \"Magnus\"]"));
+			Assert::IsTrue(has(text, "[Black \"alice_lichess\"]"), L"the player's Lichess name");
+			Assert::IsTrue(has(text, "[WhiteElo \"2850\"]"));
+			Assert::IsTrue(has(text, "[BlackElo \"1500\"]"));
+			Assert::IsTrue(has(text, "[TimeControl \"600+5\"]"));
+			Assert::IsTrue(has(text, "1. e4 e5 1-0"), text.toStdWString().c_str());
+
+			// A casual correspondence game against an anonymous player, without ratings.
+			r.clockLimitSec = r.clockIncSec = 0;
+			r.opponentName = QStringLiteral("Anonymous");
+			r.lichess = LichessGameInfo("efgh5678", false, "correspondence", 3, LichessPlayer(),
+				LichessPlayer::fromJson(QJsonObject{ { "name", "alice_lichess" } }));
+			const QString casual = GamePgn::ofRecord(r, QStringLiteral("Alice"))->text();
+			Assert::IsTrue(has(casual, "[Event \"Casual Correspondence game\"]"), casual.toStdWString().c_str());
+			Assert::IsTrue(has(casual, "[White \"Anonymous\"]"));
+			Assert::IsFalse(has(casual, "Elo"));
+			Assert::IsTrue(has(casual, "[TimeControl \"-\"]"));
+		}
+
 		TEST_METHOD(SetMoves_PositionAfterThem)
 		{
 			GameRecord r;
