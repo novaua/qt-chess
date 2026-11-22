@@ -1,13 +1,13 @@
 #pragma once
 #include "lichessconnector_global.h"
 #include "LichessStream.h"
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QSet>
 #include <QTimer>
 #include <QVariantMap>
 
 class QNetworkReply;
-class QJsonObject;
 
 // LI-07: a player of a Lichess game, as gameFull gives them (the Board API's GameEventPlayer): name,
 // title ("GM", "BOT", …), rating and whether it is provisional. Lichess's AI has no name, only its level.
@@ -234,6 +234,9 @@ public:
 	const RematchInfo& lastGame() const { return _lastGame; }
 	// LI-07: the current game's players, from its gameFull (set before gameStarted); empty before one.
 	const LichessPlayer& gamePlayer(bool white) const { return white ? _white : _black; }
+	// LI-14: the started game's gameFull as it came (id, rated, speed, clock, daysPerTurn, createdAt, the
+	// players, …), set before gameStarted; {} once a refused game is dropped.
+	const QJsonObject& currentGameFull() const { return _gameFull; }
 	// LI-11: what /api/users says of the players' flairs (fetchPlayerFlairs), for the players of
 	// gamePlayer() of the game that started; gamePlayersChanged says so.
 
@@ -405,6 +408,7 @@ private:
 	QTimer         _pollTimer;
 	RematchInfo    _lastGame;
 	LichessPlayer  _white, _black;               // the current game's players (LI-07)
+	QJsonObject    _gameFull;                    // the current game's gameFull (LI-14)
 	QNetworkReply* _flairReply = nullptr;        // fetchPlayerFlairs() in flight (LI-11)
 	bool           _watchingForRematch = false; // keep the event stream open for the opponent's offer
 	QString        _rematchOfferId;             // the opponent's offer we got; empty = none

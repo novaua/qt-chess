@@ -82,6 +82,17 @@ TestCase {
 
         FakeLichess.endGame("c9600001", "resign", "black")
         tryVerify(() => ChessConnector.GameResult !== "", 3000, "the game over")
+        // LI-14: kept with its start position, and analysed from it.
+        const kept = GameLibrary.game("lichess-c9600001")
+        compare(kept.kind, "lichess")
+        verify(kept.chess960)
+        compare(kept.startPosition, 3)
+        compare(kept.plyCount, 3)
+        verify(ChessConnector.pgn("lichess-c9600001").indexOf("[Variant \"Chess960\"]") >= 0)
+        tryVerify(() => app.find("analyseResultButton")?.visible, 3000, "Analyse on the result card")
+        app.click("analyseResultButton")
+        tryVerify(() => ChessConnector.Analysis.depth !== undefined, 15000, "analysed")
+        verify(GameLibrary.game("lichess-c9600001").analysed, "from its own start: kept on the record")
         app.leaveToHome()
         app.waitForPage("home", 5000)
     }
@@ -162,6 +173,7 @@ TestCase {
         compare(app.pieceAt("h1"), "R")
         FakeLichess.endGame("c9600003", "aborted", "")
         tryVerify(() => ChessConnector.GameResult !== "", 3000, "the game over")
+        verify(GameLibrary.game("lichess-c9600003").id === undefined, "LI-14: aborted, not kept")
         app.leaveToHome()
         app.waitForPage("home", 5000)
     }

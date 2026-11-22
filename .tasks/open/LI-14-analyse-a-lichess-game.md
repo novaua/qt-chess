@@ -50,3 +50,19 @@ Related: LI-15 (the list of recent Lichess games), LI-16 (the end of a Lichess g
   game vs an anonymous player), `UserManagerTest` (rebuilt statistics: the kept Lichess loss, not the win without
   a record). `Run-UiTests.ps1 -Build`: 13 files green.
 - Left: step 2 (kept when the result comes, Analyse on the board), step 3 (the Games page).
+### 2026-11-23 — step 2: kept when the result comes, Analyse on the board (branch: features/li14KeepAndAnalyse_231126)
+- Done: `ChessConnector::keepLichessGame` (from `updateRecord`, which `setResult` calls for every result): a Lichess
+  game with a move and a result that isn't `*` (aborted) is kept as `lichess-<id>`, its facts from the game's
+  `gameFull` (`LichessClient::currentGameFull`, new; kept by `ChessConnector` when the game starts): created at,
+  rated, speed, clock, days per move; the players with their flairs. `refreshBoardAnalysis` counts a record
+  whatever the game, so `CanAnalyse` turns on once the game is over: the result card's and More's Analyse, as
+  for a local game. `_recordId` is set before `put()` (its `gamesChanged` refreshes the board's analysis, which
+  looks for it). New scene `lichess-result` (also `@1400x900`). FakeLichess's `gameFull` has `createdAt`.
+- Checked: `tst_lichess` test 8 (kept: kind, result, opponent, plies, Lichess's date, its PGN's tags; no Analyse
+  and no record while played; Analyse on the result card, analysed, kept on the record), test 10 (resign and
+  leave: kept), test 13 (no move: not kept), new test 17 (aborted: not kept); `tst_lichess960` test 1 (kept with
+  its start #3, analysed), test 4 (aborted: not kept). `Run-UiTests.ps1 -Build`: 13 files green;
+  `ChessQtTests` green. Scene `lichess-result` (`-Offscreen`, both sizes): Rematch, New game, Review moves,
+  Analyse.
+- Left: step 3 (the Games page: Lichess filter, card words and menu with "Open the analysis on lichess.org";
+  `openGame` shows the Lichess players).

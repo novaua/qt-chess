@@ -393,6 +393,7 @@ QByteArray FakeLichessServer::gameFull(const Game& game) const
 	return compact(QJsonObject{
 		{ "type", "gameFull" },
 		{ "id", game.id },
+		{ "createdAt", 1795176000000LL }, // 2026-11-20 12:00 UTC: a kept game's startedAt (LI-14)
 		{ "rated", false },
 		{ "variant", QJsonObject{ { "key", game.variant } } },
 		{ "speed", "rapid" },

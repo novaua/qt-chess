@@ -1301,6 +1301,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
                 emit networkError(QStringLiteral("Your move didn't reach Lichess. Play it again."));
         } else {
             _lastGame = parseRematchInfo(obj, _username);
+            _gameFull = obj; // LI-14: what the game was (rated, speed, clock, created), for its record here
             _white = LichessPlayer::fromJson(white); // LI-07: both cards show the Lichess players
             _black = LichessPlayer::fromJson(black);
             emit canRematchChanged();
@@ -1323,6 +1324,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
                 // Refused (LI-01A: a variant Chess++ doesn't play): the receiver stopped the stream.
                 // Nothing of this game (its clock, its end, a rematch) may reach the game on the board.
                 _lastGame = {};
+                _gameFull = {};
                 emit canRematchChanged();
                 return false;
             }

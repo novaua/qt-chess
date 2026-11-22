@@ -57,8 +57,8 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
   (Lichess refuses it on the player's) behind `OpponentGone`, `ClaimWinSeconds`, `CanClaimVictory`;
   `claimVictory()` posts only then.
 - **Analysis:** `analyseGame(id)` / `cancelAnalysis()`, `Analysing`, `AnalysisDone` / `AnalysisTotal`,
-  `AnalysisDepth` (Settings → Computer). The board's game: `CanAnalyse` (a kept game that is over, or a replay:
-  never one going on), `AnalysingThisGame`, `Analysis` (per side accuracy and `?!` `?` `??` counts),
+  `AnalysisDepth` (Settings → Computer). The board's game: `CanAnalyse` (a kept game that is over, a finished
+  Lichess game once kept (LI-14), or a replay: never one going on), `AnalysingThisGame`, `Analysis` (per side accuracy and `?!` `?` `??` counts),
   `ShownAnalysis` (the shown position's eval, the move's mark, the engine's best: `ShownAnalysis.playedFrom/To`,
   `bestFrom/To`).
 - **PGN:** `pgn(gameId)` / `pgnFileName(gameId)` / `exportPgn(file, gameId)`: the game on the board (`""`) or a
@@ -95,7 +95,9 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
     JSON's `lichess` object: Lichess id, rated there, speed, days per move, both players as `gameFull` gave them,
     `LichessPlayer::toJson`). Never rated, continued (`continueGame`) or Played from here (`startFrom`); one cap
     with the local games; statistics rebuilt count it under Lichess; its PGN has Site, the Lichess names,
-    the Event as lichess.org's, both Elo and the clock. `ChessConnector` writes it from LI-14 step 2.
+    the Event as lichess.org's, both Elo and the clock. `ChessConnector::keepLichessGame` writes it when the
+    result comes on the board (`setResult` → `updateRecord`): not an aborted game, nor one without a move or left
+    before its end; its facts from the game's `gameFull` (`LichessClient::currentGameFull`, kept at the start).
   - **Files:** one signed file per game, `users/<id>/games/<gameId>.json` (`{"record", "sig"}`); `put` / `remove`
     write only that file once the current event is done (`flush()` writes now; the destructor and a profile
     change do).

@@ -1110,6 +1110,7 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 	_opponentUserId.clear();
 	_lichessMe       = _lichessClient->gamePlayer(playingAsWhite);
 	_lichessOpponent = _lichessClient->gamePlayer(!playingAsWhite);
+	_onlineGameFull  = _lichessClient->currentGameFull(); // LI-14: its record once it ends (a mate among the joined moves too)
 	if (!startOnlineGame(gameId, playingAsWhite, *start, joined ? moves : QStringList{})) {
 		emit gameStartFailed(QStringLiteral("Lichess sent a move Chess++ can't play"));
 		endGame(); // stops the stream; back where the player was (Home), not a board out of step with Lichess
@@ -1387,7 +1388,8 @@ void ChessConnector::refreshBoardAnalysis()
 {
 	GameAnalysis analysis;
 	QStringList moves;
-	const bool kept = _library && !_recordId.isEmpty() && !isOnlineGame();
+	// A Lichess game has a record only once it is over (LI-14): then it is analysed as a local game.
+	const bool kept = _library && !_recordId.isEmpty();
 	if (kept)
 		if (const auto rec = _library->find(_recordId)) {
 			analysis = GameAnalysis::fromJson(rec->analysis);
@@ -2385,12 +2387,16 @@ void ChessConnector::switchUser()
 }
 
 // BL-19: the library's record of the game on the board. Made at its first move (a game without one
-// isn't kept), then written with every move, takeback, the result and when it is left; Lichess games
-// and replays have none.
+// isn't kept), then written with every move, takeback, the result and when it is left; a Lichess game
+// only once its result came (LI-14); a replay has none.
 void ChessConnector::updateRecord()
 {
-	if (!_library || isOnlineGame())
+	if (!_library)
 		return;
+	if (isOnlineGame()) {
+		keepLichessGame();
+		return;
+	}
 	if (_gameMode != QLatin1String("computer") && _gameMode != QLatin1String("local"))
 		return;
 	const auto& record = _game->GetGameRecord();
@@ -2425,11 +2431,7 @@ void ChessConnector::updateRecord()
 		r.clockLimitSec = r.clockIncSec = 0;
 		r.whiteMs = r.blackMs = 0;
 	}
-	r.setStartPosition(_game->GetStartPosition());
-	r.moves.clear();
-	for (const auto& m : record)
-		r.moves.append(QString::fromStdString(m.ToUciString()));
-	r.fen = QString::fromStdString(_game->MakeFen());
+	setRecordPosition(r);
 	r.result = r.finished ? _gameResult.section(' ', 0, 0) : QString();
 	r.resultText = r.finished ? _resultText : QString();
 	r.resultRecorded = _resultRecorded;
@@ -2437,6 +2439,57 @@ void ChessConnector::updateRecord()
 	r.forkOfId = _forkOfId;
 	r.forkPly = _forkPly;
 	_recordId = _library->put(r);
+}
+
+void ChessConnector::setRecordPosition(GameRecord& r) const
+{
+	r.setStartPosition(_game->GetStartPosition());
+	r.moves.clear();
+	for (const auto& m : _game->GetGameRecord())
+		r.moves.append(QString::fromStdString(m.ToUciString()));
+	r.fen = QString::fromStdString(_game->MakeFen());
+}
+
+// LI-14: a Lichess game is kept once its result came here (the owner's decision), never while it goes on, nor
+// an aborted one (Lichess doesn't count it either). One record per Lichess game, lichess-<id>: written again
+// (a game joined after it ended) it replaces itself, its analysis kept while its moves are the same.
+void ChessConnector::keepLichessGame()
+{
+	const QString result = _gameResult.section(' ', 0, 0);
+	if (result.isEmpty() || result == QLatin1String("*") || _onlineGameId.isEmpty() || plyCount() == 0)
+		return;
+	GameRecord r;
+	r.id = GameRecord::lichessRecordId(_onlineGameId);
+	if (const auto kept = _library->find(r.id))
+		r = *kept;
+	r.kind = QStringLiteral("lichess");
+	r.finished = true;
+	const qint64 created = _onlineGameFull.value(QStringLiteral("createdAt")).toInteger();
+	r.startedAt = created > 0 ? QDateTime::fromMSecsSinceEpoch(created) : _recordStarted;
+	if (!r.finishedAt.isValid())
+		r.finishedAt = QDateTime::currentDateTime();
+	r.playerPlaysWhite = _config.playerPlaysWhite;
+	r.opponentName = _opponentName;
+	r.opponentUserId.clear();
+	r.level = 0;
+	if (_avatarProvider)
+		r.playerAvatar = _avatarProvider->playerRawName();
+	const QJsonObject clock = _onlineGameFull.value(QStringLiteral("clock")).toObject();
+	r.clockLimitSec = clock.value(QStringLiteral("initial")).toInt() / 1000;
+	r.clockIncSec = clock.value(QStringLiteral("increment")).toInt() / 1000;
+	r.whiteMs = r.blackMs = 0; // nothing to go on with
+	setRecordPosition(r);
+	r.result = result;
+	r.resultText = _resultText;
+	r.resultRecorded = _resultRecorded;
+	const bool white = _config.playerPlaysWhite;
+	r.lichess = LichessGameInfo(_onlineGameId,
+		_onlineGameFull.value(QStringLiteral("rated")).toBool(),
+		_onlineGameFull.value(QStringLiteral("speed")).toString(),
+		_onlineGameFull.value(QStringLiteral("daysPerTurn")).toInt(),
+		white ? _lichessMe : _lichessOpponent, white ? _lichessOpponent : _lichessMe);
+	_recordId = r.id; // before put(): its gamesChanged refreshes the board's analysis, which looks for it
+	_library->put(r);
 }
 
 // Leaving (Home, switch user, closing the app): the game as it stands. A pawn still waiting for its

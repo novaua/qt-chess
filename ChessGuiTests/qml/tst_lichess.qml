@@ -167,10 +167,34 @@ TestCase {
     }
 
     // The opponent resigns: the result card, the player (Black) wins; Home without a question.
+    // LI-14: the finished game is kept (lichess-game0001, its PGN as lichess.org's), and its result card has
+    // Analyse: FakeUci analyses it as a local game. Neither while it was played.
     function test_08_opponentResigns() {
+        verify(!ChessConnector.CanAnalyse, "no analysis of a game going on")
+        verify(GameLibrary.game("lichess-game0001").id === undefined, "not kept while it goes on")
         FakeLichess.endGame("game0001", "resign", "black")
         tryVerify(() => app.find("resultCard")?.visible, 3000, "the result card")
         verify(ChessConnector.GameResult !== "", "a result: " + ChessConnector.GameResult)
+
+        const kept = GameLibrary.game("lichess-game0001")
+        compare(kept.kind, "lichess")
+        verify(kept.finished)
+        compare(kept.result, "0-1")
+        compare(kept.opponentName, "FriendlyRival")
+        compare(kept.plyCount, 4)
+        compare(kept.playerPlaysWhite, false)
+        compare(Qt.formatDate(kept.startedAt, "yyyy-MM-dd"), "2026-11-20", "Lichess's createdAt")
+        const pgn = ChessConnector.pgn("lichess-game0001")
+        for (const tag of ["[Event \"Casual Rapid game\"]", "[Site \"https://lichess.org/game0001\"]",
+                           "[White \"FriendlyRival\"]", "[Black \"" + me + "\"]", "[WhiteElo \"1712\"]",
+                           "[BlackElo \"1650\"]", "[TimeControl \"600+5\"]", "[Result \"0-1\"]"])
+            verify(pgn.indexOf(tag) >= 0, tag + " in\n" + pgn)
+
+        tryVerify(() => app.item("analyseResultButton").visible, 3000, "Analyse on the result card")
+        app.click("analyseResultButton")
+        tryVerify(() => ChessConnector.AnalysingThisGame, 3000)
+        tryVerify(() => ChessConnector.Analysis.depth !== undefined, 15000, "analysed")
+        verify(GameLibrary.game("lichess-game0001").analysed, "kept on the record")
         app.leaveToHome()
         verify(!app.item("leaveOnlineDialog").visible, "a finished game: no Leave the game?")
     }
@@ -220,6 +244,10 @@ TestCase {
         app.waitForPage("home", 5000)
         app.waitClosed(dialog)
         compare(FakeLichess.status("game0002"), "resign")
+        // LI-14: the resignation's result came before the page was left: kept, lost.
+        compare(GameLibrary.game("lichess-game0002").kind, "lichess")
+        compare(GameLibrary.game("lichess-game0002").result, "1-0")
+        compare(GameLibrary.game("lichess-game0002").plyCount, 4)
     }
 
     // BL-23: with Days per move chosen, its seven buttons, their label and the username field stay inside
@@ -349,6 +377,7 @@ TestCase {
         waitRequest("POST /api/board/game/seek0001/resign")
         app.waitForPage("home", 5000)
         app.waitClosed(dialog)
+        verify(GameLibrary.game("lichess-seek0001").id === undefined, "LI-14: no move played: not kept")
     }
 
     // LI-09 D5: the seek goes on beyond the Online page. Back says so, once a seek; every page's command
@@ -555,5 +584,21 @@ TestCase {
         LichessClient.challengeCanceled()
         app.waitClosed(dialog)
         compare(challenges.pendingId, "", "nothing pending")
+    }
+
+    // LI-14: an aborted game isn't kept (Lichess doesn't count it either), nor analysed.
+    function test_17_abortedGameNotKept() {
+        FakeLichess.challenge("game0017", "Quitter", 1500, "white")
+        tryVerify(() => bar().visible && bar().text.indexOf("Quitter") === 0, 3000, "its challenge on the bar: " + bar().text)
+        app.click("challengeAcceptButton")
+        app.waitForPage("game", 10000)
+        FakeLichess.play("game0017", "e2e4")
+        tryCompare(ChessConnector, "MoveCount", 1, 3000, "1. e4 from Lichess")
+        FakeLichess.endGame("game0017", "aborted", "")
+        tryVerify(() => ChessConnector.GameResult !== "", 3000, "the game over")
+        compare(ChessConnector.ResultText, "Game aborted")
+        verify(GameLibrary.game("lichess-game0017").id === undefined, "not kept")
+        verify(!ChessConnector.CanAnalyse, "nothing to analyse")
+        app.leaveToHome()
     }
 }
