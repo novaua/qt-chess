@@ -1,8 +1,11 @@
 #include "fakelichessserver.h"
 
+#include <QBuffer>
+#include <QColor>
 #include <QDateTime>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QImage>
 #include <QTcpSocket>
 #include <QUrlQuery>
 
@@ -31,9 +34,10 @@ FakeLichessServer::FakeLichessServer(QObject* parent)
 	_players.insert(username(), Player{ {}, 1650, false });
 }
 
-void FakeLichessServer::setPlayer(const QString& name, const QString& title, int rating, bool provisional)
+void FakeLichessServer::setPlayer(const QString& name, const QString& title, int rating, bool provisional,
+                                  const QString& flair)
 {
-	_players.insert(name, Player{ title, rating, provisional });
+	_players.insert(name, Player{ title, rating, provisional, flair });
 }
 
 bool FakeLichessServer::eventStreamOpen() const
@@ -230,6 +234,30 @@ void FakeLichessServer::onRequest(QTcpSocket* socket, const QString& method, con
 		connect(socket, &QTcpSocket::disconnected, this, &FakeLichessServer::streamsChanged);
 		emit streamsChanged();
 		return;
+	}
+	// LI-11: POST /api/users (comma-separated ids): the users, with their flairs.
+	if (!get && path == QLatin1String("/api/users")) {
+		QJsonArray users;
+		for (const QString& id : _server.bodies.last().split(QLatin1Char(','), Qt::SkipEmptyParts))
+			for (auto it = _players.cbegin(); it != _players.cend(); ++it)
+				if (it.key().toLower() == id.trimmed()) {
+					QJsonObject user{ { "id", id.trimmed() }, { "username", it.key() } };
+					if (!it->flair.isEmpty())
+						user.insert("flair", it->flair);
+					users.append(user);
+				}
+		return FakeLichess::json(socket, QJsonDocument(users).toJson(QJsonDocument::Compact));
+	}
+	// LI-11: a flair's image, as lichess1.org serves it: a small WebP (which needs Qt's WebP plugin, here too).
+	if (get && path.startsWith(QLatin1String("/assets/flair/img/")) && path.endsWith(QLatin1String(".webp"))) {
+		QImage image(16, 16, QImage::Format_ARGB32);
+		image.fill(QColor(0xE0, 0x40, 0x40));
+		QByteArray webp;
+		QBuffer buffer(&webp);
+		buffer.open(QIODevice::WriteOnly);
+		if (!image.save(&buffer, "WEBP"))
+			qWarning() << "FakeLichess: no WebP plugin: the flair can't be made";
+		return FakeLichess::bytes(socket, webp, "image/webp");
 	}
 	// /api/board/game/stream/<id>
 	if (get && parts.size() == 5 && parts[1] == QLatin1String("board") && parts[3] == QLatin1String("stream"))

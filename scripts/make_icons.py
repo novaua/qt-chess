@@ -1,13 +1,18 @@
 """App icon and installer images, drawn from the board's white knight (pics/white/n.png).
 
     python scripts/make_icons.py        (needs Pillow: pip install pillow)
+    python scripts/make_icons.py avatar (only the Lichess players' avatar)
 
 Writes:
   ChessGui/ChessGui/chess.ico            exe, taskbar and installer icon (16-256 px)
   ChessGui/ChessGui/pics/app-icon.png    the window icon and the icon on Welcome and About (256 px)
   installer/art/wizard-*.bmp             Inno Setup WizardImageFile (left banner), 100-250 % DPI
   installer/art/wizard-small-*.bmp       Inno Setup WizardSmallImageFile (top right), 100-250 % DPI
+  ChessGui/ChessGui/pics/avatars/online-player.png
+                                         a Lichess player without a flair (LI-11): a pawn before a globe,
+                                         in the avatars' style; never offered in the avatar picker
 """
+import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -82,7 +87,58 @@ def to_bmp(img, path, background=(255, 255, 255)):
     flat.save(path)
 
 
+def online_player_avatar(n=618, scale=4):
+    """A white pawn in front of a blue globe, drawn as the other avatars are (thick black outlines, flat
+    colours, a transparent background), at 4x and scaled down for smooth edges."""
+    N = n * scale
+
+    def p(v):  # a length or coordinate on the 618 grid, at the drawing's scale
+        return round(v * scale)
+
+    img = Image.new('RGBA', (N, N), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    ink, stroke = (0, 0, 0), p(17)
+    sea, land, grid = (0x92, 0xD3, 0xF5), (0x5E, 0xB0, 0x5E), (0x3F, 0x8F, 0xC9)
+
+    # The globe, up and to the right: sea, two patches of land, meridians and parallels, the outline.
+    cx, cy, r = p(370), p(262), p(178)
+    globe = Image.new('L', (N, N), 0)
+    ImageDraw.Draw(globe).ellipse((cx - r, cy - r, cx + r, cy + r), fill=255)
+    layer = Image.new('RGBA', (N, N), sea + (255,))
+    ld = ImageDraw.Draw(layer)
+    ld.polygon([(p(260), p(170)), (p(330), p(140)), (p(372), p(190)), (p(340), p(250)), (p(285), p(262)),
+                (p(250), p(220))], fill=land)
+    ld.polygon([(p(410), p(300)), (p(480), p(270)), (p(520), p(330)), (p(470), p(390)), (p(420), p(370))], fill=land)
+    for w in (r, r * 55 // 100, r * 15 // 100):  # meridians
+        ld.ellipse((cx - w, cy - r, cx + w, cy + r), outline=grid, width=p(7))
+    for dy in (-r * 55 // 100, 0, r * 55 // 100):  # parallels
+        half = int((r * r - dy * dy) ** 0.5)
+        ld.line([(cx - half, cy + dy), (cx + half, cy + dy)], fill=grid, width=p(7))
+    img.paste(layer, (0, 0), globe)
+    draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=ink, width=stroke)
+
+    # The pawn, down and to the left, in front of the globe: head, collar, body, base.
+    white = (255, 255, 255)
+    draw.polygon([(p(190), p(330)), (p(270), p(330)), (p(318), p(492)), (p(142), p(492))], fill=white,
+                 outline=None)
+    draw.line([(p(190), p(330)), (p(142), p(492))], fill=ink, width=stroke)
+    draw.line([(p(270), p(330)), (p(318), p(492))], fill=ink, width=stroke)
+    draw.rounded_rectangle((p(108), p(484), p(352), p(540)), p(22), fill=white, outline=ink, width=stroke)
+    draw.rounded_rectangle((p(160), p(304), p(300), p(344)), p(18), fill=white, outline=ink, width=stroke)
+    draw.ellipse((p(172), p(196), p(288), p(312)), fill=white, outline=ink, width=stroke)
+    return img.resize((n, n), Image.LANCZOS)
+
+
+def write_avatar():
+    online_player_avatar().quantize(64, method=Image.Quantize.FASTOCTREE).save(
+        GUI / 'pics' / 'avatars' / 'online-player.png', optimize=True)
+
+
 def main():
+    if sys.argv[1:] == ['avatar']:
+        write_avatar()
+        return
+    write_avatar()
     knight = Image.open(GUI / 'pics' / 'white' / 'n.png').convert('RGBA')
     icon = app_icon(knight)
 

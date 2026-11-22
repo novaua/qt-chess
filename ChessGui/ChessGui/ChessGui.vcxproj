@@ -416,6 +416,7 @@
     <Image Include="pics\avatars\penguin.png" />
     <Image Include="pics\avatars\pirate.png" />
     <Image Include="pics\avatars\rabbit.png" />
+    <Image Include="pics\avatars\online-player.png" />
     <Image Include="pics\avatars\robot.png" />
     <Image Include="pics\avatars\rocket.png" />
     <Image Include="pics\avatars\star.png" />

@@ -26,7 +26,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           arch: win64_msvc2022_64
-          modules: qtmultimedia
+          modules: qtmultimedia qtimageformats   # qtimageformats: the WebP plugin for Lichess flairs (LI-11)
           # Qt 6.11+ moved to one repository folder per compiler (qt6_6120/qt6_6120_msvc2022_64);
           # aqtinstall 3.3.0, the latest release, still looks in qt6_6120/qt6_6120 and fails with
           # "Failed to locate XML data". The fix (miurahr/aqtinstall#1000) is only on master: pinned

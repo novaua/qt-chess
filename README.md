@@ -13,7 +13,7 @@ All versions: [Releases](https://github.com/novaua/qt-chess/releases). Release n
 
 Tools required to compile:
 * MS Visual Studio 2022 (or newer) with the "Desktop development with C++" workload
-* Qt 6.12+ (with the Qt Multimedia add-on) and [Qt VS Tools](https://marketplace.visualstudio.com/items?itemName=TheQtCompany.QtVisualStudioTools2022)
+* Qt 6.12+ (with the Qt Multimedia and Qt Image Formats add-ons) and [Qt VS Tools](https://marketplace.visualstudio.com/items?itemName=TheQtCompany.QtVisualStudioTools2022)
 
 ## Build and run from the command line (PowerShell)
 One-time setup:

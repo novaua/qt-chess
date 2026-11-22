@@ -392,6 +392,8 @@ Page {
         readonly property bool isRobot: !isPlayer && page.mode === "computer"
 
         avatarUrl: isPlayer ? AvatarProvider.playerUrl : AvatarProvider.opponentUrl
+        avatarFallback: isPlayer ? "" : AvatarProvider.opponentFallbackUrl   // LI-11: a flair offline
+        flair: isPlayer ? ChessConnector.PlayerFlair : ""   // the opponent's flair is their avatar
         name:      isPlayer ? ChessConnector.PlayerName : ChessConnector.OpponentName
         title:     isPlayer ? ChessConnector.PlayerTitle : ChessConnector.OpponentTitle   // LI-07: Lichess's
         detail:    isRobot ? "Level " + level.level + " · " + level.rating

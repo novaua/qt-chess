@@ -941,6 +941,66 @@ namespace LichessTests
 		}
 
 	public:
+		// LI-11: the players' flairs aren't in gameFull: one POST /api/users with both ids once the game has
+		// started, never again on a resync; the images at the asset base, a name that isn't a flair's none.
+		TEST_METHOD(GameStart_AsksForThePlayersFlairs_Once)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString& path) {
+				if (path == QLatin1String("/api/users"))
+					return FakeLichess::json(socket, R"([{"id":"me","flair":"activity.lichess"},{"id":"friend","flair":"../x"}])");
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull("e2e4"));
+				if (lichess.count(Stream) == 1) // then a resync: the same game again
+					QTimer::singleShot(300, socket, [socket]() { socket->disconnectFromHost(); });
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			client.setAssetBaseUrl(QStringLiteral("https://assets.test"));
+			int changed = 0;
+			QObject::connect(&client, &LichessClient::gamePlayersChanged, [&]() { ++changed; });
+
+			client.streamGame("g1");
+			waitUntil([&] { return lichess.count(Stream) == 2 && changed == 1; });
+			waitUntil([] { return false; }, 300); // nothing more comes
+
+			Assert::AreEqual(1, lichess.count("POST /api/users"), L"once a game, not on the resync");
+			Assert::AreEqual(QString("me,friend"), lichess.bodies[lichess.requests.indexOf("POST /api/users")]);
+			Assert::AreEqual(QString("https://assets.test/assets/flair/img/activity.lichess.webp"),
+				client.gamePlayer(true).flairUrl());
+			Assert::AreEqual(QString(), client.gamePlayer(false).flairUrl(), L"\"../x\" is no flair's name");
+			Assert::AreEqual(1, changed);
+		}
+
+		// The AI has no id: only the person is asked for. An answer that comes after the game was left is dropped.
+		TEST_METHOD(PlayersFlairs_AiNotAsked_LeftGameDropped)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString&, const QString& path) {
+				if (path == QLatin1String("/api/users")) {
+					QTimer::singleShot(300, socket, [socket]() {
+						FakeLichess::json(socket, R"([{"id":"me","flair":"activity.lichess"}])");
+					});
+					return;
+				}
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, R"({"type":"gameFull","id":"g1","white":{"id":"me","name":"Me"},)"
+					R"("black":{"aiLevel":3},"state":{"moves":"","status":"started"}})");
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			int changed = 0;
+			QObject::connect(&client, &LichessClient::gamePlayersChanged, [&]() { ++changed; });
+
+			client.streamGame("g1");
+			waitUntil([&] { return lichess.count("POST /api/users") == 1; });
+			Assert::AreEqual(QString("me"), lichess.bodies[lichess.requests.indexOf("POST /api/users")], L"not the AI");
+			client.stopStream();
+			waitUntil([] { return false; }, 600);
+			Assert::AreEqual(0, changed, L"the game was left: its answer dropped");
+			Assert::AreEqual(QString(), client.gamePlayer(true).flairUrl());
+		}
+
 		// The connection drops during the game; meanwhile the opponent moves. The stream comes back on
 		// its own, and the move with it, without a new game.
 		TEST_METHOD(StreamCloses_Reconnects_AndCatchesUp)

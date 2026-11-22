@@ -201,11 +201,11 @@ TestCase {
         app.click("onlineCard")
         app.waitForPage("online", 5000)
 
-        // LI-09: Quick pairing's own Variant row: a Chess960 seek, the tiles with the Chess960 rating,
-        // remembered apart from the challenge's.
+        // LI-09: Quick pairing's own Variant row: a Chess960 seek, remembered apart from the challenge's.
+        // The tiles show no rating (the owner's hand tests, 2026-11-22).
         app.scrollIntoView("quickPairingGrid")
         app.clickIn("online", "quickVariantChoice_1")
-        compare(app.item("quickTile_10+0").rating, "1480?", "the Chess960 pool, provisional")
+        verify(app.item("quickTile_10+0").rating === undefined, "no rating on a tile")
         app.click("quickTile_10+0")
         tryVerify(() => FakeLichess.seekOpen, 3000, "the seek's request open")
         compare(FakeLichess.bodyOf("POST /api/board/seek"), "time=10&increment=0&rated=true&variant=chess960")

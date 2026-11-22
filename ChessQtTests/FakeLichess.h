@@ -77,6 +77,13 @@ namespace LichessTests
 			              + QByteArray::number(body.size()) + "\r\nConnection: close\r\n\r\n" + body);
 			close(socket);
 		}
+		// Any other content: an image (LI-11's flair), "image/webp".
+		static void bytes(QTcpSocket* socket, const QByteArray& body, const char* contentType)
+		{
+			socket->write(QByteArray("HTTP/1.1 200 OK\r\nContent-Type: ") + contentType + "\r\nContent-Length: "
+			              + QByteArray::number(body.size()) + "\r\nConnection: close\r\n\r\n" + body);
+			close(socket);
+		}
 		// Lichess ends a stream (a seek taken or expired): not the client's doing.
 		static void close(QTcpSocket* socket)
 		{

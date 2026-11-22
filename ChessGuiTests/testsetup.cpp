@@ -52,6 +52,7 @@ void TestSetup::applicationAvailable()
 	_lichess = new FakeLichessServer(QCoreApplication::instance());
 	_services = std::make_unique<AppServices>(QCoreApplication::instance(), false);
 	_services->lichessClient()->setBaseUrl(_lichess->url());
+	_services->lichessClient()->setAssetBaseUrl(_lichess->url()); // LI-11: the flairs' images too
 	// A lost stream is tried again after 0.2 s (then 0.4, 0.8, …), a move without an answer gives up
 	// after 3 s; FakeLichess's keep-alive comes every second, well inside the 10 s of silence.
 	_services->lichessClient()->setStreamTiming(10000, 200, 3000, 1000, 2000);
