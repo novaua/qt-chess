@@ -5,7 +5,8 @@ paths:
 
 # Ticket format (`.tasks/`)
 
-The folders, the IDs and the "Saving tokens" rules are in the root `CLAUDE.md` ("Tasks and Bugs").
+The folders, the IDs and the "Saving tokens" rules are in the root `CLAUDE.md` ("Tasks and Bugs"); the steps,
+with the commands, in the `ticket` skill.
 
 ## A ticket file
 

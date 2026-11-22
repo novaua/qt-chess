@@ -1,6 +1,6 @@
 # .tasks
 
-The tickets: `open/` is the queue, `archive/` the done ones. The rules are in `CLAUDE.md` ("Tasks and Bugs").
+The tickets: `open/` is the queue, `archive/` the done ones. The rules are in `CLAUDE.md` ("Tasks and Bugs"), the format in `.claude/rules/tasks.md`, the steps in the `ticket` skill (`.claude/skills/ticket/`).
 
 ## From the former `TASKS.md`
 
