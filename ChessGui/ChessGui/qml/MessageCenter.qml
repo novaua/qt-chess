@@ -1,7 +1,8 @@
 import QtQuick
 import ChessPlusPlus
 
-// The window's messages, their state only (BL-35): one instance in the window, `messages`. The window draws
+// The window's messages, their state only (BL-35): one instance in the window, `messageCenter` (`window.messages`
+// for ScreenshotScene). The window draws
 // them: the two messages over the command bar (CommandBarMessage, BL-13 step 3), the InfoBars for what
 // doesn't fit there, and the recent messages (MessagesFlyout). Every short message comes through
 // ChessGame.notify() → notify() here.

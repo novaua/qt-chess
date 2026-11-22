@@ -35,7 +35,7 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   sound effects switch and the volume. `play(name)` at once (check, low time, a challenge, SettingsPage's
   preview through `soundPreviewRequested`); `playWhenSeen(name, then)` once the board shows the position
   (`ChessConnector.boardIdle`; at once while reviewing): a move's check (`then`: the "Check" message, with sound
-  off too), the mate and the win. Only a move's own sound, from its own Connections, plays as the slide starts.
+  off too; told once, and only if the board still shows a check then), the mate and the win. Only a move's own sound, from its own Connections, plays as the slide starts.
   `played(name)` for the UI tests. A new sound goes here, not into a page.
 - `MessageCenter.qml` — the messages' state, one instance in the window (`messageCenter`, `window.messages` for
   `ScreenshotScene`): the game's state (`statusKind`: an offer, the opponent left, the lost connection; Claim

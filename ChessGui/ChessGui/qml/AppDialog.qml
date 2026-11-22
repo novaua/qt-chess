@@ -6,7 +6,9 @@ import QtQuick.Controls
 // Accept/Reject role buttons are wired to accept()/reject() by Dialog itself. The box's
 // `defaultButton` is the highlighted one: since Qt 6.11 the box sets `highlighted` on its buttons.
 //
-// Opened with open(). The dialogs live in ChessGame.qml; pages ask for them through signals.
+// Opened with open(). The app's dialogs live in ChessGame.qml and its parts (ProfileFiles, …); pages ask
+// for them through signals. A page's own confirm stays in the page, which then has
+// `readonly property bool dialogOpen` for it: the window's shortcuts wait while it is open.
 Dialog {
     id: dialog
 

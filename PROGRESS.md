@@ -1,6 +1,6 @@
 # Active Handover
 
-- **Last completed:** BL-35 step 6, closing BL-35 (`features/bl35GamesKept_221126`): "Games kept" and its confirm in SettingsPage; a page's own dialog (`dialogOpen`) counts in the window's `_dialogOpen`. Before it: BL-37 (`bugs/emptyEngineVars_221126`, PR #245): an empty `CHESS_ENGINE_PATH` counts as none; the scripts no longer leave the engine variables empty.
+- **Last completed:** BL-40 (`bugs/staleCheckSound_221126`): a check's sound and "Check" only if the board still shows it when it settles (found by the review of BL-35's PRs, with three comment fixes and sounds still loading played again).
 - **Current focus:** None. BL-28 waits for a next occurrence in CI.
 - **Next up:** BL-36 (the leave flow out of `ChessGame.qml`); BL-38 (small); LI-14 (plan first); LI-09's remaining hand tests (scenarios 1, 3–9); LI-12; BL-33.
 - **Active gotchas:**

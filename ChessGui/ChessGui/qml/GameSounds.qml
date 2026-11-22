@@ -9,7 +9,8 @@ import ChessPlusPlus
 // - playWhenSeen(name, then): a sound about the position comes once the board shows it (BL-34, BL-35
 //   step 1b: the move first, then its sound): at ChessConnector's boardIdle (the slide and a beat); at
 //   once if the board is idle or a position is being reviewed. `then` (optional) runs with it, also with
-//   sound off: the window's "Check" message. A new game, a takeback or leaving the game drops what waits.
+//   sound off: the window's "Check" message. A new game, a takeback or leaving the game drops what waits;
+//   a check is told once, and only if the board still shows it when it settles (_playWaiting).
 //   Only a move's own sound plays as its slide starts: it is the move.
 // - Its own Connections play the moves, the mate and the win, and a new Lichess challenge.
 // Names: move, moveOpponent, check, checkmate, win, lowTime, challenge.
@@ -44,7 +45,10 @@ Item {
             console.warn("GameSounds: no sound named", name)
             return
         }
-        if (effect.status === SoundEffect.Ready)
+        // One still loading plays once loaded (SoundEffect queues it), except a move's own: it belongs to its
+        // slide, and late it would sound like the next move.
+        const late = effect.status !== SoundEffect.Ready
+        if (effect.status !== SoundEffect.Error && !(late && (name === "move" || name === "moveOpponent")))
             effect.play()
         sounds.played(name)
     }
@@ -60,14 +64,22 @@ Item {
         if (ChessConnector.isBoardIdle() || ChessConnector.ReviewMode)
             sounds._playWaiting()
     }
+    // A check (its sound and `then`) is told once, and only if the board still shows it: a takeback or a
+    // reply (a Lichess premove) before the board settled may have ended it; with a mate, the mate says it.
+    // While reviewing it plays at once (CheckedKing is then the reviewed position's, not the game's).
     function _playWaiting() {
         const waiting = sounds._waiting
         sounds._waiting = []
-        for (const w of waiting) {
+        const lastCheck = waiting.map(w => w.name).lastIndexOf("check")
+        const checkStands = (ChessConnector.ReviewMode || ChessConnector.CheckedKing >= 0)
+                            && !waiting.some(w => w.name === "checkmate")
+        waiting.forEach((w, i) => {
+            if (w.name === "check" && (i !== lastCheck || !checkStands))
+                return
             sounds.play(w.name)
             if (w.then)
                 w.then()
-        }
+        })
     }
 
     Connections {
@@ -80,7 +92,9 @@ Item {
         }
         function onCheckMateNotify()       { sounds.playWhenSeen("checkmate") }
         function onCheckMateResult(winner) { sounds.playWhenSeen("win") }
-        function onBoardIdle()             { sounds._playWaiting() }
+        // On the next pass, if the board is still idle: idle can come from inside a change that then goes
+        // on (a takeback clears the gate before it undoes the move; a premove plays as the board settles).
+        function onBoardIdle()             { Qt.callLater(sounds._playWaitingIfIdle) }
         function onNewGameStarted()        { sounds._waiting = [] }
         function onGameResultChanged() {
             if (ChessConnector.GameResult === "")   // a takeback resumed the game

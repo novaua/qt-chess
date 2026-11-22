@@ -1,6 +1,7 @@
 import QtQuick
 import QtTest
 import ChessPlusPlus
+import "qrc:/qml"   // AppSettings
 
 // Scenario 7 (docs/UiTestSuitePlan.md §9): a game against the robot, which is FakeUci here (the same
 // moves every time, no Stockfish needed). Its line: 1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6.
@@ -144,5 +145,37 @@ TestCase {
         compare(ChessConnector.GameResult, "")
         app.waitBoardIdle()
         compare(ChessConnector.MovableColor, 2, "the player's move, as Black")
+    }
+
+    // BL-40: the player's 2. Qh5+ taken back while it still slides: once the board settles there is no
+    // check, so neither its sound nor "Check" comes (a check waits for the board, BL-35 step 1b).
+    function test_8_checkTakenBackInItsSlide() {
+        app.leaveToHome()
+        app.startComputerGame("e2e4 f7f6 d1h5 g7g6", thinkMs)
+        const sounds = app.item("gameSounds")
+        const bar = app.item("shortMessage")
+        const heard = []
+        const onSound = name => heard.push(name)
+        const soundWasOn = AppSettings.musicEnabled
+        AppSettings.musicEnabled = true
+        sounds.played.connect(onSound)
+        try {
+            app.waitBoardIdle()
+            app.clickMove("e2", "e4")
+            tryCompare(ChessConnector, "MoveCount", 2, thinkMs + 5000, "its f6")
+            app.clickMove("d1", "h5")
+            tryCompare(ChessConnector, "MoveCount", 3, 3000)
+            verify(!ChessConnector.isBoardIdle(), "Qh5+ still on its way")
+            ChessConnector.requestTakeback()
+            tryCompare(ChessConnector, "MoveCount", 2, 3000, "Qh5+ taken back")
+            app.waitBoardIdle()
+            compare(ChessConnector.CheckedKing, -1, "no check on the board")
+            wait(400)   // past the gate's beat and the queue's next pass
+            verify(heard.indexOf("check") < 0, "no check sound: " + heard.join())
+            verify(!(bar.showing && bar.text === "Check"), "no \"Check\"")
+        } finally {
+            sounds.played.disconnect(onSound)
+            AppSettings.musicEnabled = soundWasOn
+        }
     }
 }
