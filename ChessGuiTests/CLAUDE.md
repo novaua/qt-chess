@@ -13,7 +13,8 @@ except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too
 .\scripts\Run-UiTests.ps1 -Name tst_twoPlayers -Visible            # the owner watches: a real window, 500 ms per action (-StepDelay)
 ```
 - Release is the default: without `-Build` an old Release exe runs; `-Configuration Debug` for the Debug build.
-- Results in `test-results\ui\<file>.txt` / `.xml`, failures printed; exit code = failed files. A failed test
+- Results in `test-results\ui\<file>.txt` / `.xml`, failures printed; exit code = failed files. A QML
+  `TypeError` or `ReferenceError` in a file's log fails it too, even with every test passed (BL-38). A failed test
   function leaves `test-results\ui\<TestCase>-<function>.png`, the window at the failure (offscreen: dark),
   listed under the failure: Read it.
 - `-Visible` puts windows on the owner's screen and, after a failure, waits until they close the window: for the

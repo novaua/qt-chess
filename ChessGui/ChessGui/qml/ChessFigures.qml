@@ -71,7 +71,12 @@ Item {
             // A promoting pawn stays a pawn until it has arrived (and a queen taken back turns into
             // a pawn once back on the 7th rank). The choice after a pawn's move changes it in place.
             property string shownPiece: piece
-            onPieceChanged: Qt.callLater(() => { if (!chessPiecesSlide.running) shownPiece = piece })
+            // On the next pass, once a slide that came with the change has started. The delegate may be gone
+            // by then (a new position replaces the pieces): its ids are null (BL-38).
+            onPieceChanged: Qt.callLater(() => {
+                if (chessPiecesSlide && !chessPiecesSlide.running)
+                    shownPiece = piece
+            })
 
             // Fades in when it appears (shown is set once created), fades out when captured.
             property bool shown: false

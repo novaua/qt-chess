@@ -6,7 +6,8 @@
     Runs ChessGuiTests.exe once per test file (ChessGuiTests\qml\tst_*.qml), each in its own process
     on a fresh temporary profile, with -platform offscreen: nothing shows on screen, and it works
     with the screen locked. Each file's results go to test-results\ui\<file>.txt (and .xml, JUnit);
-    the failures are printed. See docs/UiTestSuitePlan.md.
+    the failures are printed. See docs/UiTestSuitePlan.md. A file whose log has a QML TypeError or
+    ReferenceError fails too, even when every test passed (BL-38).
 
     -Screens adds the screenshot check: every scene in light and dark (Take-Screenshot.ps1), then
     Compare-Screenshots.ps1 against your baselines. That is the full pre-PR check; it needs an
@@ -147,11 +148,15 @@ function Invoke-TestRun($file, [string]$baseName, [int]$run, [string]$dataDir, [
     $code = $process.ExitCode
     $log = Read-Results $txt
     $totals = $log | Where-Object { $_ -like 'Totals:*' } | Select-Object -First 1
-    if ($code -eq 0 -and $totals) {
+    # A QML error at run time (a TypeError, a ReferenceError) fails the file even when every test passed:
+    # harmless where it is, it still hides the next real one in the log (BL-38).
+    $qmlErrors = @($log | Where-Object { $_ -match '^QWARN.*\.qml:\d+: (TypeError|ReferenceError)' })
+    if ($code -eq 0 -and $totals -and $qmlErrors.Count -eq 0) {
         Write-Host "OK    $baseName - $($totals -replace '^Totals: ', '')"
         return $true
     }
-    $why = if ($totals) { $totals -replace '^Totals: ', '' } else { "exit code $code, no results (see $txt)" }
+    $why = if ($code -eq 0 -and $totals) { "$($qmlErrors.Count) QML errors in the log ($($totals -replace '^Totals: ', ''))" }
+           elseif ($totals) { $totals -replace '^Totals: ', '' } else { "exit code $code, no results (see $txt)" }
     Write-Host "FAIL  $baseName - $why" -ForegroundColor Red
     # Each failure with its message and location (the lines after FAIL! up to the next result).
     $inFailure = $false
