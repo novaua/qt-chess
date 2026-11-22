@@ -30,9 +30,10 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   and the taskbar flash for a new one).
 - `GameSounds.qml` — every sound the app plays, one instance in the window (objectName `gameSounds`), with the
   sound effects switch and the volume. `play(name)` at once (check, low time, a challenge, SettingsPage's
-  preview through `soundPreviewRequested`); `playWhenSeen(name)` once the board shows the position
-  (`ChessConnector.boardIdle`; at once while reviewing): the mate and the win; its own Connections play each move's
-  sound as the slide starts. `played(name)` for the UI tests. A new sound goes here, not into a page.
+  preview through `soundPreviewRequested`); `playWhenSeen(name, then)` once the board shows the position
+  (`ChessConnector.boardIdle`; at once while reviewing): a move's check (`then`: the "Check" message, with sound
+  off too), the mate and the win. Only a move's own sound, from its own Connections, plays as the slide starts.
+  `played(name)` for the UI tests. A new sound goes here, not into a page.
 - `HomePage.qml` — account menu; Continue: the only unfinished game directly, two or more:
   `ContinueGamesPage` (`ChessGame.continueGames()`); action cards, among them **Games** (Ctrl+O): `GamesPage`.
 - `ContinueGamesPage.qml` — every unfinished game: the kept local games first as `GameCard`s

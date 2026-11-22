@@ -329,11 +329,13 @@ ApplicationWindow {
         pgnExportDialog.open()
     }
 
-    // A move gave check, or a resumed game opened in check: the sound and the bar.
+    // A move gave check: the sound and the bar once the board shows it (BL-35 step 1b, as the mate's).
+    // A resumed game that opens in check: GamePage's checkShown, at its first boardIdle.
     function announceCheck() {
         sounds.play("check")
-        root.notify("Check", "caution")
+        root._notifyCheck()
     }
+    function _notifyCheck() { root.notify("Check", "caution") }
 
     function clearPendingChallenge() {
         if (_pendingOpponentName === "")   // else a saved link isn't this challenge's
@@ -1011,7 +1013,7 @@ ApplicationWindow {
             }
         }
 
-        function onCheckNotify() { root.announceCheck() }
+        function onCheckNotify() { sounds.playWhenSeen("check", root._notifyCheck) }
         function onNoMoreMovesNotify() { root.notify("No more moves") }
         function onPgnCopied()         { root.notify("PGN copied to the clipboard", "success") }
         function onMovesTakenBack(plies) { root.notify(plies === 1 ? "Move taken back" : plies + " moves taken back") }

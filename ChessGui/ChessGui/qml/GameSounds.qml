@@ -4,10 +4,13 @@ import ChessPlusPlus
 
 // Every sound the app plays (BL-35): one instance in the window, `sounds`. The sound effects switch
 // (AppSettings.musicEnabled) and the volume apply to them all.
-// - play(name): at once. The window asks for "check" and "lowTime"; SettingsPage's volume preview.
-// - playWhenSeen(name): a sound about the position comes once the board shows it (BL-34): at
-//   ChessConnector's boardIdle (the slide and a beat); at once if the board is idle or a position is
-//   being reviewed. A new game, a takeback or leaving the game drops what waits.
+// - play(name): at once. The window asks for "check" (a resumed game that opens in check: GamePage
+//   holds it until its board is idle) and "lowTime"; SettingsPage's volume preview.
+// - playWhenSeen(name, then): a sound about the position comes once the board shows it (BL-34, BL-35
+//   step 1b: the move first, then its sound): at ChessConnector's boardIdle (the slide and a beat); at
+//   once if the board is idle or a position is being reviewed. `then` (optional) runs with it, also with
+//   sound off: the window's "Check" message. A new game, a takeback or leaving the game drops what waits.
+//   Only a move's own sound plays as its slide starts: it is the move.
 // - Its own Connections play the moves, the mate and the win, and a new Lichess challenge.
 // Names: move, moveOpponent, check, checkmate, win, lowTime, challenge.
 Item {
@@ -46,12 +49,10 @@ Item {
         sounds.played(name)
     }
 
-    // The queue of sounds waiting for the board.
+    // The sounds waiting for the board: { name, then }. Queued with sound off too, for `then`.
     property var _waiting: []
-    function playWhenSeen(name) {
-        if (!AppSettings.musicEnabled)
-            return
-        sounds._waiting = sounds._waiting.concat([name])
+    function playWhenSeen(name, then) {
+        sounds._waiting = sounds._waiting.concat([{ name: name, then: then }])
         // A mate comes with its move, which marks the board busy in the same call: ask on the next pass.
         Qt.callLater(sounds._playWaitingIfIdle)
     }
@@ -60,10 +61,13 @@ Item {
             sounds._playWaiting()
     }
     function _playWaiting() {
-        const names = sounds._waiting
+        const waiting = sounds._waiting
         sounds._waiting = []
-        for (const name of names)
-            sounds.play(name)
+        for (const w of waiting) {
+            sounds.play(w.name)
+            if (w.then)
+                w.then()
+        }
     }
 
     Connections {

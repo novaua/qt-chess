@@ -26,7 +26,11 @@ TestCase {
     function test_1_foolsMateByClicks() {
         const sounds = app.item("gameSounds")
         const heard = []   // "name@idle" or "name@busy": the board's state when the sound was asked for
-        const record = name => heard.push(name + (ChessConnector.isBoardIdle() ? "@idle" : "@busy"))
+        const times = []   // when each came (Date.now())
+        const record = name => {
+            heard.push(name + (ChessConnector.isBoardIdle() ? "@idle" : "@busy"))
+            times.push(Date.now())
+        }
         const soundWasOn = AppSettings.musicEnabled
         AppSettings.musicEnabled = true
         sounds.played.connect(record)
@@ -58,6 +62,10 @@ TestCase {
             const mateAt = heard.indexOf("checkmate@idle")
             verify(heard.slice(0, mateAt).filter(h => h.startsWith("move")).length === 4,
                    "the mate heard after the mating move's own sound: " + heard)
+            // The mate's signal comes inside the move, before the board is marked busy: only waiting for
+            // boardIdle puts it after the slide and the gate's beat (150 ms) that follow the move's sound.
+            verify(times[mateAt] - times[mateAt - 1] >= 100,
+                   "the mate " + (times[mateAt] - times[mateAt - 1]) + " ms after the mating move's sound")
         } finally {
             sounds.played.disconnect(record)
             AppSettings.musicEnabled = soundWasOn
