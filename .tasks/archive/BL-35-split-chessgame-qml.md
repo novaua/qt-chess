@@ -2,7 +2,7 @@
 id: BL-35
 title: "Split ChessGame.qml: the sounds and the window's other parts into their own files"
 type: task
-status: in_progress
+status: done
 priority: medium
 ---
 
@@ -96,3 +96,19 @@ each.
   it, the profile goes, the picker is left. `tst_restart` still sees the notices. Scenes `import`, `profile`,
   `profiles` (`-Offscreen`): the same as `develop`'s, taken just before as baselines.
 - Left: step 6.
+### 2026-11-22 — step 6: "Games kept" → SettingsPage; closed (branch: features/bl35GamesKept_221126)
+- Done: `setGamesKept()` and `gamesKeptConfirm` are SettingsPage's (a page's own confirm stays in it); its signal
+  `gamesKeptChangeRequested` is gone. A page with a dialog of its own has `dialogOpen`, and the window's
+  `_dialogOpen` reads `stack.currentItem.dialogOpen`. The window keeps the `keepCount` Binding.
+  `ChessGame.qml` 1058 → 1035 lines.
+- The plan's check: GamesPage's `deleteGameConfirm` wasn't in `_dialogOpen`, so with it open the window's
+  shortcuts (Esc, F1, Ctrl+M, Ctrl+,) stayed enabled. Whether a key really got past the confirm isn't seen: it is
+  modal, Qt Quick Controls may hold back shortcuts outside a modal popup, and a test can't type into the app's
+  window. GamesPage got `dialogOpen` too (one line, the same mechanism), so it counts like every other dialog;
+  no ticket of its own.
+- Checked: `Run-UiTests.ps1 -Build`, 13 files green. `tst_games` test 4 (Delete) and test 5 (Games kept) check
+  `_dialogOpen` while the confirm is open and after; test 4 fails without GamesPage's `dialogOpen`. No
+  screenshots: nothing drawn changed.
+- BL-35 done: `ChessGame.qml` about 1480 → 1035 lines over steps 1–6 (`GameSounds`, `StartNotice`,
+  `MessageCenter`, `LichessChallenges`, `ProfileFiles`, `DataCheckNotices`, `levelColor` in `Theme`). The leave
+  flow is BL-36.

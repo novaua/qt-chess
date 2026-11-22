@@ -16,6 +16,9 @@ Page {
     signal backRequested()
     signal exportRequested(string gameId)
 
+    // The page's own dialog is open: the window's shortcuts wait (ChessGame._dialogOpen).
+    readonly property bool dialogOpen: deleteConfirm.visible
+
     // The filter buttons, in their order: which kept games each one shows.
     readonly property var _filters: [
         { label: "All",         shows: g => true },
