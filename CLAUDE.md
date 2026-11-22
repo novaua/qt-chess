@@ -26,6 +26,7 @@ a folder, Read its `CLAUDE.md`** (Grep and Glob don't load it).
 | `installer/CLAUDE.md` | the installer, Stockfish's download, the smoke test, the icons |
 | `.claude/rules/cpp-style.md` | C++ style (loads with any `.h` / `.cpp`) |
 | `.claude/rules/tasks.md` | the ticket format and working a ticket (loads with a ticket) |
+| `.claude/skills/ticket/` | filing, starting, a step entry, closing a ticket |
 | `.claude/skills/run-chess-app/` | running the app, screenshots, baselines; its `scenes.md`: every scene |
 
 ## Build System
@@ -109,7 +110,8 @@ FakeUci, ChessTests → ChessCore;   ChessQtTests, ChessGuiTests → all four ab
 
 Every task and bug is one Markdown file. Its format (file name, frontmatter, the next free number, plan and
 hand tests in `docs/`) and working a ticket (start, step entries, closing) are in `.claude/rules/tasks.md`: it
-loads when a ticket is read or edited; Read it before writing a new ticket.
+loads when a ticket is read or edited; Read it before writing a new ticket. The steps (a new ticket, starting,
+step entries, closing): the `ticket` skill.
 
 - `.tasks/open/` — the queue: open and in-progress tickets.
 - `.tasks/archive/` — done tickets, each with its history under `## Resolution`. `_unmatched-progress.md` holds old log entries that match no ticket.
@@ -130,7 +132,7 @@ At the start of a session read `PROGRESS.md`, then confirm the branch with `git 
 - **Last completed:** ticket ID, branch, one line on what was done.
 - **Current focus:** the active ticket ID and where it stands, or `None`.
 - **Next up:** the ticket from `.tasks/open/` to take next.
-- **Active gotchas:** blockers and passing environment notes only. Lasting rules go into this file (or the `run-chess-app` skill for screenshots), not there.
+- **Active gotchas:** blockers and passing environment notes only. Lasting rules go where they apply, not there: the `CLAUDE.md` of the folder they are about, a `.claude/rules/` file for a kind of file, a skill for a procedure; this file only for what every task needs.
 
 ## Branching Workflow
 

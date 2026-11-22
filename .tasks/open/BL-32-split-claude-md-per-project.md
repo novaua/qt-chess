@@ -59,3 +59,8 @@ Also found (§7 of the plan): `.claude/settings.local.json` is tracked in git, a
 - Coverage: every `` `code` `` span of the old root and the old skill is in the new files, but five reworded: `TestRun.addFinishedGames(n)`, `app.startComputerGame(line, thinkMs)` (with a real line), `ChessGuiTests.exe` and the `ChessGuiTests\qml\…` paths (as `qml/…` in the folder's file).
 - Checked in a fresh `claude -p` session: reading `ChessGuiTests/qml/tst_board.qml` loads the root and `ChessGuiTests/CLAUDE.md`.
 - Left: steps 5–6.
+
+### 2026-11-22 — step 5, tickets (branch: docs/bl32Tickets_221126)
+- Done: the `ticket` skill (`.claude/skills/ticket/SKILL.md`): a new ticket (the prefix, the next free number by a PowerShell one-liner, the file, one found on the way), starting one, each PR's step entry and `PROGRESS.md`, closing (hand tests: ask the owner, never assume). The format stays in one place, `.claude/rules/tasks.md`; the skill points to it. Pointers updated: `.tasks/README.md`, the root's Tasks section and "Where to read more", the rule; the root's Session Handover now says where lasting rules go (a folder's `CLAUDE.md`, a rule, a skill; the root only for what every task needs) instead of "this file or the run-chess-app skill".
+- Checked: the number command gives BL-34 and LI-17 (BL-33, LI-16 are the last); a fresh `claude -p` session lists the `ticket` skill with its description.
+- Left: step 6, the final trim.
