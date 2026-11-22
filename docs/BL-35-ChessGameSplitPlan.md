@@ -55,7 +55,8 @@ The callers:
 - **SettingsPage** gets `signal soundPreviewRequested(string name)`, and the window answers it with
   `sounds.play(name)`.
 
-**Why a component, and not a singleton or C++:**
+**Why a component, and not a singleton or C++** (the owner, 2026-11-22: QML wherever possible; C++ only where
+it is clearly better or simpler):
 
 - **A QML singleton** lives as long as the engine, not the window. The UI tests make and close windows in one
   engine (`AppDriver`), so the queue and the Connections would outlive their window. Pages could also call it
@@ -68,9 +69,19 @@ The callers:
 whether a `SoundEffect` is ready on the test runner, which has no audio device. If it isn't, `played` is
 emitted for the request, not the effect.
 
-**For the owner, not in this PR:** a move's check still sounds as the slide starts, and "Check" shows at the
-same time. Should it wait for the slide, as mate now does (`playWhenSeen("check")`)? That would be a change in
-behaviour, so it would be its own small PR.
+## 1b. Check after the slide, like mate (its own small PR, right after step 1)
+
+The owner's rule (2026-11-22): the move first, then its sound, the same way everywhere. Step 1 moves the code
+and changes nothing. Step 1b is the one change in behaviour:
+
+- A move's check goes through `playWhenSeen("check")`, and the "Check" message waits with it. The window's
+  `onCheckNotify` asks GameSounds to tell it when the sound plays, e.g. `playWhenSeen("check", () =>
+  notify("Check", "caution"))`. The sound and the message then come together, after the slide.
+- A resumed game that opens in check keeps GamePage's hold. It already comes at the first `boardIdle`.
+- After this, the only sound that plays as the slide starts is the move's own (move, move_opponent): it is the
+  move. Low time and a challenge aren't about the position, so they still play at once.
+- **Test:** a UI test that gives check and sees `played("check")` and the "Check" message after `boardIdle`.
+- **Scene to compare:** `check`.
 
 ## 2. `levelColor` → `Theme`, and `StartNotice.qml`
 
@@ -136,17 +147,11 @@ A `QtObject` with the pending challenge, the challenges shown and the `LichessCl
 - **To check here:** GamesPage's `deleteGameConfirm` isn't in `_dialogOpen`, so Esc with it open may also pop
   the page. If it does, that bug gets its own ticket.
 
-## 7. Optional: `LeaveFlow.qml`
+## Not in BL-35: the leave flow (BL-36)
 
-The leave, resign, switch-user and quit flow (228–296, 1036–1043, `onClosing`, 1370–1394), with
-`resignConfirm`, `switchUserConfirm` and `leaveOnlineDialog`.
-
-- `leave()`, `switchUser()`, `resign()`, `onWindowClosing(event)`; signal `quitRequested()`.
-- **The highest risk of the plan:** the order of quit after resign. `tst_lichess` and `tst_profiles` cover it,
-  and ScreenshotScene's `dialogs.leaveOnline` needs rewiring.
-- **Root rule 1:** `_doLeaveGame` / `_doSwitchUser` each make two calls (`cancelChallenge`, then a
-  ChessConnector call). Check them against "one call per user action" while they move.
-- Only if the owner wants it after step 6.
+The leave, resign, switch-user and quit flow (`LeaveFlow.qml`) is its own task, **BL-36**, done after BL-35
+(the owner, 2026-11-22). It is the plan's highest risk, and the only part that may change behaviour (root rule
+1), so it is kept apart.
 
 ## Each step
 
@@ -166,12 +171,11 @@ The leave, resign, switch-user and quit flow (228–296, 1036–1043, `onClosing
 | 4 LichessChallenges | 105 |
 | 5 ProfileFiles + DataCheckNotices | 115 |
 | 6 Games kept | 20 |
-| 7 LeaveFlow (optional) | 80 |
 
-Steps 1–6 take `ChessGame.qml` from about 1480 to about 1000 lines; with step 7, to about 925.
+Steps 1–6 take `ChessGame.qml` from about 1480 to about 1000 lines; BL-36 takes it to about 925.
 
-## For the owner to decide
+## Decided (the owner, 2026-11-22)
 
-1. The sound module as a QML component (recommended), or a C++ class.
-2. Whether a move's check sound and "Check" also wait for the slide (a separate PR after step 1).
-3. Whether step 7 is wanted.
+1. **QML wherever possible.** C++ only where it is clearly better or simpler. The sounds are a QML component.
+2. **The move first, then its sound, the same way everywhere.** A move's check waits for the slide too (step 1b).
+3. **The leave flow is its own task** (BL-36), after BL-35.
