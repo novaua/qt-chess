@@ -2,7 +2,7 @@
 id: BL-32
 title: "Split CLAUDE.md per project"
 type: task
-status: in_progress
+status: done
 priority: medium
 ---
 
@@ -64,3 +64,11 @@ Also found (§7 of the plan): `.claude/settings.local.json` is tracked in git, a
 - Done: the `ticket` skill (`.claude/skills/ticket/SKILL.md`): a new ticket (the prefix, the next free number by a PowerShell one-liner, the file, one found on the way), starting one, each PR's step entry and `PROGRESS.md`, closing (hand tests: ask the owner, never assume). The format stays in one place, `.claude/rules/tasks.md`; the skill points to it. Pointers updated: `.tasks/README.md`, the root's Tasks section and "Where to read more", the rule; the root's Session Handover now says where lasting rules go (a folder's `CLAUDE.md`, a rule, a skill; the root only for what every task needs) instead of "this file or the run-chess-app skill".
 - Checked: the number command gives BL-34 and LI-17 (BL-33, LI-16 are the last); a fresh `claude -p` session lists the `ticket` skill with its description.
 - Left: step 6, the final trim.
+
+### 2026-11-22 — step 6, the final trim; closed (branch: docs/bl32FinalTrim_221126)
+- Done: the root rewritten to 118 lines, 9.5k characters (from 207 lines, 40.7k: about 10k → 2.4k tokens in every session and subagent): the overview in 3 lines, "Where to read more" in 11 rows, Build and tests merged with the commands only, Architecture's table shortened, the new "Writing these docs" (a class by what it is and its invariants, never its history; Invariants lists; the root under 120 lines, only what every task needs, no `@` imports; a new folder gets its `CLAUDE.md` and a row). Kept word for word: QML ↔ C++ rules 1–3, the token and vcxproj rules, the folders, IDs and "Saving tokens", Session Handover, Branching Workflow.
+- The full check against the files before step 0 (`4b02473`): of the old root's 597 `` `code` `` spans and the old skill's 238, none dropped; 24 reworded (listed in each step's PR).
+- Three fresh `claude -p` sessions (Sonnet), read-only: **a QML change** (a new component beside `BusyRing.qml`): it named `qml.qrc`, `ChessGui.vcxproj`'s `<None>` list and `ChessGui.pro`'s `DISTFILES`, and the QML rules (Theme, objectName, the `MultiEffect` guard, `ScreenshotScene`); **a Lichess change** (a new event-stream event): the test in ChessQtTests against `FakeLichess`, never lichess.org, run locally as GitHub doesn't; loaded the root, `LiChessConnector/`, `ChessQtTests/CLAUDE.md`, `cpp-style.md`; **a ticket** (a bug found): it used the `ticket` skill and gave BL-34, the right next number.
+
+## Resolution summary
+The root `CLAUDE.md` holds only what every task needs (118 lines); a `CLAUDE.md` in each project folder (ChessCore, ChessTests, UciConnector, FakeUci, LiChessConnector, ChessQtTests, ChessGui/ChessGui, its qml/, ChessGuiTests, installer) loads when a file there is read; path-scoped rules (`cpp-style.md`, `chessgui-cpp.md`, `tasks.md`) load with their files; the skills `ticket` and `run-chess-app` (its scenes in `scenes.md`) hold the procedures. PRs #228–#233 and this one. Found on the way: BL-33 (unbuilt `networkplayer`), `PieceColors` (the root said `PieceColor`), GitHub not running ChessQtTests (now written down).

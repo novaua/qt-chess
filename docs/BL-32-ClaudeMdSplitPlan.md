@@ -3,9 +3,9 @@
 | | |
 | :---- | :---- |
 | **Date** | 2026-11-22 |
-| **Status** | Plan, for the owner's approval |
+| **Status** | Done, 2026-11-22: steps 0–6 (PRs #228–#233 and the last one); root 118 lines |
 | **Branch** | `docs/claudeMdSplitPlan_221126` (plan); each step on its own `docs/…` branch from `develop` |
-| **Task** | [`BL-32`](../.tasks/open/BL-32-split-claude-md-per-project.md) |
+| **Task** | [`BL-32`](../.tasks/archive/BL-32-split-claude-md-per-project.md) |
 
 ## 1. Problem
 
