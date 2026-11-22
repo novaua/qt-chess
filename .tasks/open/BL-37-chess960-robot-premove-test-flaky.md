@@ -33,3 +33,15 @@ move, when it has no script or its script doesn't fit (`FakeEngine::ChooseMove`)
 may play without the script the test set: `TestSetup::setEngine` puts it in `FAKEUCI_MOVES`, read when FakeUci
 starts, so an engine started before `setEngine` (or one kept from the test before) plays the old or no script.
 FakeUci says so on stderr ("the script's move … isn't legal there"): look for it in the failing file's log.
+
+## Cause found (2026-11-22, while fixing BL-39)
+Not a flake. Both times the UI tests ran right after `Take-Screenshot.ps1` in the same PowerShell session. That
+script restores the engine variables with `[Environment]::SetEnvironmentVariable($v, $saved, 'Process')`, and a
+`$null` saved value arrives as `""`: `CHESS_ENGINE_PATH`, `FAKEUCI_MOVES` and `FAKEUCI_DELAY_MS` are left set
+but empty. `Run-UiTests.ps1` passes the empty `CHESS_ENGINE_PATH` on, `TestSetup` takes it as set
+(`qEnvironmentVariableIsSet`) and doesn't name FakeUci, so the app finds the real Stockfish: its replies vary
+(1… d6, 1… c5, "Best was g6"). Seen: after a screenshot run in the same session, all three set with length 0.
+
+To fix: `TestSetup` takes an empty `CHESS_ENGINE_PATH` as not set (`qEnvironmentVariableIsEmpty`), so the tests
+never reach Stockfish whatever the shell holds; `Take-Screenshot.ps1` removes a variable that wasn't set before;
+`Run-UiTests.ps1` treats an empty one as not set.

@@ -150,7 +150,10 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
   (`AppServices::start()`) and again while it is missing (Settings, each game page's moves panel: a first start
   slower than the probe's 5 s isn't final); `engineFound` only once one answered (the Analyse buttons need it).
   `copyToClipboard(text, message)`: `copied(message)` becomes the window's short message.
-- `AppConfig`: the data paths; `writeFileAtomically` (QSaveFile) for every file the app writes.
+- `AppConfig`: the data paths; `writeFileAtomically` (QSaveFile) for every file the app writes;
+  `useOwnQmlCache()` (BL-39): the executable's compiled QML in a cache folder of its own,
+  `<CacheLocation>/qml/<exe>-<hash of its path>` (`QML_DISK_CACHE_PATH`), called by `main.cpp` and `TestSetup`
+  before the QML engine.
 - `AppServices` (`appservices.h/cpp`): the QML services, how they work together (the Lichess token, account,
   ongoing games) and their registration; `main.cpp` and the UI tests' `TestSetup` both use it.
 
@@ -182,3 +185,6 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
 - No analysis of the game going on (no hints): `CanAnalyse` is false while it is played; `GameAnalyzer`
   itself analyses any kept record it is given.
 - A premove that isn't legal when its turn comes is dropped silently.
+- Each executable (the app's Debug and Release builds, the installed app, `ChessGuiTests`) compiles its QML into a
+  cache folder of its own (`AppConfig::useOwnQmlCache()`): one with other QML never rewrites a `.qmlc` another has
+  mapped (BL-39).

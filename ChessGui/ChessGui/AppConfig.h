@@ -22,6 +22,14 @@ public:
 	static QString gamesDirPath(const QString& userId);
 	static QString ratingFilePath(const QString& userId);
 
+	// BL-39: the compiled QML of this executable only, in a cache folder of its own:
+	// <CacheLocation>/qml/<exe name>-<hash of its path>, set as QML_DISK_CACHE_PATH (unless that is set already).
+	// Every build (Debug, Release, the installed app, ChessGuiTests) shares the organization and application
+	// names, so without it they share one cache: one with other QML rewrites a .qmlc that a running one has
+	// mapped, and that one then reads zeros (an assert in Debug, a crash in Release). Called once the
+	// application object exists and before the QML engine is made. Returns the folder.
+	static QString useOwnQmlCache();
+
 	// The app's own files are written whole or not at all (QSaveFile: a crash mid-write leaves the previous
 	// file, not a broken one); the folder is made. false: not written (logged; *error says why).
 	static bool writeFileAtomically(const QString& path, const QByteArray& data, QString* error = nullptr);

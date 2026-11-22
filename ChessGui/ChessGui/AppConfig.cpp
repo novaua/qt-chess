@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "AppConfig.h"
 
+#include <QCoreApplication>
+#include <QCryptographicHash>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -26,6 +28,20 @@ QString AppConfig::appDataDir()
 void AppConfig::setAppDataDir(const QString& dir)
 {
 	g_appDataDir = dir;
+}
+
+QString AppConfig::useOwnQmlCache()
+{
+	if (qEnvironmentVariableIsSet("QML_DISK_CACHE_PATH"))
+		return qEnvironmentVariable("QML_DISK_CACHE_PATH");
+	const QString exe = QDir::cleanPath(QCoreApplication::applicationFilePath());
+	// Windows paths don't tell case apart: one folder for one executable, however it was started.
+	const QByteArray hash = QCryptographicHash::hash(exe.toLower().toUtf8(), QCryptographicHash::Sha1).toHex().left(12);
+	const QString dir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/qml/"
+	                  + QFileInfo(exe).completeBaseName() + "-" + QString::fromLatin1(hash);
+	QDir().mkpath(dir);
+	qputenv("QML_DISK_CACHE_PATH", QDir::toNativeSeparators(dir).toUtf8());
+	return dir;
 }
 
 QString AppConfig::configFilePath()
