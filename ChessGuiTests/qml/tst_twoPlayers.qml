@@ -21,25 +21,47 @@ TestCase {
     }
     function cleanupTestCase() { app.stop() }
 
-    // Fool's mate by clicks: 1. f3 e5 2. g4 Qh4#, then the result card.
+    // Fool's mate by clicks: 1. f3 e5 2. g4 Qh4#, then the result card. The sounds (GameSounds, BL-35):
+    // each move's own, and the mate's only once the board has settled (BL-34).
     function test_1_foolsMateByClicks() {
-        app.startTwoPlayerGame()
-        compare(ChessConnector.MoveCount, 0)
-        const moves = [["f2", "f3"], ["e7", "e5"], ["g2", "g4"], ["d8", "h4"]]
-        for (let i = 0; i < moves.length; ++i) {
-            app.clickMove(moves[i][0], moves[i][1])
-            tryCompare(ChessConnector, "MoveCount", i + 1, 3000, "move " + (i + 1))
-        }
-        app.waitBoardIdle()
-        compare(app.pieceAt("h4").toUpperCase(), "Q", "the queen on h4")
-        compare(ChessConnector.CheckedKing, app.square("e1"), "White's king in check")
+        const sounds = app.item("gameSounds")
+        const heard = []   // "name@idle" or "name@busy": the board's state when the sound was asked for
+        const record = name => heard.push(name + (ChessConnector.isBoardIdle() ? "@idle" : "@busy"))
+        const soundWasOn = AppSettings.musicEnabled
+        AppSettings.musicEnabled = true
+        sounds.played.connect(record)
+        try {
+            app.startTwoPlayerGame()
+            compare(ChessConnector.MoveCount, 0)
+            const moves = [["f2", "f3"], ["e7", "e5"], ["g2", "g4"], ["d8", "h4"]]
+            for (let i = 0; i < moves.length; ++i) {
+                app.clickMove(moves[i][0], moves[i][1])
+                tryCompare(ChessConnector, "MoveCount", i + 1, 3000, "move " + (i + 1))
+            }
+            app.waitBoardIdle()
+            compare(app.pieceAt("h4").toUpperCase(), "Q", "the queen on h4")
+            compare(ChessConnector.CheckedKing, app.square("e1"), "White's king in check")
 
-        tryVerify(() => ChessConnector.GameResult !== "", 3000, "the game over")
-        verify(ChessConnector.ResultText.indexOf("checkmate") >= 0, ChessConnector.ResultText)
-        const card = app.item("resultCard")
-        tryVerify(() => card.visible, 5000, "the result card")
-        verify(app.item("newGameButton").visible)
-        verify(app.item("reviewButton").visible)
+            tryVerify(() => ChessConnector.GameResult !== "", 3000, "the game over")
+            verify(ChessConnector.ResultText.indexOf("checkmate") >= 0, ChessConnector.ResultText)
+            const card = app.item("resultCard")
+            tryVerify(() => card.visible, 5000, "the result card")
+            verify(app.item("newGameButton").visible)
+            verify(app.item("reviewButton").visible)
+
+            tryVerify(() => heard.some(h => h.startsWith("checkmate@")), 3000, "the mate's sound: " + heard)
+            const moveSounds = heard.filter(h => h.startsWith("move"))
+                                    .map(h => h.substring(0, h.indexOf("@")))
+            compare(moveSounds.join(), "move,moveOpponent,move,moveOpponent", "each move's own sound")
+            const mates = heard.filter(h => h.startsWith("checkmate@"))
+            compare(mates.join(), "checkmate@idle", "the mate's sound once, with the board settled: " + heard)
+            const mateAt = heard.indexOf("checkmate@idle")
+            verify(heard.slice(0, mateAt).filter(h => h.startsWith("move")).length === 4,
+                   "the mate heard after the mating move's own sound: " + heard)
+        } finally {
+            sounds.played.disconnect(record)
+            AppSettings.musicEnabled = soundWasOn
+        }
     }
 
     // New game from the result card, then 1. e4 dragged: the pawn on e4, the last move marked,

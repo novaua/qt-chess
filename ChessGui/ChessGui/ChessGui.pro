@@ -144,6 +144,7 @@ DISTFILES += \
     qml/PawnPromotionOptions.qml \
     qml/PlayerCard.qml \
     qml/ResultCard.qml \
+    qml/GameSounds.qml \
     qml/AppSettings.qml \
     qml/RestoreBackupDialog.qml \
     qml/SettingRow.qml \
