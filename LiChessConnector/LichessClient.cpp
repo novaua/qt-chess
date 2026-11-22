@@ -1327,6 +1327,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
                 return false;
             }
             startClock(obj);
+            fetchPlayerFlairs();
         }
 
         // Streaming a game that has already ended: Lichess sends only gameFull, then closes.
@@ -1852,6 +1853,11 @@ void LichessClient::stopAll(bool keepAccept)
     }
     _pollTimer.stop();
     stopProbe();
+    if (_flairReply) {
+        auto* reply = _flairReply;
+        _flairReply = nullptr; // its finished() handler must ignore it
+        reply->abort();
+    }
     _waitForGameId.clear(); // the event stream stays: it belongs to the account, not to a game
     _gameStream->close();
     _postsInFlight.clear();
@@ -1885,10 +1891,70 @@ QString LichessClient::colorFromUrl(const QString& url)
     return match.hasMatch() ? match.captured(1) : QString();
 }
 
+QString LichessClient::flairUrl(const QString& flair) const
+{
+    static const QRegularExpression name(QStringLiteral("^[a-z0-9][a-z0-9.-]*$"));
+    if (!name.match(flair).hasMatch() || flair.contains(QLatin1String("..")))
+        return {};
+    return _assetBaseUrl + QStringLiteral("/assets/flair/img/") + flair + QStringLiteral(".webp");
+}
+
+// LI-11: the players' flairs aren't in gameFull: one POST /api/users with both ids (the AI has none) once
+// the game has started. Only decoration: a failure is logged, the cards keep the standard avatar.
+void LichessClient::fetchPlayerFlairs()
+{
+    QStringList ids;
+    for (const LichessPlayer* player : { &_white, &_black })
+        if (!player->id().isEmpty())
+            ids << player->id();
+    if (ids.isEmpty() || _offline)
+        return;
+    if (_flairReply) {
+        auto* old = _flairReply;
+        _flairReply = nullptr;
+        old->abort();
+    }
+    QNetworkRequest req = makeRequest(QStringLiteral("/api/users"));
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("text/plain"));
+    req.setTransferTimeout(10000);
+    auto* reply = _nam.post(req, ids.join(QLatin1Char(',')).toUtf8());
+    _flairReply = reply;
+    const QString gameId = _currentGameId;
+    connect(reply, &QNetworkReply::finished, this, [this, reply, gameId]() {
+        reply->deleteLater();
+        if (reply != _flairReply)
+            return; // the game was left, or another started
+        _flairReply = nullptr;
+        if (gameId != _currentGameId)
+            return;
+        const QByteArray raw = reply->readAll();
+        const auto doc = QJsonDocument::fromJson(raw);
+        if (reply->error() != QNetworkReply::NoError || !doc.isArray()) {
+            qDebug() << "LichessClient: players' flairs not read:" << apiErrorMessage(raw, reply);
+            return;
+        }
+        bool changed = false;
+        for (const QJsonValue& value : doc.array()) {
+            const QJsonObject user = value.toObject();
+            const QString id = user.value(QStringLiteral("id")).toString();
+            const QString url = flairUrl(user.value(QStringLiteral("flair")).toString());
+            for (LichessPlayer* player : { &_white, &_black })
+                if (!id.isEmpty() && player->id() == id && player->flairUrl() != url) {
+                    player->setFlairUrl(url);
+                    changed = true;
+                }
+        }
+        qDebug() << "LichessClient: players' flairs:" << _white.flairUrl() << "|" << _black.flairUrl();
+        if (changed)
+            emit gamePlayersChanged();
+    });
+}
+
 // static
 LichessPlayer LichessPlayer::fromJson(const QJsonObject& player)
 {
     LichessPlayer p;
+    p._id          = player.value(QStringLiteral("id")).toString();
     p._name        = player.value(QStringLiteral("name")).toString();
     p._title       = player.value(QStringLiteral("title")).toString(); // null when none
     p._rating      = player.value(QStringLiteral("rating")).toInt();

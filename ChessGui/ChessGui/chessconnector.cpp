@@ -773,6 +773,24 @@ QString ChessConnector::opponentDetail() const
 	return isOnlineGame() ? _lichessOpponent.ratingText() : QString();
 }
 
+QString ChessConnector::playerFlair() const
+{
+	return isOnlineGame() ? _lichessMe.flairUrl() : QString();
+}
+
+// LI-11: the flairs of the game's players came after its start (LichessClient asks /api/users): the
+// opponent's is their avatar, the player's shows after their name.
+void ChessConnector::onLichessPlayersChanged()
+{
+	if (!isOnlineGame() || _onlineGameId != _lichessClient->currentGameId())
+		return;
+	_lichessMe       = _lichessClient->gamePlayer(_config.playerPlaysWhite);
+	_lichessOpponent = _lichessClient->gamePlayer(!_config.playerPlaysWhite);
+	if (_avatarProvider)
+		_avatarProvider->setOpponentOnline(_lichessOpponent.flairUrl());
+	emit gameInfoChanged();
+}
+
 static QString vsRobotTitle(int level)
 {
 	return QStringLiteral("vs Robot") + Dot + QStringLiteral("Level %1").arg(level);
@@ -1097,8 +1115,11 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 		endGame(); // stops the stream; back where the player was (Home), not a board out of step with Lichess
 		return;
 	}
+	// LI-11: a Lichess player: their flair once it comes (onLichessPlayersChanged), until then (and without
+	// one) the standard avatar, never one of the library's.
+	Q_UNUSED(opponentAvatar); // Lichess sends none
 	if (_avatarProvider)
-		_avatarProvider->setOpponentFromUser(opponentAvatar.isEmpty() ? QStringLiteral("unicorn") : opponentAvatar);
+		_avatarProvider->setOpponentOnline(_lichessOpponent.flairUrl());
 	_startTiming.step("setup");
 	setGameMode(QStringLiteral("online"), opponent);
 	if (!joined && !moves.isEmpty())
@@ -1499,6 +1520,7 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 		connect(_lichessClient, &LichessClient::canRematchChanged,
 			this, &ChessConnector::canRematchChanged, Qt::UniqueConnection);
 		connect(_lichessClient, &LichessClient::gameStarted, this, &ChessConnector::onLichessGameStarted);
+		connect(_lichessClient, &LichessClient::gamePlayersChanged, this, &ChessConnector::onLichessPlayersChanged);
 		connect(_lichessClient, &LichessClient::rejoiningChanged, this, &ChessConnector::startingOnlineGameChanged);
 	connect(_lichessClient, &LichessClient::acceptingChanged, this, &ChessConnector::acceptingChallengeChanged);
 		// A refused Accept, or a Lichess game that never came (a challenge canceled, an error): not timed.

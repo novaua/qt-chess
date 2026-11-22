@@ -1,8 +1,8 @@
 # Active Handover
 
-- **Last completed:** LI-09 follow-up, `features/quickPairingNoRating_221126`: the owner's first hand tests written into `docs/LI-09-ManualTests.md`; the Quick pairing tiles without the rating; fast games on our own service noted in TSK-13 (2026-11-22). BL-29 (PR #221): a profile import can't lose the old profile.
-- **Current focus:** LI-11, the flair and a standard avatar for Lichess players (Qt Image Formats to add): plan next. BL-28 waits for a next occurrence in CI.
-- **Next up:** LI-11; LI-09's remaining hand tests (scenarios 1, 3–9); LI-12 (Lichess requests without a timeout).
+- **Last completed:** LI-11, `features/lichessFlair_221126`: a Lichess opponent's flair is their avatar, else the new pawn-and-globe `online-player.png`; the player's flair after their name; Qt Image Formats (WebP) in CI and the installer (2026-11-22). #223 fixes `tst_lichess960` after #222.
+- **Current focus:** None. BL-28 waits for a next occurrence in CI.
+- **Next up:** LI-09's remaining hand tests (scenarios 1, 3–9); LI-12 (Lichess requests without a timeout).
 - **Active gotchas:**
   - `.tasks/archive/_unmatched-progress.md`: 7 old log entries that match no ticket, for the owner to file or drop.
   - UI tests offscreen: hover doesn't reach items; no shader effects (the software renderer: pieces drawn without their glow; dialogs' backgrounds not drawn). `// ui-test-engine: none` runs a test file without an engine.

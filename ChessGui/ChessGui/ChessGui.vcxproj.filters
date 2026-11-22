@@ -436,6 +436,9 @@
     <Image Include="pics\avatars\rabbit.png">
       <Filter>Resource Files\avatars</Filter>
     </Image>
+    <Image Include="pics\avatars\online-player.png">
+      <Filter>Resource Files\avatars</Filter>
+    </Image>
     <Image Include="pics\avatars\robot.png">
       <Filter>Resource Files\avatars</Filter>
     </Image>

@@ -12,6 +12,8 @@ Rectangle {
     id: card
 
     property string avatarUrl
+    property string avatarFallback: ""   // LI-11: shown while avatarUrl loads or when it can't (a flair offline)
+    property string flair: ""            // LI-11: a Lichess flair's image, small after the name
     property string avatarTip: ""   // tooltip; empty = the avatar is not clickable
     property string name
     property string title: ""   // a Lichess title ("GM", "BOT"), before the name as on lichess.org
@@ -56,7 +58,19 @@ Rectangle {
         border.color: card.isActive ? Theme.accent : Theme.cardStroke
         border.width: card.isActive ? 2 : 1
 
+        // LI-11: the fallback under the avatar, seen while a web picture (a Lichess flair) loads or fails.
         Image {
+            objectName: "playerAvatarFallback"
+            anchors.fill: parent
+            anchors.margins: 3
+            fillMode: Image.PreserveAspectFit
+            source: card.avatarFallback
+            sourceSize: Qt.size(80, 80)
+            visible: card.avatarFallback !== "" && avatarImage.status !== Image.Ready
+        }
+        Image {
+            id: avatarImage
+            objectName: "playerAvatar"
             anchors.fill: parent
             anchors.margins: 3
             fillMode: Image.PreserveAspectFit
@@ -109,7 +123,18 @@ Rectangle {
             text: card.name
             font: Theme.bodyStrong
             elide: Text.ElideRight
-            Layout.fillWidth: !detailLabel.visible
+            Layout.fillWidth: !detailLabel.visible && !flairImage.visible
+        }
+        Image {
+            id: flairImage
+            objectName: "playerFlair"
+            source: card.flair
+            visible: card.flair !== "" && status === Image.Ready
+            fillMode: Image.PreserveAspectFit
+            sourceSize: Qt.size(32, 32)
+            Layout.preferredWidth: 16
+            Layout.preferredHeight: 16
+            Layout.fillWidth: false
         }
         Label {
             id: detailLabel

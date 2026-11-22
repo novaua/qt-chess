@@ -11,7 +11,7 @@ class QJsonObject;
 
 // LI-07: a player of a Lichess game, as gameFull gives them (the Board API's GameEventPlayer): name,
 // title ("GM", "BOT", …), rating and whether it is provisional. Lichess's AI has no name, only its level.
-// gameFull has no flair (only /api/account and /api/user do).
+// gameFull has no flair: LichessClient asks /api/users for it once the game has started (LI-11).
 class LICHESSCONNECTOR_EXPORT LichessPlayer
 {
 public:
@@ -24,8 +24,13 @@ public:
 	bool    provisional() const { return _provisional; }
 	QString ratingText() const;  // "1523", "1523?" (provisional, as lichess.org writes it), "" without one
 	bool    isAi() const { return _aiLevel > 0; }
+	QString id() const { return _id; }          // Lichess's user id (lowercase); "" for the AI, an anonymous player
+	QString flairUrl() const { return _flairUrl; } // LI-11: the flair's image, "" without one (or not known yet)
+	void    setFlairUrl(const QString& url) { _flairUrl = url; }
 
 private:
+	QString _id;
+	QString _flairUrl;
 	QString _name;
 	QString _title;
 	int     _rating = 0;
@@ -129,6 +134,11 @@ public:
 	// gives up after moveTimeoutMs, challenges not resent within settleMs of a reconnect are gone, and
 	// an event stream Lichess refused (a 4xx but 401, e.g. 429) is tried again after refusedRetryMs.
 	void setBaseUrl(const QString& url) { _baseUrl = url; }
+	// LI-11: where the flair images are (lichess1.org, Lichess's asset host); the tests' fake server instead.
+	void setAssetBaseUrl(const QString& url) { _assetBaseUrl = url; }
+	// A flair's image: <asset base>/assets/flair/img/<flair>.webp; "" for a name that isn't one
+	// ("people.man-raising-hand": lowercase letters, digits, '.' and '-' only).
+	QString flairUrl(const QString& flair) const;
 	void setStreamTiming(int silenceMs, int firstRetryMs, int moveTimeoutMs, int settleMs = 3000,
 	                     int refusedRetryMs = 60000);
 
@@ -221,6 +231,8 @@ public:
 	const RematchInfo& lastGame() const { return _lastGame; }
 	// LI-07: the current game's players, from its gameFull (set before gameStarted); empty before one.
 	const LichessPlayer& gamePlayer(bool white) const { return white ? _white : _black; }
+	// LI-11: what /api/users says of the players' flairs (fetchPlayerFlairs), for the players of
+	// gamePlayer() of the game that started; gamePlayersChanged says so.
 
 	// Settings of the game described by a Board API "gameFull" stream line, from our side.
 	static RematchInfo parseRematchInfo(const QJsonObject& gameFull, const QString& username);
@@ -261,6 +273,7 @@ signals:
 	// the start's, not sent again with opponentMoveReceived (BL-18). variant: gameFull's ("standard",
 	// "chess960", …: any, the receiver refuses what it can't play); startFen: its initialFen, "" for the
 	// standard start (LI-01A).
+	void gamePlayersChanged(); // LI-11: gamePlayer()'s flairs came (after gameStarted)
 	void gameStarted(QString gameId, bool playingAsWhite, QString opponentName, QString opponentAvatarUrl, QStringList moves,
 	                 QString variant, QString startFen);
 	void opponentMoveReceived(QString uciMove); // the opponent's new move(s) after the start
@@ -317,6 +330,7 @@ private:
 	void setRejoiningGameId(const QString& gameId);
 	void setAcceptingId(const QString& challengeId);
 	void stopAll(bool keepAccept); // stopStream(); keepAccept: streamGame() of the game being accepted
+	void fetchPlayerFlairs(); // LI-11: POST /api/users for the game's players' flairs (one request a game)
 	void gameStreamRefused(bool authExpired, int httpStatus); // mid-game: Lichess said no, no more reconnects
 	bool resyncMoves(const QStringList& moves); // a gameFull after a reconnect; true: our move was lost
 	void applyStreamMoves(const QStringList& moves); // a gameState's moves against ours
@@ -378,6 +392,7 @@ private:
 	bool           _correspondence       = false;
 	int            _moveTimeoutMs        = 10000;
 	QString        _baseUrl              = QStringLiteral("https://lichess.org");
+	QString        _assetBaseUrl         = QStringLiteral("https://lichess1.org");
 	QNetworkReply* _directChallengeReply = nullptr; // keepAliveStream: open while the challenge waits
 	QString        _directOpponentName;             // who it was sent to
 	bool           _directKeepAlive      = true;    // needsKeepAlive(): we wait while the request is open
@@ -387,6 +402,7 @@ private:
 	QTimer         _pollTimer;
 	RematchInfo    _lastGame;
 	LichessPlayer  _white, _black;               // the current game's players (LI-07)
+	QNetworkReply* _flairReply = nullptr;        // fetchPlayerFlairs() in flight (LI-11)
 	bool           _watchingForRematch = false; // keep the event stream open for the opponent's offer
 	QString        _rematchOfferId;             // the opponent's offer we got; empty = none
 	QVariantList   _ongoingGames;

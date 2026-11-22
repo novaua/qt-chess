@@ -61,9 +61,11 @@ TestCase {
     // Another one, accepted: the game page, the board turned for Black (the challenger plays White),
     // FriendlyRival named, nothing played yet; FriendlyRival's 1. e4 comes over the stream.
     // LI-07: both cards show the Lichess players: FM FriendlyRival 1712?, and TesterChess with the
-    // profile's name and the rating ("Tester · 1650").
+    // profile's name and the rating ("Tester · 1650"). LI-11: their flairs (POST /api/users): the
+    // opponent's is their avatar, the player's shows small after the name.
     function test_03_challengeAccepted() {
-        FakeLichess.setPlayer("FriendlyRival", "FM", 1712, true)
+        FakeLichess.setPlayer("FriendlyRival", "FM", 1712, true, "nature.fox")
+        FakeLichess.setPlayer(me, "", 1650, false, "activity.lichess")
         FakeLichess.challenge("game0001", "FriendlyRival", 1712, "white")
         tryVerify(() => bar().visible, 3000, "the challenge bar")
         compare(bar().text, "FriendlyRival (1712) challenges you · 10+5 · Casual · You play Black")
@@ -81,6 +83,19 @@ TestCase {
         compare(findChild(player, "playerName").text, me, "the player's Lichess name, not the profile's")
         verify(!findChild(player, "playerTitle").visible, "no title")
         compare(findChild(player, "playerDetail").text, "Tester · 1650", "the profile and the rating")
+        // LI-11: the flairs, once Lichess has said them; the images come from the fake (WebP).
+        waitRequest("POST /api/users")
+        compare(FakeLichess.bodyOf("POST /api/users"), "friendlyrival,testerchess", "both players, White first")
+        const avatar = findChild(opponent, "playerAvatar")
+        tryVerify(() => avatar.source.toString() === FakeLichess.flairUrl("nature.fox"), 3000,
+                  "the opponent's flair as the avatar (" + avatar.source + ")")
+        tryCompare(avatar, "status", Image.Ready, 3000, "the flair's WebP read")
+        verify(!findChild(opponent, "playerAvatarFallback").visible, "the standard avatar hidden behind it")
+        const flair = findChild(player, "playerFlair")
+        tryVerify(() => flair.visible, 3000, "the player's flair after the name")
+        compare(flair.source.toString(), FakeLichess.flairUrl("activity.lichess"))
+        compare(findChild(player, "playerAvatar").source.toString(), AvatarProvider.playerUrl,
+                "the player keeps the local avatar")
         tryVerify(() => !bar().visible, 3000, "the challenge is the game now: the bar gone")
         app.waitBoardIdle()
         compare(ChessConnector.MoveCount, 0)
@@ -176,6 +191,12 @@ TestCase {
         waitRequest("GET /api/board/game/stream/game0002")
         app.waitForPage("game", 10000)
         compare(ChessConnector.OpponentName, "SlowPlayer")
+        // LI-11: no flair: the standard avatar for a Lichess player, not one of the library's.
+        tryVerify(() => FakeLichess.requests.filter(r => r === "POST /api/users").length === 2, 3000,
+                  "this game's players asked for")
+        wait(200) // its answer handled
+        compare(findChild(app.item("opponentCard"), "playerAvatar").source.toString(),
+                "qrc:/app/pics/avatars/online-player.png")
         compare(ChessConnector.MoveCount, 3, "its three moves")
         app.waitBoardIdle()
         compare(app.pieceAt("c4"), "P")

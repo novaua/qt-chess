@@ -187,8 +187,9 @@ try {
 }
 
 # ── 3. Files no scene loads ─────────────────────────────────────────────
-# Lichess is HTTPS: without a TLS backend every request fails, though the app starts fine.
-foreach ($file in 'LiChessConnector.dll', 'tls\qschannelbackend.dll') {
+# Lichess is HTTPS: without a TLS backend every request fails, though the app starts fine. LI-11: without
+# the WebP plugin a Lichess player's flair isn't shown (the standard avatar is), though nothing fails.
+foreach ($file in 'LiChessConnector.dll', 'tls\qschannelbackend.dll', 'imageformats\qwebp.dll') {
     if (Test-Path (Join-Path $AppDir $file)) { Pass $file } else { Fail "$file - not installed" }
 }
 

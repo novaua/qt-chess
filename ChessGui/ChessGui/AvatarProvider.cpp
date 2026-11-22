@@ -27,6 +27,7 @@ void AvatarProvider::randomize(bool isComputerGame)
 
     _opponentName   = names[idx];
     _isComputerGame = isComputerGame;
+    _opponentImageUrl.clear();
 
     emit opponentAvatarChanged();
 }
@@ -46,6 +47,7 @@ void AvatarProvider::restore(const QString& playerName, const QString& opponentN
     _playerName     = orCurrent(playerName, _playerName);
     _opponentName   = orCurrent(opponentName, _opponentName);
     _isComputerGame = isComputerGame;
+    _opponentImageUrl.clear();
     emit playerAvatarChanged();
     emit opponentAvatarChanged();
 }
@@ -67,11 +69,18 @@ QString AvatarProvider::playerRawName() const
 
 QString AvatarProvider::opponentUrl() const
 {
+    return _opponentImageUrl.isEmpty() ? opponentFallbackUrl() : _opponentImageUrl;
+}
+
+QString AvatarProvider::opponentFallbackUrl() const
+{
     return "qrc:/app/pics/avatars/" + (_isComputerGame ? "robot" : _opponentName) + ".png";
 }
 
 QString AvatarProvider::opponentName() const
 {
+    if (_opponentName == onlinePlayerName())
+        return QStringLiteral("Lichess player");
     return _isComputerGame ? "Robot" : capitalize(_opponentName);
 }
 
@@ -90,5 +99,16 @@ void AvatarProvider::setOpponentFromUser(const QString& avatarName)
 {
     _opponentName   = avatarName;
     _isComputerGame = false;
+    _opponentImageUrl.clear();
+    emit opponentAvatarChanged();
+}
+
+void AvatarProvider::setOpponentOnline(const QString& flairUrl)
+{
+    if (_opponentName == onlinePlayerName() && !_isComputerGame && _opponentImageUrl == flairUrl)
+        return;
+    _opponentName     = onlinePlayerName();
+    _isComputerGame   = false;
+    _opponentImageUrl = flairUrl;
     emit opponentAvatarChanged();
 }

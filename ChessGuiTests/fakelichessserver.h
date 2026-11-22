@@ -53,7 +53,11 @@ public:
 	                                const QString& variant = QStringLiteral("standard"), const QString& startFen = {});
 	// LI-07: a player's Lichess title ("GM", "BOT", "" none) and rating (0: none) in a game's gameFull from
 	// now on. A challenger has the rating of its challenge; TesterChess 1650, the account's rapid rating.
-	Q_INVOKABLE void setPlayer(const QString& name, const QString& title, int rating, bool provisional);
+	// LI-11: flair ("activity.lichess", "" none): what POST /api/users says of them; its image is served at
+	// flairUrl(flair) (a small WebP, made with Qt's WebP plugin).
+	Q_INVOKABLE void setPlayer(const QString& name, const QString& title, int rating, bool provisional,
+	                           const QString& flair = {});
+	Q_INVOKABLE QString flairUrl(const QString& flair) const { return url() + "/assets/flair/img/" + flair + ".webp"; }
 	// The opponent: a move, a draw offer, or the game's end (status "resign", "mate", "draw", …;
 	// winner "white", "black" or "").
 	Q_INVOKABLE void play(const QString& gameId, const QString& uciMove);
@@ -118,6 +122,7 @@ private:
 		QString title;
 		int rating = 0;
 		bool provisional = false;
+		QString flair; // LI-11
 	};
 	QHash<QString, Player> _players; // setPlayer(), by name
 	QList<QPointer<QTcpSocket>> _eventStreams;

@@ -102,6 +102,9 @@ class ChessConnector : public QObject
 		Q_PROPERTY(QString OpponentTitle  READ opponentTitle   NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString PlayerDetail   READ playerDetail    NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString OpponentDetail READ opponentDetail  NOTIFY gameInfoChanged)
+		// LI-11: the player's Lichess flair (an image URL) in a Lichess game, "" without one; shown small after
+		// the name. The opponent's flair is their avatar (AvatarProvider.opponentUrl).
+		Q_PROPERTY(QString PlayerFlair    READ playerFlair     NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString ResultText READ resultText NOTIFY gameResultChanged) // e.g. "Bob wins by checkmate"
 		Q_PROPERTY(QString PendingOffer READ pendingOffer NOTIFY pendingOfferChanged) // Lichess opponent offers: "", "draw", "takeback", "rematch"
 		Q_PROPERTY(bool CanOfferDraw    READ canOfferDraw    NOTIFY canOfferDrawChanged) // Lichess: from ply 2, then 20 plies after our last offer
@@ -198,6 +201,7 @@ public:
 	QString opponentTitle() const;
 	QString playerDetail() const;
 	QString opponentDetail() const;
+	QString playerFlair() const;
 	QString resultText() const { return _resultText; }
 	QString pendingOffer() const { return _pendingOffer; }
 	bool    canOfferDraw() const;
@@ -406,6 +410,7 @@ public slots:
 private slots:
 	void onEngineMoveFound(int request, const QString& move);
 	void onEngineMoveError(int request, const QString& message, const QString& details);
+	void onLichessPlayersChanged(); // LI-11: the players' flairs came
 	void onLichessGameStarted(const QString& gameId, bool playingAsWhite, const QString& opponentName,
 		const QString& opponentAvatar, const QStringList& moves, const QString& variant, const QString& startFen);
 	void onLichessGameEnded(const QString& status, const QString& winner);
