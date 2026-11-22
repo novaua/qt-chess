@@ -1,6 +1,7 @@
 import QtQuick
 import QtTest
 import ChessPlusPlus
+import "qrc:/qml"   // AppSettings
 
 // Scenarios 4, 6, 8 and 11 (docs/UiTestSuitePlan.md §9) in a two-player game: a drop on an
 // illegal square, "Check", the review, and a saved game replayed. (The takeback: tst_robot, as
@@ -35,14 +36,41 @@ TestCase {
         compare(app.pieceAt("e7").toUpperCase(), "P")
     }
 
-    // 1. e4 f6 2. Qh5+: "Check" over the command bar, Black's king marked.
+    // 1. e4 f6 2. Qh5+: "Check" over the command bar, Black's king marked. The move first, then its
+    // check (BL-35 step 1b): the check's sound and "Check" only once the board has settled.
     function test_2_check() {
-        app.clickMove("e2", "e4")
-        app.clickMove("f7", "f6")
-        app.clickMove("d1", "h5")
-        tryCompare(ChessConnector, "MoveCount", 3, 3000)
-        compare(ChessConnector.CheckedKing, app.square("e8"), "Black's king in check")
-        app.waitMessage("Check")
+        const sounds = app.item("gameSounds")
+        const bar = app.item("shortMessage")
+        const seen = []   // { what, t, idle }: the sounds and the "Check" message as they came
+        const note = what => seen.push({ what: what, t: Date.now(), idle: ChessConnector.isBoardIdle() })
+        const onSound = name => note(name)
+        const onBar = () => { if (bar.showing && bar.text === "Check" && !seen.some(s => s.what === "Check")) note("Check") }
+        const soundWasOn = AppSettings.musicEnabled
+        AppSettings.musicEnabled = true
+        sounds.played.connect(onSound)
+        bar.showingChanged.connect(onBar)
+        bar.textChanged.connect(onBar)
+        try {
+            app.clickMove("e2", "e4")
+            app.clickMove("f7", "f6")
+            app.clickMove("d1", "h5")
+            tryCompare(ChessConnector, "MoveCount", 3, 3000)
+            compare(ChessConnector.CheckedKing, app.square("e8"), "Black's king in check")
+            app.waitMessage("Check")
+            const names = seen.map(s => s.what)
+            compare(names.join(), "move,moveOpponent,move,check,Check", "each move's sound, then the check's and \"Check\"")
+            // The check signal comes inside the move, before the board is marked busy: only waiting for
+            // boardIdle puts the check after the slide and the gate's beat (150 ms) that follow the move's sound.
+            const moveSound = seen[2], check = seen[3], message = seen[4]
+            verify(check.idle && message.idle, "the board idle when the check is told")
+            verify(check.t - moveSound.t >= 100, "the check " + (check.t - moveSound.t) + " ms after the move's sound")
+            verify(message.t >= check.t, "\"Check\" with the sound")
+        } finally {
+            sounds.played.disconnect(onSound)
+            bar.showingChanged.disconnect(onBar)
+            bar.textChanged.disconnect(onBar)
+            AppSettings.musicEnabled = soundWasOn
+        }
     }
 
     // The review: the first move from the move list, back to the start, forward again, and back to

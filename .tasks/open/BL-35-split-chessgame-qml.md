@@ -28,3 +28,16 @@ each.
 - Checked: `Run-UiTests.ps1 -Build`, 13 files green; `tst_twoPlayers` test 1 now checks each move's sound and
   the mate's once, with the board idle. No screenshots: nothing drawn changed.
 - Left: step 1b (a move's check after the slide), then steps 2–6.
+
+### 2026-11-22 — step 1b: a move's check after the slide (branch: features/bl35CheckAfterSlide_221126)
+- Done: a move's check goes through `playWhenSeen("check", …)`, and its "Check" message comes with it: both at
+  `boardIdle`, after the slide, as the mate's (the owner's rule: the move first, then its sound). The queue keeps
+  entries with sound off too, so "Check" still shows. A resumed game that opens in check keeps GamePage's hold.
+  Only a move's own sound plays as its slide starts.
+- Checked: `Run-UiTests.ps1 -Build`, 13 files green. `tst_board` test 2 checks the order (each move's sound, then
+  the check's and "Check") and that they come with the board idle, at least 100 ms after the move's sound (the
+  gate's beat); step 1's mate test in `tst_twoPlayers` got the same time check. Both fail on the old timing (at
+  once) and on a queue that only waits for the next pass. The check signal comes inside the move, before the
+  board is marked busy, so the board's idle state alone couldn't tell. Scene `check` (`-Offscreen`): "Check"
+  shown; 1.86 % from the stale baseline (piece edges, an old command bar icon).
+- Left: steps 2–6.
