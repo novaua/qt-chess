@@ -23,7 +23,7 @@ lichess.org's end of a game offers **Analysis board**.
 
 **Decision (the owner, 2026-11-22): finished Lichess games are kept locally.** A finished Lichess game gets a record in the library, as option (b) below: marked as Lichess, with its analysis. It is never rated, continued or Played from here. It survives a restart, the Games page shows it, and Analyse works as for a local game. This reverses BL-19's "Lichess games have no record" for **finished** Lichess games only; an unfinished one stays on Lichess (LI-04's Continue). The plan still decides when the record is written (at the game's end, or when it's analysed), its signed file and fields (`kind: "lichess"`, the Lichess game id, the players' Lichess names and ratings), a Games page filter, and how LI-15's list relates to it (a game from the server already kept here opens its record).
 
-**Plan**, for the owner's approval: [docs/LI-14-LichessAnalysisPlan.md](../../docs/LI-14-LichessAnalysisPlan.md) (three steps, one PR each; five questions at its end).
+**Plan**, for the owner's approval: [docs/LI-14-LichessAnalysisPlan.md](../../docs/LI-14-LichessAnalysisPlan.md) (three steps, one PR each; its questions answered by the owner on 2026-11-22).
 
 **To decide in the plan:**
 1. **Where the analysis lives.** Decided above: (b).

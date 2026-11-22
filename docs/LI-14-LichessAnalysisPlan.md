@@ -98,7 +98,8 @@ without Analyse. One write at the end is also the simplest place.
 - **The card's actions:**
   - **Open:** a replay, as for any kept game;
   - Export PGN and Delete, as now;
-  - **Open on lichess.org** and **Copy link** in its right-click menu, as `OngoingGameCard`'s (LI-10);
+  - **Open on lichess.org**, **Open the analysis on lichess.org** and **Copy link** in its right-click menu, as
+    `OngoingGameCard`'s (LI-10);
   - no Continue, no Play from here.
 - **Opening it** (`openGame`): the replay shows the Lichess players as the live game did (LI-07): names,
   titles, ratings, the opponent's flair or the standard Lichess avatar. Today `shownPlayerName()` and the
@@ -133,7 +134,7 @@ without Analyse. One write at the end is also the simplest place.
 |---|---|---|
 | 1 | `kind: "lichess"`, `LichessGameInfo`, the id `lichess-<id>`, statistics rebuilt, PGN of the record, no Play from here | ChessQtTests |
 | 2 | Kept when the result comes; Analyse on the board (`refreshBoardAnalysis`) | `tst_lichess`, `tst_lichess960`, new scene `lichess-result` |
-| 3 | The Games page: Lichess filter, card words and menu; `openGame` shows the Lichess players | `tst_games`, `tst_restart`, new scene `games-lichess` |
+| 3 | The Games page: Lichess filter, card words and menu; `openGame` shows the Lichess players; "Open the analysis on lichess.org" (card menu, More) | `tst_games`, `tst_restart`, new scene `games-lichess` |
 
 Step 2 is what the owner asked for after the Rapid games: Analyse at the end of a Lichess game. Step 3 makes the
 kept games findable later.
@@ -148,14 +149,14 @@ kept games findable later.
   finished Lichess games have a record (`kind: "lichess"`, id `lichess-<id>`), written when the result comes
   here; never rated, continued or Played from here."
 
-## For the owner to decide
+## Decided (the owner, 2026-11-22)
 
-1. **Aborted games:** not kept (recommended), as Lichess doesn't count them.
-2. **The cap:** Lichess games under the same "Games kept" number (recommended), or a cap of their own.
-3. **A game left before it ended** isn't kept: its result never reaches us. LI-15 lists it later. Fine, or
-   should a left game ask Lichess for its result when it ends?
-4. **Lichess's own analysis:** not part of LI-14. Our engine analyses, as for local games. A link "Open the
-   analysis on lichess.org" (`https://lichess.org/<id>/analysis`) in a kept Lichess game's card menu and the
-   More menu would be cheap to add in step 3. Wanted?
-5. **The players' rating changes** aren't in the Board API's stream, so the record keeps the ratings from
-   before the game. Enough, or should step 3 fetch the change (`GET /game/export/<id>`) when the card shows?
+1. **Aborted games aren't kept**, as Lichess doesn't count them.
+2. **One cap:** Lichess games count under the same "Games kept" number as local games.
+3. **A game left before it ended isn't kept,** nor is an unfinished one: it can't be continued here, and
+   lichess.org has it. Only a game whose result came on the board is kept.
+4. **"Open the analysis on lichess.org"** (`https://lichess.org/<id>/analysis`), in step 3: in a kept Lichess
+   game's card menu, and in the game page's More menu for a finished Lichess game (live or replayed).
+   Lichess's own analysis isn't read; our engine analyses, as for local games.
+5. **The ratings from before the game** are what the record keeps. The rating change isn't fetched: the
+   profile's Lichess ratings catch up at the next account sync.
