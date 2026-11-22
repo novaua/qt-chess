@@ -98,7 +98,7 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
     A game file that fails its check (edited, damaged, another game's id) is moved to `games/rejected/`
     (`setAsideCount`, `gamesSetAside`: "N kept games couldn't be verified and were set aside.").
   - **Keeping:** the last `keepCount` finished games (Settings → Data "Games kept", `AppSettings.gamesKept`,
-    default 100; a smaller number asks first: `ChessGame.setGamesKept`); it is every profile's:
+    default 100; a smaller number asks first: `SettingsPage.setGamesKept`); it is every profile's:
     `finishedBeyond(keep)` counts them all for the confirm, `setKeepCount` trims every profile's.
   - **Playing kept moves:** `GameRecord::play` / `playOn` (false at a move that can't be played, a move from an
     empty square too).

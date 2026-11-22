@@ -108,13 +108,18 @@ TestCase {
         compare(ChessConnector.pgn("no-such-game"), "")
     }
 
-    // Delete on Fool's mate's card: the confirm, then the game is gone, the others stay.
+    // Delete on Fool's mate's card: the confirm (the window's shortcuts wait while it is open: Esc is the
+    // dialog's), then the game is gone, the others stay.
     function test_4_delete() {
         const id = foolsMate().id
         const index = GameLibrary.games.findIndex(g => g.id === id)
         app.clickIn("gameCard_" + index, "deleteButton")
+        const confirm = app.item("deleteGameConfirm")
+        tryVerify(() => confirm.opened, 3000, "asked first")
+        verify(app.window._dialogOpen, "the page's dialog counts as the window's")
         app.clickIn("deleteGameConfirm", "acceptButton")
-        app.waitClosed(app.item("deleteGameConfirm"))
+        app.waitClosed(confirm)
+        verify(!app.window._dialogOpen)
         tryCompare(GameLibrary, "count", 2, 2000)
         verify(!GameLibrary.games.some(g => g.id === id))
         compare(GameLibrary.unfinishedCount, 2)
@@ -144,8 +149,10 @@ TestCase {
         const confirm = app.item("gamesKeptConfirm")
         tryVerify(() => confirm.opened, 3000, "asked first")
         compare(confirm.gone, 2)
+        verify(app.window._dialogOpen, "the page's dialog counts as the window's")
         app.clickIn("gamesKeptConfirm", "cancelButton")
         app.waitClosed(confirm)
+        verify(!app.window._dialogOpen)
         compare(GameLibrary.keepCount, 100, "kept as it was (it follows the setting)")
         compare(GameLibrary.finishedCount, 52, "nothing deleted")
         tryCompare(box, "displayText", "100 games")

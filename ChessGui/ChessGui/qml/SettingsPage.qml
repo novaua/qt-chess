@@ -16,8 +16,10 @@ Page {
     signal exportRequested(string userId)
     signal importRequested()
     signal restoreRequested()
-    signal gamesKeptChangeRequested(int count) // the window asks first when games would be deleted
     signal soundPreviewRequested(string name)  // the volume slider: the window's GameSounds plays it
+
+    // The page's own dialog is open: the window's shortcuts wait (ChessGame._dialogOpen).
+    readonly property bool dialogOpen: gamesKeptConfirm.visible
 
     property string _backupMessage
 
@@ -250,7 +252,7 @@ Page {
                         currentIndex: counts.indexOf(AppSettings.gamesKept)
                         displayText: AppSettings.gamesKept + " games"
                         onActivated: index => {
-                            page.gamesKeptChangeRequested(counts[index])
+                            page.setGamesKept(counts[index])
                             currentIndex = Qt.binding(() => counts.indexOf(AppSettings.gamesKept)) // a refused change shows the old number again
                         }
                         Accessible.name: "Games kept"
@@ -442,5 +444,30 @@ Page {
         source: Theme.icon(icon)
         sourceSize.width: Theme.iconSizeDense; sourceSize.height: Theme.iconSizeDense
         color: enabled ? Theme.textSecondary : Theme.textDisabled
+    }
+
+    // Data → "Games kept" (BL-19): a smaller number deletes the oldest finished games, so it asks first.
+    // The setting is every profile's: the count is too. GameLibrary.keepCount follows it (ChessGame.qml).
+    function setGamesKept(count) {
+        const gone = GameLibrary.finishedBeyond(count)
+        if (gone <= 0) {
+            AppSettings.gamesKept = count
+            return
+        }
+        gamesKeptConfirm.count = count
+        gamesKeptConfirm.gone = gone
+        gamesKeptConfirm.open()
+    }
+
+    ConfirmDialog {
+        id: gamesKeptConfirm
+        objectName: "gamesKeptConfirm"
+        property int count
+        property int gone
+        title: "Keep only " + count + " finished games?"
+        text: (gone === 1 ? "1 finished game is" : gone + " finished games are")
+              + " deleted for good: the oldest beyond " + count + " of each profile on this computer. Unfinished games stay."
+        acceptText: gone === 1 ? "Delete 1 game" : "Delete " + gone + " games"
+        onAccepted: AppSettings.gamesKept = count
     }
 }

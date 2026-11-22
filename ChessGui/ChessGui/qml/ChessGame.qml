@@ -21,14 +21,15 @@ ApplicationWindow {
     readonly property string _page: stack.currentItem ? stack.currentItem.objectName : ""
     readonly property bool   _onGamePage: _page === "game"
 
-    // A dialog is open: the window's shortcuts wait (Esc then closes the dialog).
+    // A dialog is open: the window's shortcuts wait (Esc then closes the dialog). A page's own dialog too
+    // (its `dialogOpen`: SettingsPage's "Games kept" confirm, GamesPage's Delete).
     readonly property bool _dialogOpen: restoreBackupDialog.visible || levelsHelp.visible
         || computerDialog.visible || twoPlayerDialog.visible
         || challengeDialog.visible || createUserDialog.visible || seekDialog.visible
         || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible || leaveOnlineDialog.visible
         || pgnExportDialog.visible || profileFiles.dialogOpen || disconnectLichessConfirm.visible
-        || gamesKeptConfirm.visible
         || recentFlyout.visible
+        || (stack.currentItem?.dialogOpen ?? false)
 
     // ── Lichess challenges to and from the player (LichessChallenges.qml) ──
     // The challenge bar and ChallengeDialog stay here and bind to it.
@@ -413,7 +414,6 @@ ApplicationWindow {
             onExportRequested:      userId => profileFiles.exportProfile(userId)
             onImportRequested:      profileFiles.openImport()
             onRestoreRequested:     restoreBackupDialog.open()
-            onGamesKeptChangeRequested: count => root.setGamesKept(count)
             onSoundPreviewRequested: name => sounds.play(name)
         }
     }
@@ -890,18 +890,7 @@ ApplicationWindow {
     }
 
 
-    // Settings → Data "Games kept" (BL-19): a smaller number deletes the oldest finished games, so it asks.
-    // The setting is every profile's: the count is too.
-    function setGamesKept(count) {
-        const gone = GameLibrary.finishedBeyond(count)
-        if (gone <= 0) {
-            AppSettings.gamesKept = count
-            return
-        }
-        gamesKeptConfirm.count = count
-        gamesKeptConfirm.gone = gone
-        gamesKeptConfirm.open()
-    }
+    // Settings → Data "Games kept" (BL-19; SettingsPage asks first when games would go).
     Binding { target: GameLibrary; property: "keepCount"; value: AppSettings.gamesKept }
 
     // BL-20: what a profile's load found set aside or restored (DataCheckNotices.qml).
@@ -912,18 +901,6 @@ ApplicationWindow {
     }
     Binding { target: ChessConnector; property: "AnalysisDepth"; value: AppSettings.analysisDepth } // BL-19 step 6
     Binding { target: ChessConnector; property: "RematchSwapsColours"; value: AppSettings.rematchSwapsColours }
-
-    ConfirmDialog {
-        id: gamesKeptConfirm
-        objectName: "gamesKeptConfirm"
-        property int count
-        property int gone
-        title: "Keep only " + count + " finished games?"
-        text: (gone === 1 ? "1 finished game is" : gone + " finished games are")
-              + " deleted for good: the oldest beyond " + count + " of each profile on this computer. Unfinished games stay."
-        acceptText: gone === 1 ? "Delete 1 game" : "Delete " + gone + " games"
-        onAccepted: AppSettings.gamesKept = count
-    }
 
     // Profiles: the Lichess disconnect (export, import and delete: ProfileFiles).
     ConfirmDialog {
