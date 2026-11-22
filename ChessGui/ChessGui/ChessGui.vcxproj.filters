@@ -209,6 +209,9 @@
     <None Include="qml\GameSounds.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\StartNotice.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\ChessFigures.qml">
       <Filter>Source Files\Qml</Filter>
     </None>

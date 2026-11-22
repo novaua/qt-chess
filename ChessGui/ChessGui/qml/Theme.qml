@@ -77,6 +77,12 @@ QtObject {
     function markArrowColor(mark) {
         return mark === "??" ? "#DF5353" : mark === "?" ? "#E69F00" : "#56B4E9"
     }
+    // The computer's levels: green (the weakest) to red (the strongest), spread over `count` levels
+    // (ChessConnector.Levels.length).
+    function levelColor(level, count) {
+        const t = count > 1 ? (Math.max(1, Math.min(count, level)) - 1) / (count - 1) : 0
+        return Qt.hsla((1 - t) * 0.36, 0.65, 0.45, 1)
+    }
     readonly property color checkGlowCenter: "#FFD54A"   // the king in check: yellow in the middle …
     readonly property color checkGlowEdge:   "#E5341F"   // … red towards the edges
     // Pieces off the board (move list, captured strip): a glow of the other colour, so both show on any panel.

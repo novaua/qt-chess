@@ -56,7 +56,7 @@ AppDialog {
                     Rectangle {
                         Layout.preferredWidth: 28; Layout.preferredHeight: 28
                         radius: 14
-                        color: root.levelColor(row.modelData.level)
+                        color: Theme.levelColor(row.modelData.level, ChessConnector.Levels.length)
                         Text {
                             anchors.centerIn: parent
                             text: row.modelData.level

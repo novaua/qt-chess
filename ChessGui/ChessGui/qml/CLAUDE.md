@@ -23,7 +23,8 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
 ## The window and the pages
 - `ChessGame.qml` — the window: a `StackView` with one page (`WelcomePage` on first run, `ProfilePickerPage`,
   `HomePage`, `GamePage`; `route()` picks it from `UserManager` and `ChessConnector.InGame`; before it builds the
-  game page it shows "Starting the game…" and waits until that is drawn: `ChessConnector.waitForStartFrame`).
+  game page it shows "Starting the game…" (`StartNotice.qml`, over the popups) and waits until that is drawn:
+  `ChessConnector.waitForStartFrame`).
   `ProfilePage` or `SettingsPage` are pushed over Home or the game, `OnlinePage` and `ContinueGamesPage` over
   Home. The InfoBars: under the command bar; on the game page's player column between its cards
   (`GamePage.barsArea`); the challenge bar over every page (Accept / Open on lichess.org, Decline, Hide; a sound
@@ -78,7 +79,7 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   in green.
 
 ## Shared components
-- `Theme.qml`, `AppSettings.qml` (singletons), `SettingRow`, `AppDialog`, `ConfirmDialog`, `InfoBar`,
+- `Theme.qml` (also `levelColor(level, count)`: the computer levels' colours), `AppSettings.qml` (singletons), `SettingRow`, `AppDialog`, `ConfirmDialog`, `InfoBar`,
   `IconButton`, `HomeCard`, `BoardPreview`, `ChoiceRow`, `SectionCard`, `AvatarPicker`, `FocusRing` (keyboard
   focus outline for custom-drawn items).
 - `CommandBar` (`messageArea`: the item over which short messages show; at its right end `SeekIndicator`: a seek
