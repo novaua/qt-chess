@@ -51,3 +51,11 @@ Also found (§7 of the plan): `.claude/settings.local.json` is tracked in git, a
 - Coverage: every `` `code` `` span of the old root is in the new files, but 12 reworded: file names without `.h/cpp` (`boardpieces`, `movegate`, …), `ChessConnector.`/`::` names under the ChessConnector heading, `ChessGui/ChessGui/pics/` as `pics/` in that folder's file.
 - Checked in fresh `claude -p` sessions: reading a `qml/` file loads the root, the folder map and `qml/CLAUDE.md` (not the C++ rule); reading `chessconnector.h` loads the root, the map, `chessgui-cpp.md` and `cpp-style.md`; reading `qml.qrc` loads the root and the map.
 - Left: the owner's review of the Invariants lists (step 3's check); steps 4–6.
+
+- 2026-11-22: the owner reviewed step 3's Invariants lists (#231): good as they are.
+
+### 2026-11-22 — step 4, UI tests and the skill (branch: docs/bl32UiTests_221126)
+- Done: `ChessGuiTests/CLAUDE.md` (running, how a run is set up: `TestSetup` / `TestRun`, `// ui-test-runs`, `// ui-test-engine`, FakeUci, `FakeLichess`; writing a test; waiting right; offscreen; Invariants), from the root's ChessGuiTests bullet and the skill's UI-test section. `run-chess-app` split: the scene catalogue in `scenes.md` beside `SKILL.md`, read only when a scene is chosen (`SKILL.md` 22.4k → 9.0k characters; `scenes.md` 11.0k). Root: the ChessGuiTests bullet a pointer (the `Run-UiTests.ps1` commands stay), the vcxproj rule in Key Conventions, one row more in "Where to read more". Root 142 lines, 11.6k → 10.5k characters. `PROGRESS.md`'s offscreen gotcha dropped (in `ChessGuiTests/CLAUDE.md` now).
+- Coverage: every `` `code` `` span of the old root and the old skill is in the new files, but five reworded: `TestRun.addFinishedGames(n)`, `app.startComputerGame(line, thinkMs)` (with a real line), `ChessGuiTests.exe` and the `ChessGuiTests\qml\…` paths (as `qml/…` in the folder's file).
+- Checked in a fresh `claude -p` session: reading `ChessGuiTests/qml/tst_board.qml` loads the root and `ChessGuiTests/CLAUDE.md`.
+- Left: steps 5–6.
