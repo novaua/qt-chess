@@ -1960,7 +1960,21 @@ LichessPlayer LichessPlayer::fromJson(const QJsonObject& player)
     p._rating      = player.value(QStringLiteral("rating")).toInt();
     p._provisional = player.value(QStringLiteral("provisional")).toBool();
     p._aiLevel     = player.value(QStringLiteral("aiLevel")).toInt();
+    p._flairUrl    = player.value(QStringLiteral("flairUrl")).toString(); // not in gameFull: a kept game's (LI-14)
     return p;
+}
+
+QJsonObject LichessPlayer::toJson() const
+{
+    QJsonObject o;
+    if (!_id.isEmpty())       o[QStringLiteral("id")]          = _id;
+    if (!_name.isEmpty())     o[QStringLiteral("name")]        = _name;
+    if (!_title.isEmpty())    o[QStringLiteral("title")]       = _title;
+    if (_rating > 0)          o[QStringLiteral("rating")]      = _rating;
+    if (_provisional)         o[QStringLiteral("provisional")] = true;
+    if (_aiLevel > 0)         o[QStringLiteral("aiLevel")]     = _aiLevel;
+    if (!_flairUrl.isEmpty()) o[QStringLiteral("flairUrl")]    = _flairUrl;
+    return o;
 }
 
 QString LichessPlayer::name() const

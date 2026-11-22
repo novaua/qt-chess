@@ -40,6 +40,44 @@ LocalRating LocalRating::fromJson(const QJsonObject& o)
 	return LocalRating(o.value(QStringLiteral("value")).toInt(Start), o.value(QStringLiteral("games")).toInt(0));
 }
 
+// ── LichessGameInfo ──────────────────────────────────────────────────────────
+
+LichessGameInfo::LichessGameInfo(const QString& gameId, bool rated, const QString& speed, int daysPerTurn,
+                                 const LichessPlayer& white, const LichessPlayer& black)
+	: _gameId(gameId), _rated(rated), _speed(speed), _daysPerTurn(daysPerTurn), _white(white), _black(black)
+{
+}
+
+QString LichessGameInfo::url() const
+{
+	return _gameId.isEmpty() ? QString() : QStringLiteral("https://lichess.org/") + _gameId;
+}
+
+QJsonObject LichessGameInfo::toJson() const
+{
+	QJsonObject o{
+		{ QStringLiteral("gameId"), _gameId },
+		{ QStringLiteral("rated"),  _rated },
+		{ QStringLiteral("white"),  _white.toJson() },
+		{ QStringLiteral("black"),  _black.toJson() },
+	};
+	if (!_speed.isEmpty())
+		o[QStringLiteral("speed")] = _speed;
+	if (_daysPerTurn > 0)
+		o[QStringLiteral("daysPerTurn")] = _daysPerTurn;
+	return o;
+}
+
+LichessGameInfo LichessGameInfo::fromJson(const QJsonObject& o)
+{
+	if (o.value(QStringLiteral("gameId")).toString().isEmpty())
+		return {};
+	return LichessGameInfo(o.value(QStringLiteral("gameId")).toString(), o.value(QStringLiteral("rated")).toBool(),
+		o.value(QStringLiteral("speed")).toString(), o.value(QStringLiteral("daysPerTurn")).toInt(),
+		LichessPlayer::fromJson(o.value(QStringLiteral("white")).toObject()),
+		LichessPlayer::fromJson(o.value(QStringLiteral("black")).toObject()));
+}
+
 // ── GameRecord ───────────────────────────────────────────────────────────────
 
 bool GameRecord::rateable() const
@@ -105,6 +143,8 @@ QJsonObject GameRecord::toJson() const
 		if (ratedGames > 0)
 			o[QStringLiteral("ratedGames")] = ratedGames;
 	}
+	if (!lichess.isEmpty())
+		o[QStringLiteral("lichess")]      = lichess.toJson();
 	return o;
 }
 
@@ -148,6 +188,7 @@ GameRecord GameRecord::fromJson(const QJsonObject& o)
 	r.ratingBefore     = o.value(QStringLiteral("ratingBefore")).toInt(0);
 	r.ratingChange     = o.value(QStringLiteral("ratingChange")).toInt(0);
 	r.ratedGames       = r.rated ? o.value(QStringLiteral("ratedGames")).toInt(0) : 0;
+	r.lichess          = LichessGameInfo::fromJson(o.value(QStringLiteral("lichess")).toObject());
 	return r;
 }
 

@@ -88,9 +88,14 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
 
 ## Kept games, the rating, the analysis
 - `GameRecord` and `GameLibrary` (QML singleton `GameLibrary`; BL-19, BL-20): every local game (vs the robot, two
-  players) kept from its first move, finished or left, newest first; Lichess games have no record (the owner's
-  choice). It follows the active profile. `games`, `unfinishedGames`, `count`, `unfinishedCount`,
-  `finishedCount`, `remove(id)`.
+  players) kept from its first move, finished or left, newest first. It follows the active profile. `games`,
+  `unfinishedGames`, `count`, `unfinishedCount`, `finishedCount`, `remove(id)`.
+  - **A Lichess game** (LI-14, plan `docs/LI-14-LichessAnalysisPlan.md`): only a finished one, `kind: "lichess"`, id
+    `GameRecord::lichessRecordId(<Lichess id>)` (`lichess-<id>`: never kept twice), and `LichessGameInfo` (the
+    JSON's `lichess` object: Lichess id, rated there, speed, days per move, both players as `gameFull` gave them,
+    `LichessPlayer::toJson`). Never rated, continued (`continueGame`) or Played from here (`startFrom`); one cap
+    with the local games; statistics rebuilt count it under Lichess; its PGN has Site, the Lichess names,
+    the Event as lichess.org's, both Elo and the clock. `ChessConnector` writes it from LI-14 step 2.
   - **Files:** one signed file per game, `users/<id>/games/<gameId>.json` (`{"record", "sig"}`); `put` / `remove`
     write only that file once the current event is done (`flush()` writes now; the destructor and a profile
     change do).
@@ -180,8 +185,8 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
   level) without takeback or fork, never Chess960. Removing games never changes the rating.
 - A rated game copied from another profile doesn't move the rating.
 - Unfinished kept games are never removed on their own.
-- Lichess games have no record here (LI-14 will change this: finished Lichess games kept locally, the owner's
-  decision).
+- Only finished Lichess games have a record (`kind: "lichess"`, id `lichess-<id>`; LI-14, the owner's decision):
+  never rated, continued or Played from here.
 - No analysis of the game going on (no hints): `CanAnalyse` is false while it is played; `GameAnalyzer`
   itself analyses any kept record it is given.
 - A premove that isn't legal when its turn comes is dropped silently.

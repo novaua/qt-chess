@@ -2,7 +2,7 @@
 id: LI-14
 title: "Analyse a Lichess game"
 type: task
-status: open
+status: in_progress
 priority: high
 ---
 
@@ -36,3 +36,17 @@ lichess.org's end of a game offers **Analysis board**.
 **Tests:** FakeUci analysis of a finished Lichess game (from `FakeLichess`), the result card's Analyse, and the marks on the move list (`tst_lichess`). A Chess960 Lichess game too (`tst_lichess960`).
 
 Related: LI-15 (the list of recent Lichess games), LI-16 (the end of a Lichess game: Rematch, New opponent, Analyse).
+## Resolution
+
+### 2026-11-23 — step 1: the record of a Lichess game (branch: features/li14LichessRecord_221126)
+- Done: `kind: "lichess"` and `LichessGameInfo` (`gamelibrary.h/cpp`: the JSON's `lichess` object, the Lichess id,
+  rated, speed, days per move, both players as `gameFull` gave them through the new `LichessPlayer::toJson`, the
+  flair too); `GameRecord::lichessRecordId` (`lichess-<id>`), `isLichess()`. `continueGame` and `startFrom` (Play
+  from here) refuse such a record; statistics rebuilt from kept games count it under Lichess (it would have
+  counted as Guest); its PGN: Site, the Lichess names, "Rated Rapid game", both Elo, the record's clock. Nothing
+  writes such a record yet (step 2).
+- Checked: `ChessQtTests` 349 green, new: `GameLibraryTest` (a Lichess game through its signed file, never rated,
+  under the same cap; the AI's level kept), `GamePgnTest` (a kept Lichess game's tags; a casual correspondence
+  game vs an anonymous player), `UserManagerTest` (rebuilt statistics: the kept Lichess loss, not the win without
+  a record). `Run-UiTests.ps1 -Build`: 13 files green.
+- Left: step 2 (kept when the result comes, Analyse on the board), step 3 (the Games page).

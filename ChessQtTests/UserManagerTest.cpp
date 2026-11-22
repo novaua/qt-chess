@@ -241,6 +241,7 @@ namespace UserManagerTests
 			keepGame(alice, "guest-draw", "local", "1/2-1/2");
 			keepGame(alice, "bob-loss", "local", "0-1", bob, "Bob");
 			keepGame(alice, "not-counted", "computer", "1-0", {}, {}, false);
+			keepGame(alice, "lichess-abcd1234", "lichess", "0-1", {}, "Magnus"); // LI-14: lost on Lichess, kept here
 			addAWinByHand(alice);
 			addAWinByHand(bob);
 			QDir(QFileInfo(UserManager::backupFilePath(1)).absolutePath()).removeRecursively();
@@ -250,7 +251,10 @@ namespace UserManagerTests
 			Assert::AreEqual(2, (int)restored.size());
 			Assert::IsTrue(restored[0].toMap()["rebuilt"].toBool());
 			const auto stats = um.statsOf(alice);
-			Assert::AreEqual(3, (int)stats.size(), L"robot, Guest, Bob: no Lichess, no edit");
+			Assert::AreEqual(4, (int)stats.size(), L"robot, Guest, Bob, Lichess; no edit");
+			Assert::AreEqual(1, stats.value("lichess").losses, L"the kept Lichess game, not the win without a record");
+			Assert::AreEqual(0, stats.value("lichess").wins);
+			Assert::AreEqual(QString("Lichess"), stats.value("lichess").opponentName);
 			Assert::AreEqual(1, stats.value(UserManager::computerKey(3)).wins);
 			Assert::AreEqual(1, stats.value(UserManager::computerKey(3)).games, L"only games the statistics had");
 			Assert::AreEqual(1, stats.value("guest").draws);
