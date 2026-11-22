@@ -64,6 +64,12 @@ the scenarios with B (1–9) are only partly covered; scenario 10 is the closest
 - **Not run yet:** 1 (a pool tile on lichess.org meets the seek), 3's lobby side, 4 (paired on another
   page), 5 (rated, B's view), 6 (Chess960), 7 (Custom clock), 8 (correspondence), 9 (Lichess refuses).
   LI-09 stays open until they are.
+- **The end of a game** (a later Rapid game, 2026-11-22): the result card offers **Rematch**, **New game**
+  (back to the Online page) and **Review moves**, but no **Analyse**, and the game isn't kept here (Lichess
+  games have no record, BL-19), so it can't be found or analysed afterwards. lichess.org offers Rematch,
+  New opponent and Analysis board. Filed: **LI-14** (analyse a Lichess game), **LI-15** (the last Lichess
+  games from the server, 10 at a time with More), **LI-16** (the end of a game: Rematch, New opponent,
+  Analyse).
 - **Ideas from the tests:** Bullet and Blitz can't be sought through Lichess's Board API (Lichess's own
   site and app play them); a service of our own for fast games is noted in TSK-13. The opponent's avatar in
   a Lichess game: a standard avatar and the Lichess flair (LI-11).
@@ -210,4 +216,5 @@ With B away: A seeks **10+0** (or 15+10) **Rated** and waits, at a busy hour.
 Result: **OK** (2026-11-22, the owner): every Rapid tile (10+x and the others) paired with real players after
 different waits (some seeks cancelled after 30 s and more); the games played well, won and lost. Mostly
 Black: Lichess's random colour (the seek sends none). Not noted: the `source`, the exact waits, a rating
-change.
+change. A later Rapid game also played to the end; after it, no Analyse and no way to find
+the game again: LI-14, LI-15, LI-16.
