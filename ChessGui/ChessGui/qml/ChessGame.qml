@@ -589,56 +589,19 @@ ApplicationWindow {
     readonly property var _header: stack.currentItem ? stack.currentItem.header ?? null : null
     readonly property bool _hasMessageArea: _header !== null && (_header.messageArea ?? null) !== null
 
-    // The game's state, by priority: an offer or the opponent left (they wait for an answer), then the
-    // lost connection.
-    readonly property string _offer: ChessConnector.PendingOffer   // "", "draw", "takeback", "rematch"
-    readonly property bool _gone: ChessConnector.OpponentGone
-    readonly property bool _reconnecting: ChessConnector.Reconnecting && ChessConnector.GameResult === ""
-    readonly property string _statusKind: _offer !== "" ? "offer" : _gone && !_goneDismissed ? "gone" : _reconnecting ? "connection" : ""
-    function _offerTextFor(offer) {
-        return offer === "draw"     ? ChessConnector.OpponentName + " offers a draw"
-             : offer === "takeback" ? ChessConnector.OpponentName + " asks to take back a move"
-             : offer === "rematch"  ? ChessConnector.OpponentName + " offers a rematch" : ""
+    // Their state: the game's (an offer, the opponent left, the lost connection), the short message, the
+    // recent messages (MessageCenter.qml).
+    MessageCenter {
+        id: messageCenter
+        objectName: "messageCenter"
+        flyoutOpen: recentFlyout.visible
+        screenshotMode: root._screenshotMode
+        shortShowing: shortMessage.showing
+        statusFits: statusMessage.fits
     }
-    readonly property string _offerText: _offerTextFor(_offer)
-    // The opponent left: the seconds until Lichess allows the claim (<= 0: now), and whether it takes
-    // it now (only on the opponent's turn: on the player's, a move first). ChessConnector counts down.
-    readonly property int _claimSeconds: ChessConnector.ClaimWinSeconds
-    readonly property bool _canClaim: ChessConnector.CanClaimVictory
-    readonly property string _goneText: _claimSeconds > 0 ? "Opponent left · claim victory in " + _claimSeconds + " s"
-                                      : _canClaim ? "Opponent left the game" : "Opponent left · your move, then claim victory"
-    // Closed with its ×: hidden until the claim becomes possible or the opponent comes back or leaves
-    // again (the recent messages keep Claim victory).
-    property bool _goneDismissed: false
-    on_CanClaimChanged: if (_canClaim) _goneDismissed = false
-    // Over the command bar, or waiting there behind a short message: not in the InfoBars.
-    function _statusShows(kind) { return statusMessage.fits && root._statusKind === kind }
-    // The state waits for the player's answer (an offer, Claim victory): a short message never hides it
-    // for longer than its 4 s (an error too: it stays in the recent messages), "Check" not at all (the
-    // board and the sound tell it), and a message shown when it comes gives way at once.
-    readonly property bool _answerable: _statusKind === "offer" || (_statusKind === "gone" && _canClaim)
-    on_AnswerableChanged: if (_answerable) _closeMessage(_message)
-
-    // A short message: the newest replaces the one shown, except that an error stays until it is closed
-    // (a newer message meanwhile goes only to the recent messages, with the dot).
-    property var _message: null        // { text, severity }
-    Timer { id: messageTimer; interval: 4000; onTriggered: root._message = null }
-    function notify(text, severity, external) {
-        severity = severity ?? "info"
-        const behindError = _message !== null && _message.severity === "critical" && severity !== "critical"
-        if (text !== "Check")   // the board, the sound and the move list ("+") tell it already
-            root._addRecent(text, severity, external || severity === "critical" || behindError, "message", "")
-        if (behindError || (text === "Check" && _answerable))
-            return
-        _message = { text: text, severity: severity }
-        if (severity === "critical" && !_answerable) messageTimer.stop()
-        else                                         messageTimer.restart()
-    }
-    function _closeMessage(m) {
-        if (m === _message) { _message = null; messageTimer.stop() }
-    }
-    // The InfoBar's one: a message that doesn't fit the command bar.
-    readonly property var _barMessage: _message !== null && !shortMessage.showing ? _message : null
+    readonly property alias messages: messageCenter   // for ScreenshotScene
+    // Every short message comes through here.
+    function notify(text, severity, external) { messageCenter.notify(text, severity, external) }
 
     component BarMessage: CommandBarMessage {
         room: root._hasMessageArea ? root._header.messageWidth : 0
@@ -655,28 +618,28 @@ ApplicationWindow {
     BarMessage {
         id: statusMessage
         objectName: "statusMessage"
-        active: root._statusKind !== "" && !shortMessage.showing   // a short message has the place for its time
-        severity: root._statusKind === "offer" ? "info" : "caution"
-        text: root._statusKind === "offer" ? root._offerText
-            : root._statusKind === "gone" ? root._goneText
+        active: messageCenter.statusKind !== "" && !shortMessage.showing   // a short message has the place for its time
+        severity: messageCenter.statusKind === "offer" ? "info" : "caution"
+        text: messageCenter.statusKind === "offer" ? messageCenter.offerText
+            : messageCenter.statusKind === "gone" ? messageCenter.goneText
             : "Reconnecting to Lichess…"
-        closable: root._statusKind === "gone"
-        onCloseRequested: root._goneDismissed = true
-        tooltip: root._statusKind === "connection" ? "The connection to Lichess was lost. Your clock keeps running on Lichess." : ""
+        closable: messageCenter.statusKind === "gone"
+        onCloseRequested: messageCenter.goneDismissed = true
+        tooltip: messageCenter.statusKind === "connection" ? "The connection to Lichess was lost. Your clock keeps running on Lichess." : ""
         Button {
             objectName: "offerAcceptButton"
-            visible: root._statusKind === "offer"
+            visible: messageCenter.statusKind === "offer"
             text: "Accept"; highlighted: true
-            onClicked: root.respondOffer(true)
+            onClicked: messageCenter.respondOffer(true)
         }
         Button {
             objectName: "offerDeclineButton"
-            visible: root._statusKind === "offer"
+            visible: messageCenter.statusKind === "offer"
             text: "Decline"
-            onClicked: root.respondOffer(false)
+            onClicked: messageCenter.respondOffer(false)
         }
         Button {
-            visible: root._statusKind === "gone" && root._canClaim
+            visible: messageCenter.statusKind === "gone" && messageCenter.canClaim
             text: "Claim victory"; highlighted: true
             onClicked: ChessConnector.claimVictory()
         }
@@ -685,21 +648,18 @@ ApplicationWindow {
     BarMessage {
         id: shortMessage
         objectName: "shortMessage"
-        active: root._message !== null
-        text: root._message ? root._message.text : ""
-        severity: root._message ? root._message.severity : "info"
+        active: messageCenter.message !== null
+        text: messageCenter.message ? messageCenter.message.text : ""
+        severity: messageCenter.message ? messageCenter.message.severity : "info"
         closable: severity === "critical"
         clickToClose: true
-        onCloseRequested: root._closeMessage(root._message)
+        onCloseRequested: messageCenter.closeMessage(messageCenter.message)
     }
 
     // ── Recent messages (BL-13 step 3, §9.9): for a message the player missed ──
-    // The last 20 of this session, newest first, all but "Check". An offer keeps its Accept / Decline in
-    // the list while it is open. The More button (Home: the account button) shows a dot for new ones the
-    // player didn't cause: an offer, the opponent left, the connection, a decline, an error.
-    ListModel { id: recentMessages }
-    property int _recentId: 0
-    property int unseenMessages: 0
+    // The list is MessageCenter's (messageCenter.model); the dot on More (Home: the account button) counts
+    // messageCenter.unseen.
+    property alias unseenMessages: messageCenter.unseen
     // They are the profile's: another one (or the profile list) starts without them.
     property string _messagesUser: ""
     function _userChanged() {
@@ -708,62 +668,7 @@ ApplicationWindow {
             return
         _messagesUser = user
         recentFlyout.close()
-        recentMessages.clear()
-        unseenMessages = 0
-        _offerRid = 0
-        _goneRid = 0
-        _closeMessage(_message)
-    }
-    function _addRecent(text, severity, external, kind, offer) {
-        var rid = ++_recentId
-        recentMessages.insert(0, { rid: rid, text: text, severity: severity, kind: kind, offer: offer,
-                                   status: kind === "message" ? "" : "open",
-                                   time: root._screenshotMode ? "12:41" : Qt.formatTime(new Date(), "HH:mm"),   // stable pictures
-                                   source: ChessConnector.InGame ? ChessConnector.GameTitle : "" })
-        if (recentMessages.count > 20)
-            recentMessages.remove(20, recentMessages.count - 20)
-        if (external && !recentFlyout.visible)
-            unseenMessages++
-        return rid
-    }
-    function _setRecentStatus(rid, status) {
-        for (var i = 0; i < recentMessages.count; ++i)
-            if (recentMessages.get(i).rid === rid) { recentMessages.setProperty(i, "status", status); return }
-    }
-    property int _offerRid: 0
-    property string _offerAnswer: ""   // how the open offer ended: "accepted", "declined"; else it was withdrawn
-    property int _goneRid: 0
-    function respondOffer(accept) {
-        _offerAnswer = accept ? "accepted" : "declined"
-        if (_offer === "draw")          ChessConnector.respondDraw(accept)
-        else if (_offer === "takeback") ChessConnector.respondTakeback(accept)
-        else if (_offer === "rematch")  ChessConnector.respondRematch(accept)
-    }
-    Connections {
-        target: ChessConnector
-        // ChessConnector's own values: a binding on them (root._offer) may not be updated yet here.
-        function onPendingOfferChanged() {
-            const offer = ChessConnector.PendingOffer
-            if (root._offerRid) root._setRecentStatus(root._offerRid, root._offerAnswer || "withdrawn")
-            root._offerRid = 0
-            root._offerAnswer = ""
-            if (offer !== "")
-                root._offerRid = root._addRecent(root._offerTextFor(offer), "info", true, "offer", offer)
-        }
-        // Only when the opponent leaves or comes back (not for a new countdown).
-        function onOpponentGoneChanged() {
-            root._goneDismissed = false
-            if (ChessConnector.OpponentGone && !root._goneRid)
-                root._goneRid = root._addRecent("Your opponent left the game", "caution", true, "gone", "")
-            else if (!ChessConnector.OpponentGone && root._goneRid) {
-                root._setRecentStatus(root._goneRid, "")
-                root._goneRid = 0
-            }
-        }
-        function onReconnectingChanged() {
-            if (ChessConnector.Reconnecting && ChessConnector.GameResult === "")
-                root._addRecent("Connection to Lichess lost", "caution", true, "message", "")
-        }
+        messageCenter.resetForUser()
     }
     // anchor: the button whose menu opened it (the list opens under it); null: Ctrl+M, under the
     // command bar's right end.
@@ -778,17 +683,17 @@ ApplicationWindow {
             recentFlyout.panelX = root.width - w - Theme.s2
             recentFlyout.panelY = Theme.commandBarHeight + Theme.s1
         }
-        unseenMessages = 0
+        messageCenter.unseen = 0
         recentFlyout.open()
     }
     MessagesFlyout {
         id: recentFlyout
         objectName: "recentMessages"
         anchors.fill: parent
-        model: recentMessages
-        canClaim: root._canClaim
-        onOfferAnswered: (accept) => root.respondOffer(accept)
-        onClearRequested: { recentMessages.clear(); root.unseenMessages = 0 }
+        model: messageCenter.model
+        canClaim: messageCenter.canClaim
+        onOfferAnswered: (accept) => messageCenter.respondOffer(accept)
+        onClearRequested: messageCenter.clearRecent()
     }
 
     // ── InfoBars: messages and Lichess offers, under the command bar ────────
@@ -819,11 +724,11 @@ ApplicationWindow {
             // page without a command bar.
             InfoBar {
                 width: parent.width
-                visible: root._barMessage !== null
-                text: root._barMessage ? root._barMessage.text : ""
-                severity: root._barMessage ? root._barMessage.severity : "info"
+                visible: messageCenter.barMessage !== null
+                text: messageCenter.barMessage ? messageCenter.barMessage.text : ""
+                severity: messageCenter.barMessage ? messageCenter.barMessage.severity : "info"
                 hideOnClose: false
-                onClosed: root._closeMessage(root._barMessage)
+                onClosed: messageCenter.closeMessage(messageCenter.barMessage)
             }
 
             // BL-10: a Lichess challenge to the player, over any page.
@@ -889,24 +794,24 @@ ApplicationWindow {
             // another): an offer, the lost connection, the opponent left.
             InfoBar {
                 width: parent.width
-                visible: root._offer !== "" && !root._statusShows("offer")
+                visible: messageCenter.offer !== "" && !messageCenter.statusShows("offer")
                 actionsBelow: root._barsInColumn
                 closable: false
-                text: root._offerText
+                text: messageCenter.offerText
                 Button {
                     text: "Accept"; highlighted: true
-                    onClicked: root.respondOffer(true)
+                    onClicked: messageCenter.respondOffer(true)
                 }
                 Button {
                     text: "Decline"
-                    onClicked: root.respondOffer(false)
+                    onClicked: messageCenter.respondOffer(false)
                 }
             }
 
             // LI-06: the Lichess game's stream was lost; LichessClient reconnects on its own.
             InfoBar {
                 width: parent.width
-                visible: root._reconnecting && !root._statusShows("connection")
+                visible: messageCenter.reconnecting && !messageCenter.statusShows("connection")
                 closable: false
                 severity: "caution"
                 text: "Connection to Lichess lost. Reconnecting… Your clock keeps running on Lichess."
@@ -915,16 +820,16 @@ ApplicationWindow {
             // Lichess "opponentGone": counts down until Lichess allows claiming the win.
             InfoBar {
                 width: parent.width
-                visible: root._gone && !root._goneDismissed && !root._statusShows("gone")
+                visible: messageCenter.gone && !messageCenter.goneDismissed && !messageCenter.statusShows("gone")
                 actionsBelow: root._barsInColumn
                 hideOnClose: false
-                onClosed: root._goneDismissed = true
+                onClosed: messageCenter.goneDismissed = true
                 severity: "caution"
-                text: root._claimSeconds > 0 ? "Your opponent left the game. You can claim victory in " + root._claimSeconds + " s."
-                    : root._canClaim ? "Your opponent left the game."
+                text: messageCenter.claimSeconds > 0 ? "Your opponent left the game. You can claim victory in " + messageCenter.claimSeconds + " s."
+                    : messageCenter.canClaim ? "Your opponent left the game."
                     : "Your opponent left the game. Make your move, then you can claim victory."
                 Button {
-                    visible: root._canClaim
+                    visible: messageCenter.canClaim
                     text: "Claim victory"
                     highlighted: true
                     onClicked: ChessConnector.claimVictory()

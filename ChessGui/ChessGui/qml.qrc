@@ -60,6 +60,7 @@
         <file>qml/ResultCard.qml</file>
         <file>qml/GameSounds.qml</file>
         <file>qml/StartNotice.qml</file>
+        <file>qml/MessageCenter.qml</file>
         <file>qml/ChessBoard.qml</file>
         <file>qml/ChessBoxes.qml</file>
         <file>qml/ChessFigures.qml</file>

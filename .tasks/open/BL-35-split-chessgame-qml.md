@@ -51,3 +51,19 @@ each.
   same as `develop`'s, taken just before as their baselines (the old ones were stale: the setup dialog's Variant
   row, the levels dialog's place).
 - Left: steps 3–6.
+
+### 2026-11-22 — step 3: MessageCenter.qml (branch: features/bl35MessageCenter_221126)
+- Done: `qml/MessageCenter.qml`, one instance in the window (`id: messageCenter`; `window.messages` for
+  ScreenshotScene, whose five `_addRecent` calls are now `messages.addRecent`): the game's state, the short message
+  with its 4 s Timer, the recent messages' `ListModel`, and the Connections for offers, the opponent leaving and
+  the lost connection. The window keeps `notify()` as a one-line forward, `openRecentMessages()`, the profile check
+  (`_userChanged()` → `resetForUser()`) and `property alias unseenMessages`. Apart from the plan: it is an
+  invisible `Item` (like GameSounds: it holds a Timer, a ListModel and Connections), and takes two more inputs,
+  `shortShowing` and `statusFits` (`barMessage` and `statusShows()` need them; the two bars stay in the window).
+  `ChessGame.qml` 1363 → 1268 lines. No change in behaviour.
+- Checked: `Run-UiTests.ps1 -Build`, 13 files green. 20 message scenes (`-Offscreen`: `home-message`, `messages`
+  ×3, `draw-offer` ×3, `opponent-left*` ×7, `reconnecting` ×2, `check` ×3): the same as `develop`'s, taken just
+  before as their baselines.
+- Found on the way, filed: BL-37 (`tst_chess960` test 6 failed once on `develop`), BL-38 (a `ChessFigures.qml`
+  TypeError in the test logs, on `develop` too).
+- Left: steps 4–6.
