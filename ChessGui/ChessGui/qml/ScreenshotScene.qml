@@ -306,7 +306,7 @@ Item {
         }
         if (["takeback", "clock-online", "clock-correspondence", "premove", "premove-capture", "premove-played", "premove-dropped", "reconnecting", "rejoin",
              "challenge-ingame", "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-             "opponent-left-error"].includes(name)) {
+             "opponent-left-error", "lichess-result"].includes(name)) {
             ChessConnector.screenshotSceneSetUp()   // main.cpp feeds the Lichess game and says when the board is ready
             return
         }

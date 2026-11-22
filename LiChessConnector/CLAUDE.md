@@ -21,7 +21,8 @@ against `FakeLichess`).
   rating pool.
 - **Players (LI-07, LI-11):** `gamePlayer(white)`: the game's `LichessPlayer` from `gameFull` (id, name, title,
   rating, provisional; the AI is "Stockfish level N"; gameFull has no flair), set before `gameStarted`;
-  `toJson()` writes it back in that shape, with the flair (a kept Lichess game's players, LI-14). Then one
+  `toJson()` writes it back in that shape, with the flair (a kept Lichess game's players, LI-14);
+  `currentGameFull()`: the started game's `gameFull` as it came (rated, speed, clock, `createdAt`). Then one
   `POST /api/users` for both players' flairs (`fetchPlayerFlairs`, never on a resync); `gamePlayersChanged` when
   they come. `flairUrl()`: `<asset base>/assets/flair/img/<flair>.webp` on lichess1.org; `setAssetBaseUrl` for
   the fakes.

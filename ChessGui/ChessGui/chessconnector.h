@@ -493,8 +493,11 @@ private:
 	void beginGame(bool online); // resets per-game end state; online: rematch goes to Lichess
 	void setFlaggedKing(int square);
 	// BL-19: the game on the board into its record in the library (made at its first move, updated
-	// with every move, the result and when it is left); not for Lichess games or a replay.
+	// with every move, the result and when it is left); a Lichess game only once its result came
+	// (keepLichessGame); never a replay.
 	void updateRecord();
+	void keepLichessGame(); // LI-14: a finished Lichess game (not an aborted one) into its record, lichess-<id>
+	void setRecordPosition(GameRecord& r) const; // the board's game into a record: start, moves, the position after them
 	void keepGameOnLeave(); // updateRecord() for a game being left: a promotion still being chosen doesn't stand
 	void replayMoves(const QStringList& uciMoves); // on the game, quietly (no check sounds), up to the first that can't be played
 	GamePgn boardPgn() const;                              // the game on the board
@@ -572,6 +575,7 @@ private:
 	QString _opponentName;
 	QString _opponentUserId;
 	LichessPlayer _lichessMe, _lichessOpponent; // LI-07: a Lichess game's players, from its gameFull
+	QJsonObject _onlineGameFull; // LI-14: the Lichess game's gameFull (rated, speed, clock, created) for its record
 	QString _pendingOffer;
 	int  _drawOfferPly = -1; // ply of our last Lichess draw offer; -1 = none in this game
 	ClaimWin* _claimWin = nullptr; // the opponent left: the countdown and when the win can be claimed
