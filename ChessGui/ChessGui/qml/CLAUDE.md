@@ -35,6 +35,12 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   (`ChessConnector.boardIdle`; at once while reviewing): a move's check (`then`: the "Check" message, with sound
   off too), the mate and the win. Only a move's own sound, from its own Connections, plays as the slide starts.
   `played(name)` for the UI tests. A new sound goes here, not into a page.
+- `MessageCenter.qml` — the messages' state, one instance in the window (`messageCenter`, `window.messages` for
+  `ScreenshotScene`): the game's state (`statusKind`: an offer, the opponent left, the lost connection; Claim
+  victory), the short message (`notify()`, which `ChessGame.notify()` forwards; 4 s, an error until closed) and
+  the recent messages (`model`, `unseen`, `addRecent()`, `resetForUser()`). The window draws them
+  (`CommandBarMessage`s, the InfoBars, `MessagesFlyout`) and tells it what they show (`shortShowing`,
+  `statusFits`, `flyoutOpen`).
 - `HomePage.qml` — account menu; Continue: the only unfinished game directly, two or more:
   `ContinueGamesPage` (`ChessGame.continueGames()`); action cards, among them **Games** (Ctrl+O): `GamesPage`.
 - `ContinueGamesPage.qml` — every unfinished game: the kept local games first as `GameCard`s

@@ -297,11 +297,11 @@ Item {
             window.notify("Profile imported", "success")   // over Home's command bar
         if (name === "messages") {
             // Earlier messages (oldest first), then main.cpp's draw offer; the list opens once it is there.
-            window._addRecent("Game saved", "success", false, "message", "")
-            window._addRecent("Speedy declined the challenge", "caution", true, "message", "")
-            window._addRecent("Connection to Lichess lost", "caution", true, "message", "")
-            window._addRecent("Reconnected to Lichess", "success", true, "message", "")
-            window._addRecent("Couldn't save C:\\Users\\Tester\\Documents\\Chess\\game.pgn", "critical", true, "message", "")
+            window.messages.addRecent("Game saved", "success", false, "message", "")
+            window.messages.addRecent("Speedy declined the challenge", "caution", true, "message", "")
+            window.messages.addRecent("Connection to Lichess lost", "caution", true, "message", "")
+            window.messages.addRecent("Reconnected to Lichess", "success", true, "message", "")
+            window.messages.addRecent("Couldn't save C:\\Users\\Tester\\Documents\\Chess\\game.pgn", "critical", true, "message", "")
             messagesOpener.enabled = true
         }
         if (["takeback", "clock-online", "clock-correspondence", "premove", "premove-capture", "premove-played", "premove-dropped", "reconnecting", "rejoin",
