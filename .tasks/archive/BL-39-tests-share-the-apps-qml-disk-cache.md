@@ -2,7 +2,7 @@
 id: BL-39
 title: "The UI tests and screenshot runs share the app's QML disk cache: a running app read a replaced .qmlc and asserted"
 type: bug
-status: open
+status: done
 priority: high
 ---
 
@@ -41,3 +41,20 @@ cache entries of a running app; a unit the app has mapped then reads zeros on it
   folder isn't written by a test run.
 - Until then: don't keep the app running from Visual Studio while `Run-UiTests.ps1` or `Take-Screenshot.ps1`
   run, or delete the cache folder after a test run.
+
+## Resolution
+
+### 2026-11-22 — fixed (branch: bugs/qmlCachePerExe_221126)
+- Cause: above. Every build and the UI tests shared one QML disk cache; a run with other QML (a screenshot run
+  of another checkout of `ProfilePage.qml`) rewrote a `.qmlc` that the running Debug app had mapped, and the app
+  then read zeros from its pages not read yet.
+- Fix: `AppConfig::useOwnQmlCache()` sets `QML_DISK_CACHE_PATH` to `<CacheLocation>/qml/<exe name>-<first 12
+  hex of the SHA-1 of its path, lower case>` (unless it is set already), called by `main.cpp` right after the
+  application object and by `TestSetup::applicationAvailable()`, both before the QML engine. Each executable has
+  its own folder: the Debug and Release builds, the installed app, `ChessGuiTests`. Two instances of one
+  executable share theirs, which is safe: the same QML, nothing to rewrite. The old shared folder
+  `cache/qmlcache` is no longer used (it can be deleted).
+- Tests: `tst_firstRun` test 3: `TestRun.qmlCachePath` is `…/qml/ChessGuiTests-<hash>` and the window's QML was
+  compiled there. Checked by hand: a test run and a Release screenshot run each wrote only their own folder
+  (`ChessGuiTests-b84897fdb67b`, `ChessGui-ae3dd06cf0b9`), the shared `qmlcache` unchanged. `Run-UiTests.ps1`: 13
+  files green.

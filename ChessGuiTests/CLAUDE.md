@@ -30,7 +30,9 @@ except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too
 - `// ui-test-engine: none` runs it without an engine (`tst_noEngine`).
 - `TestRun` (`TestSetup` as a QML singleton, module `ChessGuiTests`, with `FakeLichess`): `linkLichess`,
   `addFinishedGames(n)` (fills the games library without playing), `addDamagedGame`, `addEditedGame`,
-  `editRatingFile`, `setEngine`, `readTextFile`, `clipboardText`.
+  `editRatingFile`, `setEngine`, `readTextFile`, `clipboardText`, `filesIn`, `qmlCachePath`.
+- The tests' compiled QML is in a cache folder of their own (`AppConfig::useOwnQmlCache()`, BL-39), never the
+  app's: a run can't rewrite the QML of an app running beside it (`tst_firstRun` test 3).
 - **The robot is FakeUci** (`FakeUci/CLAUDE.md`), no Stockfish: `app.startComputerGame("e2e4 e7e5 …", thinkMs)`
   gives it the game to follow and how long it thinks (`tst_robot.qml`).
 - **Lichess is `FakeLichess`** (QML singleton, `fakelichessserver.h`), a local server the test plays the other

@@ -26,6 +26,8 @@ class TestSetup : public QObject
 	// Which run of a test file that runs more than once on the same data folder ("// ui-test-runs: 2":
 	// a restart), from 1
 	Q_PROPERTY(int run READ run CONSTANT)
+	// BL-39: the folder of the tests' compiled QML (QML_DISK_CACHE_PATH), not the app's
+	Q_PROPERTY(QString qmlCachePath READ qmlCachePath CONSTANT)
 
 public:
 	TestSetup();
@@ -35,6 +37,7 @@ public:
 	int stepDelay() const { return _stepDelay; }
 	bool watched() const { return _watched; }
 	int run() const { return _run; }
+	QString qmlCachePath() const { return _qmlCachePath; }
 
 	// The robot of the next game (FakeUci, read when its engine starts): the game it follows, in UCI
 	// ("e2e4 e7e5 …", it plays its own half), and how long it thinks before each answer.
@@ -62,6 +65,8 @@ public:
 	Q_INVOKABLE QString readTextFile(const QUrl& file) const;
 	// The clipboard's text (LI-10: a game's Copy link).
 	Q_INVOKABLE QString clipboardText() const;
+	// The names of the files in a folder (BL-39: the compiled QML in qmlCachePath).
+	Q_INVOKABLE QStringList filesIn(const QString& folder) const;
 
 public slots:
 	void applicationAvailable();
@@ -77,4 +82,5 @@ private:
 	int _stepDelay = 0;
 	bool _watched = false;
 	int _run = 1;
+	QString _qmlCachePath;
 };

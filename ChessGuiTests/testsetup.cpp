@@ -42,6 +42,9 @@ void TestSetup::applicationAvailable()
 		qputenv("CHESS_ENGINE_PATH", QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/FakeUci.exe").toUtf8());
 	setEngine({});
 
+	// BL-39: the tests' compiled QML apart from the app's (the same names): never rewritten under a running app.
+	_qmlCachePath = AppConfig::useOwnQmlCache();
+
 	AppConfig::setAppDataDir(_dataDir);
 	QSettings::setDefaultFormat(QSettings::IniFormat);
 	QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, _dataDir);
@@ -153,6 +156,11 @@ QString TestSetup::readTextFile(const QUrl& file) const
 QString TestSetup::clipboardText() const
 {
 	return QGuiApplication::clipboard()->text();
+}
+
+QStringList TestSetup::filesIn(const QString& folder) const
+{
+	return QDir(folder).entryList(QDir::Files);
 }
 
 // The singletons are global, so a second test file in this process would see the first one's

@@ -10,6 +10,7 @@
 #include "frametrace.h"
 #include "sceneinput.h"
 #include "AppInfo.h"
+#include "AppConfig.h"
 #include "AvatarProvider.h"
 #include "UserManager.h"
 #include "LichessClient.h"
@@ -420,6 +421,7 @@ int main(int argc, char* argv[])
 	}
 
 	QApplication app(argc, argv);
+	AppConfig::useOwnQmlCache(); // BL-39: never the compiled QML of another build (before the QML engine)
 	app.setWindowIcon(QIcon(":/app/pics/app-icon.png")); // made by scripts/make_icons.py, like chess.ico
 	if (QGuiApplication::platformName() == "offscreen")
 		QGuiApplication::setFont(QFont("Segoe UI", 9)); // the Windows default; offscreen picks any font
