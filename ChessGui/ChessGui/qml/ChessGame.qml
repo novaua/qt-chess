@@ -12,12 +12,6 @@ import ChessPlusPlus
 ApplicationWindow {
     id: root
 
-    // A Lichess challenge waiting for the opponent (challenge setup stays in QML, see CLAUDE.md).
-    property string _pendingChallengeId:  ""
-    property string _pendingChallengeUrl: ""
-    property string _pendingOpponentName: ""    // set for a challenge to a named player, which isn't saved
-    property bool   _pendingRematch:      false // pending challenge is a rematch of the game on screen
-
     readonly property bool   _inGame:   ChessConnector.InGame
     readonly property string _mode:     ChessConnector.GameMode
     readonly property bool   _gameOver: ChessConnector.GameResult !== ""
@@ -37,38 +31,19 @@ ApplicationWindow {
         || gamesKeptConfirm.visible
         || recentFlyout.visible
 
-    // ── BL-10: Lichess challenges to the player ─────────────────────────
-    // The bar shows the oldest one not hidden. The finished game's rematch offer has its own bar.
-    property var  _hiddenChallenges: ({})   // id → true: "Hide" until the next challenge arrives
-    // Lichess's answer to an Accept is awaited (the bar's or the Online page's: one state, BL-16)
-    readonly property bool _acceptingChallenge: ChessConnector.AcceptingChallengeId !== ""
-    readonly property var _challengesShown: LichessClient.incomingChallenges.filter(c =>
-        !_hiddenChallenges[c.id] && c.id !== LichessClient.rematchOfferId)
-    readonly property var _challenge: _challengesShown.length > 0 ? _challengesShown[0] : null
-
-    function challengeText(c) {
-        let text = c.challengerText + (c.rematchOf !== "" ? " offers a rematch" : " challenges you")
-                 + " · " + c.timeControlText + (c.variant !== "standard" ? " · " + c.variantName : "")
-                 + " · " + (c.rated ? "Rated" : "Casual") + " · " + c.sideText
-        if (!c.canPlayHere)
-            text += " · Can't be played in this app"
-        else if (!ChessConnector.CanAcceptChallenge)
-            text += ". Finish your game first: it waits on Lichess."
-        if (_challengesShown.length > 1)
-            text += " (+" + (_challengesShown.length - 1) + " more)"
-        return text
+    // ── Lichess challenges to and from the player (LichessChallenges.qml) ──
+    // The challenge bar and ChallengeDialog stay here and bind to it.
+    LichessChallenges {
+        id: lichessChallenges
+        objectName: "lichessChallenges"
+        page: root._page
+        mode: root._mode
+        dialogVisible: challengeDialog.visible
+        onDialogRequested: challengeDialog.open()
+        onDialogClose: atOnce => atOnce ? challengeDialog.closeAtOnce() : challengeDialog.close()
+        onMessage: (text, severity, external) => root.notify(text, severity, external)
     }
-
-    // A local game on the board is kept for Continue (BL-19), a Lichess game goes on at Lichess.
-    function acceptChallenge(id) {
-        ChessConnector.acceptChallenge(id)
-    }
-
-    function hideChallenge(id) {
-        const hidden = Object.assign({}, _hiddenChallenges)
-        hidden[id] = true
-        _hiddenChallenges = hidden
-    }
+    readonly property alias challenges: lichessChallenges   // for ScreenshotScene
 
     // BL-16: route() shows "Starting the game…" (StartNotice) and waits for it to be drawn before it
     // builds the game page.
@@ -231,8 +206,7 @@ ApplicationWindow {
         }
     }
     function _doLeaveGame() {
-        if (_pendingRematch && _pendingChallengeId !== "")
-            LichessClient.cancelChallenge(_pendingChallengeId)
+        lichessChallenges.cancelPendingRematch()
         ChessConnector.endGame()
     }
 
@@ -282,8 +256,7 @@ ApplicationWindow {
             _doSwitchUser()
     }
     function _doSwitchUser() {
-        if (_pendingRematch && _pendingChallengeId !== "")
-            LichessClient.cancelChallenge(_pendingChallengeId)
+        lichessChallenges.cancelPendingRematch()
         ChessConnector.switchUser()
     }
 
@@ -291,12 +264,7 @@ ApplicationWindow {
     // for the friend opens over it.
     function playOnline() {
         openOnline()
-        if (UserManager.lichessConnected && UserManager.hasPendingChallenge) {
-            _pendingChallengeId  = UserManager.pendingChallengeId
-            _pendingChallengeUrl = UserManager.pendingChallengeUrl
-            challengeDialog.open()
-            LichessClient.resumeOpenChallenge(_pendingChallengeId, _pendingChallengeUrl)
-        }
+        lichessChallenges.resumePending()
     }
 
     // The result card's "New game": the setup of the same kind of game. The online setup is
@@ -329,16 +297,6 @@ ApplicationWindow {
         root._notifyCheck()
     }
     function _notifyCheck() { root.notify("Check", "caution") }
-
-    function clearPendingChallenge() {
-        if (_pendingOpponentName === "")   // else a saved link isn't this challenge's
-            UserManager.clearPendingChallenge()
-        _pendingChallengeId  = ""
-        _pendingChallengeUrl = ""
-        _pendingOpponentName = ""
-        _pendingRematch      = false
-        challengeDialog.close()
-    }
 
     Component.onCompleted: {
         _messagesUser = UserManager.isLoggedIn ? UserManager.activeUserId : ""
@@ -555,7 +513,7 @@ ApplicationWindow {
     Component {
         id: gamePage
         GamePage {
-            rematchPending: root._pendingRematch
+            rematchPending: lichessChallenges.rematch
             infoBarsHeight: infoBars.height
             unseenMessages: root.unseenMessages
             onRecentMessagesRequested: (anchor) => root.openRecentMessages(anchor)
@@ -736,36 +694,36 @@ ApplicationWindow {
                 id: challengeBar
                 objectName: "challengeBar"
                 width: parent.width
-                visible: root._challenge !== null && UserManager.isLoggedIn && root._page !== "online"   // the page lists them all
+                visible: lichessChallenges.challenge !== null && UserManager.isLoggedIn && root._page !== "online"   // the page lists them all
                 closable: false
                 actionsBelow: true
-                text: root._challenge ? root.challengeText(root._challenge) : ""
+                text: lichessChallenges.challenge ? lichessChallenges.text(lichessChallenges.challenge) : ""
                 // During a running real-time Lichess game: Decline only (the text says why).
                 BusyButton {
                     objectName: "challengeAcceptButton"
-                    visible: root._challenge !== null && root._challenge.canPlayHere && ChessConnector.CanAcceptChallenge
+                    visible: lichessChallenges.challenge !== null && lichessChallenges.challenge.canPlayHere && ChessConnector.CanAcceptChallenge
                     idleText: "Accept"
-                    busy: root._challenge !== null && ChessConnector.AcceptingChallengeId === root._challenge.id
+                    busy: lichessChallenges.challenge !== null && ChessConnector.AcceptingChallengeId === lichessChallenges.challenge.id
                     busyText: "Accepting…"
                     highlighted: true
-                    enabled: !root._acceptingChallenge
-                    onClicked: root.acceptChallenge(root._challenge.id)
+                    enabled: !lichessChallenges.accepting
+                    onClicked: lichessChallenges.accept(lichessChallenges.challenge.id)
                 }
                 Button {
-                    visible: root._challenge !== null && !root._challenge.canPlayHere
+                    visible: lichessChallenges.challenge !== null && !lichessChallenges.challenge.canPlayHere
                     text: "Open on lichess.org"
-                    onClicked: Qt.openUrlExternally(root._challenge.url)
+                    onClicked: Qt.openUrlExternally(lichessChallenges.challenge.url)
                 }
                 Button {
                     objectName: "challengeDeclineButton"
                     text: "Decline"
-                    onClicked: LichessClient.declineChallenge(root._challenge.id)
+                    onClicked: LichessClient.declineChallenge(lichessChallenges.challenge.id)
                 }
                 Button {
                     objectName: "challengeHideButton"
                     text: "Hide"
                     flat: true
-                    onClicked: root.hideChallenge(root._challenge.id)
+                    onClicked: lichessChallenges.hide(lichessChallenges.challenge.id)
                 }
             }
 
@@ -881,61 +839,19 @@ ApplicationWindow {
         }
     }
 
-    // Lichess challenge setup: the dialogs and the pending challenge. The game itself starts and
-    // ends in ChessConnector.
+    // Lichess, the window's part: the taskbar flash and the seek's dialog and messages. The challenges'
+    // own: LichessChallenges.
     Connections {
         target: LichessClient
 
-        // A challenge created while the finished game is still on screen is a rematch
-        // (the Online page is only reachable from Home).
-        function onChallengeCreated(gameId, joinUrl) {
-            _pendingChallengeId  = gameId
-            _pendingChallengeUrl = joinUrl
-            _pendingRematch      = ChessConnector.InGame
-            UserManager.savePendingChallenge(gameId, joinUrl)
-            challengeDialog.open()
-        }
-
-        // Not saved with savePendingChallenge: the challenge lives only while the app keeps
-        // its request open, so it can't be resumed after a restart.
-        function onDirectChallengeSent(challengeId, opponentName) {
-            _pendingChallengeId   = challengeId
-            _pendingChallengeUrl  = ""
-            _pendingOpponentName  = opponentName
-            _pendingRematch       = ChessConnector.InGame
-            challengeDialog.open()
-        }
-
-        function onDirectChallengeLeft(opponentName) {
-            root.notify((ChessConnector.InGame ? "Rematch" : "Challenge") + " sent to " + opponentName
-                            + ". Once accepted, the game is under Your games on the Online page.", "success")
-        }
-
-        function onChallengeDeclined(opponentName) {
-            const what = _pendingRematch ? "rematch" : "challenge"
-            clearPendingChallenge()
-            root.notify(opponentName + " declined the " + what, "caution", true)
-        }
-
-        // Back to the Online page, which is under the dialog (a rematch: the game page).
-        function onChallengeCanceled() { clearPendingChallenge() }
-
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
-            challengeDialog.closeAtOnce()   // BL-16: not a fade under "Starting the game…"
-            seekDialog.closeAtOnce()
-            clearPendingChallenge()
+            seekDialog.closeAtOnce()   // BL-16: not a fade under "Starting the game…"
         }
 
         // BL-10: a new challenge to the player; one resent after a reconnect isn't new. Its sound: GameSounds.
         function onChallengeReceived(challengeId) {
             if (!root.active)
                 root.alert(0)   // the taskbar button flashes until the window is activated
-        }
-
-        // e.g. the challenger canceled meanwhile. The Online page shows its own error.
-        function onChallengeAcceptFailed(challengeId, message) {
-            if (_page !== "online")
-                root.notify("Couldn't accept the challenge: " + message, "critical")
         }
 
         // LI-09: a seek waiting beyond the Online page ended without a game (Lichess refused or ended
@@ -948,17 +864,6 @@ ApplicationWindow {
         function onSeekSent(message) {
             if (_page !== "online")
                 root.notify(message, "success")
-        }
-
-        function onNetworkError(message) {
-            if (challengeDialog.visible && _pendingRematch) {
-                clearPendingChallenge()
-                root.notify("Rematch failed: " + message, "critical")
-            } else if (challengeDialog.visible) {
-                clearPendingChallenge()   // the Online page under it shows the error
-            } else if (_mode === "online") {
-                root.notify(message, "critical")
-            }
         }
     }
 
@@ -1019,10 +924,11 @@ ApplicationWindow {
     // Waiting for the opponent to accept a Lichess challenge.
     ChallengeDialog {
         id: challengeDialog
-        challengeId:  _pendingChallengeId
-        challengeUrl: _pendingChallengeUrl
-        opponentName: _pendingOpponentName
-        isRematch:    _pendingRematch
+        objectName: "challengeDialog"
+        challengeId:  lichessChallenges.pendingId
+        challengeUrl: lichessChallenges.pendingUrl
+        opponentName: lichessChallenges.opponentName
+        isRematch:    lichessChallenges.rematch
     }
 
     CreateUserDialog {

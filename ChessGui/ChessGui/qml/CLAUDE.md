@@ -41,6 +41,12 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   the recent messages (`model`, `unseen`, `addRecent()`, `resetForUser()`). The window draws them
   (`CommandBarMessage`s, the InfoBars, `MessagesFlyout`) and tells it what they show (`shortShowing`,
   `statusFits`, `flyoutOpen`).
+- `LichessChallenges.qml` — the Lichess challenges' state, one instance in the window (`lichessChallenges`,
+  `window.challenges` for `ScreenshotScene`): the player's challenge waiting for the opponent (`pendingId`,
+  `opponentName`, `rematch`; `resumePending()`, `clearPending()`, `cancelPendingRematch()`; it asks the window to
+  open or close `ChallengeDialog`) and the ones to the player (`challengesShown`, `challenge`, `text()`,
+  `accept()`, `hide()`). The challenge bar and the dialog stay in the window; a new one's sound is GameSounds',
+  the taskbar flash the window's.
 - `HomePage.qml` — account menu; Continue: the only unfinished game directly, two or more:
   `ContinueGamesPage` (`ChessGame.continueGames()`); action cards, among them **Games** (Ctrl+O): `GamesPage`.
 - `ContinueGamesPage.qml` — every unfinished game: the kept local games first as `GameCard`s

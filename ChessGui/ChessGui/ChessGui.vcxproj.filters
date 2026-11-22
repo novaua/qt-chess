@@ -215,6 +215,9 @@
     <None Include="qml\MessageCenter.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\LichessChallenges.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\ChessFigures.qml">
       <Filter>Source Files\Qml</Filter>
     </None>

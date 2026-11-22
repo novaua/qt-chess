@@ -530,4 +530,30 @@ TestCase {
         keyClick(Qt.Key_Escape)   // Back
         app.waitForPage("home", 5000)
     }
+
+    // A challenge from the player to a named Lichess player (BL-35 step 4: LichessChallenges): its
+    // dialog, then declined ("… declined the challenge" in the recent messages); another one canceled.
+    // FakeLichess doesn't take the player's own challenges, so the test gives LichessClient's answers
+    // (its signals) itself.
+    function test_16_challengeFromThePlayer() {
+        const dialog = app.item("challengeDialog")
+        const challenges = app.item("lichessChallenges")
+        LichessClient.directChallengeSent("myChal01", "Friend")
+        tryVerify(() => dialog.opened, 3000, "the challenge dialog")
+        compare(dialog.challengeId, "myChal01")
+        compare(dialog.opponentName, "Friend")
+        verify(!dialog.isRematch, "not a rematch: no game on the board")
+
+        LichessClient.challengeDeclined("Friend")
+        app.waitClosed(dialog)
+        compare(challenges.pendingId, "", "nothing pending")
+        compare(challenges.opponentName, "")
+        verify(app.recentMessages().indexOf("Friend declined the challenge") >= 0, app.recentMessages().join(" | "))
+
+        LichessClient.directChallengeSent("myChal02", "Friend")
+        tryVerify(() => dialog.opened, 3000, "the dialog again")
+        LichessClient.challengeCanceled()
+        app.waitClosed(dialog)
+        compare(challenges.pendingId, "", "nothing pending")
+    }
 }

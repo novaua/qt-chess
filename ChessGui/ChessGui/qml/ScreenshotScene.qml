@@ -107,8 +107,8 @@ Item {
             if (name === "online-challenges-decline")   // the first challenge's reasons
                 Qt.callLater(() => findItem(pages.currentItem, "declineButton").clicked())
             if (name === "online-challenge") {   // sent to Friend: no link, Lichess isn't asked
-                window._pendingChallengeId = "scene"
-                window._pendingOpponentName = "Friend"
+                window.challenges.pendingId = "scene"
+                window.challenges.opponentName = "Friend"
                 dialogs.challenge.open()
             }
         }
@@ -285,7 +285,7 @@ Item {
         if (name === "continue-list-starting" || name === "continue-starting")
             ChessConnector.continueOnlineGame("aEPqtBMc")
         if (name === "challenge-accepting")
-            window.acceptChallenge("chal0001")
+            window.challenges.accept("chal0001")
         // BL-16: "Starting the game…" as while a game page is built (no game here), over the setup
         // dialog that started it (in the app the dialog is closing then): the notice must be on top.
         if (name === "starting") {

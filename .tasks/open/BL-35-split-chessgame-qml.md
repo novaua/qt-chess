@@ -67,3 +67,19 @@ each.
 - Found on the way, filed: BL-37 (`tst_chess960` test 6 failed once on `develop`), BL-38 (a `ChessFigures.qml`
   TypeError in the test logs, on `develop` too).
 - Left: steps 4–6.
+
+### 2026-11-22 — step 4: LichessChallenges.qml (branch: features/bl35LichessChallenges_221126)
+- Done: `qml/LichessChallenges.qml`, one instance in the window (`id: lichessChallenges`; `window.challenges` for
+  ScreenshotScene's `online-challenge` and `challenge-accepting`): the pending challenge, the challenges shown, Hide,
+  Accept, and the `LichessClient` Connections for them, `onNetworkError` whole (it decides between the challenge
+  dialog and the online game's error). Signals `dialogRequested`, `dialogClose(atOnce)`, `message`. The window keeps
+  the challenge bar, `ChallengeDialog` (now `objectName: "challengeDialog"`), the taskbar flash and the seek's
+  dialog and messages. Beyond the plan: `cancelPendingRematch()` for leaving the game and switching the profile,
+  and an invisible `Item` as the other two. `ChessGame.qml` 1268 → 1174 lines. No change in
+  behaviour.
+- Checked: `Run-UiTests.ps1 -Build`, 13 files green. New `tst_lichess` test 16: a challenge to a named player,
+  its dialog, declined (the message, nothing pending), another canceled; it raises `LichessClient`'s signals, as
+  FakeLichess doesn't take the player's own challenges. It fails when the decline handler doesn't clear the
+  challenge. 8 challenge scenes (`-Offscreen`): the same as `develop`'s, taken just before as baselines
+  (`online-challenge` 0.006 %: its spinner's angle).
+- Left: steps 5–6.
