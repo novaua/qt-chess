@@ -2,7 +2,7 @@
 id: BL-37
 title: "tst_chess960 test_6 (robot and premove) failed once: e5 empty after the robot's answer"
 type: bug
-status: open
+status: done
 priority: low
 ---
 
@@ -45,3 +45,17 @@ but empty. `Run-UiTests.ps1` passes the empty `CHESS_ENGINE_PATH` on, `TestSetup
 To fix: `TestSetup` takes an empty `CHESS_ENGINE_PATH` as not set (`qEnvironmentVariableIsEmpty`), so the tests
 never reach Stockfish whatever the shell holds; `Take-Screenshot.ps1` removes a variable that wasn't set before;
 `Run-UiTests.ps1` treats an empty one as not set.
+## Resolution
+
+### 2026-11-22 — the empty engine variables (branch: bugs/emptyEngineVars_221126)
+- Cause: as found above. PowerShell passes `$null` to `SetEnvironmentVariable` as `""`, and even `$env:X = ''`
+  keeps the variable, set but empty (PowerShell 7.7): `Take-Screenshot.ps1` left the three engine variables empty,
+  `Run-UiTests.ps1` passed the empty `CHESS_ENGINE_PATH` on, and `TestSetup` took it as named, so the app looked
+  for its own engine and found Stockfish.
+- Fix: `TestSetup` names FakeUci when `CHESS_ENGINE_PATH` is empty too (`qEnvironmentVariableIsEmpty`);
+  `Take-Screenshot.ps1` removes a variable that wasn't set before instead of setting it to `""`;
+  `Run-UiTests.ps1` takes an empty one as none; `Test-Installer.ps1`'s `Set-Env` removes a variable given no value
+  (it set the Qt paths and the engine variables empty the same way).
+- Checked: with all three set empty in the shell, `Run-UiTests.ps1 -Build`: 13 files green, the variable gone
+  after the run. `ChessGuiTests.exe` run directly on `tst_robot` with `CHESS_ENGINE_PATH` empty (the C++ fix
+  alone): 9 passed.

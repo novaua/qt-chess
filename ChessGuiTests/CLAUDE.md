@@ -34,7 +34,8 @@ except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too
 - The tests' compiled QML is in a cache folder of their own (`AppConfig::useOwnQmlCache()`, BL-39), never the
   app's: a run can't rewrite the QML of an app running beside it (`tst_firstRun` test 3).
 - **The robot is FakeUci** (`FakeUci/CLAUDE.md`), no Stockfish: `app.startComputerGame("e2e4 e7e5 …", thinkMs)`
-  gives it the game to follow and how long it thinks (`tst_robot.qml`).
+  gives it the game to follow and how long it thinks (`tst_robot.qml`). An empty `CHESS_ENGINE_PATH` counts as
+  none (BL-37: a shell can hold it empty, and the app would then find Stockfish).
 - **Lichess is `FakeLichess`** (QML singleton, `fakelichessserver.h`), a local server the test plays the other
   side on: `TestRun.linkLichess(FakeLichess.username)` links the profile; `challenge` (a challenge or ongoing game
   can be another variant, with a start FEN), `play`, `offerDraw`, `endGame`, `dropGameStreams`,
