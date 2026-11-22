@@ -41,3 +41,13 @@ each.
   board is marked busy, so the board's idle state alone couldn't tell. Scene `check` (`-Offscreen`): "Check"
   shown; 1.86 % from the stale baseline (piece edges, an old command bar icon).
 - Left: steps 2–6.
+
+### 2026-11-22 — step 2: levelColor → Theme, StartNotice.qml (branch: features/bl35StartNotice_221126)
+- Done: `levelColor` is `Theme.levelColor(level, count)`, the count passed in so that `Theme` doesn't read the
+  game; `LevelsHelpDialog` no longer reaches into the window by its id. "Starting the game…" is
+  `qml/StartNotice.qml` (`shown`, bound to the window's `_startingGame`, which stays for `route()` and the
+  `starting` scene). `ChessGame.qml` 1429 → 1363 lines. No change in behaviour.
+- Checked: `Run-UiTests.ps1 -Build`, 13 files green. Scenes `starting`, `timing`, `levels` (`-Offscreen`): the
+  same as `develop`'s, taken just before as their baselines (the old ones were stale: the setup dialog's Variant
+  row, the levels dialog's place).
+- Left: steps 3–6.

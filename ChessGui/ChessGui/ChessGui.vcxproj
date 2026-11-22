@@ -452,6 +452,7 @@
     <None Include="qml\CapturedStrip.qml" />
     <None Include="qml\ResultCard.qml" />
     <None Include="qml\GameSounds.qml" />
+    <None Include="qml\StartNotice.qml" />
     <None Include="qml\ChessFigures.qml" />
     <None Include="qml\ChessGame.qml" />
     <None Include="qml\CreateUserDialog.qml" />

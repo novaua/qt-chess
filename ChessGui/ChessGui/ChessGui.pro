@@ -145,6 +145,7 @@ DISTFILES += \
     qml/PlayerCard.qml \
     qml/ResultCard.qml \
     qml/GameSounds.qml \
+    qml/StartNotice.qml \
     qml/AppSettings.qml \
     qml/RestoreBackupDialog.qml \
     qml/SettingRow.qml \
