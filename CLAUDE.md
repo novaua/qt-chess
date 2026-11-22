@@ -6,6 +6,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Qt-chess is a chess application with a Qt QML frontend and C++ backend, supporting local two-player, UCI engine (e.g., Stockfish), and network multiplayer modes. Games are standard chess or Chess960 (LI-01A): local ones, and on Lichess (stage 2: a Lichess Chess960 game starts from its `initialFen`, other variants are refused; the Online page's challenge offers it).
 
+## Where to read more
+
+Each project folder has its own `CLAUDE.md`, loaded when a file in that folder is read. **Before changing code in
+a folder, Read its `CLAUDE.md`** (Grep and Glob don't load it).
+
+| File | What it covers |
+|---|---|
+| `ChessCore/CLAUDE.md` | the chess rules: key types, castling and FEN for any set-up, invariants |
+| `ChessTests/CLAUDE.md` | the rules' tests, the Chess960 reference games |
+| `UciConnector/CLAUDE.md` | the UCI engine: API, Chess960 requests, which engine runs |
+| `FakeUci/CLAUDE.md` | the tests' stand-in engine |
+| `installer/CLAUDE.md` | the installer, Stockfish's download, the smoke test, the icons |
+| `.claude/rules/cpp-style.md` | C++ style (loads with any `.h` / `.cpp`) |
+| `.claude/rules/tasks.md` | the ticket format and working a ticket (loads with a ticket) |
+| `.claude/skills/run-chess-app/` | running the app, screenshots and their scenes |
+
+ChessGui, LiChessConnector, ChessQtTests and ChessGuiTests are still described below (BL-32 moves them next).
+
 ## Build System
 
 **Primary build**: Visual Studio 2022 solution — `ChessCore.sln`
@@ -29,7 +47,7 @@ vstest.console.exe x64\Debug\ChessTests.dll
 vstest.console.exe x64\Debug\ChessQtTests.dll
 ```
 
-- `ChessTests/` — chess logic (`BasicTest.cpp`, `CheckTests.cpp`, `FenGenTests.cpp`, `SanTest.cpp`, `UndoTests.cpp`, `BoardDiffTests.cpp`, `MatingMaterialTests.cpp`, `PremoveTests.cpp`, `FakeEngineTests.cpp`, `Chess960Tests.cpp` (LI-01A: the start positions, castling from any set-up, and 60 random games checked ply by ply against python-chess: `Chess960Reference.h`, made by `python scripts\make_chess960_reference.py`)). Plain C++, no Qt.
+- `ChessTests/` — chess logic, plain C++, no Qt (`ChessTests/CLAUDE.md`).
 - `ChessQtTests/` — the Qt parts: `UciConnectorTest.cpp` (UCI protocol), `ChessEnginePlayerTest.cpp`, `LichessClientTest.cpp`, `BoardPiecesTest.cpp`,
   `MoveListModelTest.cpp`, `UserManagerTest.cpp`, `GameClockTest.cpp`, `ClaimWinTest.cpp`, `GameLibraryTest.cpp` (the games library, BL-19; its signed files, BL-20), `GameSignatureTest.cpp` (BL-20: the signature, key 1 pinned, a game file read back), `GamePgnTest.cpp` (a kept game's PGN), `GameAnalysisTest.cpp` (the engine's analysis of a kept game, BL-19 step 6; FakeUci, built with the tests, and one test on Stockfish). Needs Qt's `bin` on `PATH`; the engine tests need Stockfish.
   `LichessClientTest.cpp`'s `LichessReconnectTests`, `LichessStreamTest.cpp`, `LichessChallengeTest.cpp` and `LichessSeekTest.cpp` (LI-09's quick pairing seek, `FakeSeekLichess`) play against `FakeLichess` (`FakeLichess.h`), a `QTcpServer` on 127.0.0.1 (no Lichess).
@@ -54,47 +72,30 @@ The installer (`release.yml`, Stockfish's download, the smoke test `Test-Install
 
 ## Architecture
 
-Four projects in the solution:
+Eight projects in `ChessCore.sln`:
+
+| Project | Kind | What |
+|---|---|---|
+| `ChessCore` | static lib, no Qt | the chess rules, `Chess::` |
+| `UciConnector` | static lib, Qt Core | a UCI engine (Stockfish) through `QProcess` |
+| `LiChessConnector` | DLL, Qt Core + Network | Lichess: `LichessClient`, `LichessStream`, `LichessAuth` |
+| `ChessGui` (`ChessGui/ChessGui/`) | the app, Qt Quick | the QML UI and its C++: `ChessConnector`, models, profiles, the games library, the robot |
+| `FakeUci` | console exe, no Qt | the tests' stand-in engine |
+| `ChessTests` | test DLL, no Qt | ChessCore's tests |
+| `ChessQtTests` | test DLL, Qt | the Qt parts: UciConnector, Lichess, and ChessGui's C++ (built from its sources) |
+| `ChessGuiTests` | console exe, Qt Quick Test | the UI tests (every ChessGui `.cpp` but `main.cpp`) |
 
 ```
-ChessGui (QML app)
-  └─ ChessConnector (C++ ↔ QML bridge)
-       └─ Game (game state, event dispatch)
-            ├─ Board (8×8 state, piece tracking)
-            ├─ MoveGeneration (legal move calculation)
-            ├─ Check (check/checkmate detection)
-            └─ ChessEnginePlayer
-                 └─ UciConnector (QProcess → external engine)
+ChessGui: QML pages → ChessConnector (the game), UserManager, GameLibrary, LichessClient, …
+  ├─ ChessCore: Game → Board, MoveGeneration, GameChecks, StartPosition
+  ├─ UciConnector ← ChessEnginePlayer / EngineWorker (the robot), GameAnalyzer (the analysis)
+  └─ LiChessConnector: LichessClient → LichessStream, LichessAuth
+FakeUci, ChessTests → ChessCore;   ChessQtTests, ChessGuiTests → all four above (+ FakeUci)
 ```
-
-### ChessCore (static library)
-
-All chess logic, isolated in the `Chess::` namespace. Key types:
-
-- `Board` — 64-square state; owns piece positions
-- `Game` — orchestrates turns, validates moves, fires events to listeners (observer pattern via `EventBase`/`PawnPromotionEvent`); `GetPremoveTargets` for premoves (LI-05)
-- `Move` / `HistoryMove` — move representation (from/to squares, capture flag, promotion)
-- `MoveGeneration` — generates pseudo-legal and legal moves including castling and en passant; `Play` plays a validated move on the board (castling with its rook, en passant), `HasCastlingRight`, `CastlingPath` (a side's castling squares when nothing stands in the way: the legal moves and the premove targets share it), `IsCastling`
-- `StartPosition` (`StartPosition.h`, LI-01A) — the set-up a game starts from: standard, or Chess960 #0–959 (Scharnagl, as lichess.org numbers them; #518 is the standard one), `Random()`, `FromFen` (a start position only), `Fen()`. `Game::Restart(whiteFirst, start)` (standard when none is given), `GetStartPosition()`; `LoadMoves`, `EndGame` and `FormatHistorySan(history, start)` keep it. Castling for any set-up: in a Chess960 game it is written as the king onto its own rook (`f1g1`, `b1a1`; Stockfish's `UCI_Chess960` and Lichess), a standard game keeps `e1g1`; `Board::DoCastling` moves both pieces in one step (they may swap, or one stay), `HistoryMove::Castling()` gives the squares, a castling is never a capture; FEN castling is X-FEN (`KQkq`, a file letter only when ambiguous)
-- `ChessEnginePlayer` — wraps `UciConnector` to produce computer moves
-- `Serializer` — the binary save format of versions before BL-19 (`Game::Save` / `Load`), read only to migrate the two old save slots; `Game::LoadMoves` replays a UCI move list into the loaded history (a kept game's replay)
-- `BoardDiff` (`BoardDiff.h`) — which piece went where between two positions (moved, removed, added), for the board's piece animations
-
-### UciConnector (static library)
-
-Spawns and communicates with external UCI engines via `QProcess`. Main API: `Init()`, `NewGame()`, `GetEngineMove()`; `SetChess960(on)` (LI-01A: `UCI_Chess960`, sent only when it changes something). A Chess960 game's requests are always its start FEN and every move, whatever the `PositionMode` (`ChessEnginePlayer::MakeRequest(history, plies, mode, start)`; `ChessEnginePlayer`, `EngineWorker` and the analysis get the game's `StartPosition`).
-The engine is `./engines/stockfish.exe`, else one on `PATH`; `CHESS_ENGINE_PATH` names the only one instead (the tests' FakeUci).
-The robot's path in the app log: `ENGINE_TRACE` (`engineworker.h`, category `chess.engine`: asked, answered, held by the gate, played, the board settled), on in Debug builds and in `--screenshot` mode, else `QT_LOGGING_RULES="chess.engine.debug=true"`; a scene that times out also logs `ChessConnector::robotState()` and what it waited for (BL-28).
-
-### FakeUci (console exe, tests only)
-
-A stand-in UCI engine on `ChessCore`, no Qt (`FakeUci/fakeengine.h`, BL-05 step 3): answers what the app asks of Stockfish
-at once and the same way every time: the move of the game in `FAKEUCI_MOVES` at that ply when legal there (a promotion without its piece: a queen), else the first legal
-move by its UCI text (said on stderr); its one line's score is `mate 1` when the move mates, else the material after it (the analysis tests); Chess960 as Stockfish: `setoption name UCI_Chess960 value true`, then `position fen` of a Chess960 start and its moves; `FAKEUCI_DELAY_MS` before each answer; `moves` (not UCI) lists its legal moves. The UI tests
-(`TestSetup`) and the robot screenshot scenes (`Take-Screenshot.ps1`) run it; its tests are `ChessTests/FakeEngineTests.cpp`.
 
 ### ChessGui (Qt QML application)
 
+- **`ChessEnginePlayer.h/cpp`**, **`engineworker.h/cpp`** — the robot: `ChessEnginePlayer` wraps `UciConnector` to produce computer moves (its level, `PositionMode`, `MakeRequest`), `EngineWorker` runs it on its own thread. The robot's path in the app log: `ENGINE_TRACE` (`engineworker.h`, category `chess.engine`: asked, answered, held by the gate, played, the board settled), on in Debug builds and in `--screenshot` mode, else `QT_LOGGING_RULES="chess.engine.debug=true"`; a scene that times out also logs `ChessConnector::robotState()` and what it waited for (BL-28).
 - **`chessconnector.h/cpp`** — the C++/QML bridge for the chess game; exposes `Q_PROPERTY` bindings and slots that QML calls. Premove (LI-05, vs the robot and on Lichess, not two players): during the opponent's turn `figureSelected` / `movePiece` set `PremoveFrom`/`PremoveTo` instead of moving (`PremoveDots`: the dots are premove targets; `CaptureSquares`: which of them take a piece, BL-21); it is played right after the opponent's move if legal then, else dropped silently; `cancelPremove()` (right click, Esc). LI-07: in a Lichess game both cards show the Lichess players, as lichess.org: `PlayerName` is the Lichess name (`shownPlayerName()`; the result and the messages use it too), `PlayerTitle` / `OpponentTitle` ("GM", "BOT"), `OpponentDetail` the rating ("1523?" provisional), `PlayerDetail` the profile's name (when not the same) and the rating; `playerName()` stays the profile's (records, statistics, PGN of kept games). LI-11: the opponent's avatar is their flair (`AvatarProvider::setOpponentOnline`), else the standard `online-player.png` (a pawn before a globe, `scripts/make_icons.py avatar`; never in the picker's `avatarNames()`; `opponentFallbackUrl` under a flair that loads or fails); the player's own flair, `PlayerFlair`, shows small after the name. `acceptChallenge(id)` (BL-10): accepts a Lichess challenge; the game on the board stays until the new one starts (a local game is then kept in the library), so a refused Accept loses nothing; not during a running real-time Lichess game (`CanAcceptChallenge`). BL-17: `continueOnlyGame()` (Home's Continue: the only unfinished game, else false and the list opens; on the last Lichess list while it refreshes, the list only before the first one came: `LichessClient::ongoingGamesLoaded`, BL-24), `continueOnlineGame(id)` (rejoin a Lichess game: `StartingOnlineGame` and `StartingGameId` until it starts, `gameStartFailed`; `AcceptingChallengeId`: the challenge `acceptChallenge` is accepting, one state for the bar and the Online page, BL-16; dropped by `cancelOnlineStart()` or another profile). `rematch()`: a Lichess rematch always asks for the other colour; a robot or two-player one swaps the player's side when `RematchSwapsColours` (Settings → Gameplay, `AppSettings.rematchSwapsColours`, on by default; #193), for that game only (`applyPlayerSide`, not saved): the setup dialogs offer the side last chosen in them (`AppSettings.computerSide`, `twoPlayerSide`). BL-19: `continueGame(id)` / `openGame(id)` for a kept game (see `gamelibrary`); leaving a local game never asks, it is kept as it is. Play from here (BL-19 step 4): `PlayFromHere` (only while reviewing: the position shown of a replay, or of a local game stepped back once it is over (never a game going on): `{ gameId, ply, move, whiteToMove }`, `{}` when none or not playable; step 4b) and `startComputerGameFrom` / `startLocalGameFrom(gameId, ply, …)`: a new game with that game's first moves (a fork: `forkOfId`, `forkPly`; those moves aren't taken back and the clock doesn't count them); the review bar's **Play from here** button (`MovesPanel`, the sheet handle in a narrow window) → its menu (vs computer… / Two players…) → the setup dialogs' `openFrom(position)`
 - **`boardpieces.h/cpp`** — `BoardPieces`, the pieces model behind `ChessConnector.Pieces`: one row per piece that keeps its id while it moves (`BoardDiff`), so the board can slide it
 - **`movelistmodel.h/cpp`** — `MoveListModel`, the move list behind `ChessConnector.MoveHistory`: one row per move number, and a move changes only its row instead of rebuilding the list
@@ -132,20 +133,13 @@ move by its UCI text (said on stderr); its one line's score is `mate 1` when the
 - Image assets live in `ChessGui/ChessGui/pics/`
 - Resources bundled via `qml.qrc`
 
-### ChessTests (test DLL)
-
-Builds as a DLL consumed by the VS test runner. Tests exercise `Game`, `Board`, `MoveGeneration` and SAN/FEN directly.
-It links only `ChessCore` and does **not** use Qt; tests that need Qt (UCI engine, Lichess, users) go in `ChessQtTests`.
-
 ## Key Conventions
 
-- Smart pointers (`std::shared_ptr`) throughout; avoid raw owning pointers
-- Chess logic stays in the `Chess::` namespace; GUI code stays in ChessGui
+- C++ style (OO, `std::shared_ptr`, `Chess::` without Qt, `PieceColors::Light`, no formatters): `.claude/rules/cpp-style.md`.
 - QML ↔ C++ boundary:
   1. Anything that reads or changes the game — including flows that combine the game with users or Lichess (start a local or online game, game end, rematch, switch user during a game) — goes through `ChessConnector`, as **one call per user action**. QML never strings game steps together itself, and never sees `Chess::` types (`Game`, `Board`, engine).
   2. `UserManager` and `LichessClient` stay separate services. QML may call them directly for non-game work: profiles, login, Lichess account and challenge setup, ratings. Don't forward their API through `ChessConnector`.
   3. Expose QML-visible services as typed singletons (`qmlRegisterSingletonInstance`), not context properties: `ChessConnector`, `UserManager`, `LichessClient`, `AvatarProvider`, `AppInfo` and `GameLibrary` in module `ChessPlusPlus` (`AppServices`: made, wired and registered there, for `main.cpp` and the UI tests alike). A QML file that uses them has `import ChessPlusPlus`.
-- `PieceColor` is an `enum class` (Light/Dark); use scoped references (`PieceColor::Light`)
 - `-platform offscreen` (the UI tests, `-Offscreen` screenshots) renders with Qt Quick's software renderer, which has no shader effects: an item with `layer.effect` (`MultiEffect`) isn't drawn at all there. Enable such a layer only with `GraphicsInfo.api !== GraphicsInfo.Software`, so the item is drawn plain (the move list's and the captured strip's piece glow, BL-27)
 
 ## Tasks and Bugs (`.tasks/`)

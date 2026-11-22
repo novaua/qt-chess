@@ -30,3 +30,10 @@ Also found (§7 of the plan): `.claude/settings.local.json` is tracked in git, a
 - Coverage: every `` `code` `` span of the old root is in the new files; two are reworded (`installer/art/*.bmp` → `art\wizard-*.bmp`, `installer\Test-Installer.ps1` → `Test-Installer.ps1` in its folder's file).
 - Checked in fresh headless sessions (`claude -p`, asked to list the instruction files in context): at start only the root loads; reading an `installer/` file loads `installer/CLAUDE.md`; reading a ticket loads the rule; **writing** a new ticket loads it too, but only with the Write's result (after the file is written), so the root keeps "Read it before writing a new ticket"; reading a `qml/` file **does** load a `ChessGui/ChessGui/CLAUDE.md` (a temporary probe file). So, as §3 of the plan expects, the ChessGui C++ catalogue goes into the rule `chessgui-cpp.md`, and `ChessGui/ChessGui/CLAUDE.md` stays a short map.
 - Left: steps 1–6.
+
+### 2026-11-22 — step 1, Core (branch: docs/bl32Core_221126)
+- Done: `ChessCore/`, `ChessTests/`, `UciConnector/` and `FakeUci/CLAUDE.md`; `.claude/rules/cpp-style.md` (`paths: **/*.{h,cpp,hpp}`: OO style from PR #92, `shared_ptr`, `Chess::` without Qt, `PieceColors`, `writeFileAtomically`, no formatters, the vcxproj rule); the root's "Where to read more" table; Architecture fixed: the 8 projects and a corrected dependency tree (`ChessEnginePlayer` / `EngineWorker` and `ENGINE_TRACE` moved to the ChessGui section, where they live). Root 185 → 179 lines.
+- Fixed on the way: the root said `PieceColor` (Light/Dark); the type is `PieceColors` (`Empty`, `Light`, `Dark`). `GetCandidateMoves` serves the robot's levels too, not only the analysis.
+- Coverage: every `` `code` `` span of the old root is in the new files but six reworded ones: `BoardDiff.h`, `StartPosition.h` (the classes, named as their files), `Game::Save`, `Game::LoadMoves` (under `Game`), `GetEngineMove()` (with its request type), `PieceColor::Light` (corrected).
+- Checked in fresh `claude -p` sessions: reading a file in each of the four folders (`.h`, `.cpp`, `.hpp`) loads the root, that folder's `CLAUDE.md` and `cpp-style.md`.
+- Left: steps 2–6.
