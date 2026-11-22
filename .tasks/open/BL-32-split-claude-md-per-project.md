@@ -44,3 +44,10 @@ Also found (§7 of the plan): `.claude/settings.local.json` is tracked in git, a
 - Coverage: every `` `code` `` span of the old root is in the new files.
 - Checked in fresh `claude -p` sessions: reading `LiChessConnector/LichessClient.h` or `ChessQtTests/FakeLichess.h` loads the root, that folder's `CLAUDE.md` and `cpp-style.md`.
 - Left: steps 3–6.
+
+### 2026-11-22 — step 3, ChessGui (branch: docs/bl32ChessGui_221126)
+- Done: `ChessGui/ChessGui/CLAUDE.md` (a map: the C++ by area, assets, which lists a new file goes into), `.claude/rules/chessgui-cpp.md` (`paths: ChessGui/ChessGui/*.{h,cpp}`: the C++ class by class, by area, with an Invariants list), `ChessGui/ChessGui/qml/CLAUDE.md` (QML rules, the window and pages, the board, shared components, dialogs, tooling). The root's ChessGui section and its offscreen line are gone; three rows in "Where to read more". Root 180 → 142 lines, 33.9k → 11.6k characters. The rule is 15.1k characters (about 3.7k tokens, the plan said 2.6k): the identifiers are kept, the ticket history cut.
+- Newly described: `EngineLevel.h`, `AppConfig`, `MarkerRow` / `MarkerColumn`, `PawnPromotionOptions`, `LevelsHelpDialog`, `ApplyMovesDialog`, `sounds/`, the four lists a new file goes into (`ChessGui.pro` is kept in sync). Found: `networkplayer.h/cpp` are in no project: BL-33.
+- Coverage: every `` `code` `` span of the old root is in the new files, but 12 reworded: file names without `.h/cpp` (`boardpieces`, `movegate`, …), `ChessConnector.`/`::` names under the ChessConnector heading, `ChessGui/ChessGui/pics/` as `pics/` in that folder's file.
+- Checked in fresh `claude -p` sessions: reading a `qml/` file loads the root, the folder map and `qml/CLAUDE.md` (not the C++ rule); reading `chessconnector.h` loads the root, the map, `chessgui-cpp.md` and `cpp-style.md`; reading `qml.qrc` loads the root and the map.
+- Left: the owner's review of the Invariants lists (step 3's check); steps 4–6.
