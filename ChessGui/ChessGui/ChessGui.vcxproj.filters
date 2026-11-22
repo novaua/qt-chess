@@ -218,6 +218,12 @@
     <None Include="qml\LichessChallenges.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\ProfileFiles.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
+    <None Include="qml\DataCheckNotices.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\ChessFigures.qml">
       <Filter>Source Files\Qml</Filter>
     </None>

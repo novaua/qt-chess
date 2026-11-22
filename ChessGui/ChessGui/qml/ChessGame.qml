@@ -26,8 +26,7 @@ ApplicationWindow {
         || computerDialog.visible || twoPlayerDialog.visible
         || challengeDialog.visible || createUserDialog.visible || seekDialog.visible
         || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible || leaveOnlineDialog.visible
-        || pgnExportDialog.visible || profileExportDialog.visible || profileImportDialog.visible
-        || importConflictDialog.visible || deleteProfileConfirm.visible || disconnectLichessConfirm.visible
+        || pgnExportDialog.visible || profileFiles.dialogOpen || disconnectLichessConfirm.visible
         || gamesKeptConfirm.visible
         || recentFlyout.visible
 
@@ -138,59 +137,14 @@ ApplicationWindow {
         else                           ChessConnector.resignGame()
     }
 
-    // ── Profiles: export, import, delete (the dialogs are below) ──
-    function exportProfile(userId) {
-        profileExportDialog.userId = userId
-        // Encoded: a '#' or '%' in a name is not URL syntax.
-        profileExportDialog.selectedFile = profileExportDialog.currentFolder + "/"
-                                         + encodeURIComponent(UserManager.exportFileName(userId))
-        profileExportDialog.open()
+    // ── Profiles: export, import, delete (ProfileFiles.qml) ──
+    ProfileFiles {
+        id: profileFiles
+        objectName: "profileFiles"
+        onMessage: (text, severity, external) => root.notify(text, severity, external)
+        onCloseProfileRequested: root.closeProfile()
     }
-    function inspectImport(file) {
-        var info = UserManager.inspectImport(file)
-        if (info.error !== "") {
-            root.notify(info.error, "critical")
-        } else if (info.conflictId !== "") {
-            importConflictDialog.file = file
-            importConflictDialog.importName = info.name
-            importConflictDialog.existingName = info.conflictName
-            importConflictDialog.open()
-        } else {
-            importProfile(file, false)
-        }
-    }
-    function importProfile(file, replace) {
-        var error = UserManager.importProfile(file, replace)
-        if (error !== "") {
-            root.notify(error, "critical")
-            return
-        }
-        // BL-20 step 3: what the import's check found, in the same message.
-        const check = UserManager.lastImport()
-        const notes = []
-        if (check.unrated)
-            notes.push("It comes from an older Chess++: its games are unrated, its rating starts at 1200"
-                       + (check.statsRebuilt ? " and its statistics count only its kept games." : "."))
-        else if (check.statsRebuilt)
-            notes.push("Its statistics couldn't be verified and were rebuilt from its kept games.")
-        if (check.ratingRestored)
-            notes.push("Its rating couldn't be verified and was restored from its games.")
-        if (check.setAside > 0)
-            notes.push((check.setAside === 1 ? "1 game couldn't be verified and was"
-                                             : check.setAside + " games couldn't be verified and were")
-                       + " set aside.")
-        if (notes.length === 0)
-            root.notify("Profile imported", "success")
-        else
-            root.notify("Profile imported. " + notes.join(" "), "caution", true)
-    }
-    function deleteProfile(userId) {
-        var user = UserManager.users.find(u => u.id === userId)
-        if (!user) return
-        deleteProfileConfirm.userId = userId
-        deleteProfileConfirm.title = "Delete " + user.name + "'s profile?"
-        deleteProfileConfirm.open()
-    }
+    function inspectImport(file) { profileFiles.inspectImport(file) }   // the "import" scene
 
     // Home button / Escape. A running Lichess game asks first; a local game is kept as it is (BL-19);
     // a rematch challenge still waiting for the opponent is withdrawn.
@@ -301,11 +255,7 @@ ApplicationWindow {
     Component.onCompleted: {
         _messagesUser = UserManager.isLoggedIn ? UserManager.activeUserId : ""
         route()
-        Qt.callLater(() => {   // BL-20: what the load at start found (the first profile's games, users.json)
-            root._tellSetAside(GameLibrary.setAsideCount)
-            root._tellRatingRestored()
-            root._tellStatisticsRestored()
-        })
+        Qt.callLater(dataCheckNotices.tellAll)   // BL-20: what the load at start found (the first profile's games, users.json)
     }
 
     // ── --screenshot mode (see main.cpp): ScreenshotScene.qml sets up the scene, then C++ grabs the
@@ -431,7 +381,7 @@ ApplicationWindow {
         id: welcomePage
         WelcomePage {
             onCreateProfileRequested: createUserDialog.open()
-            onImportRequested:        profileImportDialog.open()
+            onImportRequested:        profileFiles.openImport()
         }
     }
 
@@ -439,9 +389,9 @@ ApplicationWindow {
         id: loginPage
         ProfilePickerPage {
             onAddUserRequested:  createUserDialog.open()
-            onImportRequested:   profileImportDialog.open()
-            onExportRequested:   userId => root.exportProfile(userId)
-            onDeleteRequested:   userId => root.deleteProfile(userId)
+            onImportRequested:   profileFiles.openImport()
+            onExportRequested:   userId => profileFiles.exportProfile(userId)
+            onDeleteRequested:   userId => profileFiles.deleteProfile(userId)
         }
     }
 
@@ -449,8 +399,8 @@ ApplicationWindow {
         id: profilePage
         ProfilePage {
             onBackRequested:     root.closeProfile()
-            onExportRequested:   userId => root.exportProfile(userId)
-            onDeleteRequested:   userId => root.deleteProfile(userId)
+            onExportRequested:   userId => profileFiles.exportProfile(userId)
+            onDeleteRequested:   userId => profileFiles.deleteProfile(userId)
             onDisconnectLichessRequested: disconnectLichessConfirm.open()
         }
     }
@@ -460,8 +410,8 @@ ApplicationWindow {
         SettingsPage {
             onBackRequested:        root.closeSettings()
             onLevelsHelpRequested:  levelsHelp.open()
-            onExportRequested:      userId => root.exportProfile(userId)
-            onImportRequested:      profileImportDialog.open()
+            onExportRequested:      userId => profileFiles.exportProfile(userId)
+            onImportRequested:      profileFiles.openImport()
             onRestoreRequested:     restoreBackupDialog.open()
             onGamesKeptChangeRequested: count => root.setGamesKept(count)
             onSoundPreviewRequested: name => sounds.play(name)
@@ -939,49 +889,6 @@ ApplicationWindow {
         }
     }
 
-    // ── Profiles: export, import, delete, Lichess disconnect ──
-    FileDialog {
-        id: profileExportDialog
-        property string userId
-        title: "Export profile"
-        fileMode: FileDialog.SaveFile
-        nameFilters: ["Chess++ profiles (*.chessprofile)", "All files (*)"]
-        defaultSuffix: "chessprofile"
-        currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
-        onAccepted: {
-            var error = UserManager.exportProfile(userId, selectedFile)
-            if (error !== "") root.notify(error, "critical")
-            else              root.notify("Profile exported", "success")
-        }
-    }
-
-    FileDialog {
-        id: profileImportDialog
-        title: "Import profile"
-        fileMode: FileDialog.OpenFile
-        nameFilters: ["Chess++ profiles (*.chessprofile)", "All files (*)"]
-        currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
-        onAccepted: root.inspectImport(selectedFile)
-    }
-
-    ImportConflictDialog {
-        id: importConflictDialog
-        property url file
-        onImportAsNew:      root.importProfile(file, false)
-        onReplaceExisting:  root.importProfile(file, true)
-    }
-
-    ConfirmDialog {
-        id: deleteProfileConfirm
-        property string userId
-        text: "Its statistics and games are deleted too. This can't be undone; export the profile first to keep a copy."
-        acceptText: "Delete"
-        onAccepted: {
-            if (userId === UserManager.activeUserId)
-                root.closeProfile()
-            UserManager.deleteUser(userId)
-        }
-    }
 
     // Settings → Data "Games kept" (BL-19): a smaller number deletes the oldest finished games, so it asks.
     // The setting is every profile's: the count is too.
@@ -997,35 +904,11 @@ ApplicationWindow {
     }
     Binding { target: GameLibrary; property: "keepCount"; value: AppSettings.gamesKept }
 
-    // BL-20: kept games that failed their check (edited by hand, damaged) were set aside when the profile
-    // loaded: said once per load. The first profile loads before this window: asked once it is up.
-    function _tellSetAside(count) {
-        if (count > 0)
-            root.notify((count === 1 ? "1 kept game couldn't be verified and was"
-                                     : count + " kept games couldn't be verified and were")
-                        + " set aside.", "caution", true)
-    }
-    // BL-20: the rating (rating.json) or the statistics (users.json) failed their check and were restored.
-    function _tellRatingRestored() {
-        if (GameLibrary.ratingRestored)
-            root.notify("Your rating couldn't be verified and was "
-                        + (GameLibrary.ratedGames > 0 ? "restored from your kept games." : "started again.")
-                        , "caution", true)
-    }
-    function _tellStatisticsRestored() {
-        for (const s of UserManager.takeRestoredStatistics())
-            root.notify(s.name + "'s statistics couldn't be verified and were "
-                        + (s.rebuilt ? "rebuilt from the kept games (Lichess and older games aren't in them)."
-                                     : "restored from a backup."), "caution", true)
-    }
-    Connections {
-        target: GameLibrary
-        function onGamesSetAside(count) { root._tellSetAside(count) }
-        function onRatingRestoredOnLoad() { root._tellRatingRestored() }
-    }
-    Connections {
-        target: UserManager
-        function onStatisticsRestored() { root._tellStatisticsRestored() }
+    // BL-20: what a profile's load found set aside or restored (DataCheckNotices.qml).
+    DataCheckNotices {
+        id: dataCheckNotices
+        objectName: "dataCheckNotices"
+        onMessage: (text, severity, external) => root.notify(text, severity, external)
     }
     Binding { target: ChessConnector; property: "AnalysisDepth"; value: AppSettings.analysisDepth } // BL-19 step 6
     Binding { target: ChessConnector; property: "RematchSwapsColours"; value: AppSettings.rematchSwapsColours }
@@ -1042,6 +925,7 @@ ApplicationWindow {
         onAccepted: AppSettings.gamesKept = count
     }
 
+    // Profiles: the Lichess disconnect (export, import and delete: ProfileFiles).
     ConfirmDialog {
         id: disconnectLichessConfirm
         title: "Disconnect Lichess?"

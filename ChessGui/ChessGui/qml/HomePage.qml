@@ -99,6 +99,7 @@ Page {
             Menu {
                 id: accountMenu
                 MenuItem {
+                    objectName: "profileItem"
                     text: "Profile"
                     icon.source: Theme.icon("person")
                     onTriggered: page.profileRequested()

@@ -380,6 +380,7 @@ Page {
                         onClicked: page.exportRequested(UserManager.activeUserId)
                     }
                     Button {
+                        objectName: "deleteProfileButton"
                         text: "Delete profile…"
                         icon.source: Theme.icon("delete")
                         enabled: !ChessConnector.InGame

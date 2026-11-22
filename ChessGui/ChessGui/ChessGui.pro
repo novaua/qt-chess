@@ -148,6 +148,8 @@ DISTFILES += \
     qml/StartNotice.qml \
     qml/MessageCenter.qml \
     qml/LichessChallenges.qml \
+    qml/ProfileFiles.qml \
+    qml/DataCheckNotices.qml \
     qml/AppSettings.qml \
     qml/RestoreBackupDialog.qml \
     qml/SettingRow.qml \

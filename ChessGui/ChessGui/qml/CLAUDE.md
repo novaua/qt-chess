@@ -47,6 +47,10 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   open or close `ChallengeDialog`) and the ones to the player (`challengesShown`, `challenge`, `text()`,
   `accept()`, `hide()`). The challenge bar and the dialog stay in the window; a new one's sound is GameSounds',
   the taskbar flash the window's.
+- `ProfileFiles.qml` — a profile's export, import (`ImportConflictDialog` when it is here already) and delete
+  (`deleteProfileConfirm`), with their dialogs; one instance in the window (`profileFiles`), which forwards the
+  pages' requests and `inspectImport()` for the `import` scene. `DataCheckNotices.qml` — BL-20's notices (games set
+  aside, the rating or the statistics restored): `tellAll()` once the window is up, then on each load.
 - `HomePage.qml` — account menu; Continue: the only unfinished game directly, two or more:
   `ContinueGamesPage` (`ChessGame.continueGames()`); action cards, among them **Games** (Ctrl+O): `GamesPage`.
 - `ContinueGamesPage.qml` — every unfinished game: the kept local games first as `GameCard`s
@@ -118,7 +122,7 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   challenge waiting for the friend or a named player), `SeekDialog` (Quick pairing's Custom tile: the player's own
   clock or days per move; Seek off below Rapid), `LeaveOnlineDialog` (Leave / Resign / Stay when leaving or
   closing during a running Lichess game).
-- Profiles: `CreateUserDialog`, `ImportConflictDialog`, `RestoreBackupDialog`.
+- Profiles: `CreateUserDialog`, `ImportConflictDialog` (in `ProfileFiles`), `RestoreBackupDialog`.
 - Others: `LevelsHelpDialog` (the five computer levels: F1, the robot's avatar), `ApplyMovesDialog` (moves typed
   in UCI: `ChessConnector.applyMoves`).
 

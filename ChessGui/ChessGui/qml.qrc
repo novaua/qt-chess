@@ -62,6 +62,8 @@
         <file>qml/StartNotice.qml</file>
         <file>qml/MessageCenter.qml</file>
         <file>qml/LichessChallenges.qml</file>
+        <file>qml/ProfileFiles.qml</file>
+        <file>qml/DataCheckNotices.qml</file>
         <file>qml/ChessBoard.qml</file>
         <file>qml/ChessBoxes.qml</file>
         <file>qml/ChessFigures.qml</file>

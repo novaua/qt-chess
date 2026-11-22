@@ -73,4 +73,22 @@ TestCase {
         compare(app.pieceAt("e4"), "P")
         compare(app.pieceAt("e5"), "p")
     }
+
+    // Alice deletes her own profile from the Profile page (BL-35 step 5: ProfileFiles): it asks first,
+    // naming her; then the Profile page goes and the picker is left with Tester.
+    function test_5_deleteTheActiveProfile() {
+        app.leaveToHome()
+        app.chooseFromMenu("accountButton", "profileItem")
+        app.waitForPage("profile")
+        app.scrollIntoView("deleteProfileButton")
+        app.click("deleteProfileButton")
+        const confirm = app.item("deleteProfileConfirm")
+        tryVerify(() => confirm.opened, 3000, "the delete confirm")
+        compare(confirm.title, "Delete Alice's profile?")
+        app.clickIn("deleteProfileConfirm", "acceptButton")
+        app.waitClosed(confirm)
+        tryCompare(UserManager, "userCount", 1, 3000, "Alice's profile gone")
+        compare(UserManager.users[0].name, "Tester")
+        app.waitForPage("login")
+    }
 }

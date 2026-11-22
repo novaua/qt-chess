@@ -83,3 +83,16 @@ each.
   challenge. 8 challenge scenes (`-Offscreen`): the same as `develop`'s, taken just before as baselines
   (`online-challenge` 0.006 %: its spinner's angle).
 - Left: steps 5–6.
+
+### 2026-11-22 — step 5: ProfileFiles.qml, DataCheckNotices.qml (branch: features/bl35ProfileFiles_221126)
+- Done: `qml/ProfileFiles.qml` (`profileFiles`): the export and import `FileDialog`s, `ImportConflictDialog` and the
+  delete confirm (now `objectName`s `importConflictDialog`, `deleteProfileConfirm`), with `exportProfile()`,
+  `openImport()`, `inspectImport()`, `deleteProfile()`, `dialogOpen`, signals `message` and
+  `closeProfileRequested`. `qml/DataCheckNotices.qml` (`dataCheckNotices`): BL-20's notices, `tellAll()` and their
+  Connections. The window keeps `inspectImport()` as a one-line forward (the `import` scene) and the Lichess
+  disconnect confirm. `ChessGame.qml` 1174 → 1058 lines. No change in behaviour.
+- Checked: `Run-UiTests.ps1 -Build`, 13 files green (on the rerun: see BL-37). New `tst_profiles` test 5: the
+  active profile deleted from the Profile page (Home's `profileItem`, `deleteProfileButton`): the confirm names
+  it, the profile goes, the picker is left. `tst_restart` still sees the notices. Scenes `import`, `profile`,
+  `profiles` (`-Offscreen`): the same as `develop`'s, taken just before as baselines.
+- Left: step 6.
