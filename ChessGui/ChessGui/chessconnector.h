@@ -105,6 +105,8 @@ class ChessConnector : public QObject
 		// LI-11: the player's Lichess flair (an image URL) in a Lichess game, "" without one; shown small after
 		// the name. The opponent's flair is their avatar (AvatarProvider.opponentUrl).
 		Q_PROPERTY(QString PlayerFlair    READ playerFlair     NOTIFY gameInfoChanged)
+		// LI-14: the Lichess game on the board, played or a kept one replayed: its lichess.org page; "" otherwise.
+		Q_PROPERTY(QString LichessGameUrl READ lichessGameUrl  NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString ResultText READ resultText NOTIFY gameResultChanged) // e.g. "Bob wins by checkmate"
 		Q_PROPERTY(QString PendingOffer READ pendingOffer NOTIFY pendingOfferChanged) // Lichess opponent offers: "", "draw", "takeback", "rematch"
 		Q_PROPERTY(bool CanOfferDraw    READ canOfferDraw    NOTIFY canOfferDrawChanged) // Lichess: from ply 2, then 20 plies after our last offer
@@ -202,6 +204,9 @@ public:
 	QString playerDetail() const;
 	QString opponentDetail() const;
 	QString playerFlair() const;
+	QString lichessGameUrl() const;
+	// The cards show the Lichess players (LI-07): a Lichess game, or a kept one replayed (LI-14).
+	bool    lichessPlayersShown() const { return isOnlineGame() || !_keptLichessGameId.isEmpty(); }
 	QString resultText() const { return _resultText; }
 	QString pendingOffer() const { return _pendingOffer; }
 	bool    canOfferDraw() const;
@@ -560,6 +565,7 @@ private:
 	void applyStartFrom();    // a new game just restarted: the fork's first moves on the board
 	int  clockPly() const;    // the moves of this game the clock counts (a fork's first ones aren't)
 	QString   _replayResult;  // the kept game's result while it is replayed (the PGN's Result tag)
+	QString   _keptLichessGameId; // LI-14: the Lichess id of a kept Lichess game being replayed; "" otherwise
 	bool      _loadingRecord = false; // openGame replays the moves: the mate at their end isn't a game end now
 	bool _wasVsComputer = false;
 	bool _resuming = false; // Continue replays the saved moves: their checks were heard already

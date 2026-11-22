@@ -97,7 +97,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	                  "clock-online", "clock-correspondence", "premove", "premove-capture", "premove-played", "premove-dropped", "reconnecting", "rejoin",
 	                  "challenge", "challenge-accepting", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
 	                  "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-	                  "opponent-left-error", "lichess-result", "games", "games-empty", "games-filter", "analysis" }.contains(scene))
+	                  "opponent-left-error", "lichess-result", "games", "games-empty", "games-filter", "games-lichess", "analysis" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -223,6 +223,53 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 		                           -30, -20, -25, -20, -30, 250 };
 		r.analysis = GameAnalysis(14, evals, best, moves).toJson();
 		library->put(r);
+		return;
+	}
+	if (scene == "games-lichess") {
+		// LI-14: three kept Lichess games (the Lichess filter): a rated Rapid win vs a GM, a casual
+		// correspondence loss vs an anonymous player, a Chess960 Blitz draw vs a provisional FM.
+		struct Kept {
+			const char* id; bool white; const char* opponent; const char* title; int rating; bool provisional;
+			QDate day; const char* moves; const char* result; bool rated; const char* speed; int limitSec, incSec, days;
+			int chess960 = -1;
+		};
+		const Kept kept[] = {
+			{ "kept0001", true, "Magnus", "GM", 2850, false, QDate(2026, 11, 20), "e2e4 e7e5 g1f3 b8c6 f1b5",
+			  "1-0", true, "rapid", 600, 5, 0 },
+			{ "kept0002", false, "", "", 0, false, QDate(2026, 11, 18), "d2d4 d7d5 c2c4 e7e6 b1c3 g8f6",
+			  "1-0", false, "correspondence", 0, 0, 3 },
+			{ "kept0003", true, "FriendlyRival", "FM", 1712, true, QDate(2026, 11, 16), "f1g1 f8g8 e2e4 e7e5",
+			  "1/2-1/2", true, "blitz", 180, 2, 0, 3 },
+		};
+		for (const auto& k : kept) {
+			GameRecord r;
+			r.id = GameRecord::lichessRecordId(QString::fromLatin1(k.id));
+			r.kind = QStringLiteral("lichess");
+			r.playerPlaysWhite = k.white;
+			r.opponentName = *k.opponent ? QString::fromLatin1(k.opponent) : QStringLiteral("Anonymous");
+			r.startedAt = QDateTime(k.day, QTime(18, 0));
+			r.finishedAt = r.startedAt.addSecs(20 * 60);
+			if (k.chess960 >= 0)
+				r.setStartPosition(Chess::StartPosition::Chess960(k.chess960));
+			r.setMoves(QString::fromLatin1(k.moves).split(' '));
+			r.result = QString::fromLatin1(k.result);
+			r.finished = true;
+			r.resultRecorded = true;
+			r.clockLimitSec = k.limitSec;
+			r.clockIncSec = k.incSec;
+			QJsonObject opponent{ { "rating", k.rating }, { "provisional", k.provisional } };
+			if (*k.opponent) {
+				opponent["id"] = QString::fromLatin1(k.opponent).toLower();
+				opponent["name"] = QString::fromLatin1(k.opponent);
+			}
+			if (*k.title)
+				opponent["title"] = QString::fromLatin1(k.title);
+			const LichessPlayer me = LichessPlayer::fromJson(QJsonObject{ { "id", "testerchess" }, { "name", "TesterChess" }, { "rating", 1688 } });
+			const LichessPlayer them = LichessPlayer::fromJson(opponent);
+			r.lichess = LichessGameInfo(QString::fromLatin1(k.id), k.rated, QString::fromLatin1(k.speed), k.days,
+			                            k.white ? me : them, k.white ? them : me);
+			library->put(r);
+		}
 		return;
 	}
 	if (scene != "games" && scene != "games-filter" && scene != "profile")
@@ -458,7 +505,7 @@ int main(int argc, char* argv[])
 		"premove", "premove-capture", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-		"opponent-left-error", "lichess-result", "timing", "more-menu", "play", "games", "games-empty", "games-filter", "play-from-here", "play-from-here-menu", "replay", "analysis",
+		"opponent-left-error", "lichess-result", "timing", "more-menu", "play", "games", "games-empty", "games-filter", "games-lichess", "play-from-here", "play-from-here-menu", "replay", "analysis",
 		"chess960", "chess960-select", "chess960-castled", "computer-960", "capture", "capture-ep",
 		"quick-pairing", "quick-pairing-waiting", "quick-pairing-indicator", "seek-dialog", "seek-dialog-blitz", "seek-dialog-days"
 	};

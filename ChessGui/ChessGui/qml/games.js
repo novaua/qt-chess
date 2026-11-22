@@ -1,10 +1,16 @@
 .pragma library
+.import "lichess.js" as Lichess
 
-// Words for a kept local game (GameLibrary.games, BL-19), shared by Home's Continue card, the Continue
-// list and the Games page. `game` is a GameRecord as QML sees it (GameRecord::toVariant).
+// Words for a kept game (GameLibrary.games, BL-19; a finished Lichess game too, LI-14), shared by Home's
+// Continue card, the Continue list and the Games page. `game` is a GameRecord as QML sees it
+// (GameRecord::toVariant).
 
-// Who the player played: "Robot · Level 3 · Club Player", or the other player's name.
+// Who the player played: "Robot · Level 3 · Club Player", "GM Magnus (2850)" on Lichess, or the other
+// player's name.
 function title(game, levels) {
+    if (game.kind === "lichess")
+        return (game.opponentTitle ? game.opponentTitle + " " : "") + game.opponentName
+               + (game.opponentRating ? " (" + game.opponentRating + ")" : "")
     if (game.kind !== "computer")
         return game.opponentName === "" ? "Guest" : game.opponentName
     const level = levels ? levels.find(l => l.level === game.level) : undefined
@@ -21,12 +27,36 @@ function fromHereText(from) {
     return "From the position after " + from.move + ": " + (from.whiteToMove ? "White" : "Black") + " to move."
 }
 
-// The card's line under the title: a Chess960 game's position, the sides, the day, the moves.
+// A clock's minutes as lichess.org writes them: 10, ½, 1.5.
+function minutesText(seconds) {
+    if (seconds % 60 === 0)
+        return String(seconds / 60)
+    return ({ 15: "\u00bc", 30: "\u00bd", 45: "\u00be", 90: "1.5" })[seconds] ?? (seconds / 60).toFixed(1)
+}
+
+// A kept Lichess game's speed and clock: "Rapid 10+5", "Correspondence · 3 days" (LI-14).
+function lichessClock(game) {
+    const speed = Lichess.speedName(game.lichessSpeed)
+    if (game.lichessDays > 0)
+        return speed + " · " + game.lichessDays + (game.lichessDays === 1 ? " day" : " days")
+    if (game.clockLimitSec > 0 || game.clockIncSec > 0)
+        return (speed ? speed + " " : "") + minutesText(game.clockLimitSec) + "+" + game.clockIncSec
+    return speed
+}
+
+// The card's line under the title: a Chess960 game's position, a Lichess game's clock and Rated / Casual,
+// the sides, the day, the moves.
 function details(game) {
     var parts = []
     if (game.chess960)   // LI-01A: first, so a narrow card still shows it
         parts.push(game.startPosition >= 0 ? "Chess960 #" + game.startPosition : "Chess960")   // -1: its start can't be read
-    parts.push(game.kind === "computer" ? "you play " + (game.playerPlaysWhite ? "White" : "Black")
+    if (game.kind === "lichess") {
+        const clock = lichessClock(game)
+        if (clock !== "")
+            parts.push(clock)
+        parts.push(game.lichessRated ? "Rated" : "Casual")
+    }
+    parts.push(game.kind === "computer" || game.kind === "lichess" ? "you play " + (game.playerPlaysWhite ? "White" : "Black")
                                         : (game.playerPlaysWhite ? "White" : "Black") + " vs " + (game.playerPlaysWhite ? "Black" : "White"))
     if (game.forkOfId)   // Play from here: where it began
         parts.push("from move " + moveNumberAfter(game.forkPly))
@@ -45,7 +75,7 @@ function resultWord(game) {
     if (game.result === "1/2-1/2")
         return "Draw"
     const whiteWon = game.result === "1-0"
-    if (game.kind === "computer")
+    if (game.kind === "computer" || game.kind === "lichess")
         return whiteWon === game.playerPlaysWhite ? "You won" : "You lost"
     return whiteWon ? "White won" : "Black won"
 }

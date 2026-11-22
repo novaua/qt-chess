@@ -319,12 +319,29 @@ Page {
                     }
                     MenuItem {
                         objectName: "analyseMenuItem"
-                        visible: page.mode !== "online"
+                        visible: page.mode !== "online" || page.gameOver   // LI-14: a finished Lichess game too
                         height: visible ? implicitHeight : 0
                         text: ChessConnector.Analysis.depth !== undefined ? "Analyse again" : "Analyse game"
                         icon.source: Theme.icon("analyse")
                         enabled: ChessConnector.CanAnalyse && AppInfo.engineFound
                         onTriggered: page.analyse()
+                    }
+                    // LI-14: a finished Lichess game, played here or a kept one replayed: on lichess.org.
+                    MenuItem {
+                        objectName: "lichessGameMenuItem"
+                        visible: ChessConnector.LichessGameUrl !== "" && (page.gameOver || page.mode === "replay")
+                        height: visible ? implicitHeight : 0
+                        text: "Open on lichess.org"
+                        icon.source: Theme.icon("link")
+                        onTriggered: Qt.openUrlExternally(ChessConnector.LichessGameUrl)
+                    }
+                    MenuItem {
+                        objectName: "lichessAnalysisMenuItem"
+                        visible: ChessConnector.LichessGameUrl !== "" && (page.gameOver || page.mode === "replay")
+                        height: visible ? implicitHeight : 0
+                        text: "Open the analysis on lichess.org"
+                        icon.source: Theme.icon("analyse")
+                        onTriggered: Qt.openUrlExternally(ChessConnector.LichessGameUrl + "/analysis")
                     }
                     MenuSeparator {}
                     MenuItem {

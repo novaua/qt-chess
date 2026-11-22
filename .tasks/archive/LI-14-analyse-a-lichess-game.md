@@ -2,7 +2,7 @@
 id: LI-14
 title: "Analyse a Lichess game"
 type: task
-status: in_progress
+status: done
 priority: high
 ---
 
@@ -66,3 +66,21 @@ Related: LI-15 (the list of recent Lichess games), LI-16 (the end of a Lichess g
   Analyse.
 - Left: step 3 (the Games page: Lichess filter, card words and menu with "Open the analysis on lichess.org";
   `openGame` shows the Lichess players).
+### 2026-11-23 — step 3: the Games page and a kept Lichess game replayed; closed (branch: features/li14GamesPage_231126)
+- Done: the Games page's **Lichess** filter (All · vs Robot · Two players · Lichess · Unfinished; its empty line); a
+  kept Lichess game's card (`games.js`): "GM Magnus (2850)", "Rapid 10+5 · Rated · you play White · date · moves"
+  ("Correspondence · 3 days", Chess960 first), "You won / You lost / Draw"; only Open, and its menu (a right click,
+  the Menu key): Open on lichess.org, Open the analysis on lichess.org, Copy link. `GameRecord::toVariant` gives
+  `lichessUrl`, `lichessRated`, `lichessSpeed`, `lichessDays`, `opponentTitle`, `opponentRating`. `openGame` of a
+  Lichess record shows the Lichess players as the game did (`lichessPlayersShown()`: names, title, ratings, the
+  opponent's flair; the title "Lichess · TesterChess vs Magnus · date"). `ChessConnector.LichessGameUrl` (new) and
+  the game page's More menu: Open on lichess.org and Open the analysis on lichess.org for a finished Lichess game,
+  played or replayed; More's **Analyse** now shows for a finished Lichess game too (it was hidden for every online
+  game: step 2's PR said otherwise). New scene `games-lichess` (also `@640x560`); `TestRun.addLichessGame`.
+- Checked: `tst_games` (functions renumbered `test_01`…: a `test_10` ran first): test 2 (the empty Lichess filter),
+  new test 10 (the filter, the card's words and menu, Copy link, Open: the replay's title, cards and URL, Analyse;
+  no Play from here, never continued); `tst_lichess` test 8 (More: no Analyse or lichess.org while played, all
+  three once over); `tst_restart` (the kept Lichess game read back at the next start). `Run-UiTests.ps1 -Build`:
+  13 files green; `ChessQtTests` green. Scenes `games-lichess` (both sizes), `games-filter` (`-Offscreen`).
+- LI-14 done: a finished Lichess game is kept and analysed as a local game (steps 1–3). Related, still open:
+  LI-15 (recent games from the server: a kept one opens its record), LI-16 (the end of a Lichess game).

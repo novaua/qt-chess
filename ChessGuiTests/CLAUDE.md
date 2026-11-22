@@ -30,7 +30,8 @@ except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too
   skips itself in the other run (`TestRun.run`).
 - `// ui-test-engine: none` runs it without an engine (`tst_noEngine`).
 - `TestRun` (`TestSetup` as a QML singleton, module `ChessGuiTests`, with `FakeLichess`): `linkLichess`,
-  `addFinishedGames(n)` (fills the games library without playing), `addDamagedGame`, `addEditedGame`,
+  `addFinishedGames(n)` (fills the games library without playing), `addLichessGame` (a kept Lichess game,
+  LI-14), `addDamagedGame`, `addEditedGame`,
   `editRatingFile`, `setEngine`, `readTextFile`, `clipboardText`, `filesIn`, `qmlCachePath`.
 - The tests' compiled QML is in a cache folder of their own (`AppConfig::useOwnQmlCache()`, BL-39), never the
   app's: a run can't rewrite the QML of an app running beside it (`tst_firstRun` test 3).

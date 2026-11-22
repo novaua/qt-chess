@@ -26,7 +26,7 @@ TestCase {
 
     // Three games, each left for Home: Fool's mate (two players, finished), 1. e4 (two players,
     // unfinished), 1. e4 e5 vs the robot (unfinished).
-    function test_1_threeGames() {
+    function test_01_threeGames() {
         app.startTwoPlayerGame()
         for (const [from, to] of [["f2", "f3"], ["e7", "e5"], ["g2", "g4"], ["d8", "h4"]])
             app.clickMove(from, to)
@@ -50,7 +50,7 @@ TestCase {
     }
 
     // Ctrl+O: the Games page, newest first; each filter shows its kind; Back to Home.
-    function test_2_filters() {
+    function test_02_filters() {
         app.laidOut()
         keyClick(Qt.Key_O, Qt.ControlModifier)
         app.waitForPage("library", 5000)
@@ -68,7 +68,12 @@ TestCase {
         app.click("gamesFilter_2")   // Two players
         tryVerify(() => shown().length === 2 && shown().every(g => g.kind === "local"), 2000)
 
-        app.click("gamesFilter_3")   // Unfinished
+        app.click("gamesFilter_3")   // Lichess (LI-14): none kept yet
+        tryVerify(() => shown().length === 0, 2000)
+        verify(app.item("gamesFilterEmpty").visible)
+        compare(app.item("gamesFilterEmpty").text, "No Lichess games yet. A Lichess game you finish here is kept.")
+
+        app.click("gamesFilter_4")   // Unfinished
         tryVerify(() => shown().length === 2 && shown().every(g => !g.finished), 2000)
         compare(app.item("gameCard_0").actionText, "Continue")
         verify(!app.item("gamesFilterEmpty").visible)
@@ -80,7 +85,7 @@ TestCase {
 
     // A kept game's PGN: the tags for a two-player game and a robot game, and the file Export PGN
     // writes (the card's button opens the file dialog, a native one: not in a test).
-    function test_3_exportPgn() {
+    function test_03_exportPgn() {
         const mate = foolsMate()
         const pgn = ChessConnector.pgn(mate.id)
         for (const tag of ['[Event "Casual two-player game"]', '[Site "Chess++"]', '[White "Tester"]',
@@ -110,7 +115,7 @@ TestCase {
 
     // Delete on Fool's mate's card: the confirm (the window's shortcuts wait while it is open: Esc is the
     // dialog's), then the game is gone, the others stay.
-    function test_4_delete() {
+    function test_04_delete() {
         const id = foolsMate().id
         const index = GameLibrary.games.findIndex(g => g.id === id)
         app.clickIn("gameCard_" + index, "deleteButton")
@@ -129,7 +134,7 @@ TestCase {
 
     // Settings → Data "Games kept" with 52 finished games: 50 asks (Cancel keeps all of them; Delete
     // removes the 2 oldest, the unfinished ones stay); 200 doesn't ask.
-    function test_5_gamesKept() {
+    function test_05_gamesKept() {
         TestRun.addFinishedGames(52)
         compare(GameLibrary.finishedCount, 52)
         app.click("settingsButton")
@@ -181,7 +186,7 @@ TestCase {
     // (FakeUci follows the same game). The fork is a record of its own (forkOfId, forkPly 2); a takeback
     // stops at the moves it began with.
     property string resignedId   // test 6's game, resigned: not a Fool's mate for test 7
-    function test_6_playFromHereVsRobot() {
+    function test_06_playFromHereVsRobot() {
         app.startTwoPlayerGame()
         for (const [from, to] of [["e2", "e4"], ["e7", "e5"], ["g1", "f3"], ["b8", "c6"]])
             app.clickMove(from, to)
@@ -248,7 +253,7 @@ TestCase {
     // Play from here, two players, from a replay of a kept game (Fool's mate after 1. f3 e5): the
     // dialog takes the side to move; the game goes on from there with the two moves; left without a
     // move of its own, it isn't kept.
-    function test_7_playFromHereTwoPlayers() {
+    function test_07_playFromHereTwoPlayers() {
         const keptId = GameLibrary.games.find(g => g.finished && g.id !== resignedId).id
         const count = GameLibrary.count
         verify(ChessConnector.openGame(keptId))
@@ -285,7 +290,7 @@ TestCase {
 
     // A kept game with a move that can't be played: Continue and Open refuse it and say so, and the
     // record stays as it was (Continue used to go on from the moves before it and save only those).
-    function test_8_damagedGame() {
+    function test_08_damagedGame() {
         const id = TestRun.addDamagedGame()
         verify(!ChessConnector.continueGame(id), "not continued")
         app.waitMessage("Couldn't continue the game: one of its moves can't be played.")
@@ -313,7 +318,7 @@ TestCase {
     // The rating vs the robot (step 5): a won game is rated (Home's header, the card's change); none of
     // the games before was (two players, unfinished, a fork with a takeback). A takeback after the mate
     // resumes the game and gives its change back; mated again, it isn't rated.
-    function test_9_rating() {
+    function test_09_rating() {
         if (app.pageName() !== "home")
             app.leaveToHome()   // test 7 left a replay open
         compare(GameLibrary.ratedGames, 0, "nothing rated yet")
@@ -344,5 +349,53 @@ TestCase {
         tryVerify(() => ChessConnector.GameResult !== "", 3000, "mated again")
         compare(GameLibrary.rating, 1227, "not rated after a takeback")
         app.leaveToHome()
+    }
+
+    // LI-14: a kept Lichess game. The Lichess filter, its card's words and its menu (the link copied; the
+    // game and its analysis on lichess.org). Open replays it with the Lichess players, as it was played:
+    // names, title, ratings; More has lichess.org and Analyse; no Play from here.
+    function test_10_keptLichessGame() {
+        compare(TestRun.addLichessGame(), "lichess-kept0001")
+        app.laidOut()
+        keyClick(Qt.Key_O, Qt.ControlModifier)
+        app.waitForPage("library", 5000)
+        app.click("gamesFilter_3")   // Lichess
+        tryVerify(() => app.page()._games.length === 1, 2000, "the Lichess game only")
+        const card = app.item("gameCard_0")
+        compare(card.title, "GM Magnus (2850)")
+        compare(card.details, "Rapid 10+5 · Rated · you play White · 20 Nov 2026 · 3 moves")
+        compare(card.waitingText, "You won", "not rated here: no change")
+        compare(card.actionText, "Open")
+        verify(card.hasMenu)
+        app.laidOut()   // the filtered card placed in the grid (a raw click doesn't wait for it)
+        tryVerify(() => card.width > 0, 2000, "the card laid out")
+        mouseClick(card, card.width / 2, card.height / 2, Qt.RightButton)
+        const copy = findChild(card, "gameMenuCopyLink")
+        verify(copy !== null, "its Copy link")
+        tryVerify(() => copy.menu.opened, 3000, "the card's menu")
+        verify(findChild(card, "gameMenuOpen").visible)
+        verify(findChild(card, "gameMenuAnalysis").visible)
+        mouseClick(copy)
+        tryVerify(() => TestRun.clipboardText() === "https://lichess.org/kept0001", 3000, "the link: " + TestRun.clipboardText())
+        tryVerify(() => !copy.menu.visible, 3000, "the menu closed")
+
+        app.click("gameCard_0")   // Open
+        app.waitForPage("game", 10000)
+        compare(ChessConnector.GameMode, "replay")
+        compare(ChessConnector.GameTitle, "Lichess · TesterChess vs Magnus · 20 Nov 2026")
+        compare(ChessConnector.LichessGameUrl, "https://lichess.org/kept0001")
+        const opponent = app.item("opponentCard"), player = app.item("playerCard")
+        compare(findChild(opponent, "playerName").text, "Magnus")
+        compare(findChild(opponent, "playerTitle").text, "GM")
+        compare(findChild(opponent, "playerDetail").text, "2850")
+        compare(findChild(player, "playerName").text, "TesterChess", "the player's Lichess name")
+        compare(findChild(player, "playerDetail").text, "Tester · 1650")
+        verify(ChessConnector.CanAnalyse, "a finished game: Analyse")
+        app.click("review_next")   // the replay opens at the start: 1. e4
+        tryCompare(ChessConnector, "ShownPly", 1, 2000)
+        compare(ChessConnector.PlayFromHere.gameId, undefined, "not Played from here")
+        verify(!ChessConnector.continueGame("lichess-kept0001"), "never continued")
+        app.leaveToHome()
+        compare(ChessConnector.LichessGameUrl, "", "gone with the replay")
     }
 }

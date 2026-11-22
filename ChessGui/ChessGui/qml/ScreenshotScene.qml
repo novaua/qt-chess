@@ -122,6 +122,8 @@ Item {
         if (name.startsWith("games")) {
             window.openGames()
             if (name === "games-filter")
+                pages.currentItem.filter = 4
+            if (name === "games-lichess")   // LI-14: main.cpp kept three Lichess games for it
                 pages.currentItem.filter = 3
         }
         if (name === "computer") dialogs.computer.openNew(false)

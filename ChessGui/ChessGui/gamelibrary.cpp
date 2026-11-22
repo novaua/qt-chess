@@ -269,6 +269,13 @@ QVariantMap GameRecord::toVariant() const
 		{ QStringLiteral("rated"),            rated },
 		{ QStringLiteral("ratingBefore"),     ratingBefore },
 		{ QStringLiteral("ratingChange"),     ratingChange },
+		// LI-14: a kept Lichess game's own facts ("" / false / 0 for other games).
+		{ QStringLiteral("lichessUrl"),       lichess.url() },
+		{ QStringLiteral("lichessRated"),     lichess.rated() },
+		{ QStringLiteral("lichessSpeed"),     lichess.speed() },
+		{ QStringLiteral("lichessDays"),      lichess.daysPerTurn() },
+		{ QStringLiteral("opponentTitle"),    lichess.player(!playerPlaysWhite).title() },
+		{ QStringLiteral("opponentRating"),   lichess.player(!playerPlaysWhite).ratingText() },
 	};
 }
 
