@@ -2,7 +2,7 @@ import QtQuick
 import ChessPlusPlus
 
 // The Lichess challenges to and from the player, their state only (BL-35): one instance in the window,
-// `challenges`. The window draws them (the challenge bar, ChallengeDialog) and answers the signals.
+// `lichessChallenges` (`window.challenges` for ScreenshotScene). The window draws them (the challenge bar, ChallengeDialog) and answers the signals.
 // - From the player (challenge setup stays in QML, see CLAUDE.md): the challenge waiting for the opponent
 //   (pendingId, pendingUrl, opponentName for one to a named player, rematch for one made with the finished
 //   game still on the board); dialogRequested / dialogClose for ChallengeDialog.
