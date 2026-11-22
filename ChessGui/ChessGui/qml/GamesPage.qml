@@ -5,7 +5,8 @@ import ChessPlusPlus
 import "games.js" as Games
 
 // The games library (BL-19): every local game of the profile, vs the robot or between two players,
-// kept from its first move, newest first. A finished game opens as a replay (Open); an unfinished one
+// kept from its first move, and every Lichess game finished here (LI-14; its card's menu: the game and its
+// analysis on lichess.org, Copy link), newest first. A finished game opens as a replay (Open); an unfinished one
 // goes on (Continue); Delete removes it for good. Pushed over Home (Home's Games card, Ctrl+O); Back
 // pops it. A game that opens replaces it by the game page (ChessGame.qml route()). The filters show
 // one kind of game; Export PGN saves one game as a file (the window's file dialog).
@@ -24,6 +25,7 @@ Page {
         { label: "All",         shows: g => true },
         { label: "vs Robot",    shows: g => g.kind === "computer" },
         { label: "Two players", shows: g => g.kind === "local" },
+        { label: "Lichess",     shows: g => g.kind === "lichess" },   // LI-14: finished Lichess games
         { label: "Unfinished",  shows: g => !g.finished },
     ]
     property int filter: 0
@@ -67,7 +69,7 @@ Page {
             Label {
                 objectName: "gamesSummary"
                 text: page._allGames.length === 0
-                      ? "No games yet. Every game you play against the robot or with another player at this computer is kept here from its first move."
+                      ? "No games yet. Every game you play against the robot or with another player at this computer is kept here from its first move, and every Lichess game you finish here."
                       : page._allGames.length + (page._allGames.length === 1 ? " game" : " games")
                         + (page._unfinished === 0 ? "" : " · " + page._unfinished + " unfinished")
                         + " · the last " + GameLibrary.keepCount + " finished games are kept"
@@ -88,7 +90,8 @@ Page {
             Label {
                 objectName: "gamesFilterEmpty"
                 visible: page._allGames.length > 0 && page._games.length === 0
-                text: ["", "No games against the robot.", "No two-player games.", "No unfinished games."][page.filter]
+                text: ["", "No games against the robot.", "No two-player games.",
+                       "No Lichess games yet. A Lichess game you finish here is kept.", "No unfinished games."][page.filter]
                 color: Theme.textSecondary
                 Layout.fillWidth: true
             }
@@ -130,6 +133,39 @@ Page {
                             deleteConfirm.gameId = modelData.id
                             deleteConfirm.gameTitle = Games.title(modelData, page._levels)
                             deleteConfirm.open()
+                        }
+
+                        // LI-14: a kept Lichess game's menu (a right click, or the Menu key on its button), as
+                        // OngoingGameCard's (LI-10): the game and its analysis on lichess.org, its link.
+                        readonly property bool lichess: modelData.kind === "lichess"
+                        hasMenu: lichess
+                        onMenuRequested: lichessMenu.popup(this, Theme.s3, height - Theme.s3)
+                        TapHandler {
+                            enabled: parent.lichess
+                            acceptedButtons: Qt.RightButton
+                            onTapped: (eventPoint) => lichessMenu.popup(parent, eventPoint.position)
+                        }
+                        Menu {
+                            id: lichessMenu
+                            objectName: "gameMenu"
+                            MenuItem {
+                                objectName: "gameMenuOpen"
+                                text: "Open on lichess.org"
+                                icon.source: Theme.icon("link")
+                                onTriggered: Qt.openUrlExternally(modelData.lichessUrl)
+                            }
+                            MenuItem {
+                                objectName: "gameMenuAnalysis"
+                                text: "Open the analysis on lichess.org"
+                                icon.source: Theme.icon("analyse")
+                                onTriggered: Qt.openUrlExternally(modelData.lichessUrl + "/analysis")
+                            }
+                            MenuItem {
+                                objectName: "gameMenuCopyLink"
+                                text: "Copy link"
+                                icon.source: Theme.icon("copy")
+                                onTriggered: AppInfo.copyToClipboard(modelData.lichessUrl, "Link copied")
+                            }
                         }
                     }
                 }

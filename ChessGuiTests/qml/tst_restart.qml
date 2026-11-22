@@ -41,7 +41,8 @@ TestCase {
         app.click("backButton")
         app.waitForPage("home")
         TestRun.addEditedGame()   // BL-20: set aside at the next start
-        compare(GameLibrary.finishedCount, 1)
+        TestRun.addLichessGame()  // LI-14: a kept Lichess game, there at the next start
+        compare(GameLibrary.finishedCount, 2)
         TestRun.editRatingFile()  // BL-20 step 2: restored at the next start
     }
 
@@ -66,7 +67,12 @@ TestCase {
         verify(app.recentMessages().includes("1 kept game couldn't be verified and was set aside."),
                "the games' message too: " + app.recentMessages())
         compare(GameLibrary.setAsideCount, 1)
-        compare(GameLibrary.finishedCount, 0, "not listed")
+        compare(GameLibrary.finishedCount, 1, "not listed: only the Lichess game is")
+        const lichess = GameLibrary.game("lichess-kept0001")
+        compare(lichess.kind, "lichess", "LI-14: the kept Lichess game, read back")
+        compare(lichess.lichessUrl, "https://lichess.org/kept0001")
+        compare(lichess.opponentTitle, "GM")
+        verify(lichess.lichessRated)
         compare(GameLibrary.unfinishedCount, 1, "the robot game is")
         compare(GameLibrary.ratingRestored, true)
         compare(GameLibrary.rating, 1200)

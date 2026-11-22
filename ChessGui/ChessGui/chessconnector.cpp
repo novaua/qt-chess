@@ -739,25 +739,25 @@ static const QString Dot = QStringLiteral(" \u00B7 ");
 // LI-07: a Lichess game shows the Lichess players (the result, the title and the messages name them too).
 QString ChessConnector::shownPlayerName() const
 {
-	if (isOnlineGame() && !_lichessMe.name().isEmpty())
+	if (lichessPlayersShown() && !_lichessMe.name().isEmpty())
 		return _lichessMe.name();
 	return playerName();
 }
 
 QString ChessConnector::playerTitle() const
 {
-	return isOnlineGame() ? _lichessMe.title() : QString();
+	return lichessPlayersShown() ? _lichessMe.title() : QString();
 }
 
 QString ChessConnector::opponentTitle() const
 {
-	return isOnlineGame() ? _lichessOpponent.title() : QString();
+	return lichessPlayersShown() ? _lichessOpponent.title() : QString();
 }
 
 // The player's profile stays visible beside the Lichess name: "Ninja", Dot, "1523?".
 QString ChessConnector::playerDetail() const
 {
-	if (!isOnlineGame())
+	if (!lichessPlayersShown())
 		return {};
 	QStringList parts;
 	const QString profile = playerName();
@@ -770,12 +770,18 @@ QString ChessConnector::playerDetail() const
 
 QString ChessConnector::opponentDetail() const
 {
-	return isOnlineGame() ? _lichessOpponent.ratingText() : QString();
+	return lichessPlayersShown() ? _lichessOpponent.ratingText() : QString();
 }
 
 QString ChessConnector::playerFlair() const
 {
-	return isOnlineGame() ? _lichessMe.flairUrl() : QString();
+	return lichessPlayersShown() ? _lichessMe.flairUrl() : QString();
+}
+
+QString ChessConnector::lichessGameUrl() const
+{
+	const QString id = isOnlineGame() ? _onlineGameId : _keptLichessGameId;
+	return id.isEmpty() ? QString() : QStringLiteral("https://lichess.org/") + id;
 }
 
 // LI-11: the flairs of the game's players came after its start (LichessClient asks /api/users): the
@@ -805,7 +811,8 @@ QString ChessConnector::gameTitle() const
 		title = QStringLiteral("Lichess") + Dot + QStringLiteral("vs ")
 			+ (opponentTitle().isEmpty() ? QString() : opponentTitle() + QLatin1Char(' ')) + _opponentName;
 	else if (_gameMode == QLatin1String("replay"))
-		title = sideName(true) + QStringLiteral(" vs ") + sideName(false)
+		title = (_keptLichessGameId.isEmpty() ? QString() : QStringLiteral("Lichess") + Dot) // LI-14
+			+ sideName(true) + QStringLiteral(" vs ") + sideName(false)
 			+ (_gameDate.isValid() ? Dot + _gameDate.toString(QStringLiteral("d MMM yyyy")) : QString());
 	else if (_gameMode == QLatin1String("local"))
 		title = sideName(true) + QStringLiteral(" vs ") + sideName(false);
@@ -1580,6 +1587,7 @@ void ChessConnector::beginGame(bool online)
 	_forkOfId.clear();
 	_forkPly = 0;
 	_replayResult.clear();
+	_keptLichessGameId.clear();
 	if (_lastGameOnline == online) return;
 	_lastGameOnline = online;
 	emit canRematchChanged();
@@ -2372,6 +2380,7 @@ void ChessConnector::endGame()
 	clearPossibleMoves();
 	_recordId.clear();
 	_replayResult.clear();
+	_keptLichessGameId.clear();
 	setGameMode({}, {});
 }
 
@@ -2683,6 +2692,14 @@ bool ChessConnector::openGame(const QString& gameId)
 	emit playerPlaysWhiteChanged();
 	if (_avatarProvider)
 		_avatarProvider->restore(rec->playerAvatar, rec->opponentAvatar, rec->kind == QLatin1String("computer"));
+	if (rec->isLichess()) {
+		// LI-14: the cards show the Lichess players as the game did (LI-07), the opponent's flair as their avatar.
+		_keptLichessGameId = rec->lichess.gameId();
+		_lichessMe       = rec->lichess.player(rec->playerPlaysWhite);
+		_lichessOpponent = rec->lichess.player(!rec->playerPlaysWhite);
+		if (_avatarProvider)
+			_avatarProvider->setOpponentOnline(_lichessOpponent.flairUrl());
+	}
 	_promotionPending = false;
 	_player = nullptr;
 	std::vector<std::string> uci;

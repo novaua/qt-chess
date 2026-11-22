@@ -58,8 +58,10 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
 - `ContinueGamesPage.qml` — every unfinished game: the kept local games first as `GameCard`s
   (`GameLibrary.unfinishedGames`), then the Lichess ones as `OngoingGameCard`s.
 - `GamesPage.qml` — the games library, objectName `library`: every kept game as a `GameCard`, Open (a replay) or
-  Continue, Export PGN, Delete; the filters All · vs Robot · Two players · Unfinished. `games.js`: the words for a
-  kept game, shared with Home and the Continue list.
+  Continue, Export PGN, Delete; the filters All · vs Robot · Two players · Lichess · Unfinished. A kept Lichess game
+  (LI-14) is only opened: its card's menu (a right click, the Menu key) has Open on lichess.org, Open the analysis
+  on lichess.org and Copy link, as `OngoingGameCard`'s. `games.js`: the words for a kept game (a Lichess one:
+  "GM Magnus (2850)", "Rapid 10+5 · Rated · you play White · …"), shared with Home and the Continue list.
 - `OnlinePage.qml` — pushed by "Play online" (`onlineCard`): the challenges to the player with Accept and
   Decline… with Lichess's reasons; Quick pairing (`QuickPairingGrid`, lichess.org's tiles: Rapid and Classical
   seek a random opponent (`LichessClient.startSeek`), Bullet and Blitz greyed, Custom: `SeekDialog`; Rated /

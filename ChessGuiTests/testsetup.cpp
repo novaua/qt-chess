@@ -101,6 +101,27 @@ void TestSetup::addFinishedGames(int count)
 	}
 }
 
+QString TestSetup::addLichessGame()
+{
+	GameRecord r;
+	r.id = GameRecord::lichessRecordId(QStringLiteral("kept0001"));
+	r.kind = QStringLiteral("lichess");
+	r.opponentName = QStringLiteral("Magnus");
+	r.setMoves({ "e2e4", "e7e5", "g1f3", "b8c6", "f1b5" });
+	r.startedAt = QDateTime(QDate(2026, 11, 20), QTime(12, 0));
+	r.finishedAt = r.startedAt.addSecs(900);
+	r.finished = true;
+	r.result = QStringLiteral("1-0");
+	r.resultText = QStringLiteral("Magnus resigned");
+	r.resultRecorded = true;
+	r.clockLimitSec = 600;
+	r.clockIncSec = 5;
+	r.lichess = LichessGameInfo(QStringLiteral("kept0001"), true, QStringLiteral("rapid"), 0,
+		LichessPlayer::fromJson(QJsonObject{ { "id", "testerchess" }, { "name", "TesterChess" }, { "rating", 1650 } }),
+		LichessPlayer::fromJson(QJsonObject{ { "id", "magnus" }, { "name", "Magnus" }, { "title", "GM" }, { "rating", 2850 } }));
+	return _services->gameLibrary()->put(r);
+}
+
 QString TestSetup::addDamagedGame()
 {
 	GameRecord r;

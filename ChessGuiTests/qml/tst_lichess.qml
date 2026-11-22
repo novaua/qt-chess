@@ -172,6 +172,12 @@ TestCase {
     function test_08_opponentResigns() {
         verify(!ChessConnector.CanAnalyse, "no analysis of a game going on")
         verify(GameLibrary.game("lichess-game0001").id === undefined, "not kept while it goes on")
+        const moreItems = () => ["analyseMenuItem", "lichessGameMenuItem", "lichessAnalysisMenuItem"].map(n => app.item(n))
+        app.click("moreButton")
+        tryVerify(() => moreItems()[0].menu.opened, 3000, "More")
+        verify(moreItems().every(item => !item.visible), "More: no Analyse, no lichess.org while it is played")
+        moreItems()[0].menu.close()
+        tryVerify(() => !moreItems()[0].menu.visible, 3000)
         FakeLichess.endGame("game0001", "resign", "black")
         tryVerify(() => app.find("resultCard")?.visible, 3000, "the result card")
         verify(ChessConnector.GameResult !== "", "a result: " + ChessConnector.GameResult)
@@ -189,6 +195,12 @@ TestCase {
                            "[White \"FriendlyRival\"]", "[Black \"" + me + "\"]", "[WhiteElo \"1712\"]",
                            "[BlackElo \"1650\"]", "[TimeControl \"600+5\"]", "[Result \"0-1\"]"])
             verify(pgn.indexOf(tag) >= 0, tag + " in\n" + pgn)
+        compare(ChessConnector.LichessGameUrl, "https://lichess.org/game0001")
+        app.click("moreButton")
+        tryVerify(() => moreItems()[0].menu.opened, 3000, "More")
+        verify(moreItems().every(item => item.visible), "More: Analyse, the game and its analysis on lichess.org")
+        moreItems()[0].menu.close()
+        tryVerify(() => !moreItems()[0].menu.visible, 3000)
 
         tryVerify(() => app.item("analyseResultButton").visible, 3000, "Analyse on the result card")
         app.click("analyseResultButton")

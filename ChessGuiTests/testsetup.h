@@ -52,6 +52,9 @@ public:
 	// BL-19: that many finished two-player games (Fool's mate, vs Guest) in the active profile's library,
 	// a day apart and older than any game played in the test: many games without playing them.
 	Q_INVOKABLE void addFinishedGames(int count);
+	// LI-14: a kept Lichess game (lichess-kept0001): a rated Rapid 10+5 win as White vs GM Magnus (2850),
+	// 1. e4 e5 2. Nf3 Nc6 3. Bb5, on 20 Nov 2026; its id.
+	Q_INVOKABLE QString addLichessGame();
 	// An unfinished two-player game whose third move can't be played (a damaged record); its id.
 	Q_INVOKABLE QString addDamagedGame();
 	// BL-20: a finished two-player game whose file is then edited on disk (its result turned round), as a

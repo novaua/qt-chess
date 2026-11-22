@@ -90,7 +90,9 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
 - `GameRecord` and `GameLibrary` (QML singleton `GameLibrary`; BL-19, BL-20): every local game (vs the robot, two
   players) kept from its first move, finished or left, newest first. It follows the active profile. `games`,
   `unfinishedGames`, `count`, `unfinishedCount`, `finishedCount`, `remove(id)`.
-  - **A Lichess game** (LI-14, plan `docs/LI-14-LichessAnalysisPlan.md`): only a finished one, `kind: "lichess"`, id
+  - **A Lichess game** (LI-14, plan `docs/LI-14-LichessAnalysisPlan.md`; replayed by `ChessConnector::openGame` with
+    the Lichess players on the cards, `lichessPlayersShown()`, and `LichessGameUrl` for More's lichess.org items):
+    only a finished one, `kind: "lichess"`, id
     `GameRecord::lichessRecordId(<Lichess id>)` (`lichess-<id>`: never kept twice), and `LichessGameInfo` (the
     JSON's `lichess` object: Lichess id, rated there, speed, days per move, both players as `gameFull` gave them,
     `LichessPlayer::toJson`). Never rated, continued (`continueGame`) or Played from here (`startFrom`); one cap

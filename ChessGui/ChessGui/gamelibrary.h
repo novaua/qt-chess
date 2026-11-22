@@ -162,7 +162,9 @@ struct GameRecord
 
 	QJsonObject toJson() const;
 	static GameRecord fromJson(const QJsonObject& o);
-	QVariantMap toVariant() const; // for QML: the fields above plus plyCount, playerToMove, lastMove
+	// For QML: the fields above plus plyCount, playerToMove, lastMove; a Lichess game's lichessUrl, lichessRated,
+	// lichessSpeed, lichessDays, opponentTitle and opponentRating ("1523?").
+	QVariantMap toVariant() const;
 };
 
 // The games library of the active profile (BL-19). BL-20: one signed file per game,
