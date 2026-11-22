@@ -37,8 +37,9 @@ TestSetup::~TestSetup() = default;
 void TestSetup::applicationAvailable()
 {
 	// The robot is FakeUci, built next to the tests: never Stockfish, which may not be there (GitHub)
-	// and doesn't play the same moves twice.
-	if (!qEnvironmentVariableIsSet("CHESS_ENGINE_PATH"))
+	// and doesn't play the same moves twice. An empty one counts as none (BL-37: a shell can hold it empty,
+	// and the app then looks for its own engine, Stockfish).
+	if (qEnvironmentVariableIsEmpty("CHESS_ENGINE_PATH"))
 		qputenv("CHESS_ENGINE_PATH", QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/FakeUci.exe").toUtf8());
 	setEngine({});
 

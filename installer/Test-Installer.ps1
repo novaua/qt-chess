@@ -99,7 +99,11 @@ $envNames = 'PATH', 'QT_PLUGIN_PATH', 'QML2_IMPORT_PATH', 'QML_IMPORT_PATH', 'QT
             'CHESS_ENGINE_PATH', 'FAKEUCI_MOVES', 'FAKEUCI_DELAY_MS'
 $savedEnv = @{}
 foreach ($n in $envNames) { $savedEnv[$n] = [Environment]::GetEnvironmentVariable($n, 'Process') }
-function Set-Env([string]$name, [string]$value) { [Environment]::SetEnvironmentVariable($name, $value, 'Process') }
+# No value removes it: a [string] $null arrives as "", which SetEnvironmentVariable would keep, set but empty (BL-37).
+function Set-Env([string]$name, [string]$value) {
+    if ($value) { [Environment]::SetEnvironmentVariable($name, $value, 'Process') }
+    else { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
+}
 
 # A DLL missing makes Windows show "... was not found" and wait for a click, which no one gives on
 # GitHub: the error mode, inherited by the processes this one starts, makes the app fail at once.

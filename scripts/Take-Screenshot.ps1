@@ -126,7 +126,14 @@ $exitMeaning = @{ 1 = 'grabbing or saving the window failed'; 2 = 'timed out wai
 $engineVars = 'CHESS_ENGINE_PATH', 'FAKEUCI_MOVES', 'FAKEUCI_DELAY_MS'
 $savedEnv = @{}
 foreach ($v in $engineVars) { $savedEnv[$v] = [Environment]::GetEnvironmentVariable($v, 'Process') }
-function Restore-EngineEnv { foreach ($v in $engineVars) { [Environment]::SetEnvironmentVariable($v, $savedEnv[$v], 'Process') } }
+# One that wasn't set is removed: PowerShell passes $null to SetEnvironmentVariable as "", which would leave
+# it set but empty (BL-37: the UI tests then took an empty CHESS_ENGINE_PATH as named and played Stockfish).
+function Restore-EngineEnv {
+    foreach ($v in $engineVars) {
+        if ($savedEnv[$v]) { [Environment]::SetEnvironmentVariable($v, $savedEnv[$v], 'Process') }
+        else { Remove-Item "Env:$v" -ErrorAction SilentlyContinue }
+    }
+}
 $fake = "$root\x64\$Configuration\FakeUci.exe"
 $skippedScenes = @()
 $failed = 0
