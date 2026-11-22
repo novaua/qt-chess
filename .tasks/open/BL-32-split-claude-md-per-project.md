@@ -37,3 +37,10 @@ Also found (§7 of the plan): `.claude/settings.local.json` is tracked in git, a
 - Coverage: every `` `code` `` span of the old root is in the new files but six reworded ones: `BoardDiff.h`, `StartPosition.h` (the classes, named as their files), `Game::Save`, `Game::LoadMoves` (under `Game`), `GetEngineMove()` (with its request type), `PieceColor::Light` (corrected).
 - Checked in fresh `claude -p` sessions: reading a file in each of the four folders (`.h`, `.cpp`, `.hpp`) loads the root, that folder's `CLAUDE.md` and `cpp-style.md`.
 - Left: steps 2–6.
+
+### 2026-11-22 — step 2, Lichess (branch: docs/bl32Lichess_221126)
+- Done: `LiChessConnector/CLAUDE.md` (the three files; `LichessClient` by area: variants, players and flairs, the game stream and reconnect, joining, ongoing games, the event stream, quick pairing, screenshot mode; an Invariants list) and `ChessQtTests/CLAUDE.md` (what the DLL links and compiles, what a run needs, the one `QCoreApplication`, `TestSupport.h`, one file per class, `FakeLichess`). Root: the ChessQtTests bullet and the LichessClient text become pointers; Key Conventions gets "The Lichess token never reaches QML and is never exported"; two rows in "Where to read more". Root 179 → 180 lines, 37.0k → 33.9k characters.
+- Found on the way, now written down: GitHub doesn't run ChessQtTests (`tests.yml`: ChessTests and the UI tests only); `LichessNetworkTests` calls the real lichess.org; the root's list missed `AppLogTest.cpp`, `MoveGateTest.cpp` and `TestSupport.h`.
+- Coverage: every `` `code` `` span of the old root is in the new files.
+- Checked in fresh `claude -p` sessions: reading `LiChessConnector/LichessClient.h` or `ChessQtTests/FakeLichess.h` loads the root, that folder's `CLAUDE.md` and `cpp-style.md`.
+- Left: steps 3–6.
