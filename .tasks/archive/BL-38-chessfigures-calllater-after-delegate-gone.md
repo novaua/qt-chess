@@ -2,7 +2,7 @@
 id: BL-38
 title: "ChessFigures.qml:74: TypeError 'running' of null in the UI test logs"
 type: bug
-status: open
+status: done
 priority: low
 ---
 
@@ -18,3 +18,14 @@ game), so `chessPiecesSlide` is null. No visible harm, but it fills the logs and
 
 Fix to try: check that the delegate is still alive in the callback (`if (chessPiecesSlide && …)`), or set
 `shownPiece` at once when no slide runs.
+## Resolution
+
+### 2026-11-22 — fixed (branch: bugs/figuresCallLater_221126)
+- Cause: as found above. A piece's delayed `onPieceChanged` call ran after its delegate was destroyed (a new
+  position replaces the pieces), where `chessPiecesSlide` is null. Seen 64 times each in `tst_games` and
+  `tst_chess960` (`test_5_castleOnTheKingsSquare` too).
+- Fix: the callback checks that `chessPiecesSlide` is still there. Behaviour unchanged.
+- Kept out from now on: `Run-UiTests.ps1` fails a file whose log has a QML `TypeError` or `ReferenceError`, even
+  with every test passed (GitHub runs it too).
+- Checked: `Run-UiTests.ps1 -Build`, 13 files green, no QML errors left in any log, Release and Debug (as
+  GitHub). The old `ChessFigures.qml` with the new check: `tst_games` fails, "64 QML errors in the log".
