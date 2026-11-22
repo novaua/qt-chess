@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
-import QtMultimedia
 import ChessPlusPlus
 
 // Settings: appearance, sound, gameplay, the computer, data, advanced and About. Pushed over Home or
@@ -18,6 +17,7 @@ Page {
     signal importRequested()
     signal restoreRequested()
     signal gamesKeptChangeRequested(int count) // the window asks first when games would be deleted
+    signal soundPreviewRequested(string name)  // the volume slider: the window's GameSounds plays it
 
     property string _backupMessage
 
@@ -31,9 +31,6 @@ Page {
     }
 
     Component.onCompleted: AppInfo.probeEngine()   // found at start (AppServices); looks again if it wasn't
-
-    SoundEffect { id: previewMove;     source: "qrc:/sounds/move.wav";          volume: AppSettings.effectsVolume() }
-    SoundEffect { id: previewOpponent; source: "qrc:/sounds/move_opponent.wav"; volume: AppSettings.effectsVolume() }
 
     // A text with links in it (opened in the browser).
     component LinkLabel: Label {
@@ -143,9 +140,7 @@ Page {
                         Layout.preferredWidth: 160
                         onMoved: {
                             AppSettings.soundVolume = value
-                            var sound = value % 2 === 0 ? previewOpponent : previewMove
-                            if (sound.status === SoundEffect.Ready)
-                                sound.play()
+                            page.soundPreviewRequested(value % 2 === 0 ? "moveOpponent" : "move")
                         }
                     }
                     IconImageLabel { icon: "volume" }
