@@ -11,14 +11,16 @@ without Qt). Its tests: `ChessTests/`.
   `MakeFen`; `FormatHistorySan(history, start)`; `LoadMoves` (UCI moves into the loaded history: a kept game's
   replay); `Save` / `Load` only migrate the binary saves of versions before BL-19 (`Serializer.h`).
 - `Move` / `HistoryMove` — a move (from, to, capture, promotion) and a played one; `HistoryMove::Castling()`.
-- `MoveGeneration` (`MovesGen.h`) — pseudo-legal and legal moves with castling and en passant; `Play` plays a
-  validated move (castling with its rook, en passant); `HasCastlingRight`, `CastlingPath` (a side's castling
-  squares when nothing stands in the way: the legal moves and the premove targets share it), `IsCastling`.
+- `MoveGeneration` (declared in `MovesGen.h`, implemented mostly in `Move.cpp`) — pseudo-legal and legal moves
+  with castling and en passant; `Play` plays a validated move (castling with its rook, en passant);
+  `HasCastlingRight`, `CastlingPath` (a side's castling squares when nothing stands in the way: the legal moves
+  and the premove targets share it), `IsCastling`.
 - `GameChecks` (`Check.h`) — check, mate, promotion state; `BoardPositionsCache` (attack maps, LRU) under it.
 - `StartPosition` (LI-01A) — the set-up a game starts from: standard, or Chess960 #0–959 (Scharnagl, numbered as
   lichess.org does; #518 is the standard one); `Random()`, `FromFen` (a start position only), `Fen()`.
   `Game::Restart(whiteFirst, start)` (standard when none is given), `GetStartPosition()`; `LoadMoves`, `EndGame`
-  and `FormatHistorySan` keep it.
+  and `FormatHistorySan` keep it. `IsChess960()` is the game's flag, not the number: #518 played as Chess960
+  castles as Chess960 does.
 - `BoardDiff` / `PieceTravel` — which piece went where between two positions (moved, removed, added): the board's
   piece animations.
 - `HistoryPlayer` — steps through a history; `San.h` — `FormatMoveSan`, `FormatPgn` / `PgnTag`.

@@ -10,7 +10,8 @@ where the full story is.
 
 ## The game: `ChessConnector` (`chessconnector.h/cpp`)
 The C++/QML bridge for the chess game: `Q_PROPERTY` bindings and slots that QML calls, **one call per user
-action**; it owns the `Game`, the robot, the `MoveGate`, the `GameClock` and the game's record.
+action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `MoveGate`, the `GameClock` and the
+`GameAnalyzer`, and writes the game's record into `GameLibrary`.
 - **Starting:** `startComputerGame` / `startLocalGame(…, chess960)` (`StandardGame`, `RandomChess960` or a
   number); `Chess960`, `StartPositionNumber` (`GameTitle` ends "· Chess960 #N", the cards' details begin with
   it). Rematch, continue, replay and Play from here keep the start. `waitForStartFrame`: the window draws
@@ -42,7 +43,8 @@ action**; it owns the `Game`, the robot, the `MoveGate`, the `GameClock` and the
   before a globe, `scripts/make_icons.py avatar`; never in the picker's `avatarNames()`; `opponentFallbackUrl`
   under a flair that loads or fails); the player's own flair, `PlayerFlair`, shows small after the name.
 - **Starting on Lichess:** `onLichessGameStarted` starts from the game's variant and start FEN or refuses it
-  (`gameStartFailed`); `playJoinedMoves` puts a joined game's moves on the board before the page opens.
+  (`gameStartFailed`); `startOnlineGame(…, joinedMoves)` puts a joined game's moves on the board before the page
+  opens.
   `acceptChallenge(id)` (BL-10): the game on the board stays until the new one starts (a local game is then kept),
   so a refused Accept loses nothing; not during a running real-time Lichess game (`CanAcceptChallenge`);
   `AcceptingChallengeId`: the challenge being accepted, one state for the bar and the Online page.
@@ -74,7 +76,7 @@ action**; it owns the `Game`, the robot, the `MoveGate`, the `GameClock` and the
   settled and the slide time.
 - `GameClock` (`ChessConnector.Clock`): the two clocks, as on lichess.org. A local game: `moveMade()`. Lichess's
   times come with `setSnapshot()` and never flag here; a correspondence game shows the time left for the move
-  (LI-02). `Board::CanMate` decides whether a flag loses or draws.
+  (LI-02). On a flag `ChessConnector` asks `Board::CanMate` whether it loses or draws.
 
 ## The robot
 - `ChessEnginePlayer` wraps `UciConnector` to produce computer moves (`PositionMode`, `MakeRequest`);
@@ -171,10 +173,12 @@ action**; it owns the `Game`, the robot, the `MoveGate`, the `GameClock` and the
 - A game file or `rating.json` that fails its check is never loaded: it goes to `games/rejected/`.
 - On import, only `games/<id>.json` names are written under `games/`.
 - Exports never carry the Lichess token; it never reaches QML.
-- A Chess960 game is never rated; nor is a game with a takeback or a fork; removing games never changes the rating.
+- Only `GameRecord::rateable()` games are rated: a finished robot game (a result, two plies or more, a valid
+  level) without takeback or fork, never Chess960. Removing games never changes the rating.
 - A rated game copied from another profile doesn't move the rating.
 - Unfinished kept games are never removed on their own.
 - Lichess games have no record here (LI-14 will change this: finished Lichess games kept locally, the owner's
   decision).
-- The analysis never runs on a game going on.
+- No analysis of the game going on (no hints): `CanAnalyse` is false while it is played; `GameAnalyzer`
+  itself analyses any kept record it is given.
 - A premove that isn't legal when its turn comes is dropped silently.

@@ -2,9 +2,9 @@
 
 The Windows installer: Inno Setup (`ChessSetup.iss`) over the windeployqt'd Release build. No CMake.
 
-- **CI**: `.github/workflows/release.yml` runs `tests.yml`, then builds the installer on every PR into
-  `develop` / `main` (uploaded as an artifact, 14 days) and on a `v*` tag (signed, published as a release
-  whose body is `docs/release-notes/<tag>.md`).
+- **CI**: `.github/workflows/release.yml` runs `tests.yml`, then builds and signs the installer on every PR into
+  `develop` / `main` (uploaded as an artifact, 14 days) and on a `v*` tag (published as a release whose body is
+  `docs/release-notes/<tag>.md` when there is one, else GitHub's generated notes).
 - **Locally**: `.\installer\Build-Installer.ps1` (`-Version`, `-SkipBuild`, `-QtBinDir`) does what
   `release.yml` does: MSBuild Release|x64 → `deploy\` (windeployqt) → `Resolve-Stockfish.ps1` → ISCC →
   `installer\Output\ChessSetup-<version>.exe`, unsigned. `ChessSetup.iss` doesn't compile without the
