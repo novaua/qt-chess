@@ -149,6 +149,15 @@ namespace GamePgnTests
 			Assert::IsTrue(has(casual, "[White \"Anonymous\"]"));
 			Assert::IsFalse(has(casual, "Elo"));
 			Assert::IsTrue(has(casual, "[TimeControl \"-\"]"));
+
+			// A Chess960 game: lichess.org names it by the variant, not the speed (review of #250-#252).
+			GameRecord c960 = record("lichess", true, { "f1g1", "f8g8" });
+			c960.setStartPosition(Chess::StartPosition::Chess960(3));
+			c960.lichess = LichessGameInfo("c9600001", true, "blitz", 0, LichessPlayer(), LichessPlayer());
+			const auto pgn960 = GamePgn::ofRecord(c960, QStringLiteral("Alice"));
+			Assert::IsTrue(pgn960.has_value());
+			Assert::AreEqual(QStringLiteral("Rated Chess960 game"), pgn960->event());
+			Assert::IsTrue(has(pgn960->text(), "[Variant \"Chess960\"]"));
 		}
 
 		TEST_METHOD(SetMoves_PositionAfterThem)

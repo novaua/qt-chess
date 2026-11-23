@@ -51,6 +51,8 @@ public:
 	Q_INVOKABLE void addOngoingGame(const QString& id, const QString& opponent, const QString& playerColor,
 	                                const QString& moves, const QString& fen,
 	                                const QString& variant = QStringLiteral("standard"), const QString& startFen = {});
+	// LI-14: the game becomes a correspondence game, `days` per move (its gameFull from then on: no clock).
+	Q_INVOKABLE void setDaysPerTurn(const QString& gameId, int days);
 	// LI-07: a player's Lichess title ("GM", "BOT", "" none) and rating (0: none) in a game's gameFull from
 	// now on. A challenger has the rating of its challenge; TesterChess 1650, the account's rapid rating.
 	// LI-11: flair ("activity.lichess", "" none): what POST /api/users says of them; its image is served at
@@ -96,6 +98,7 @@ private:
 		QString fen;
 		QString variant = QStringLiteral("standard");
 		QString initialFen = QStringLiteral("startpos");
+		int daysPerTurn = 0; // a correspondence game (setDaysPerTurn)
 		QList<QPointer<QTcpSocket>> streams;
 	};
 

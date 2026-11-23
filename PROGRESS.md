@@ -1,6 +1,6 @@
 # Active Handover
 
-- **Last completed:** LI-14 (`features/li14GamesPage_231126`, step 3 of 3, closed): finished Lichess games kept and analysed as local games; the Games page's Lichess filter and cards; a kept one replayed with its Lichess players; lichess.org and its analysis from the card and More.
+- **Last completed:** LI-14's review fixes (`bugs/li14ReviewFixes_231126`): a move held past a Lichess game's end completes its record; statistics, More's Analyse, the Chess960 PGN Event and the Games page's order of Lichess games fixed. LI-14 itself closed in #252.
 - **Current focus:** None. BL-28 waits for a next occurrence in CI.
 - **Next up:** BL-36 (the leave flow out of `ChessGame.qml`); LI-16 (the end of a Lichess game: New opponent; Analyse is LI-14's); LI-15 (recent Lichess games from the server); LI-09's remaining hand tests (scenarios 1, 3–9); LI-12; BL-33.
 - **Active gotchas:**

@@ -319,7 +319,10 @@ Page {
                     }
                     MenuItem {
                         objectName: "analyseMenuItem"
-                        visible: page.mode !== "online" || page.gameOver   // LI-14: a finished Lichess game too
+                        // LI-14: a finished Lichess game too, once kept (not an aborted one, nor one without a move)
+                        visible: page.mode !== "online"
+                                 || (page.gameOver && (ChessConnector.CanAnalyse || ChessConnector.AnalysingThisGame
+                                                       || ChessConnector.Analysis.depth !== undefined))
                         height: visible ? implicitHeight : 0
                         text: ChessConnector.Analysis.depth !== undefined ? "Analyse again" : "Analyse game"
                         icon.source: Theme.icon("analyse")

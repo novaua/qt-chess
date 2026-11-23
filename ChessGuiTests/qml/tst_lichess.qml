@@ -611,6 +611,38 @@ TestCase {
         compare(ChessConnector.ResultText, "Game aborted")
         verify(GameLibrary.game("lichess-game0017").id === undefined, "not kept")
         verify(!ChessConnector.CanAnalyse, "nothing to analyse")
+        app.click("moreButton")
+        const analyseItem = app.item("analyseMenuItem")
+        tryVerify(() => analyseItem.menu.opened, 3000, "More")
+        verify(!analyseItem.visible, "no Analyse in More for a game that isn't kept")
+        analyseItem.menu.close()
+        tryVerify(() => !analyseItem.menu.visible, 3000)
+        app.leaveToHome()
+    }
+
+    // LI-14 (review of #250-#252): in a correspondence game the gate holds the opponent's move until the board
+    // has settled. One held past the game's end still completes the kept game's record once it is played, so
+    // the record has every move (its analysis then fits the board).
+    function test_18_heldMoveCompletesTheRecord() {
+        FakeLichess.addOngoingGame("game0018", "Slowpoke", "white", "e2e4 e7e5 d2d4",
+                                   "rnbqkbnr/pppp1ppp/8/4p3/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2")
+        FakeLichess.setDaysPerTurn("game0018", 3)
+        verify(ChessConnector.continueOnlineGame("game0018"))
+        app.waitForPage("game", 10000)
+        app.waitBoardIdle()
+        compare(ChessConnector.MoveCount, 3)
+        // The board busy, as GamePage reports it while a slide or a turn of the board runs: the move waits.
+        ChessConnector.setBoardSettled(false)
+        FakeLichess.play("game0018", "d7d5")
+        wait(500)   // it came, and waits in the gate
+        compare(ChessConnector.MoveCount, 3, "held while the board is busy")
+        FakeLichess.endGame("game0018", "draw", "")
+        tryVerify(() => ChessConnector.GameResult !== "", 3000, "the game over")
+        compare(GameLibrary.game("lichess-game0018").plyCount, 3, "kept as the board stood")
+        ChessConnector.setBoardSettled(true)
+        tryCompare(ChessConnector, "MoveCount", 4, 3000, "the held move played")
+        tryVerify(() => GameLibrary.game("lichess-game0018").plyCount === 4, 3000, "the record completed")
+        compare(GameLibrary.game("lichess-game0018").lichessDays, 3, "a correspondence game")
         app.leaveToHome()
     }
 }

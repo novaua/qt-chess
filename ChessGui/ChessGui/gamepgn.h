@@ -34,9 +34,10 @@ public:
 	void setTwoPlayers();                            // two players at this computer
 	void setPlayerElo(int elo, bool playerPlaysWhite); // the player's rating before a rated game (after setRobot)
 	void setLichessGame(const QString& gameId);      // Site: the game on lichess.org
-	// LI-14: a kept Lichess game: Site, the Event as lichess.org names it ("Rated Rapid game"), both
-	// players' ratings from before the game. Its TimeControl is the record's (setTimeControl).
-	void setLichessRecord(const LichessGameInfo& info);
+	// LI-14: a kept Lichess game: Site, the Event as lichess.org names it ("Rated Rapid game", a Chess960 one
+	// "Rated Chess960 game"), both players' ratings from before the game. Its TimeControl is the record's
+	// (setTimeControl).
+	void setLichessRecord(const LichessGameInfo& info, bool chess960);
 	void setTimeControl(int limitSec, int incSec);   // a local game's clock; 0 and 0: none
 	void setStartPosition(const Chess::StartPosition& start); // a Chess960 one is tagged
 

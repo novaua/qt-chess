@@ -1183,7 +1183,9 @@ void ChessConnector::onLichessGameEnded(const QString& status, const QString& wi
 	const QString result = status == QLatin1String("aborted") ? QStringLiteral("*")
 		: hasWinner ? (whiteWon ? QStringLiteral("1-0") : QStringLiteral("0-1"))
 		: QStringLiteral("1/2-1/2");
-	if (status != QLatin1String("aborted"))
+	// Counted as the game is kept (LI-14, keepLichessGame): not aborted, and with a move played, so that
+	// statistics rebuilt from the kept games are the same.
+	if (status != QLatin1String("aborted") && plyCount() > 0)
 		recordResult(hasWinner ? (whiteWon ? 1 : -1) : 0);
 	setResult(result, text);
 }
@@ -2048,6 +2050,9 @@ void ChessConnector::playOnlineMoves(const QStringList& uciMoves)
 {
 	if (playMoves(uciMoves) > 1)
 		_piecesAnew = true; // before the posted Pieces sync runs
+	// LI-14: a move the gate held past the game's end (a correspondence game, a review) completes the kept
+	// game's record (nothing is written while the game goes on).
+	updateRecord();
 	_gate->moveShown(true); // not the player's move
 	if (_gate->holding())
 		return;
