@@ -99,3 +99,6 @@ Related: LI-15 (the list of recent Lichess games), LI-16 (the end of a Lichess g
   `GamePgnTest`.
 - **The Games page's order:** a Lichess game is listed by when it ended (a correspondence game begun weeks
   before came far down); its `startedAt` stays. `GameLibraryTest`.
+- **`tst_games` test 10** failed on GitHub since #252 ("no item named review_next"; also with the Debug build
+  locally, never in Release): it clicked the moves panel's button before the panel was made (after the page's
+  first frame: 613 ms in Debug, 57 ms in Release). It waits for the button now.

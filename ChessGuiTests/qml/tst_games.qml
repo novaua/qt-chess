@@ -391,6 +391,7 @@ TestCase {
         compare(findChild(player, "playerName").text, "TesterChess", "the player's Lichess name")
         compare(findChild(player, "playerDetail").text, "Tester · 1650")
         verify(ChessConnector.CanAnalyse, "a finished game: Analyse")
+        tryVerify(() => app.find("review_next") !== null, 5000, "the moves panel (made after the first frame)")
         app.click("review_next")   // the replay opens at the start: 1. e4
         tryCompare(ChessConnector, "ShownPly", 1, 2000)
         compare(ChessConnector.PlayFromHere.gameId, undefined, "not Played from here")
