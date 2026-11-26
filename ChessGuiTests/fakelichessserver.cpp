@@ -390,7 +390,7 @@ QJsonObject FakeLichessServer::player(const QString& name) const
 
 QByteArray FakeLichessServer::gameFull(const Game& game) const
 {
-	return compact(QJsonObject{
+	QJsonObject full{
 		{ "type", "gameFull" },
 		{ "id", game.id },
 		{ "createdAt", 1795176000000LL }, // 2026-11-20 12:00 UTC: a kept game's startedAt (LI-14)
@@ -402,7 +402,19 @@ QByteArray FakeLichessServer::gameFull(const Game& game) const
 		{ "black", player(game.blackName) },
 		{ "initialFen", game.initialFen },
 		{ "state", gameState(game) },
-	});
+	};
+	if (game.daysPerTurn > 0) { // a correspondence game: days per move, no clock
+		full.remove("clock");
+		full["speed"] = "correspondence";
+		full["daysPerTurn"] = game.daysPerTurn;
+	}
+	return compact(full);
+}
+
+void FakeLichessServer::setDaysPerTurn(const QString& gameId, int days)
+{
+	if (auto game = _games.find(gameId); game != _games.end())
+		game->daysPerTurn = days;
 }
 
 // The clocks stay at 10 minutes: no test is about Lichess's clock.

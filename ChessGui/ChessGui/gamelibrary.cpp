@@ -350,9 +350,17 @@ bool GameLibrary::hasSignedFiles(const QString& userId)
 		|| !QDir(dir).entryList({ QStringLiteral("*.json") }, QDir::Files).isEmpty();
 }
 
+// Where a game is listed: when it began; a Lichess game when it ended here (LI-14: a correspondence game can
+// have begun weeks before, and the one just finished belongs at the top). Its startedAt stays Lichess's, for
+// the PGN's Date.
+static QDateTime listedAt(const GameRecord& r)
+{
+	return r.isLichess() && r.finishedAt.isValid() ? r.finishedAt : r.startedAt;
+}
+
 static bool newerFirst(const GameRecord& a, const GameRecord& b)
 {
-	return a.startedAt > b.startedAt;
+	return listedAt(a) > listedAt(b);
 }
 
 QByteArray GameLibrary::gameFileContent(const GameRecord& record)

@@ -84,3 +84,21 @@ Related: LI-15 (the list of recent Lichess games), LI-16 (the end of a Lichess g
   13 files green; `ChessQtTests` green. Scenes `games-lichess` (both sizes), `games-filter` (`-Offscreen`).
 - LI-14 done: a finished Lichess game is kept and analysed as a local game (steps 1–3). Related, still open:
   LI-15 (recent games from the server: a kept one opens its record), LI-16 (the end of a Lichess game).
+### 2026-11-23 — the code review's fixes (branch: bugs/li14ReviewFixes_231126)
+`/code-review` of #250–#252 found one bug and four smaller things, all fixed:
+- **A move held past the end (the bug):** in a correspondence game the gate holds the opponent's move until the
+  board settles; when the result came meanwhile, the record was written one move short and stayed so (only a
+  mate rewrote it), so its analysis never fitted the board. `playOnlineMoves` now calls `updateRecord`.
+  Test: `tst_lichess` test 18 (FakeLichess's new `setDaysPerTurn`; the board marked busy with
+  `setBoardSettled(false)`): fails on the old code ("the record completed").
+- **Statistics:** a Lichess game without a move was counted but not kept, so statistics rebuilt from kept games
+  lost it. Now counted by the record's rule (not aborted, a move played).
+- **More's Analyse** showed, disabled, after an aborted Lichess game; now only once the game is kept (or being
+  analysed). `tst_lichess` test 17.
+- **PGN:** a kept Lichess Chess960 game's Event is "Rated Chess960 game", as lichess.org's (was the speed).
+  `GamePgnTest`.
+- **The Games page's order:** a Lichess game is listed by when it ended (a correspondence game begun weeks
+  before came far down); its `startedAt` stays. `GameLibraryTest`.
+- **`tst_games` test 10** failed on GitHub since #252 ("no item named review_next"; also with the Debug build
+  locally, never in Release): it clicked the moves panel's button before the panel was made (after the page's
+  first frame: 613 ms in Debug, 57 ms in Release). It waits for the button now.

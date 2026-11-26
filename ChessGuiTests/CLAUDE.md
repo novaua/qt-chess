@@ -60,6 +60,8 @@ except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too
   - In review or a replay the board is never "idle" (the gate holds outside moves): wait for what is shown,
     `waitPiece("e4", "P")` (`pieceAt` is "?" until the board's layers exist). White's pieces in capitals,
     Black's in small letters.
+  - The moves panel (`review_next`, `analysisSummary`, the list) is made only after the game page's first frame,
+    late in Debug (GitHub's build): wait until `app.find(…)` has the item before `click`, which looks it up once.
   - Menus: `chooseFromMenu(button, item)` waits for the menu to be open (a click during its enter animation
     misses). A button every dialog has (`acceptButton`): `clickIn(dialog, button)`.
   - `click` and `clickIn` wait for the window's layouts first (`laidOut()`): a button just shown in a `Flow` (a

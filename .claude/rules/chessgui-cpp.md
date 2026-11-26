@@ -99,7 +99,10 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
     with the local games; statistics rebuilt count it under Lichess; its PGN has Site, the Lichess names,
     the Event as lichess.org's, both Elo and the clock. `ChessConnector::keepLichessGame` writes it when the
     result comes on the board (`setResult` → `updateRecord`): not an aborted game, nor one without a move or left
-    before its end; its facts from the game's `gameFull` (`LichessClient::currentGameFull`, kept at the start).
+    before its end; its facts from the game's `gameFull` (`LichessClient::currentGameFull`, kept at the start). A
+    move the gate held past the end completes it (`playOnlineMoves` → `updateRecord`). The statistics count a
+    Lichess game by the same rule, so rebuilding them from kept games gives the same. Listed by when it ended
+    (`finishedAt`: a correspondence game can have begun weeks before); `startedAt` stays Lichess's (the PGN's Date).
   - **Files:** one signed file per game, `users/<id>/games/<gameId>.json` (`{"record", "sig"}`); `put` / `remove`
     write only that file once the current event is done (`flush()` writes now; the destructor and a profile
     change do).

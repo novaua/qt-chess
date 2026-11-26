@@ -34,7 +34,7 @@ std::optional<GamePgn> GamePgn::ofRecord(const GameRecord& record, const QString
 	pgn.setDate(record.startedAt.date());
 	pgn.setResult(record.result);
 	if (record.isLichess()) {
-		pgn.setLichessRecord(record.lichess);
+		pgn.setLichessRecord(record.lichess, record.chess960());
 	} else if (record.kind == QLatin1String("computer")) {
 		pgn.setRobot(record.level, !record.playerPlaysWhite);
 		if (record.rated)
@@ -70,13 +70,14 @@ void GamePgn::setLichessGame(const QString& gameId)
 	_timeControl.clear();
 }
 
-void GamePgn::setLichessRecord(const LichessGameInfo& info)
+void GamePgn::setLichessRecord(const LichessGameInfo& info, bool chess960)
 {
 	_site = info.url();
-	QString speed = info.speed();
-	if (!speed.isEmpty())
-		speed = speed.left(1).toUpper() + speed.mid(1) + QLatin1Char(' ');
-	_event = (info.rated() ? QStringLiteral("Rated ") : QStringLiteral("Casual ")) + speed + QStringLiteral("game");
+	// lichess.org names a variant's game by the variant ("Rated Chess960 game"), a standard one by its speed.
+	QString kind = chess960 ? QStringLiteral("Chess960") : info.speed();
+	if (!kind.isEmpty())
+		kind = kind.left(1).toUpper() + kind.mid(1) + QLatin1Char(' ');
+	_event = (info.rated() ? QStringLiteral("Rated ") : QStringLiteral("Casual ")) + kind + QStringLiteral("game");
 	_whiteElo = info.player(true).rating();
 	_blackElo = info.player(false).rating();
 }

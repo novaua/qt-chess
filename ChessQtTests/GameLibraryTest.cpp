@@ -217,6 +217,19 @@ namespace GameLibraryTests
 			Assert::IsTrue(GameRecord::fromJson(makeRecord("local", true, { "e2e4" }).toJson()).lichess.isEmpty(),
 				L"a local game has none");
 
+			// Listed by when it ended here: a correspondence game begun weeks ago, just finished, comes first
+			// (review of #250-#252); its startedAt stays Lichess's.
+			GameRecord slow = makeRecord("lichess", true, { "d2d4", "d7d5" }, t0.addDays(-20));
+			slow.id = GameRecord::lichessRecordId("slow0001");
+			slow.finishedAt = QDateTime::currentDateTime();
+			slow.lichess = LichessGameInfo("slow0001", false, "correspondence", 3, me, them);
+			_library->put(makeRecord("local", true, { "e2e4" }, t0.addSecs(7200)));
+			_library->put(slow);
+			Assert::AreEqual(QStringLiteral("lichess-slow0001"), _library->records().first().id, L"the game just finished first");
+			Assert::AreEqual(t0.addDays(-20).toSecsSinceEpoch(), _library->records().first().startedAt.toSecsSinceEpoch());
+			_library->remove(QStringLiteral("lichess-slow0001"));
+			_library->remove(_library->records().first().id); // the local game: the cap below is about the two others
+
 			// One cap for every finished game: a newer robot game pushes the Lichess one out.
 			_library->put(makeRecord("computer", true, { "e2e4" }, t0.addSecs(3600)));
 			_library->setKeepCount(1);
