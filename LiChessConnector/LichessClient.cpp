@@ -541,17 +541,16 @@ void LichessClient::createOpenChallengeSec(int limitSec, int incrementSec, int d
     });
 }
 
+// challengeCanceled at once, not on Lichess's answer: the challenge is ours to drop, and whatever comes
+// next must not find it still waiting (LI-17: the Online page, opened meanwhile, resumed the saved one).
 void LichessClient::cancelChallenge(const QString& challengeId)
 {
     stopStream();
     auto* reply = _nam.post(
         makeRequest(QStringLiteral("/api/challenge/") + challengeId + QStringLiteral("/cancel")),
         QByteArray());
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        reply->deleteLater();
-        if (_currentGameId.isEmpty()) // else the player has started something new meanwhile
-            emit challengeCanceled();
-    });
+    connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
+    emit challengeCanceled();
 }
 
 // The accept URL; for an open challenge "?color=" takes that side (only white or black are valid).

@@ -310,6 +310,32 @@ namespace LichessTests
 			Assert::IsTrue(errors.isEmpty());
 		}
 
+		// LI-17: our own challenge withdrawn: challengeCanceled at once, before Lichess answers the POST (or never
+		// does), and nothing of it waits on: a seek can start right away.
+		TEST_METHOD(CancelChallenge_CanceledAtOnce)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [](QTcpSocket* socket, const QString& method, const QString&) {
+				if (method == "GET")
+					FakeLichess::startStream(socket); // the event stream; the POSTs get no answer
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			int canceled = 0;
+			QObject::connect(&client, &LichessClient::challengeCanceled, [&] { ++canceled; });
+
+			client.resumeOpenChallenge("c1", "https://lichess.org/c1");
+			client.cancelChallenge("c1");
+			Assert::AreEqual(1, canceled, L"at once");
+			waitUntil([&] { return lichess.requests.contains("POST /api/challenge/c1/cancel"); });
+			waitUntil([] { return false; }, 200);
+
+			Assert::AreEqual(1, canceled, L"once");
+			client.startSeek(600, 0, 0, true, "standard");
+			Assert::IsTrue(client.seeking(), L"not waiting for its game: the seek starts");
+			client.cancelSeek();
+		}
+
 		// Games started or ended elsewhere: Your games (LI-04) refreshed once for a burst of events.
 		TEST_METHOD(GamesElsewhere_RefreshYourGamesOnce)
 		{
