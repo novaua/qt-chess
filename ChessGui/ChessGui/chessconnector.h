@@ -258,6 +258,8 @@ signals:
 	void startingOnlineGameChanged();
 	void gameStartFailed(QString message); // continueOnlineGame(): Lichess didn't give the game
 	void keptGameFailed(QString message);  // continueGame() / openGame(): the kept record can't be played (BL-19)
+	void gameActionFailed(QString message); // LI-13: Lichess refused or didn't answer a resign, abort, draw, takeback
+	void resignAndLeaveStopped();           // LI-13: resignAndLeave()'s resign failed: the game stays on the board
 	void lastLevelChanged();
 
 	void checkNotify();
@@ -377,7 +379,8 @@ public slots:
 	// challenge still waiting for the opponent is withdrawn (BL-36).
 	void endGame();
 	// The leave warning's Resign: resign the Lichess game, then endGame() once Lichess has ended it
-	// (so the loss counts), or after a few seconds without an answer. A finished game: endGame().
+	// (so the loss counts), or after a few seconds without an answer. A finished game: endGame(). Lichess
+	// refuses the resign: the game stays (resignAndLeaveStopped, gameActionFailed; LI-13).
 	Q_INVOKABLE void resignAndLeave();
 	Q_INVOKABLE void switchUser(); // endGame(), then log out
 

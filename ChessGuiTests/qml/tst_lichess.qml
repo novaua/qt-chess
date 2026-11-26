@@ -737,4 +737,32 @@ TestCase {
         tryVerify(() => !FakeLichess.seekOpen, 3000)
         app.leaveToHome()
     }
+
+    // LI-13: Leave the game? Resign, and Lichess refuses it: the game goes on, so the page stays and says why;
+    // Home asks again. Then Lichess takes it: Home.
+    function test_21_resignRefused() {
+        FakeLichess.challenge("game0022", "Stubborn", 1500, "white")
+        tryVerify(() => bar().visible && bar().text.indexOf("Stubborn") === 0, 3000, "its challenge on the bar: " + bar().text)
+        app.click("challengeAcceptButton")
+        app.waitForPage("game", 10000)
+        FakeLichess.refuseGameActions(400, "This game can't be resigned")
+
+        app.click("homeButton")
+        const dialog = app.item("leaveOnlineDialog")
+        tryVerify(() => dialog.opened, 3000, "Leave the game? asked")
+        app.clickIn("leaveOnlineDialog", "resignButton")
+        waitRequest("POST /api/board/game/game0022/resign")
+        app.waitMessage("Resign failed: This game can't be resigned")
+        app.waitClosed(dialog)
+        wait(5500)   // longer than resignAndLeave()'s wait for an answer: it was stopped
+        compare(app.page().objectName, "game", "the game goes on: still on its page")
+        compare(ChessConnector.GameResult, "")
+
+        FakeLichess.refuseGameActions(0)
+        app.click("homeButton")
+        tryVerify(() => dialog.opened, 3000, "asked again, not left at once")
+        app.clickIn("leaveOnlineDialog", "resignButton")
+        app.waitForPage("home", 5000)
+        compare(FakeLichess.status("game0022"), "resign")
+    }
 }

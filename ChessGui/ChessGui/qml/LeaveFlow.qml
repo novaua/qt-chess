@@ -7,7 +7,7 @@ import ChessPlusPlus
 //   is (BL-19), so leaving it never asks. Switch user asks during any running game; Resign as Settings say.
 // - Each answer is one ChessConnector call (a rematch challenge still waiting goes with the game: endGame()).
 // - Resign in the warning leaves once Lichess has ended the game (ChessConnector.resignAndLeave()); after a
-//   Quit the window closes then (quitRequested).
+//   Quit the window closes then (quitRequested). A resign Lichess refuses stays (resignAndLeaveStopped, LI-13).
 Item {
     id: flow
     visible: false
@@ -104,6 +104,15 @@ Item {
     }
     // The game ended while the warning was open: it no longer goes on without us.
     on_OnlineRunningChanged: if (!_onlineRunning) leaveOnlineDialog.close()
+    // LI-13: Lichess refused the resign: the game goes on, here (the window says why). Home asks again, and a
+    // Quit waiting for the resign doesn't happen.
+    Connections {
+        target: ChessConnector
+        function onResignAndLeaveStopped() {
+            flow._resigning = false
+            flow._quitAfterLeave = false
+        }
+    }
 
     ConfirmDialog {
         id: resignConfirm

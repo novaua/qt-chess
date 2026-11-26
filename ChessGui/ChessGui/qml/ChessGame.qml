@@ -704,6 +704,7 @@ ApplicationWindow {
         // the Continue list or the Online page.
         function onGameStartFailed(message) { root.notify("Couldn't continue the game: " + message, "critical") }
         function onKeptGameFailed(message)  { root.notify(message, "critical") }   // BL-19: a damaged kept game
+        function onGameActionFailed(message) { root.notify(message, "critical") }  // LI-13: e.g. "Resign failed: …"
         // BL-19 step 7: the analysis failed (the engine); a cancel, a deleted game or another profile say
         // nothing. Another game's Analyse stops the one running: said, as its work is lost.
         function onAnalysisFailed(gameId, message) { root.notify(message, "critical") }

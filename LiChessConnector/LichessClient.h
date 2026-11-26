@@ -309,6 +309,9 @@ signals:
 	void clockUpdated(qint64 whiteMs, qint64 blackMs, bool whiteToMove, bool running); // Lichess's times
 	void gameEnded(QString status, QString winner);
 	void networkError(QString message);
+	// LI-13: resign, abort, draw or takeback (also an answer to the opponent's offer) failed: refused, or no
+	// answer. action: "resign", "abort", "draw", "takeback"; message: "Resign failed: <Lichess's reason>".
+	void gameActionFailed(QString gameId, QString action, QString message);
 	void rejoiningChanged();                          // rejoinGame() started, or ended (a game, a failure, stopStream)
 	void acceptingChanged();                          // acceptingChallengeId() changed
 	void rejoinFailed(QString gameId, QString message); // rejoinGame()'s stream ended before its game started
@@ -343,7 +346,7 @@ signals:
 private:
 	QNetworkRequest makeRequest(const QString& path) const;
 	void checkAuthExpired(QNetworkReply* reply, bool unauthorized);
-	void postGameAction(const QString& path);
+	void postGameAction(const QString& gameId, const QString& action, const QString& failed);
 	void createOpenChallengeSec(int limitSec, int incrementSec, int days,
 	                            const QString& color, const QString& variant, const QString& startFen = {});
 	void challengeUser(const RematchInfo& game, const QString& color);

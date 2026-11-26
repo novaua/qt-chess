@@ -30,6 +30,9 @@ against `FakeLichess`).
   reconnects on its own (`LichessStream`: the 1 → 15 s backoff, a 4xx stops it); its `gameFull` is then a resync,
   as is a move POST without an answer: `gameConnectionChanged`, `ChessConnector.Reconnecting`.
   `setBaseUrl` / `setStreamTiming` for the fake-server tests.
+- **Game actions (LI-13):** `resign`, `abortGame`, `offerDraw`, `requestTakeback` (also the answers to an offer):
+  one that Lichess refuses or doesn't answer gives `gameActionFailed(gameId, action, "Resign failed: <reason>")`;
+  one it takes says nothing (the game stream shows it). `ChessConnector` says it, also after the game was left.
 - **Joining (BL-17, BL-18):** `gameStarted` carries the game's moves so far, which
   `ChessConnector::startOnlineGame(…, joinedMoves)` puts on the board before the game page opens. `rejoinGame`
   has its own `rejoiningGameId` / `rejoinFailed`, not `networkError`.

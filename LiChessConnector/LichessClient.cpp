@@ -1508,32 +1508,47 @@ void LichessClient::postMove(const QString& gameId, const QString& uciMove)
     });
 }
 
-void LichessClient::postGameAction(const QString& path)
+// LI-13: Lichess refused it (a 4xx / 5xx) or didn't answer: gameActionFailed, with Lichess's reason. Its
+// success needs nothing: the game stream says what it changed.
+void LichessClient::postGameAction(const QString& gameId, const QString& action, const QString& failed)
 {
-    auto* reply = _nam.post(makeRequest(path), QByteArray());
-    connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
+    if (_offline)
+        return; // screenshot mode: nothing is posted
+    auto* reply = _nam.post(makeRequest(QStringLiteral("/api/board/game/") + gameId + QLatin1Char('/') + action),
+                            QByteArray());
+    connect(reply, &QNetworkReply::finished, this, [this, reply, gameId, action, failed]() {
+        reply->deleteLater();
+        if (reply->error() == QNetworkReply::NoError)
+            return;
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const bool authExpired = reply->property("authExpiredReported").toBool() || status == 401;
+        const QString reason = authExpired ? QStringLiteral("Lichess sign-in expired")
+                                           : apiErrorMessage(reply->readAll(), reply);
+        qDebug() << "LichessClient:" << action << "failed for" << gameId << "| HTTP" << status << "|" << reason;
+        emit gameActionFailed(gameId, action.section(QLatin1Char('/'), 0, 0), failed + QStringLiteral(": ") + reason);
+    });
 }
 
 void LichessClient::resign(const QString& gameId)
 {
-    postGameAction(QStringLiteral("/api/board/game/") + gameId + QStringLiteral("/resign"));
+    postGameAction(gameId, QStringLiteral("resign"), QStringLiteral("Resign failed"));
 }
 
 void LichessClient::offerDraw(const QString& gameId, bool accept)
 {
-    postGameAction(QStringLiteral("/api/board/game/") + gameId
-                   + QStringLiteral("/draw/") + (accept ? QStringLiteral("yes") : QStringLiteral("no")));
+    postGameAction(gameId, accept ? QStringLiteral("draw/yes") : QStringLiteral("draw/no"),
+                   accept ? QStringLiteral("Draw failed") : QStringLiteral("Declining the draw failed"));
 }
 
 void LichessClient::requestTakeback(const QString& gameId, bool accept)
 {
-    postGameAction(QStringLiteral("/api/board/game/") + gameId
-                   + QStringLiteral("/takeback/") + (accept ? QStringLiteral("yes") : QStringLiteral("no")));
+    postGameAction(gameId, accept ? QStringLiteral("takeback/yes") : QStringLiteral("takeback/no"),
+                   accept ? QStringLiteral("Takeback failed") : QStringLiteral("Declining the takeback failed"));
 }
 
 void LichessClient::abortGame(const QString& gameId)
 {
-    postGameAction(QStringLiteral("/api/board/game/") + gameId + QStringLiteral("/abort"));
+    postGameAction(gameId, QStringLiteral("abort"), QStringLiteral("Abort failed"));
 }
 
 void LichessClient::claimVictory(const QString& gameId)

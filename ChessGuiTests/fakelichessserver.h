@@ -73,6 +73,9 @@ public:
 	Q_INVOKABLE bool pairSeek(const QString& gameId, const QString& opponent);
 	// The next seeks are refused with this HTTP status and Lichess's {"error": message}; 0: taken again.
 	Q_INVOKABLE void refuseSeeks(int status, const QString& message = {});
+	// LI-13: the next game actions (resign, abort, draw, takeback; not a move) are refused with this HTTP status
+	// and Lichess's {"error": message}; 0: taken again.
+	Q_INVOKABLE void refuseGameActions(int status, const QString& message = {});
 	// How many requests made as `request` the app closed itself ("POST /api/board/seek": a seek canceled).
 	Q_INVOKABLE int closedByApp(const QString& request) const { return int(_server.dropped.count(request)); }
 
@@ -136,5 +139,7 @@ private:
 	QPointer<QTcpSocket> _seek;   // the open real-time seek's request
 	int _seekRefusal = 0;         // refuseSeeks()
 	QString _seekRefusalMessage;
+	int _actionRefusal = 0;       // refuseGameActions()
+	QString _actionRefusalMessage;
 	QTimer _keepAlive;
 };

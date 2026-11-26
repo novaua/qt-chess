@@ -179,6 +179,12 @@ void FakeLichessServer::refuseSeeks(int status, const QString& message)
 	_seekRefusalMessage = message;
 }
 
+void FakeLichessServer::refuseGameActions(int status, const QString& message)
+{
+	_actionRefusal = status;
+	_actionRefusalMessage = message;
+}
+
 QString FakeLichessServer::moves(const QString& gameId) const
 {
 	return _games.value(gameId).moves.join(QLatin1Char(' '));
@@ -311,6 +317,8 @@ void FakeLichessServer::boardAction(QTcpSocket* socket, const QString& gameId, c
 		return FakeLichess::answer(socket, 400, "Bad Request");
 	const QString what = action.value(0);
 	const QString arg = action.value(1);
+	if (_actionRefusal != 0 && what != QLatin1String("move"))
+		return FakeLichess::json(socket, compact(QJsonObject{ { "error", _actionRefusalMessage } }), _actionRefusal);
 	const bool white = playerColor(*game) == QLatin1String("white");
 	if (what == QLatin1String("move")) {
 		game->moves << arg;
