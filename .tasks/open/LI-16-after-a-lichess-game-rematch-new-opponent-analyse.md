@@ -24,4 +24,8 @@ The owner (2026-11-22, after Rapid games on Lichess): "When the online game ends
 
 **Tests:** `tst_lichess`: a game paired from a seek ends; **New opponent** sends the same `POST /api/board/seek` body again; a challenge's game shows the other choice; **Analyse** is there once LI-14 is done.
 
+**Plan:** [docs/LI-16-NewOpponentPlan.md](../../docs/LI-16-NewOpponentPlan.md). Decided by the owner (2026-11-26): New
+opponent waits on the finished game (the seek in its command bar, the paired game replaces the board); a game not
+from Quick pairing keeps New game. Analyse on the card is done (LI-14).
+
 Related: LI-09 (Quick pairing), LI-14 (Analyse), LI-15.
