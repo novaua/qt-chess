@@ -1329,6 +1329,138 @@ namespace LichessTests
 		}
 	};
 
+	// LI-12: a request Lichess never answers (a silently dead connection, a stalled server) ends after
+	// the request timeout, said as "Lichess didn't answer", and the busy state it holds clears.
+	TEST_CLASS(LichessTimeoutTests)
+	{
+		static void areEqual(const QStringList& expected, const QStringList& actual) { LichessStaticTests::areEqual(expected, actual); }
+
+		static void setUp(LichessClient& client, const FakeLichess& lichess)
+		{
+			client.setUsername("me");
+			client.setBaseUrl(lichess.url());
+			client.setStreamTiming(5000, 100, 5000);
+			client.setRequestTimeout(300);
+		}
+
+		static void record(LichessClient& client, QStringList& events)
+		{
+			QObject::connect(&client, &LichessClient::networkError, [&](QString message) { events << "error " + message; });
+			QObject::connect(&client, &LichessClient::rejoinFailed, [&](QString id, QString message) { events << "rejoin failed " + id + ": " + message; });
+			QObject::connect(&client, &LichessClient::gameStarted, [&](QString id, bool, QString, QString) { events << "start " + id; });
+		}
+
+	public:
+		// Accept's POST gets no answer at all: Accepting… ends with the error.
+		TEST_METHOD(Accept_NoAnswer_FailsAndClears)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [](QTcpSocket*, const QString&, const QString&) {}; // silent
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+
+			client.acceptChallenge("c1");
+			Assert::AreEqual(QStringLiteral("c1"), client.acceptingChallengeId());
+			waitUntil([&] { return !events.isEmpty(); });
+
+			areEqual({ "error Lichess didn't answer" }, events);
+			Assert::IsTrue(client.acceptingChallengeId().isEmpty());
+		}
+
+		// Accepted, but the game's stream never sends its gameFull: not taken for a stream we stopped.
+		TEST_METHOD(Accept_StreamSilentBeforeGameFull_FailsAndClears)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [](QTcpSocket* socket, const QString& method, const QString&) {
+				if (method == "POST")
+					FakeLichess::json(socket, R"({"ok":true})");
+				else
+					FakeLichess::startStream(socket); // and nothing more
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+
+			client.acceptChallenge("c1");
+			waitUntil([&] { return !events.isEmpty(); });
+
+			areEqual({ "error Lichess didn't answer" }, events);
+			Assert::AreEqual(1, lichess.count("GET /api/board/game/stream/c1"));
+			Assert::IsTrue(client.acceptingChallengeId().isEmpty());
+		}
+
+		// A rejoin whose stream never sends its gameFull: rejoinFailed, the rejoin ends.
+		TEST_METHOD(Rejoin_StreamSilent_RejoinFailed)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [](QTcpSocket* socket, const QString&, const QString&) { FakeLichess::startStream(socket); };
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+
+			client.rejoinGame("g1");
+			Assert::AreEqual(QStringLiteral("g1"), client.rejoiningGameId());
+			waitUntil([&] { return !events.isEmpty(); });
+
+			areEqual({ "rejoin failed g1: Lichess didn't answer" }, events);
+			Assert::IsTrue(client.rejoiningGameId().isEmpty());
+		}
+
+		// Your games: the spinner stops, the list stays, the error says why.
+		TEST_METHOD(OngoingGames_NoAnswer_LoadingEnds)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [](QTcpSocket*, const QString&, const QString&) {};
+			LichessClient client;
+			setUp(client, lichess);
+			client.setToken("token");
+
+			client.refreshOngoingGames();
+			Assert::IsTrue(client.ongoingGamesLoading());
+			waitUntil([&] { return !client.ongoingGamesLoading(); });
+
+			Assert::IsFalse(client.ongoingGamesLoading());
+			Assert::AreEqual(QStringLiteral("Lichess didn't answer"), client.ongoingGamesError());
+		}
+
+		// A game stream that only sends keep-alive lines, each sooner than the timeout, is alive.
+		TEST_METHOD(KeepAliveStream_NotTimedOut)
+		{
+			FakeLichess lichess;
+			QTcpSocket* stream = nullptr;
+			lichess.onRequest = [&](QTcpSocket* socket, const QString& method, const QString&) {
+				if (method == "POST") { // the players' flairs
+					FakeLichess::answer(socket, 404, "Not Found");
+					return;
+				}
+				FakeLichess::startStream(socket);
+				FakeLichess::line(socket, FakeLichess::gameFull(""));
+				stream = socket;
+			};
+			LichessClient client;
+			setUp(client, lichess);
+			QStringList events;
+			record(client, events);
+			QObject::connect(&client, &LichessClient::gameConnectionChanged, [&](bool connected) {
+				events << (connected ? "back" : "lost connection");
+			});
+			QTimer keepAlive;
+			keepAlive.setInterval(100);
+			QObject::connect(&keepAlive, &QTimer::timeout, [&] { if (stream) FakeLichess::line(stream, ""); });
+			keepAlive.start();
+
+			client.rejoinGame("g1");
+			waitUntil([] { return false; }, 1200); // four timeouts
+
+			areEqual({ "start g1" }, events);
+			Assert::AreEqual(1, lichess.count("GET /api/board/game/stream/g1"));
+		}
+	};
+
 	// -----------------------------------------------------------------------
 	// Integration tests — real HTTP via QNetworkAccessManager
 	// Requires QCoreApplication (created by TEST_MODULE_INITIALIZE in

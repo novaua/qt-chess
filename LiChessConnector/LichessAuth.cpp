@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "LichessAuth.h"
+#include "LichessClient.h"
 
 #include <QCryptographicHash>
 #include <QJsonDocument>
@@ -24,10 +25,17 @@ static QString base64Url(const QByteArray& data)
 	return data.toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
 }
 
+// cancel() disconnects before it aborts: a canceled reply here timed out.
+QString LichessAuth::errorMessage(const QNetworkReply* reply)
+{
+	return LichessClient::timedOut(reply) ? LichessClient::noAnswerMessage() : reply->errorString();
+}
+
 LichessAuth::LichessAuth(QObject* parent)
 	: QObject(parent)
 {
 	connect(&_server, &QTcpServer::newConnection, this, &LichessAuth::onNewConnection);
+	_nam.setTransferTimeout(LichessClient::RequestTimeoutMs); // LI-12: else a silent server is waited for forever
 }
 
 void LichessAuth::cancel()
@@ -156,7 +164,7 @@ void LichessAuth::exchangeCode(const QString& code)
 		reply->deleteLater();
 		_reply = nullptr;
 		if (reply->error() != QNetworkReply::NoError) {
-			emit loginFailed("Token exchange failed: " + reply->errorString());
+			emit loginFailed("Token exchange failed: " + errorMessage(reply));
 			return;
 		}
 		const auto json = QJsonDocument::fromJson(reply->readAll()).object();
@@ -180,7 +188,7 @@ void LichessAuth::fetchUsername(const QString& token)
 		reply->deleteLater();
 		_reply = nullptr;
 		if (reply->error() != QNetworkReply::NoError) {
-			emit loginFailed("Account fetch failed: " + reply->errorString());
+			emit loginFailed("Account fetch failed: " + errorMessage(reply));
 			return;
 		}
 		const auto json     = QJsonDocument::fromJson(reply->readAll()).object();

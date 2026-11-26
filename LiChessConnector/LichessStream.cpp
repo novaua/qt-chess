@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "LichessStream.h"
+#include "LichessClient.h"
 #include <QNetworkAccessManager>
 #include <algorithm>
 
@@ -95,8 +96,10 @@ void LichessStream::start()
         // A 401 may come before LichessClient's own check has marked the reply.
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const bool authExpired = reply->property("authExpiredReported").toBool() || status == 401;
-        const auto error = reply->error();
-        const QString errorString = reply->errorString();
+        // A reply we drop never comes here: canceled is a timeout (LI-12), said as such.
+        const bool timedOut = LichessClient::timedOut(reply);
+        const auto error = timedOut ? QNetworkReply::TimeoutError : reply->error();
+        const QString errorString = timedOut ? LichessClient::noAnswerMessage() : reply->errorString();
         _watchdog.stop();
         _reply = nullptr;
         reply->deleteLater();

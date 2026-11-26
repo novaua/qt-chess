@@ -146,6 +146,15 @@ public:
 	QString flairUrl(const QString& flair) const;
 	void setStreamTiming(int silenceMs, int firstRetryMs, int moveTimeoutMs, int settleMs = 3000,
 	                     int refusedRetryMs = 60000);
+	// LI-12: every request ends when nothing has come for this long (an inactivity timeout: the streams
+	// live on Lichess's keep-alive lines, ~7 s apart). A move POST has its own (moveTimeoutMs), the
+	// flairs' too. LichessAuth uses the same. Tests: shorter.
+	static constexpr int RequestTimeoutMs = 30000;
+	void setRequestTimeout(int ms) { _nam.setTransferTimeout(ms); }
+	// A reply that timed out (Qt ends it as canceled, or TimeoutError in newer Qt). Only for one we haven't aborted ourselves: a
+	// 401's abort (authenticationRequired) isn't one.
+	static bool timedOut(const QNetworkReply* reply);
+	static QString noAnswerMessage() { return QStringLiteral("Lichess didn't answer"); }
 
 	// BL-10: the account's event stream (/api/stream/event), open and reconnecting until the token
 	// changes: incoming challenges, the start of a game we wait for, rematch offers, games started or
