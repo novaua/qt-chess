@@ -47,7 +47,9 @@ against `FakeLichess`).
   that `seekMatches` (source lobby or pool, its speed, variant and rating, no move of ours, not a known game),
   else Your games polled quietly once Lichess ends the request. A seek ends with a game starting,
   `acceptChallenge`, a real-time challenge of ours, a new token, Switch user (`ChessConnector::switchUser`).
-  Hand tests: `docs/LI-09-ManualTests.md`.
+  Hand tests: `docs/LI-09-ManualTests.md`. LI-16: the seek's game is remembered (`_seekGameId`; its `gameFull`
+  sets `RematchInfo::fromSeek`, with `rated`): `canSeekAgain()`, `seekAgain()` (the same clock, rating and
+  variant); a rejoin of it after a restart isn't known as one. Hand tests: `docs/LI-16-ManualTests.md`.
 - **Screenshot mode:** no refreshes of its own, our moves aren't posted, the token is a placeholder.
 
 ## Invariants

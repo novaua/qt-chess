@@ -158,9 +158,12 @@ ApplicationWindow {
     }
 
     // The result card's "New game": the setup of the same kind of game. The online setup is
-    // reached from Home (a challenge made in a game would count as a rematch).
+    // reached from Home (a challenge made in a game would count as a rematch). A Lichess game from Quick
+    // pairing: New opponent, the same seek again (LI-16; Ctrl+N).
     function newGameLikeThis() {
-        if (_mode === "computer") {
+        if (ChessConnector.CanSeekAgain) {
+            ChessConnector.newOpponent()
+        } else if (_mode === "computer") {
             computerDialog.openNew(ChessConnector.Chess960)   // the same variant (a Chess960 game: a new position)
         } else if (_mode === "local") {
             twoPlayerDialog.openNew(ChessConnector.Chess960)

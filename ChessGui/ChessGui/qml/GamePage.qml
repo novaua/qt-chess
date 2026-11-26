@@ -525,9 +525,12 @@ Page {
                 resultText: ChessConnector.ResultText
                 canRematch: page.canRematch
                 canAnalyse: ChessConnector.CanAnalyse && AppInfo.engineFound
+                canSeekAgain: ChessConnector.CanSeekAgain
+                seeking: LichessClient.seeking
                 onAnalyseRequested: page.analyse()
                 onRematchRequested: ChessConnector.rematch()
                 onNewGameRequested: page.newGameRequested()
+                onNewOpponentRequested: ChessConnector.newOpponent()
                 onReviewRequested: {
                     page._resultCardClosed = true
                     page.sheetOpen = !area.wide
@@ -583,11 +586,14 @@ Page {
                     canPlayFromHere: page.canPlayFromHere
                     resultActions: page._resultHidden
                     canRematch: page.canRematch
+                    canSeekAgain: ChessConnector.CanSeekAgain
+                    seeking: LichessClient.seeking
                     onExportRequested: page.exportPgnRequested()
                     onPlayFromHereClicked: button => page.openFromHereMenu(button)
                     onAnalyseRequested: page.analyse()
                     onRematchRequested: ChessConnector.rematch()
                     onNewGameRequested: page.newGameRequested()
+                    onNewOpponentRequested: ChessConnector.newOpponent()
                 }
             }
         }

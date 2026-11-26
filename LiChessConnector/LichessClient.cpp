@@ -691,6 +691,7 @@ void LichessClient::handleEventStreamLine(const QByteArray& line)
             if (seeking()) {
                 qDebug() << "LichessClient: gameStart while seeking:" << line; // what a seek's game carries (LI-09)
                 if (isSeekGame(game)) {
+                    _seekGameId = gameId; // LI-16: its gameFull says fromSeek
                     onGameStartDetected(gameId);
                     return;
                 }
@@ -1047,6 +1048,7 @@ bool LichessClient::findSeekGame(const QVariantList& games)
                          row.value(QStringLiteral("rated")), row.value(QStringLiteral("hasMoved")).toBool()))
             continue;
         qDebug() << "LichessClient: the seek's game, from Your games:" << gameId;
+        _seekGameId = gameId; // LI-16: its gameFull says fromSeek
         onGameStartDetected(gameId);
         return true;
     }
@@ -1301,6 +1303,7 @@ bool LichessClient::handleGameStreamLine(const QByteArray& line)
                 emit networkError(QStringLiteral("Your move didn't reach Lichess. Play it again."));
         } else {
             _lastGame = parseRematchInfo(obj, _username);
+            _lastGame.fromSeek = !_seekGameId.isEmpty() && _lastGame.gameId == _seekGameId; // LI-16
             _gameFull = obj; // LI-14: what the game was (rated, speed, clock, created), for its record here
             _white = LichessPlayer::fromJson(white); // LI-07: both cards show the Lichess players
             _black = LichessPlayer::fromJson(black);
@@ -1548,6 +1551,15 @@ void LichessClient::createRematch()
                                color, _lastGame.variant, _lastGame.startFen);
     else
         challengeUser(_lastGame, color);
+}
+
+void LichessClient::seekAgain()
+{
+    if (!canSeekAgain()) {
+        emit seekFailed(QStringLiteral("There is no quick pairing game to repeat"));
+        return;
+    }
+    startSeek(_lastGame.clockLimitSec, _lastGame.clockIncrementSec, 0, _lastGame.rated, _lastGame.variant);
 }
 
 void LichessClient::challengePlayer(const QString& username, int limitSec, int incrementSec, int days, const QString& color,
@@ -1821,6 +1833,7 @@ RematchInfo LichessClient::parseRematchInfo(const QJsonObject& gameFull, const Q
         info.days = gameFull.value(QStringLiteral("daysPerTurn")).toInt();
     }
 
+    info.rated   = gameFull.value(QStringLiteral("rated")).toBool();
     info.variant = variantOf(gameFull);
     if (info.variant == QLatin1String("chess960"))
         info.startFen = startFenOf(gameFull); // the owner's choice: a Chess960 rematch keeps the position (LI-01A)

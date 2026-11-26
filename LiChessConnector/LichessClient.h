@@ -53,6 +53,8 @@ struct RematchInfo
 	int     days              = 0; // correspondence: days per move
 	QString variant           = QStringLiteral("standard");
 	QString startFen;            // a Chess960 game's start (gameFull's initialFen): its rematch keeps it (LI-01A); "" = none
+	bool    rated             = false;
+	bool    fromSeek          = false; // LI-16: paired by our real-time seek (quick pairing): seekAgain() repeats it
 	bool    valid             = false;
 };
 
@@ -224,6 +226,11 @@ public:
 	// challengeCreated). Either way gameStarted follows once the opponent joins.
 	void createRematch(); // via ChessConnector::rematch()
 	bool canRematch() const { return _lastGame.valid && !_token.isEmpty(); }
+	// LI-16: the last game was paired by our real-time seek (matched in the event stream or Your games while it
+	// waited; a rejoin of it later isn't known as one). seekAgain(): the same seek again (startSeek: its clock,
+	// rating and variant; a Chess960 one gets a new position). Changes with canRematchChanged.
+	bool canSeekAgain() const { return canRematch() && _lastGame.fromSeek; }
+	void seekAgain(); // via ChessConnector::newOpponent()
 	// After the game: listen for the opponent's rematch offer until stopStream(). Lichess sends it
 	// on the event stream as a challenge to us (emits rematchOffered, then maybe rematchOfferCanceled).
 	void watchForRematch();
@@ -265,6 +272,8 @@ public:
 	QString currentGameId() const { return _currentGameId; }
 	// Tests and the takeback scene: the game of the lines fed to handleGameStreamLine(), without a stream.
 	void setCurrentGameId(const QString& gameId) { _currentGameId = gameId; }
+	// The lichess-new-opponent scene (LI-16): the game fed next was paired by a seek, without the event stream.
+	void setSeekGameId(const QString& gameId) { _seekGameId = gameId; }
 
 	// One line of the Board API game stream (from _gameStream; tests feed lines here).
 	// Returns false once the game has ended: the stream is closed, the rest not read.
@@ -422,6 +431,7 @@ private:
 	QVariantMap    _seek;                       // seekState()
 	QNetworkReply* _seekReply = nullptr;        // POST /api/board/seek, open while the seek waits
 	QSet<QString>  _seekGamesBefore;            // Your games when it began: not its game
+	QString        _seekGameId;                 // LI-16: the game the last seek was paired with (its gameFull: fromSeek)
 	bool           _seekClosedByLichess = false; // its request ended on Lichess's side: the fallback runs
 	bool           _seekConnectionLost = false; // ended by the network, not Lichess: the fallback's message
 	QNetworkReply* _seekPollReply = nullptr;    // the fallback's quiet GET /api/account/playing

@@ -4,18 +4,21 @@ import QtQuick.Controls.impl
 import QtQuick.Layouts
 
 // The end of a game, over the board: who won and how (with the players' names), then Rematch,
-// New game and Review moves.
+// New game (New opponent for a Lichess game from Quick pairing, LI-16), Review moves and Analyse.
 Rectangle {
     id: card
 
     property string resultText
     property bool   canRematch: false
     property bool   canAnalyse: false   // BL-19 step 7: a kept game, the engine there
+    property bool   canSeekAgain: false // LI-16: New opponent in New game's place
+    property bool   seeking: false      // its seek waits: the button says so (Cancel: the command bar's seek icon)
 
     signal analyseRequested()
 
     signal rematchRequested()
     signal newGameRequested()
+    signal newOpponentRequested()
     signal reviewRequested()
     signal closeRequested()
 
@@ -80,11 +83,24 @@ Rectangle {
             }
             Button {
                 objectName: "newGameButton"
+                visible: !card.canSeekAgain
                 text: "New game"
                 icon.source: Theme.icon("play")
                 highlighted: !card.canRematch
                 Layout.fillWidth: true
                 onClicked: card.newGameRequested()
+            }
+            BusyButton {
+                objectName: "newOpponentButton"
+                visible: card.canSeekAgain
+                idleText: "New opponent"
+                idleIcon: Theme.icon("play")
+                busy: card.seeking
+                busyText: "Looking for an opponent…"
+                enabled: !card.seeking
+                highlighted: !card.canRematch
+                Layout.fillWidth: true
+                onClicked: card.newOpponentRequested()
             }
             Button {
                 objectName: "reviewButton"

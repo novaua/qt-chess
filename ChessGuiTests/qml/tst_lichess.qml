@@ -659,6 +659,10 @@ TestCase {
         tryCompare(ChessConnector, "MoveCount", 1, 3000, "1. e4 from Lichess")
         FakeLichess.endGame("game0019", "resign", "white")
         tryVerify(() => ChessConnector.GameResult !== "", 3000, "the game over")
+        // LI-16: a challenge's game has no seek to repeat: New game, as before.
+        tryVerify(() => app.find("resultCard")?.visible, 3000, "the result card")
+        verify(app.item("newGameButton").visible, "New game")
+        verify(!app.item("newOpponentButton").visible, "no New opponent")
 
         const dialog = app.item("challengeDialog")
         LichessClient.challengeCreated("rematch19", "https://lichess.org/rematch19")
@@ -671,5 +675,64 @@ TestCase {
         app.leaveToHome()
         verify(!app.item("leaveOnlineDialog").visible, "a finished game: no Leave the game?")
         waitRequest("POST /api/challenge/rematch19/cancel")
+    }
+
+    // LI-16: a game from Quick pairing ends: New opponent, in New game's place, seeks again with the same clock,
+    // rating and variant. The player waits on the finished game (the button busy, the command bar's seek icon),
+    // and the paired game replaces it on the same page. A rematch challenge of ours still waiting is withdrawn
+    // first (else Lichess's one game at a time would refuse the seek).
+    function test_20_newOpponent() {
+        const indicator = () => findChild(app.page(), "seekIndicator")
+        AppSettings.quickRated = true
+        app.click("onlineCard")
+        app.waitForPage("online", 5000)
+        app.scrollIntoView("quickPairingGrid")
+        app.click("quickTile_15+10")
+        tryVerify(() => FakeLichess.seekOpen, 3000, "the seek's request open")
+        const body = FakeLichess.bodyOf("POST /api/board/seek")
+        compare(body, "time=15&increment=10&rated=true&variant=standard")
+        const seeks = () => FakeLichess.requests.filter(r => r === "POST /api/board/seek").length
+        const seeksBefore = seeks()
+        verify(FakeLichess.pairSeek("seek0020", "Newcomer"), "taken")
+        app.waitForPage("game", 10000)
+        FakeLichess.endGame("seek0020", "resign", "white")   // the opponent resigned
+        tryVerify(() => app.find("resultCard")?.visible, 3000, "the result card")
+        verify(ChessConnector.CanSeekAgain, "a seek's game")
+        const newOpponent = app.item("newOpponentButton")
+        verify(newOpponent.visible, "New opponent")
+        verify(!app.item("newGameButton").visible, "in New game's place")
+        verify(!indicator().visible, "no seek yet")
+
+        app.click("newOpponentButton")
+        tryVerify(() => FakeLichess.seekOpen, 3000, "the seek sent again")
+        compare(seeks(), seeksBefore + 1)
+        compare(FakeLichess.bodyOf("POST /api/board/seek"), body, "the same seek")
+        compare(app.page().objectName, "game", "waiting on the finished game")
+        tryVerify(() => newOpponent.busy && !newOpponent.enabled, 3000, "Looking for an opponent…")
+        tryVerify(() => indicator().visible, 3000, "the command bar's seek icon")
+
+        verify(FakeLichess.pairSeek("seek0021", "Second"), "taken again")
+        tryCompare(ChessConnector, "OpponentName", "Second", 10000, "the new game on the board")
+        compare(app.page().objectName, "game")
+        compare(ChessConnector.GameResult, "", "a new game")
+        verify(!LichessClient.seeking)
+
+        // A rematch challenge of ours waits (its dialog closed without Cancel, as in test 19): New opponent
+        // withdraws it, and the seek isn't refused.
+        FakeLichess.endGame("seek0021", "resign", "white")
+        tryVerify(() => app.find("resultCard")?.visible, 3000, "the result card again")
+        const dialog = app.item("challengeDialog")
+        LichessClient.challengeCreated("rematch20", "https://lichess.org/rematch20")
+        tryVerify(() => dialog.opened, 3000, "the rematch's dialog")
+        dialog.close()
+        app.waitClosed(dialog)
+        app.click("newOpponentButton")
+        waitRequest("POST /api/challenge/rematch20/cancel")
+        tryVerify(() => FakeLichess.seekOpen, 3000, "the seek sent")
+        verify(LichessClient.seeking, "not refused")
+
+        LichessClient.cancelSeek()
+        tryVerify(() => !FakeLichess.seekOpen, 3000)
+        app.leaveToHome()
     }
 }

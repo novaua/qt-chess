@@ -34,7 +34,9 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
 - **Rematch:** `rematch()`: on Lichess always the other colour; vs the robot or two players it swaps the player's
   side when `RematchSwapsColours` (`AppSettings.rematchSwapsColours`, on by default; #193), for that game only
   (`applyPlayerSide`, not saved). Our Lichess challenge made with a game on the board is its rematch: `endGame()`
-  (leaving it, `switchUser`) withdraws it while it waits (BL-36). The setup dialogs offer the side last chosen in them (`AppSettings.computerSide`,
+  (leaving it, `switchUser`) withdraws it while it waits (BL-36). **New opponent** (LI-16): `CanSeekAgain` (the
+  Lichess game was paired by Quick pairing, `LichessClient::canSeekAgain`), `newOpponent()` on a finished one:
+  withdraws our waiting rematch, then the same seek again (`seekAgain`); the game stays until the new one starts. The setup dialogs offer the side last chosen in them (`AppSettings.computerSide`,
   `twoPlayerSide`).
 - **A Lichess game's players** (LI-07, LI-11): both cards show the Lichess players. `PlayerName` is the Lichess
   name (`shownPlayerName()`; the result and the messages use it too), `PlayerTitle` / `OpponentTitle` ("GM",

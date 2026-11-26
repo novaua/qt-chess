@@ -2,7 +2,7 @@
 id: LI-16
 title: "After a Lichess game: Rematch, New opponent, Analyse"
 type: task
-status: open
+status: in_progress
 priority: medium
 ---
 
@@ -29,3 +29,20 @@ opponent waits on the finished game (the seek in its command bar, the paired gam
 from Quick pairing keeps New game. Analyse on the card is done (LI-14).
 
 Related: LI-09 (Quick pairing), LI-14 (Analyse), LI-15.
+
+## Resolution
+
+### 2026-11-26 — step 1: New opponent (branch: features/li16NewOpponent_261126)
+- `LichessClient`: the seek's game is remembered when it matches (`_seekGameId`); its `gameFull` sets
+  `RematchInfo::fromSeek` and `rated`. `canSeekAgain()`, `seekAgain()` (the same clock, rating and variant).
+- `ChessConnector`: `CanSeekAgain`, `newOpponent()` (withdraws our waiting rematch challenge, `withdrawRematch()`
+  shared with `endGame()`, then `seekAgain()`; nothing while a seek waits). The game stays on the board until the
+  seek's game replaces it.
+- QML: New opponent (`BusyButton`, "Looking for an opponent…" while seeking) in New game's place on the result
+  card (`newOpponentButton`) and in the moves panel; Ctrl+N on a finished game does the same. Other Lichess games
+  keep New game.
+- Tests: `LichessSeekTest` (+2: the same seek again; no seek to repeat after another game); `tst_lichess` test 20
+  (a Quick pairing game → New opponent → the same body → paired on the same page; a waiting rematch withdrawn
+  first) and test 19 (a challenge's game: New game). `FakeLichess` (UI) gives a seek's game the seek's clock,
+  rating and variant. Scene `lichess-new-opponent` (also `@640x560`).
+- Left: the hand tests on lichess.org, `docs/LI-16-ManualTests.md`. LI-16 closes once they pass.
