@@ -674,6 +674,8 @@ TestCase {
 
         app.leaveToHome()
         verify(!app.item("leaveOnlineDialog").visible, "a finished game: no Leave the game?")
+        // LI-17: gone at once, not on Lichess's answer: the Online page, opened before it, resumed it.
+        verify(!UserManager.hasPendingChallenge, "nothing left for the Online page to resume")
         waitRequest("POST /api/challenge/rematch19/cancel")
     }
 
