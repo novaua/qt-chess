@@ -259,7 +259,7 @@ public:
 	Q_INVOKABLE void abortGame(const QString& gameId);
 	void claimVictory(const QString& gameId); // allowed once opponentGone's countdown ends
 	Q_INVOKABLE void stopStream();
-	Q_INVOKABLE void cancelChallenge(const QString& challengeId);
+	Q_INVOKABLE void cancelChallenge(const QString& challengeId); // challengeCanceled at once
 
 	Q_INVOKABLE QString gameIdFromUrl(const QString& urlOrId) const;
 	// The side a player link is for: "white" / "black" from …?color=… or …/<id>/white, else "".
