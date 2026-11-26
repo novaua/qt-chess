@@ -82,6 +82,8 @@ class ChessConnector : public QObject
 		Q_PROPERTY(bool CanReviewNext READ canReviewNext NOTIFY reviewStateChanged)
 		Q_PROPERTY(bool IsOnlineGame  READ isOnlineGame  NOTIFY isOnlineGameChanged)
 		Q_PROPERTY(bool CanRematch    READ canRematch    NOTIFY canRematchChanged)
+		// LI-16: the Lichess game on the board was paired by Quick pairing: newOpponent() seeks again.
+		Q_PROPERTY(bool CanSeekAgain  READ canSeekAgain  NOTIFY canRematchChanged)
 		// A rematch of a local game (the robot, two players) gives the player the other colour; Settings →
 		// Gameplay (AppSettings.rematchSwapsColours binds it), on by default. A Lichess rematch always swaps.
 		Q_PROPERTY(bool RematchSwapsColours READ rematchSwapsColours WRITE setRematchSwapsColours NOTIFY rematchSwapsColoursChanged)
@@ -188,6 +190,7 @@ public:
 	bool isOnlineGame()  const { return !_onlineGameId.isEmpty(); }
 	// Local games can always be replayed; a Lichess game needs its settings and a token.
 	bool canRematch()    const { return !_lastGameOnline || (_lichessClient && _lichessClient->canRematch()); }
+	bool canSeekAgain()  const { return _lastGameOnline && _lichessClient && _lichessClient->canSeekAgain(); }
 	bool rematchSwapsColours() const { return _rematchSwapsColours; }
 	void setRematchSwapsColours(bool on);
 	// Hidden while reviewing earlier moves: the king may not be on that square then.
@@ -407,6 +410,10 @@ public slots:
 	Q_INVOKABLE void respondTakeback(bool accept);
 	Q_INVOKABLE void respondRematch(bool accept);
 	Q_INVOKABLE void rematch();
+	// LI-16: the finished Lichess game's New opponent (CanSeekAgain): our rematch challenge still waiting is
+	// withdrawn, then the same seek again (LichessClient::seekAgain). The game stays on the board until the
+	// seek's game replaces it, as a rematch's does.
+	Q_INVOKABLE void newOpponent();
 	// BL-10: accept a Lichess challenge to the player. The game on the board stays until Lichess has
 	// started the new one (then a robot game is autosaved, a correspondence game goes on at Lichess),
 	// so a refused Accept (LichessClient::challengeAcceptFailed) loses nothing. The game starts
@@ -574,6 +581,7 @@ private:
 	bool _lastGameOnline = false; // the current/last game is a Lichess game: rematch goes online
 	// Our challenge made with a game on the board (rematch()), waiting for the opponent: endGame() withdraws it.
 	QString _rematchChallengeId;
+	void withdrawRematch(); // cancels _rematchChallengeId's challenge, if one waits
 	bool _rematchSwapsColours = true; // Settings → Gameplay (AppSettings.rematchSwapsColours binds it)
 	int  _flaggedKing    = -1;
 	bool _resultRecorded = false; // stats recorded for this game (mate can recur after undo)

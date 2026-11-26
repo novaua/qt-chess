@@ -81,7 +81,9 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   window where that gives a bigger board, the cards go `stacked` in a column left of the board, `area.side`); the
   moves (`MovesPanel` + `MoveList`) beside the board or in a bottom sheet; `ResultCard` over the board; `EvalBar`
   and `AnalysisSummary` (the moves panel; "Best was …" in green) for an analysed game; Analyse on the result card
-  and in More. The review bar's **Play from here** (`MovesPanel`, the sheet handle in a narrow window) → its menu
+  and in More. A Lichess game from Quick pairing (`ChessConnector.CanSeekAgain`, LI-16) has **New opponent** in
+  New game's place, on the result card and in the moves panel (`ChessConnector.newOpponent()`; busy "Looking for
+  an opponent…" while `LichessClient.seeking`; the page stays until the seek's game replaces it; Ctrl+N too). The review bar's **Play from here** (`MovesPanel`, the sheet handle in a narrow window) → its menu
   (vs computer… / Two players…) → the setup dialogs' `openFrom(position)`.
 - `WelcomePage`, `ProfilePickerPage`, `ProfilePage`, `SettingsPage` — first run, "Who's playing?", the profile,
   the settings.

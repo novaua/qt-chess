@@ -496,5 +496,56 @@ namespace LichessTests
 			client.cancelSeek();
 			Assert::IsFalse(client.seeking());
 		}
+
+		// LI-16: the seek's game knows it was the seek's; seekAgain() sends the same seek (its clock from the
+		// game, its rating), and the game after it is a seek's too.
+		TEST_METHOD(SeekGame_SeekAgain_TheSameSeek)
+		{
+			FakeSeekLichess lichess;
+			lichess.gameFullFields = R"("rated":true,"clock":{"initial":600000,"increment":0},)";
+			LichessClient client;
+			setUp(client, lichess);
+			Watch watch(client);
+
+			seek(client, lichess);
+			const QString firstBody = lichess.bodies.value(int(lichess.requests.lastIndexOf(FakeSeekLichess::Seek)));
+			lichess.pair("seek0001");
+			waitUntil([&] { return !watch.started.isEmpty(); });
+			Assert::IsTrue(client.canSeekAgain(), L"a seek's game");
+
+			client.seekAgain();
+			waitUntil([&] { return lichess.count(FakeSeekLichess::Seek) == 2 && lichess.seekSocket != nullptr; });
+			Assert::AreEqual(2, lichess.count(FakeSeekLichess::Seek));
+			Assert::AreEqual(firstBody, lichess.bodies.value(int(lichess.requests.lastIndexOf(FakeSeekLichess::Seek))),
+			                 L"the same body");
+			Assert::IsTrue(client.seeking());
+			Assert::AreEqual(600, client.seekState().value("limitSec").toInt());
+			Assert::IsTrue(watch.failed.isEmpty());
+
+			lichess.pair("seek0002");
+			waitUntil([&] { return watch.started.size() == 2; });
+			Assert::AreEqual(QString("seek0002"), watch.started.last());
+			Assert::IsTrue(client.canSeekAgain(), L"the second one too");
+		}
+
+		// A game that isn't a seek's (a rejoin here): no seek to repeat; seekAgain() says so, nothing sent.
+		TEST_METHOD(OtherGame_NoSeekAgain)
+		{
+			FakeSeekLichess lichess;
+			lichess.gameFullFields = R"("rated":true,"clock":{"initial":600000,"increment":0},)";
+			LichessClient client;
+			setUp(client, lichess);
+			Watch watch(client);
+
+			client.rejoinGame("cont0001");
+			waitUntil([&] { return !watch.started.isEmpty(); });
+			Assert::IsTrue(client.canRematch());
+			Assert::IsFalse(client.canSeekAgain());
+
+			client.seekAgain();
+			Assert::AreEqual(1, int(watch.failed.size()));
+			Assert::IsFalse(client.seeking());
+			Assert::AreEqual(0, lichess.count(FakeSeekLichess::Seek));
+		}
 	};
 }

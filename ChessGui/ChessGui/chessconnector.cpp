@@ -1644,6 +1644,15 @@ void ChessConnector::rematch()
 		startNewGame();
 }
 
+void ChessConnector::newOpponent()
+{
+	if (!isOnlineGame() || _gameResult.isEmpty() || !canSeekAgain() || _lichessClient->seeking())
+		return; // a seek waits already: Cancel is the command bar's
+	// First: startSeek refuses while a challenge of ours waits. cancelChallenge clears that at once.
+	withdrawRematch();
+	_lichessClient->seekAgain();
+}
+
 // LI-01A: StandardGame, RandomChess960 or a Chess960 position's number.
 static Chess::StartPosition startPositionOf(int chess960)
 {
@@ -2368,14 +2377,19 @@ void ChessConnector::resignAndLeave()
 	_leaveAfterResign.start(5000); // without an answer the loss isn't recorded here; Lichess has it
 }
 
+void ChessConnector::withdrawRematch()
+{
+	if (_rematchChallengeId.isEmpty())
+		return;
+	const QString challengeId = std::exchange(_rematchChallengeId, QString());
+	if (_lichessClient) _lichessClient->cancelChallenge(challengeId);
+}
+
 void ChessConnector::endGame()
 {
 	// BL-36: our rematch challenge goes with the game it was made from (first: cancelChallenge stops the
 	// stream too).
-	if (!_rematchChallengeId.isEmpty()) {
-		const QString challengeId = std::exchange(_rematchChallengeId, QString());
-		if (_lichessClient) _lichessClient->cancelChallenge(challengeId);
-	}
+	withdrawRematch();
 	_startTiming.cancel(); // e.g. a Lichess game that couldn't be played here, left before its first frame
 	_leaveAfterResign.stop(); // also when the game is left another way (Home again, switch user)
 	cancelPremove();

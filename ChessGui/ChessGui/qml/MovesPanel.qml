@@ -17,10 +17,13 @@ ColumnLayout {
     property bool   showTitle: true
     property bool   resultActions: false   // the game is over and its result card closed
     property bool   canRematch: false
+    property bool   canSeekAgain: false   // LI-16: New opponent in New game's place
+    property bool   seeking: false        // its seek waits
 
     signal exportRequested()
     signal rematchRequested()
     signal newGameRequested()
+    signal newOpponentRequested()
     signal playFromHereClicked(Item button)   // opens the vs computer / two players menu under it
     signal analyseRequested()
 
@@ -133,10 +136,22 @@ ColumnLayout {
             onClicked: panel.rematchRequested()
         }
         Button {
+            visible: !panel.canSeekAgain
             text: "New game"
             icon.source: Theme.icon("play")
             highlighted: !panel.canRematch
             onClicked: panel.newGameRequested()
+        }
+        BusyButton {
+            objectName: "panelNewOpponentButton"
+            visible: panel.canSeekAgain
+            idleText: "New opponent"
+            idleIcon: Theme.icon("play")
+            busy: panel.seeking
+            busyText: "Looking for an opponent…"
+            enabled: !panel.seeking
+            highlighted: !panel.canRematch
+            onClicked: panel.newOpponentRequested()
         }
     }
 

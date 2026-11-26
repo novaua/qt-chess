@@ -117,6 +117,7 @@ namespace LichessTests
 		QByteArray  playing = R"({"nowPlaying":[]})"; // GET /api/account/playing
 		int         seekStatus = 200;     // else the seek is refused with seekError
 		QByteArray  seekError = R"({"error":"Invalid speed"})";
+		QByteArray  gameFullFields;       // more of a game's gameFull, e.g. R"("rated":true,"clock":{…},)"
 
 		static inline const QString Seek = QStringLiteral("POST /api/board/seek");
 
@@ -154,7 +155,7 @@ namespace LichessTests
 					startStream(socket);
 					line(socket, QByteArray(R"({"type":"gameFull","id":")") + path.mid(23).toLatin1()
 						+ R"(","speed":"rapid","white":{"id":"me","name":"Me"},"black":{"id":"stranger","name":"Stranger"},)"
-						+ R"("state":{"moves":"","status":"started"}})");
+						+ gameFullFields + R"("state":{"moves":"","status":"started"}})");
 				} else if (method == "POST" && path.endsWith("/accept")) {
 					json(socket, R"({"ok":true})");
 				} else {

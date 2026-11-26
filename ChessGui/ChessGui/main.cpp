@@ -97,7 +97,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	                  "clock-online", "clock-correspondence", "premove", "premove-capture", "premove-played", "premove-dropped", "reconnecting", "rejoin",
 	                  "challenge", "challenge-accepting", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline",
 	                  "draw-offer", "messages", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-	                  "opponent-left-error", "lichess-result", "games", "games-empty", "games-filter", "games-lichess", "analysis" }.contains(scene))
+	                  "opponent-left-error", "lichess-result", "lichess-new-opponent", "games", "games-empty", "games-filter", "games-lichess", "analysis" }.contains(scene))
 		return;
 	um->createUser("Bob", "fox");
 	const QString bob = um->activeUserId();
@@ -396,9 +396,12 @@ static void playOpponentLeftScene(ChessConnector* connector, LichessClient* lich
 
 // Scene "lichess-result" (LI-14): a rated Rapid game on Lichess, the opponent (FM Friend, Black) resigned after
 // 3. Bc4 Nf6: its result card has Analyse (when an engine is found), as a local game's, and the game is kept.
-static void playLichessResultScene(ChessConnector* connector, LichessClient* lichess)
+// "lichess-new-opponent" (LI-16): the same game paired by Quick pairing: New opponent in New game's place.
+static void playLichessResultScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
 {
 	lichess->setCurrentGameId(QStringLiteral("result1"));
+	if (scene == "lichess-new-opponent")
+		lichess->setSeekGameId(QStringLiteral("result1"));
 	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"result1","rated":true,"speed":"rapid",
 		"createdAt":1795176000000,"clock":{"initial":600000,"increment":5000},
 		"white":{"id":"testerchess","name":"TesterChess","rating":1523},
@@ -505,7 +508,7 @@ int main(int argc, char* argv[])
 		"premove", "premove-capture", "premove-played", "premove-dropped", "premove-robot", "reconnecting", "rejoin",
 		"challenge", "challenge-unplayable", "challenge-ingame", "online-challenges", "online-challenges-decline", "captures", "check",
 		"draw-offer", "messages", "home-message", "opponent-left", "opponent-left-claim", "opponent-left-turn",
-		"opponent-left-error", "lichess-result", "timing", "more-menu", "play", "games", "games-empty", "games-filter", "games-lichess", "play-from-here", "play-from-here-menu", "replay", "analysis",
+		"opponent-left-error", "lichess-result", "lichess-new-opponent", "timing", "more-menu", "play", "games", "games-empty", "games-filter", "games-lichess", "play-from-here", "play-from-here-menu", "replay", "analysis",
 		"chess960", "chess960-select", "chess960-castled", "computer-960", "capture", "capture-ep",
 		"quick-pairing", "quick-pairing-waiting", "quick-pairing-indicator", "seek-dialog", "seek-dialog-blitz", "seek-dialog-days"
 	};
@@ -646,9 +649,9 @@ int main(int argc, char* argv[])
 	if (screenshotMode && scene.startsWith("opponent-left"))
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
 			[=]() { playOpponentLeftScene(connector, lichessClient, scene); }, Qt::QueuedConnection);
-	if (screenshotMode && scene == "lichess-result")
+	if (screenshotMode && (scene == "lichess-result" || scene == "lichess-new-opponent"))
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
-			[=]() { playLichessResultScene(connector, lichessClient); }, Qt::QueuedConnection);
+			[=]() { playLichessResultScene(connector, lichessClient, scene); }, Qt::QueuedConnection);
 	if (screenshotMode && scene == "reconnecting")
 		QObject::connect(connector, &ChessConnector::screenshotSceneSetUp, connector,
 			[=]() { playReconnectingScene(connector, lichessClient); }, Qt::QueuedConnection);

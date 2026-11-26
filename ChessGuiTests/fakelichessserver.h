@@ -68,7 +68,8 @@ public:
 	// The game's stream is cut, and for downMs a new one is refused (503, Lichess restarting).
 	Q_INVOKABLE void dropGameStreams(const QString& gameId, int downMs);
 	// LI-09: someone takes the open seek: its game starts (a gameStart of source "lobby" on the event
-	// stream, the player White) and its request is closed, as Lichess does. False without an open seek.
+	// stream, the player White) and its request is closed, as Lichess does; its gameFull has the seek's clock,
+	// rating and variant. False without an open seek.
 	Q_INVOKABLE bool pairSeek(const QString& gameId, const QString& opponent);
 	// The next seeks are refused with this HTTP status and Lichess's {"error": message}; 0: taken again.
 	Q_INVOKABLE void refuseSeeks(int status, const QString& message = {});
@@ -99,6 +100,8 @@ private:
 		QString variant = QStringLiteral("standard");
 		QString initialFen = QStringLiteral("startpos");
 		int daysPerTurn = 0; // a correspondence game (setDaysPerTurn)
+		int clockMs = 600000, incrementMs = 5000; // gameFull's clock (a seek's game: the seek's, LI-16)
+		bool rated = false;
 		QList<QPointer<QTcpSocket>> streams;
 	};
 

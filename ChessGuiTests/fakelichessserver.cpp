@@ -153,11 +153,15 @@ bool FakeLichessServer::pairSeek(const QString& gameId, const QString& opponent)
 	game.id = gameId;
 	game.whiteName = username();
 	game.blackName = opponent;
-	_games.insert(gameId, game);
 	// The game as Lichess makes it from the seek: its clock's speed, variant and rating.
 	const QUrlQuery seek(bodyOf(QStringLiteral("POST /api/board/seek")));
 	const double minutes = seek.queryItemValue(QStringLiteral("time")).toDouble();
 	const int estimate = int(minutes * 60) + 40 * seek.queryItemValue(QStringLiteral("increment")).toInt();
+	game.clockMs = int(minutes * 60000);
+	game.incrementMs = seek.queryItemValue(QStringLiteral("increment")).toInt() * 1000;
+	game.rated = seek.queryItemValue(QStringLiteral("rated")) == QLatin1String("true");
+	game.variant = seek.queryItemValue(QStringLiteral("variant"));
+	_games.insert(gameId, game);
 	const QString speed = estimate < 1500 ? QStringLiteral("rapid") : QStringLiteral("classical");
 	sendEvent(QJsonObject{ { "type", "gameStart" }, { "game", QJsonObject{
 		{ "gameId", gameId }, { "fullId", gameId + "abcd" }, { "color", "white" }, { "source", "lobby" },
@@ -394,10 +398,10 @@ QByteArray FakeLichessServer::gameFull(const Game& game) const
 		{ "type", "gameFull" },
 		{ "id", game.id },
 		{ "createdAt", 1795176000000LL }, // 2026-11-20 12:00 UTC: a kept game's startedAt (LI-14)
-		{ "rated", false },
+		{ "rated", game.rated },
 		{ "variant", QJsonObject{ { "key", game.variant } } },
 		{ "speed", "rapid" },
-		{ "clock", QJsonObject{ { "initial", 600000 }, { "increment", 5000 } } },
+		{ "clock", QJsonObject{ { "initial", game.clockMs }, { "increment", game.incrementMs } } },
 		{ "white", player(game.whiteName) },
 		{ "black", player(game.blackName) },
 		{ "initialFen", game.initialFen },
