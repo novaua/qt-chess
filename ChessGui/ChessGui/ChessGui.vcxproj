@@ -456,6 +456,7 @@
     <None Include="qml\MessageCenter.qml" />
     <None Include="qml\LichessChallenges.qml" />
     <None Include="qml\ProfileFiles.qml" />
+    <None Include="qml\LeaveFlow.qml" />
     <None Include="qml\DataCheckNotices.qml" />
     <None Include="qml\ChessFigures.qml" />
     <None Include="qml\ChessGame.qml" />

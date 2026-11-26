@@ -45,7 +45,7 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   `statusFits`, `flyoutOpen`).
 - `LichessChallenges.qml` — the Lichess challenges' state, one instance in the window (`lichessChallenges`,
   `window.challenges` for `ScreenshotScene`): the player's challenge waiting for the opponent (`pendingId`,
-  `opponentName`, `rematch`; `resumePending()`, `clearPending()`, `cancelPendingRematch()`; it asks the window to
+  `opponentName`, `rematch`; `resumePending()`, `clearPending()`; a rematch is withdrawn by `ChessConnector.endGame()`; it asks the window to
   open or close `ChallengeDialog`) and the ones to the player (`challengesShown`, `challenge`, `text()`,
   `accept()`, `hide()`). The challenge bar and the dialog stay in the window; a new one's sound is GameSounds',
   the taskbar flash the window's.
@@ -53,6 +53,12 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   (`deleteProfileConfirm`), with their dialogs; one instance in the window (`profileFiles`), which forwards the
   pages' requests and `inspectImport()` for the `import` scene. `DataCheckNotices.qml` — BL-20's notices (games set
   aside, the rating or the statistics restored): `tellAll()` once the window is up, then on each load.
+- `LeaveFlow.qml` — leaving the game on the board: Home and Esc (`leave()`), Switch user (`switchUser()`),
+  Resign (`resign()`) and closing the window (`windowClosing(event)`, from its `onClosing`), with their dialogs
+  (`resignConfirm`, `switchUserConfirm`, `leaveOnlineDialog`; `onlineDialog` for `ScreenshotScene`); one instance
+  in the window (`leaveFlow`). Each answer is one `ChessConnector` call. A running Lichess game asks first; its
+  Resign leaves once Lichess has ended the game (`resignAndLeave()`), and after a Quit the window closes then:
+  the window's `gameInfoChanged` calls `leaveFlow.gameInfoChanged()` after `route()`, and `quitRequested` closes it.
 - `HomePage.qml` — account menu; Continue: the only unfinished game directly, two or more:
   `ContinueGamesPage` (`ChessGame.continueGames()`); action cards, among them **Games** (Ctrl+O): `GamesPage`.
 - `ContinueGamesPage.qml` — every unfinished game: the kept local games first as `GameCard`s
@@ -124,8 +130,8 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
 ## Dialogs
 - Setup: `ComputerGameDialog`, `TwoPlayerDialog` (both with the Variant row), `ChallengeDialog` (a Lichess
   challenge waiting for the friend or a named player), `SeekDialog` (Quick pairing's Custom tile: the player's own
-  clock or days per move; Seek off below Rapid), `LeaveOnlineDialog` (Leave / Resign / Stay when leaving or
-  closing during a running Lichess game).
+  clock or days per move; Seek off below Rapid), `LeaveOnlineDialog` (in `LeaveFlow`: Leave / Resign / Stay when
+  leaving or closing during a running Lichess game).
 - Profiles: `CreateUserDialog`, `ImportConflictDialog` (in `ProfileFiles`), `RestoreBackupDialog`.
 - Others: `LevelsHelpDialog` (the five computer levels: F1, the robot's avatar), `ApplyMovesDialog` (moves typed
   in UCI: `ChessConnector.applyMoves`).

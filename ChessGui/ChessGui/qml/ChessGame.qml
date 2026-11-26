@@ -15,8 +15,6 @@ ApplicationWindow {
     readonly property bool   _inGame:   ChessConnector.InGame
     readonly property string _mode:     ChessConnector.GameMode
     readonly property bool   _gameOver: ChessConnector.GameResult !== ""
-    // A Lichess game that goes on without us: leaving it asks first (leaveOnlineDialog).
-    readonly property bool   _onlineRunning: _inGame && _mode === "online" && !_gameOver
     // The page on top: "welcome", "login", "home", "game", "profile", "settings" or "online".
     readonly property string _page: stack.currentItem ? stack.currentItem.objectName : ""
     readonly property bool   _onGamePage: _page === "game"
@@ -26,7 +24,7 @@ ApplicationWindow {
     readonly property bool _dialogOpen: restoreBackupDialog.visible || levelsHelp.visible
         || computerDialog.visible || twoPlayerDialog.visible
         || challengeDialog.visible || createUserDialog.visible || seekDialog.visible
-        || applyMovesDialog.visible || resignConfirm.visible || switchUserConfirm.visible || leaveOnlineDialog.visible
+        || applyMovesDialog.visible || leaveFlow.dialogOpen
         || pgnExportDialog.visible || profileFiles.dialogOpen || disconnectLichessConfirm.visible
         || recentFlyout.visible
         || (stack.currentItem?.dialogOpen ?? false)
@@ -133,10 +131,6 @@ ApplicationWindow {
         if (!ChessConnector.continueOnlyGame())
             _openPage("games")
     }
-    function resign() {
-        if (AppSettings.confirmResign) resignConfirm.open()
-        else                           ChessConnector.resignGame()
-    }
 
     // ── Profiles: export, import, delete (ProfileFiles.qml) ──
     ProfileFiles {
@@ -147,73 +141,14 @@ ApplicationWindow {
     }
     function inspectImport(file) { profileFiles.inspectImport(file) }   // the "import" scene
 
-    // Home button / Escape. A running Lichess game asks first; a local game is kept as it is (BL-19);
-    // a rematch challenge still waiting for the opponent is withdrawn.
-    function leaveGame() {
-        if (_resigning) {                 // Home again while the resignation is on its way: now
-            _quitAfterLeave = false
-            ChessConnector.endGame()
-        } else if (_onlineRunning) {
-            leaveOnlineDialog.quitting = false
-            leaveOnlineDialog.open()
-        } else {
-            _doLeaveGame()
-        }
+    // ── Leaving the game: Home, Switch user, Resign, closing the window (LeaveFlow.qml) ──
+    LeaveFlow {
+        id: leaveFlow
+        objectName: "leaveFlow"
+        screenshotMode: root._screenshotMode
+        onQuitRequested: root.close()
     }
-    function _doLeaveGame() {
-        lichessChallenges.cancelPendingRematch()
-        ChessConnector.endGame()
-    }
-
-    // The leave warning's answers: Leave / Quit, or Resign, which leaves once Lichess has ended the
-    // game (ChessConnector.resignAndLeave(); the window closes then if it was Quit).
-    property bool _resigning:      false
-    property bool _quitAfterLeave: false
-    property bool _quitConfirmed:  false   // the window closes without asking again
-    function _leaveOnline(quit, resign) {
-        if (resign) {
-            _resigning = true
-            _quitAfterLeave = quit
-            ChessConnector.resignAndLeave()
-        } else if (quit) {
-            _quitConfirmed = true
-            root.close()
-        } else {
-            _doLeaveGame()
-        }
-    }
-    // The game ended while the warning was open: it no longer goes on without us.
-    on_OnlineRunningChanged: if (!_onlineRunning) leaveOnlineDialog.close()
-
-    // Closing the window during a running Lichess game asks the same as Home (Leave quits). A local
-    // game is kept as it is (ChessConnector's destructor): nothing to ask.
-    onClosing: event => {
-        if (_quitConfirmed || _screenshotMode)
-            return
-        if (!(_onlineRunning || _resigning))
-            return
-        event.accepted = false
-        if (_resigning) {                 // quit when the resignation is through
-            _quitAfterLeave = true
-            return
-        }
-        resignConfirm.close()             // the warning replaces a confirm about this game
-        switchUserConfirm.close()
-        leaveOnlineDialog.quitting = true
-        leaveOnlineDialog.open()
-    }
-
-    // A running game asks first (it is kept, or goes on at Lichess); a finished one or a replay doesn't.
-    function switchUser() {
-        if (_inGame && !_gameOver && _mode !== "replay")
-            switchUserConfirm.open()
-        else
-            _doSwitchUser()
-    }
-    function _doSwitchUser() {
-        lichessChallenges.cancelPendingRematch()
-        ChessConnector.switchUser()
-    }
+    onClosing: event => leaveFlow.windowClosing(event)
 
     // The Online page (not signed in: it says so and leads to the profile); a challenge still waiting
     // for the friend opens over it.
@@ -231,7 +166,7 @@ ApplicationWindow {
             twoPlayerDialog.openNew(ChessConnector.Chess960)
         } else {
             var wasOnline = _mode === "online"
-            leaveGame()
+            leaveFlow.leave()
             if (wasOnline) playOnline()
         }
     }
@@ -268,7 +203,7 @@ ApplicationWindow {
             window: root
             pages: stack
             dialogs: ({ challenge: challengeDialog, createUser: createUserDialog, restoreBackup: restoreBackupDialog, levels: levelsHelp,
-                        computer: computerDialog, twoPlayer: twoPlayerDialog, leaveOnline: leaveOnlineDialog,
+                        computer: computerDialog, twoPlayer: twoPlayerDialog, leaveOnline: leaveFlow.onlineDialog,
                         seek: seekDialog })
         }
     }
@@ -454,7 +389,7 @@ ApplicationWindow {
             continueBusy:             ChessConnector.StartingOnlineGame
             onSettingsRequested:      root.openSettings()
             onProfileRequested:       root.openProfile()
-            onSwitchUserRequested:    root.switchUser()
+            onSwitchUserRequested:    leaveFlow.switchUser()
             unseenMessages:           root.unseenMessages
             onRecentMessagesRequested: (anchor) => root.openRecentMessages(anchor)
         }
@@ -467,15 +402,15 @@ ApplicationWindow {
             infoBarsHeight: infoBars.height
             unseenMessages: root.unseenMessages
             onRecentMessagesRequested: (anchor) => root.openRecentMessages(anchor)
-            onHomeRequested:        root.leaveGame()
+            onHomeRequested:        leaveFlow.leave()
             onNewGameRequested:     root.newGameLikeThis()
             onExportPgnRequested:   root.exportPgn()
             onPlayFromHereRequested: (position, robot) => robot ? computerDialog.openFrom(position) : twoPlayerDialog.openFrom(position)
-            onResignRequested:      root.resign()
+            onResignRequested:      leaveFlow.resign()
             onLevelsHelpRequested:  levelsHelp.open()
             onSettingsRequested:    root.openSettings()
             onProfileRequested:     root.openProfile()
-            onSwitchUserRequested:  root.switchUser()
+            onSwitchUserRequested:  leaveFlow.switchUser()
             onCheckShown:           root.announceCheck()
             onLowTimeShown:         sounds.play("lowTime")
         }
@@ -750,14 +685,7 @@ ApplicationWindow {
         target: ChessConnector
         function onGameInfoChanged() {
             root.route()
-            if (!ChessConnector.InGame && root._resigning) {   // resignAndLeave() is through
-                root._resigning = false
-                if (root._quitAfterLeave) {
-                    root._quitAfterLeave = false
-                    root._quitConfirmed = true
-                    root.close()
-                }
-            }
+            leaveFlow.gameInfoChanged()   // after route(): a Quit after a resignation closes the window
         }
 
         function onCheckNotify() { sounds.playWhenSeen("check", root._notifyCheck) }
@@ -926,32 +854,6 @@ ApplicationWindow {
         onAccepted: ChessConnector.exportPgn(selectedFile, gameId)
     }
 
-    ConfirmDialog {
-        id: resignConfirm
-        title: "Resign this game?"
-        text: _mode === "online" ? "The game ends as a loss on Lichess." : ""
-        acceptText: "Resign"
-        onAccepted: ChessConnector.resignGame()
-    }
-
-    ConfirmDialog {
-        id: switchUserConfirm
-        objectName: "switchUserConfirm"
-        title: "Switch user?"
-        text: _mode === "online" ? "You leave the Lichess game; it keeps running on lichess.org. You can come back from Continue or Play online."
-                                 : "The game is kept as it is: this profile can continue it later from Continue or Games."
-        acceptText: "Switch user"
-        onAccepted: root._doSwitchUser()
-    }
-
-
-    LeaveOnlineDialog {
-        id: leaveOnlineDialog
-        objectName: "leaveOnlineDialog"
-        onAccepted:        root._leaveOnline(quitting, false)
-        onResignRequested: root._leaveOnline(quitting, true)
-    }
-
     // ── Shortcuts (not while a dialog is open) ───────────────────────────
     Shortcut {
         sequence: "F1"
@@ -977,7 +879,7 @@ ApplicationWindow {
             if (_onPushedPage)                         _closePage(_page)
             else if (stack.currentItem.sheetOpen)      stack.currentItem.sheetOpen = false   // an open move sheet first
             else if (stack.currentItem.premovePending) ChessConnector.cancelPremove()       // then a premove (LI-05)
-            else                                       leaveGame()
+            else                                       leaveFlow.leave()
         }
     }
     // New game: on Home the game vs the computer; in a finished game the result card's New game

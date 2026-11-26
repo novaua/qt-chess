@@ -149,6 +149,7 @@ DISTFILES += \
     qml/MessageCenter.qml \
     qml/LichessChallenges.qml \
     qml/ProfileFiles.qml \
+    qml/LeaveFlow.qml \
     qml/DataCheckNotices.qml \
     qml/AppSettings.qml \
     qml/RestoreBackupDialog.qml \

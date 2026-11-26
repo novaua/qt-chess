@@ -47,12 +47,6 @@ Item {
         center.dialogRequested()
         LichessClient.resumeOpenChallenge(center.pendingId, center.pendingUrl)
     }
-    // The game is left or the profile changes: a rematch offered from it goes with it.
-    function cancelPendingRematch() {
-        if (center.rematch && center.pendingId !== "")
-            LichessClient.cancelChallenge(center.pendingId)
-    }
-
     // ── BL-10: challenges to the player ──
     // The bar shows the oldest one not hidden. The finished game's rematch offer has its own bar.
     property var  _hidden: ({})   // id → true: "Hide" until the next challenge arrives

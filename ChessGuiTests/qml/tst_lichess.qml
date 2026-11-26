@@ -645,4 +645,31 @@ TestCase {
         compare(GameLibrary.game("lichess-game0018").lichessDays, 3, "a correspondence game")
         app.leaveToHome()
     }
+
+    // BL-36: a rematch challenge still waiting for the opponent goes with the game it was made from: leaving it
+    // for Home withdraws it (ChessConnector.endGame(), one call). FakeLichess doesn't take the player's own
+    // challenges, so the test gives LichessClient's answer (challengeCreated) itself; its dialog is closed
+    // without its Cancel, which would withdraw it.
+    function test_19_leaveWithdrawsTheRematch() {
+        FakeLichess.challenge("game0019", "Rival19", 1500, "white")
+        tryVerify(() => bar().visible && bar().text.indexOf("Rival19") === 0, 3000, "its challenge on the bar: " + bar().text)
+        app.click("challengeAcceptButton")
+        app.waitForPage("game", 10000)
+        FakeLichess.play("game0019", "e2e4")
+        tryCompare(ChessConnector, "MoveCount", 1, 3000, "1. e4 from Lichess")
+        FakeLichess.endGame("game0019", "resign", "white")
+        tryVerify(() => ChessConnector.GameResult !== "", 3000, "the game over")
+
+        const dialog = app.item("challengeDialog")
+        LichessClient.challengeCreated("rematch19", "https://lichess.org/rematch19")
+        tryVerify(() => dialog.opened, 3000, "the rematch's dialog")
+        verify(dialog.isRematch, "made with the game on the board: a rematch")
+        dialog.close()
+        app.waitClosed(dialog)
+        verify(!FakeLichess.received("POST /api/challenge/rematch19/cancel"), "still waiting")
+
+        app.leaveToHome()
+        verify(!app.item("leaveOnlineDialog").visible, "a finished game: no Leave the game?")
+        waitRequest("POST /api/challenge/rematch19/cancel")
+    }
 }

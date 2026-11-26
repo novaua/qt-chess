@@ -370,7 +370,9 @@ public slots:
 	// One line on the robot and the gate for the log (a scene that timed out, BL-28): thinking, the
 	// request waited for, whether a move is held and why.
 	QString robotState() const;
-	void endGame();              // leave the game for Home (an unfinished local game is kept as it is: Continue offers it)
+	// Leave the game for Home (an unfinished local game is kept as it is: Continue offers it); a rematch
+	// challenge still waiting for the opponent is withdrawn (BL-36).
+	void endGame();
 	// The leave warning's Resign: resign the Lichess game, then endGame() once Lichess has ended it
 	// (so the loss counts), or after a few seconds without an answer. A finished game: endGame().
 	Q_INVOKABLE void resignAndLeave();
@@ -570,6 +572,8 @@ private:
 	bool _wasVsComputer = false;
 	bool _resuming = false; // Continue replays the saved moves: their checks were heard already
 	bool _lastGameOnline = false; // the current/last game is a Lichess game: rematch goes online
+	// Our challenge made with a game on the board (rematch()), waiting for the opponent: endGame() withdraws it.
+	QString _rematchChallengeId;
 	bool _rematchSwapsColours = true; // Settings → Gameplay (AppSettings.rematchSwapsColours binds it)
 	int  _flaggedKing    = -1;
 	bool _resultRecorded = false; // stats recorded for this game (mate can recur after undo)
