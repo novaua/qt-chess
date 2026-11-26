@@ -12,7 +12,6 @@ that needs `ChessConnector`'s API, Read it or `chessconnector.h`.
   - kept games: `gamelibrary`, `gamesignature`, `gamepgn`, `gameanalysis`, `gameanalyzer`;
   - profiles and app services: `UserManager`, `AvatarProvider`, `AppInfo`, `AppConfig`, `appservices`;
   - infrastructure: `applog`, `frametrace`, `layoutgate`, `sceneinput`.
-  - `networkplayer.h/cpp` are in no project, an early sketch (BL-33).
 - **Assets:** `pics/` (pieces in `white/` and `black/`, `avatars/`, `icons/`, the window's photo, the app icon),
   `sounds/*.wav`; all bundled through `qml.qrc`.
 - **A new file goes into every list that builds it:**
