@@ -23,6 +23,7 @@ static QString apiErrorMessage(const QByteArray& body, const QNetworkReply* repl
 LichessClient::LichessClient(QObject* parent)
     : QObject(parent)
 {
+    _nam.setTransferTimeout(RequestTimeoutMs); // LI-12: Qt has none: a silent server would be waited for forever
     // Prevent Qt from intercepting 401 responses and overriding our Bearer token.
     connect(&_nam, &QNetworkAccessManager::authenticationRequired,
             this, [this](QNetworkReply* reply, QAuthenticator*) { checkAuthExpired(reply, true); reply->abort(); });
@@ -445,9 +446,21 @@ void LichessClient::validateToken(const QString& token)
     });
 }
 
-// Lichess error bodies are {"error":"..."}; fall back to Qt's message.
+// static
+bool LichessClient::timedOut(const QNetworkReply* reply)
+{
+    const auto error = reply->error();
+    return (error == QNetworkReply::OperationCanceledError || error == QNetworkReply::TimeoutError)
+        && !reply->property("authExpiredReported").toBool()
+        && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 401;
+}
+
+// Lichess error bodies are {"error":"..."}; fall back to Qt's message. A reply that timed out: Qt's
+// says "Operation canceled", which reads as if we had stopped it.
 static QString apiErrorMessage(const QByteArray& body, const QNetworkReply* reply)
 {
+    if (LichessClient::timedOut(reply))
+        return LichessClient::noAnswerMessage();
     const auto doc = QJsonDocument::fromJson(body);
     const QString apiError = doc.isObject()
         ? doc.object().value(QStringLiteral("error")).toString() : QString();
@@ -1229,12 +1242,11 @@ void LichessClient::openGameStream(const QString& gameId)
     _gameStream->open(req); // established (reconnects) once its gameFull has come
 }
 
-// Ended without a game: whoever waits for gameStarted (the Online page) must hear about it. Not
-// when stopStream() aborted it (canceled).
+// Ended without a game: whoever waits for gameStarted (the Online page) must hear about it. A stream
+// stopStream() dropped never comes here (LichessStream ignores a reply it dropped); one that timed out
+// does, with "Lichess didn't answer" (LI-12).
 void LichessClient::gameStreamEnded(QNetworkReply::NetworkError error, const QString& errorString, bool authExpired)
 {
-    if (error == QNetworkReply::OperationCanceledError && !authExpired)
-        return;
     const QString message = authExpired ? QStringLiteral("Lichess sign-in expired")
                           : error == QNetworkReply::NoError ? QStringLiteral("Lichess closed the game before it started")
                           : errorString;

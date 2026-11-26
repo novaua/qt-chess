@@ -22,5 +22,6 @@ The tests of the Qt parts: a DLL for the Microsoft CppUnitTest runner (Test Expl
   `LichessChallengeTest.cpp` and `LichessSeekTest.cpp` (LI-09's quick pairing seek, `FakeSeekLichess`) play
   against `FakeLichess` (`FakeLichess.h`), a `QTcpServer` on 127.0.0.1 that answers each request with
   `onRequest(socket, method, path)` and keeps a stream open until the handler closes it. The client is pointed at
-  it with `LichessClient::setBaseUrl` and made quick with `setStreamTiming`. A new Lichess behaviour gets its
+  it with `LichessClient::setBaseUrl` and made quick with `setStreamTiming` (and `setRequestTimeout`: LI-12's
+  `LichessTimeoutTests`, a route that never answers). A new Lichess behaviour gets its
   fake answer here, never a call to lichess.org.

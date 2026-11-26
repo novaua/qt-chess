@@ -26,6 +26,7 @@ private slots:
 private:
 	void exchangeCode(const QString& code);
 	void fetchUsername(const QString& token);
+	static QString errorMessage(const QNetworkReply* reply);
 
 	QTcpServer            _server;
 	QNetworkAccessManager _nam;

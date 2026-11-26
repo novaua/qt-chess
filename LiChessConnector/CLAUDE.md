@@ -55,6 +55,11 @@ against `FakeLichess`).
 ## Invariants
 - The token never reaches QML: `UserManager::lichessToken()` is C++ only, and profile exports never carry it.
 - One event stream per token.
+- Every request ends after 30 s without a byte (`RequestTimeoutMs`, an inactivity timeout on `LichessClient`'s
+  and `LichessAuth`'s `QNetworkAccessManager`; `setRequestTimeout` for the tests); the streams live on
+  Lichess's keep-alive lines. A reply that timed out (`timedOut`: canceled or `TimeoutError`, and we didn't abort it)
+  fails as "Lichess didn't answer" (`noAnswerMessage`), and the busy state it held clears; a game stream timed
+  out before its `gameFull` fails as one (`rejoinFailed`, else `networkError`).
 - One seek at a time; none while a real-time challenge of ours waits.
 - Chess++ plays only standard and chess960 (`playableVariant`): another variant is listed with `canPlayHere`
   false, and a game of one that starts anyway is refused by `ChessConnector::onLichessGameStarted`.
