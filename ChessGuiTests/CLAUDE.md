@@ -41,7 +41,7 @@ except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too
 - **Lichess is `FakeLichess`** (QML singleton, `fakelichessserver.h`), a local server the test plays the other
   side on: `TestRun.linkLichess(FakeLichess.username)` links the profile; `challenge` (a challenge or ongoing game
   can be another variant, with a start FEN), `play`, `offerDraw`, `endGame`, `dropGameStreams`,
-  `addOngoingGame`, `setPlayer` (a player's title and rating in gameFull), `pairSeek`, `refuseSeeks`; it checks
+  `addOngoingGame`, `setPlayer` (a player's title and rating in gameFull), `pairSeek`, `refuseSeeks`, `refuseGameActions`; it checks
   what the app asked (`received("POST /api/…")`, `bodyOf`, `moves(gameId)`). See `tst_lichess.qml`.
   What it doesn't serve (the player's own challenges) a test gives as `LichessClient`'s answer, calling its
   signal (`LichessClient.challengeDeclined("Friend")`, `tst_lichess` test 16).

@@ -57,7 +57,7 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   Resign (`resign()`) and closing the window (`windowClosing(event)`, from its `onClosing`), with their dialogs
   (`resignConfirm`, `switchUserConfirm`, `leaveOnlineDialog`; `onlineDialog` for `ScreenshotScene`); one instance
   in the window (`leaveFlow`). Each answer is one `ChessConnector` call. A running Lichess game asks first; its
-  Resign leaves once Lichess has ended the game (`resignAndLeave()`), and after a Quit the window closes then:
+  Resign leaves once Lichess has ended the game (`resignAndLeave()`; a resign Lichess refuses stays: `resignAndLeaveStopped`, LI-13), and after a Quit the window closes then:
   the window's `gameInfoChanged` calls `leaveFlow.gameInfoChanged()` after `route()`, and `quitRequested` closes it.
 - `HomePage.qml` — account menu; Continue: the only unfinished game directly, two or more:
   `ContinueGamesPage` (`ChessGame.continueGames()`); action cards, among them **Games** (Ctrl+O): `GamesPage`.

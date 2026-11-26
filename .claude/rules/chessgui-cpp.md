@@ -56,6 +56,9 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
   unfinished game, else false and the list opens; it decides on the last Lichess list while that refreshes, and
   waits for the list only before the first one came (`LichessClient::ongoingGamesLoaded`). `Reconnecting`;
   `switchUser` (also ends a seek).
+- **A game action Lichess refuses** (LI-13): `gameActionFailed(message)` (the window's short message), also after
+  the game was left; not for a game already over. `resignAndLeave()`'s resign refused: the game stays
+  (`resignAndLeaveStopped`, `LeaveFlow` asks again on Home).
 - **The opponent left:** `ClaimWin` (`claimwin.h/cpp`): Lichess's countdown and "only on the opponent's turn"
   (Lichess refuses it on the player's) behind `OpponentGone`, `ClaimWinSeconds`, `CanClaimVictory`;
   `claimVictory()` posts only then.

@@ -1554,6 +1554,19 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 		connect(_lichessClient, &LichessClient::directChallengeSent, this, [this](const QString& challengeId) {
 			if (inGame()) _rematchChallengeId = challengeId;
 		});
+		// LI-13: a game action Lichess refused, or didn't answer, is said; also after the game was left (a
+		// Resign that never got there: the game goes on, and is lost on time). A Resign-and-leave stays.
+		connect(_lichessClient, &LichessClient::gameActionFailed, this,
+		        [this](const QString& gameId, const QString& action, const QString& message) {
+			const bool thisGame = gameId == _onlineGameId;
+			if (thisGame && !_gameResult.isEmpty())
+				return; // over anyway (e.g. the opponent's flag at the same time)
+			if (thisGame && action == QLatin1String("resign") && _leaveAfterResign.isActive()) {
+				_leaveAfterResign.stop();
+				emit resignAndLeaveStopped();
+			}
+			emit gameActionFailed(message);
+		});
 		// e.g. the game ended meanwhile: the list is out of date.
 		connect(_lichessClient, &LichessClient::rejoinFailed, this, [this](const QString&, const QString& message) {
 			_startTiming.cancel();

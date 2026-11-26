@@ -1329,6 +1329,75 @@ namespace LichessTests
 		}
 	};
 
+	// LI-13: a game action (resign, abort, draw, takeback; also an answer to an offer) Lichess refuses, or
+	// doesn't answer, is said: gameActionFailed with Lichess's reason. One it takes says nothing.
+	TEST_CLASS(LichessGameActionTests)
+	{
+		static void areEqual(const QStringList& expected, const QStringList& actual) { LichessStaticTests::areEqual(expected, actual); }
+
+		static void record(LichessClient& client, QStringList& events)
+		{
+			QObject::connect(&client, &LichessClient::gameActionFailed, [&](QString gameId, QString action, QString message) {
+				events << gameId + " " + action + ": " + message;
+			});
+			QObject::connect(&client, &LichessClient::networkError, [&](QString message) { events << "error " + message; });
+		}
+
+	public:
+		TEST_METHOD(Refused_SaidWithLichessReason)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [](QTcpSocket* socket, const QString&, const QString& path) {
+				if (path.endsWith("/resign"))
+					FakeLichess::json(socket, R"({"error":"This game can't be resigned"})", 400);
+				else if (path.contains("/draw/"))
+					FakeLichess::json(socket, R"({"error":"Server error"})", 500);
+				else if (path.contains("/takeback/no"))
+					FakeLichess::json(socket, R"({"error":"No takeback to decline"})", 400);
+				else
+					FakeLichess::json(socket, R"({"ok":true})");
+			};
+			LichessClient client;
+			client.setBaseUrl(lichess.url());
+			client.setToken("token");
+			QStringList events;
+			record(client, events);
+
+			client.resign("g1");
+			waitUntil([&] { return events.size() == 1; });
+			client.offerDraw("g1", true);
+			waitUntil([&] { return events.size() == 2; });
+			client.requestTakeback("g1", false);
+			waitUntil([&] { return events.size() == 3; });
+			client.abortGame("g1");                 // taken
+			client.requestTakeback("g1", true);     // taken
+			waitUntil([&] { return lichess.count("POST /api/board/game/g1/takeback/yes") == 1; });
+			waitUntil([] { return false; }, 200);
+
+			areEqual({ "g1 resign: Resign failed: This game can't be resigned",
+			           "g1 draw: Draw failed: Server error",
+			           "g1 takeback: Declining the takeback failed: No takeback to decline" }, events);
+		}
+
+		// No answer at all (LI-12's timeout): said as such, not as "Operation canceled".
+		TEST_METHOD(NoAnswer_Said)
+		{
+			FakeLichess lichess;
+			lichess.onRequest = [](QTcpSocket*, const QString&, const QString&) {}; // silent
+			LichessClient client;
+			client.setBaseUrl(lichess.url());
+			client.setToken("token");
+			client.setRequestTimeout(300);
+			QStringList events;
+			record(client, events);
+
+			client.resign("g1");
+			waitUntil([&] { return !events.isEmpty(); });
+
+			areEqual({ "g1 resign: Resign failed: Lichess didn't answer" }, events);
+		}
+	};
+
 	// LI-12: a request Lichess never answers (a silently dead connection, a stalled server) ends after
 	// the request timeout, said as "Lichess didn't answer", and the busy state it holds clears.
 	TEST_CLASS(LichessTimeoutTests)
