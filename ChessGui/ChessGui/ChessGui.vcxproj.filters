@@ -221,6 +221,9 @@
     <None Include="qml\ProfileFiles.qml">
       <Filter>Source Files\Qml</Filter>
     </None>
+    <None Include="qml\LeaveFlow.qml">
+      <Filter>Source Files\Qml</Filter>
+    </None>
     <None Include="qml\DataCheckNotices.qml">
       <Filter>Source Files\Qml</Filter>
     </None>

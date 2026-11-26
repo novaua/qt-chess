@@ -7,6 +7,7 @@
 #include "gamepgn.h"
 
 #include <algorithm>
+#include <utility>
 #include <QClipboard>
 #include <QDate>
 #include <QDeadlineTimer>
@@ -1078,6 +1079,7 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 	const QString& opponentName, const QString& opponentAvatar, const QStringList& moves,
 	const QString& variant, const QString& startFen)
 {
+	_rematchChallengeId.clear(); // a game started: the challenge waits no more (its own game, or another)
 	// LI-01A stage 2: standard or Chess960, from the position Lichess gives. Anything else (a link to a
 	// Crazyhouse game, a challenge accepted on lichess.org) is refused before it replaces the game on
 	// the board: a board out of step with Lichess can't be played move by move.
@@ -1536,8 +1538,22 @@ void ChessConnector::setLichessClient(LichessClient* lc)
 	connect(_lichessClient, &LichessClient::acceptingChanged, this, &ChessConnector::acceptingChallengeChanged);
 		// A refused Accept, or a Lichess game that never came (a challenge canceled, an error): not timed.
 		connect(_lichessClient, &LichessClient::challengeAcceptFailed, this, [this] { _startTiming.cancel(); });
-		connect(_lichessClient, &LichessClient::challengeCanceled, this, [this] { _startTiming.cancel(); });
-		connect(_lichessClient, &LichessClient::challengeDeclined, this, [this] { _startTiming.cancel(); });
+		connect(_lichessClient, &LichessClient::challengeCanceled, this, [this] {
+			_startTiming.cancel();
+			_rematchChallengeId.clear();
+		});
+		connect(_lichessClient, &LichessClient::challengeDeclined, this, [this] {
+			_startTiming.cancel();
+			_rematchChallengeId.clear();
+		});
+		// BL-36: a challenge made with a game on the board is its rematch (the Online page is reached from
+		// Home only); leaving the game withdraws it (endGame()).
+		connect(_lichessClient, &LichessClient::challengeCreated, this, [this](const QString& gameId) {
+			if (inGame()) _rematchChallengeId = gameId;
+		});
+		connect(_lichessClient, &LichessClient::directChallengeSent, this, [this](const QString& challengeId) {
+			if (inGame()) _rematchChallengeId = challengeId;
+		});
 		// e.g. the game ended meanwhile: the list is out of date.
 		connect(_lichessClient, &LichessClient::rejoinFailed, this, [this](const QString&, const QString& message) {
 			_startTiming.cancel();
@@ -2354,6 +2370,12 @@ void ChessConnector::resignAndLeave()
 
 void ChessConnector::endGame()
 {
+	// BL-36: our rematch challenge goes with the game it was made from (first: cancelChallenge stops the
+	// stream too).
+	if (!_rematchChallengeId.isEmpty()) {
+		const QString challengeId = std::exchange(_rematchChallengeId, QString());
+		if (_lichessClient) _lichessClient->cancelChallenge(challengeId);
+	}
 	_startTiming.cancel(); // e.g. a Lichess game that couldn't be played here, left before its first frame
 	_leaveAfterResign.stop(); // also when the game is left another way (Home again, switch user)
 	cancelPremove();
