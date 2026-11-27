@@ -39,3 +39,24 @@ Related: TSK-13 (fast games on a service of our own), LI-15, LI-01B.
   `Test-Installer.ps1`.
 - Checked: the solution builds in Debug and Release without warnings; ChessQtTests 359/359 (Debug); UI tests
   (Debug) 13 files, 0 failed. Screenshots not compared: no QML changed, and the messages read as before.
+
+### 2026-11-27 — step 3: the servers as plugins (branch: features/li18OnlinePlugins_271126)
+
+- `OnlineHub` (OnlineCore, QML singleton `Online`) loads the server plugins (`OnlineProviderPlugin`, metadata
+  `{ id, name, order, coreVersion }`) from the folder "online" beside the app; one `OnlineClient` each,
+  `current` the first by order. Lichess is the plugin `online\LichessOnline.dll` (`LichessPlugin`,
+  `lichess.json`): ChessGui and ChessGuiTests build it but link nothing of it; ChessQtTests compiles the classes
+  it tests.
+- QML: `LichessClient` → `Online.current`, null without a plugin: the window, Home, the command bars and the game
+  page read it null-safe; Play online, Welcome's Continue with Lichess and the profile's Lichess section hide
+  by `Online.available`. `ChessConnector`: `setOnlineClient`, `onOnline*`, `OnlineGameUrl`. The profile's
+  Lichess token goes only to the `lichess` client (`AppServices::lichessAccountClient`) until step 4.
+- Without the plugin: the app plays locally, the profile's Lichess account and kept Lichess games stay
+  (`tst_noOnline`, `// ui-test-online: none`). Screenshot mode needs it (exit code 5).
+- `scripts\Check-OnlineIsolation.ps1` (run by `Run-UiTests.ps1`, so by GitHub): no plugin header outside its
+  folder (but ChessQtTests), no plugin on another project's include path or link. Checked that it catches both.
+- Deployed as `deploy\online\*.dll` (`release.yml`, `Build-Installer.ps1`; `Test-Installer.ps1` checks it).
+- Checked: Debug and Release build without warnings; ChessQtTests 359/359, then the new `OnlineHubTest` 7/7; UI tests
+  (Debug) 14 files: all passed; `tst_games` test 10 (Copy link) failed once while the tests DLL was being
+  compiled beside it, then passed twice alone. Screenshots: all 137 scenes of `-Scene all`, offscreen, identical
+  to `develop`'s taken just before (one 0.004 % antialiasing speck on `online-challenge`).
