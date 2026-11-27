@@ -7,7 +7,7 @@ class AppInfo;
 class AvatarProvider;
 class ChessConnector;
 class GameLibrary;
-class LichessClient;
+class OnlineClient;
 class UserManager;
 
 // The app's services and how they work together: made once per app (main.cpp) or per test file
@@ -25,7 +25,7 @@ public:
 	ChessConnector* connector() const { return _connector; }
 	AvatarProvider* avatarProvider() const { return _avatarProvider; }
 	UserManager* userManager() const { return _userManager; }
-	LichessClient* lichessClient() const { return _lichessClient; }
+	OnlineClient* lichessClient() const { return _lichessClient; }
 	AppInfo* appInfo() const { return _appInfo; }
 	GameLibrary* gameLibrary() const { return _gameLibrary; }
 
@@ -42,7 +42,7 @@ private:
 	ChessConnector* _connector;
 	AvatarProvider* _avatarProvider;
 	UserManager* _userManager;
-	LichessClient* _lichessClient;
+	OnlineClient* _lichessClient;
 	AppInfo* _appInfo;
 	GameLibrary* _gameLibrary; // BL-19: the active profile's kept games
 	QString _lastToken;

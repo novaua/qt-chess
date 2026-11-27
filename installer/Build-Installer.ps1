@@ -84,7 +84,7 @@ try {
         Invoke-Native $msbuild @('ChessCore.sln', '/p:Configuration=Release', '/p:Platform=x64',
             "/p:AppVersion=$appVersion", '/m', '/v:minimal', '/nologo')
     }
-    foreach ($f in 'x64\Release\ChessGui.exe', 'x64\Release\LiChessConnector.dll') {
+    foreach ($f in 'x64\Release\ChessGui.exe', 'x64\Release\OnlineCore.dll', 'x64\Release\LiChessConnector.dll') {
         if (-not (Test-Path $f)) { throw "$f not found - run without -SkipBuild" }
     }
 
@@ -92,7 +92,7 @@ try {
     Step "Collect deployment files (deploy\)"
     if (Test-Path deploy) { Remove-Item deploy -Recurse -Force }
     New-Item -ItemType Directory deploy | Out-Null
-    Copy-Item x64\Release\ChessGui.exe, x64\Release\LiChessConnector.dll deploy\
+    Copy-Item x64\Release\ChessGui.exe, x64\Release\OnlineCore.dll, x64\Release\LiChessConnector.dll deploy\
     # windeployqt bundles vc_redist.x64.exe only when VCINSTALLDIR is set (as in a VS
     # developer prompt); ChessSetup.iss requires it and runs it when the runtime is missing.
     if (-not $env:VCINSTALLDIR -and (Test-Path $vswhere)) {
@@ -106,7 +106,7 @@ try {
 
     # --- Verify version metadata ----------------------------------------------
     Step "Verify version metadata"
-    foreach ($f in 'deploy\ChessGui.exe', 'deploy\LiChessConnector.dll') {
+    foreach ($f in 'deploy\ChessGui.exe', 'deploy\OnlineCore.dll', 'deploy\LiChessConnector.dll') {
         $vi = (Get-Item $f).VersionInfo
         Write-Host "$f : $($vi.ProductName) $($vi.ProductVersion) / $($vi.CompanyName)"
         if ($vi.ProductName -ne 'Chess++') { throw "$f is missing product metadata" }

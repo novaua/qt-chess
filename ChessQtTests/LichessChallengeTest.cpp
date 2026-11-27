@@ -49,7 +49,7 @@ namespace LichessTests
 	public:
 		TEST_METHOD(ParseChallenge_RealTime)
 		{
-			const QVariantMap row = LichessClient::parseChallenge(json(challengeEvent("c1")));
+			const QVariantMap row = LichessClient().parseChallenge(json(challengeEvent("c1")));
 			Assert::AreEqual(QString("c1"), row.value("id").toString());
 			Assert::AreEqual(QString("Friend"), row.value("challengerName").toString());
 			Assert::AreEqual(1712, row.value("challengerRating").toInt());
@@ -67,7 +67,7 @@ namespace LichessTests
 		TEST_METHOD(ParseChallenge_TimeControlsAndSides)
 		{
 			auto parse = [](const char* timeControl, const char* color) {
-				return LichessClient::parseChallenge(json(QByteArray(R"({"type":"challenge","challenge":{"id":"c2",)")
+				return LichessClient().parseChallenge(json(QByteArray(R"({"type":"challenge","challenge":{"id":"c2",)")
 					+ R"("timeControl":)" + timeControl + R"(,"color":")" + color + R"("}})"));
 			};
 			Assert::AreEqual(QString("3 days per move"), parse(R"({"type":"correspondence","daysPerTurn":3})", "black").value("timeControlText").toString());
@@ -76,7 +76,7 @@ namespace LichessTests
 			Assert::AreEqual(QString("white"), parse(R"({"type":"unlimited"})", "black").value("ourSide").toString());
 			Assert::AreEqual(QString("random"), parse(R"({"type":"unlimited"})", "random").value("ourSide").toString());
 			Assert::AreEqual(QString("Random side"), parse(R"({"type":"unlimited"})", "random").value("sideText").toString());
-			Assert::AreEqual(QString("FM Speedy (2105)"), LichessClient::parseChallenge(json(
+			Assert::AreEqual(QString("FM Speedy (2105)"), LichessClient().parseChallenge(json(
 				R"({"type":"challenge","challenge":{"id":"c7","challenger":{"name":"Speedy","rating":2105,"title":"FM"}}})"))
 				.value("challengerText").toString());
 		}
@@ -86,10 +86,10 @@ namespace LichessTests
 		// is: Blitz too.
 		TEST_METHOD(ParseChallenge_WhatThisAppCanPlay)
 		{
-			auto canPlay = [](const QByteArray& event) { return LichessClient::parseChallenge(json(event)).value("canPlayHere").toBool(); };
+			auto canPlay = [](const QByteArray& event) { return LichessClient().parseChallenge(json(event)).value("canPlayHere").toBool(); };
 			Assert::IsFalse(canPlay(challengeEvent("c3", "in", "", R"("compat":{"bot":false,"board":false},)")), L"e.g. Bullet");
 			Assert::IsTrue(canPlay(R"({"type":"challenge","compat":{"board":true},"challenge":{"id":"c4","variant":{"key":"chess960"},"speed":"rapid"}})"));
-			Assert::AreEqual(QString("Chess960"), LichessClient::parseChallenge(json(
+			Assert::AreEqual(QString("Chess960"), LichessClient().parseChallenge(json(
 				R"({"type":"challenge","challenge":{"id":"c4","variant":{"key":"chess960"}}})")).value("variantName").toString());
 			Assert::IsFalse(canPlay(R"({"type":"challenge","compat":{"board":true},"challenge":{"id":"c9","variant":{"key":"crazyhouse"},"speed":"rapid"}})"));
 			Assert::IsFalse(canPlay(R"({"type":"challenge","challenge":{"id":"c10","variant":{"key":"atomic"},"speed":"rapid"}})"));

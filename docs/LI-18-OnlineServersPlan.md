@@ -260,8 +260,8 @@ Only the differences; everything else is OnlineCore's.
 | # | Step | Visible change | Size |
 |---|---|---|---|
 | 1 | This plan and the ticket | none | docs |
-| 2 | **OnlineCore extracted:** the new project, `LichessClient` → `OnlineClient` with the `OnlineServer` interface; `LichessServer` and `LichessAuth` in `LiChessConnector`, still linked directly. Renames in ChessGui and QML (`Online` singleton with one client). | none | large, mechanical |
-| 3 | **Plugins:** `OnlineHub` with `QPluginLoader`; `LiChessConnector` becomes the `LichessOnline` plugin in `online\`; ChessGui stops linking it; the installer; the no-plugin UI test; the isolation check. | none | medium |
+| 2 | **OnlineCore extracted:** the new project, `LichessClient` → `OnlineClient` with the `OnlineServer` and `OnlineAuth` interfaces; `LichessServer` and `LichessAuth` in `LiChessConnector`, still linked directly; ChessGui's C++ on the `Online…` types. QML untouched (the singleton keeps its name). | none | large, mechanical |
+| 3 | **Plugins:** `OnlineHub` with `QPluginLoader`; `LiChessConnector` becomes the `LichessOnline` plugin in `online\`; ChessGui stops linking it; the installer; the no-plugin UI test; the isolation check. QML's `LichessClient` → `Online` (one client), `ChessConnector`'s `Lichess…` members renamed. | none | medium |
 | 4 | **Accounts per server:** `users.json` `accounts` and its migration, `UserManager`'s API, the Profile page's "Online accounts", `OnlineGameInfo` in the library and PGN. | Profile page | medium |
 | 5 | **rookrelay:** the plugin, its sign-in and address, traits applied in QML (C2, C3), C4 in `OnlineClient`, the Online page's server switch, `FakeBoardApi`'s rookrelay mode. | rookrelay | large |
 | 6 | Hand tests on both servers; `CLAUDE.md` for `OnlineCore` and both plugins, the root's tables; close. | none | small |

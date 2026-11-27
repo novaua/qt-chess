@@ -62,7 +62,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>.;$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(SolutionDir)\LiChessConnector;$(SolutionDir)\UciConnector;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(SolutionDir)\LiChessConnector;$(SolutionDir)\OnlineCore;$(SolutionDir)\UciConnector;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
@@ -92,6 +92,9 @@
     </ProjectReference>
     <ProjectReference Include="..\LiChessConnector\LiChessConnector.vcxproj">
       <Project>{2ed0175f-4de2-440a-965e-04b2f1e4e3c0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\OnlineCore\OnlineCore.vcxproj">
+      <Project>{210ec68a-2be6-4ac7-8327-ca3364cae3a9}</Project>
     </ProjectReference>
     <!-- Built with the tests, not linked: the engine the robot plays with (TestSetup sets CHESS_ENGINE_PATH) -->
     <ProjectReference Include="..\FakeUci\FakeUci.vcxproj">

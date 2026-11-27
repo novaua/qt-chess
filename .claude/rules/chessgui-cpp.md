@@ -35,7 +35,7 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
   side when `RematchSwapsColours` (`AppSettings.rematchSwapsColours`, on by default; #193), for that game only
   (`applyPlayerSide`, not saved). Our Lichess challenge made with a game on the board is its rematch: `endGame()`
   (leaving it, `switchUser`) withdraws it while it waits (BL-36). **New opponent** (LI-16): `CanSeekAgain` (the
-  Lichess game was paired by Quick pairing, `LichessClient::canSeekAgain`), `newOpponent()` on a finished one:
+  Lichess game was paired by Quick pairing, `OnlineClient::canSeekAgain`), `newOpponent()` on a finished one:
   withdraws our waiting rematch, then the same seek again (`seekAgain`); the game stays until the new one starts. The setup dialogs offer the side last chosen in them (`AppSettings.computerSide`,
   `twoPlayerSide`).
 - **A Lichess game's players** (LI-07, LI-11): both cards show the Lichess players. `PlayerName` is the Lichess
@@ -54,7 +54,7 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
   `continueOnlineGame(id)` rejoins (`StartingOnlineGame`, `StartingGameId` until it starts, `gameStartFailed`).
   `cancelOnlineStart()` or another profile drops both. `continueOnlyGame()` (Home's Continue): the only
   unfinished game, else false and the list opens; it decides on the last Lichess list while that refreshes, and
-  waits for the list only before the first one came (`LichessClient::ongoingGamesLoaded`). `Reconnecting`;
+  waits for the list only before the first one came (`OnlineClient::ongoingGamesLoaded`). `Reconnecting`;
   `switchUser` (also ends a seek).
 - **A game action Lichess refuses** (LI-13): `gameActionFailed(message)` (the window's short message), also after
   the game was left; not for a game already over. `resignAndLeave()`'s resign refused: the game stays
@@ -101,11 +101,11 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
     only a finished one, `kind: "lichess"`, id
     `GameRecord::lichessRecordId(<Lichess id>)` (`lichess-<id>`: never kept twice), and `LichessGameInfo` (the
     JSON's `lichess` object: Lichess id, rated there, speed, days per move, both players as `gameFull` gave them,
-    `LichessPlayer::toJson`). Never rated, continued (`continueGame`) or Played from here (`startFrom`); one cap
+    `OnlinePlayer::toJson`). Never rated, continued (`continueGame`) or Played from here (`startFrom`); one cap
     with the local games; statistics rebuilt count it under Lichess; its PGN has Site, the Lichess names,
     the Event as lichess.org's, both Elo and the clock. `ChessConnector::keepLichessGame` writes it when the
     result comes on the board (`setResult` → `updateRecord`): not an aborted game, nor one without a move or left
-    before its end; its facts from the game's `gameFull` (`LichessClient::currentGameFull`, kept at the start). A
+    before its end; its facts from the game's `gameFull` (`OnlineClient::currentGameFull`, kept at the start). A
     move the gate held past the end completes it (`playOnlineMoves` → `updateRecord`). The statistics count a
     Lichess game by the same rule, so rebuilding them from kept games gives the same. Listed by when it ended
     (`finishedAt`: a correspondence game can have begun weeks before); `startedAt` stays Lichess's (the PGN's Date).
@@ -160,7 +160,8 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
     swapped in by rename, the old folder kept as `<id>.replaced` until `users.json` is saved; `load()` recovers an
     interrupted swap (`recoverInterruptedImports`). An export fails on a game file it can't read
     (`AppConfig::failWritesForTest` for the tests). `[Timing] profile import/export` lines in the log.
-  - **Lichess sign-in** through `LichessAuth`; the token is kept here: `lichessToken()`, C++ only. A token this
+  - **Lichess sign-in** through the server's `OnlineAuth` (`setOnlineServer`, from `AppServices`; Lichess's is
+    `LichessAuth`); the token is kept here: `lichessToken()`, C++ only. A token this
     Windows account can't decrypt (a data folder copied from another PC) marks the link expired: "reconnect".
     Written and `lichessChanged` once the call that asked is done.
 - `AvatarProvider`: the avatars (`avatarNames()`), the opponent's flair.

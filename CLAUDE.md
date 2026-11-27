@@ -15,7 +15,7 @@ a folder, Read its `CLAUDE.md`** (Grep and Glob don't load it).
 |---|---|
 | `ChessCore/CLAUDE.md` · `ChessTests/CLAUDE.md` | the chess rules (castling and FEN for any set-up, invariants); their tests |
 | `UciConnector/CLAUDE.md` · `FakeUci/CLAUDE.md` | the UCI engine (API, Chess960 requests, which engine runs); the tests' stand-in |
-| `LiChessConnector/CLAUDE.md` | Lichess: `LichessClient` by area, `LichessAuth`, invariants |
+| `OnlineCore/CLAUDE.md` · `LiChessConnector/CLAUDE.md` | online play: `OnlineClient` by area, `OnlineServer`; Lichess's own (`LichessServer`, `LichessAuth`) |
 | `ChessQtTests/CLAUDE.md` | the Qt parts' tests: what they need, `FakeLichess` |
 | `ChessGui/ChessGui/CLAUDE.md` | the app's folder: its C++ by area, assets, which lists a new file goes into |
 | `.claude/rules/chessgui-cpp.md` | ChessGui's C++ class by class, invariants (loads with a `.h` / `.cpp` there) |
@@ -49,7 +49,8 @@ scripts\Take-Screenshot.ps1 -Scene all      # screenshots of the app's views (in
 |---|---|---|
 | `ChessCore` | static lib, no Qt | the chess rules, `Chess::` |
 | `UciConnector` | static lib, Qt Core | a UCI engine (Stockfish) through `QProcess` |
-| `LiChessConnector` | DLL, Qt Core + Network | Lichess: `LichessClient`, `LichessStream`, `LichessAuth` |
+| `OnlineCore` | DLL, Qt Core + Network | online play, the Board API: `OnlineClient`, `OnlineStream`, `OnlineServer`, `OnlineAuth` |
+| `LiChessConnector` | DLL, on `OnlineCore` | Lichess's own: `LichessServer`, `LichessAuth` (LI-18) |
 | `ChessGui` (`ChessGui/ChessGui/`) | the app, Qt Quick | the QML UI and its C++: `ChessConnector`, models, profiles, the games library, the robot |
 | `FakeUci` | console exe, no Qt | the tests' stand-in engine |
 | `ChessTests` · `ChessQtTests` | test DLLs | ChessCore's tests; the Qt parts' (ChessGui's C++ built from its sources) |
@@ -59,8 +60,8 @@ scripts\Take-Screenshot.ps1 -Scene all      # screenshots of the app's views (in
 ChessGui: QML pages → ChessConnector (the game), UserManager, GameLibrary, LichessClient, …
   ├─ ChessCore: Game → Board, MoveGeneration, GameChecks, StartPosition
   ├─ UciConnector ← ChessEnginePlayer / EngineWorker (the robot), GameAnalyzer (the analysis)
-  └─ LiChessConnector: LichessClient → LichessStream, LichessAuth
-FakeUci, ChessTests → ChessCore;   ChessQtTests, ChessGuiTests → all four above (+ FakeUci)
+  └─ OnlineCore: OnlineClient → OnlineStream, OnlineServer ← LiChessConnector: LichessServer, LichessAuth
+FakeUci, ChessTests → ChessCore;   ChessQtTests, ChessGuiTests → all five above (+ FakeUci)
 ```
 
 

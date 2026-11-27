@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <memory>
 #include <optional>
-#include "LichessClient.h"
+#include "OnlineClient.h"
 #include "StartPosition.h"
 
 class GameAnalysis;
@@ -63,14 +63,14 @@ class LichessGameInfo
 public:
 	LichessGameInfo() = default;
 	LichessGameInfo(const QString& gameId, bool rated, const QString& speed, int daysPerTurn,
-	                const LichessPlayer& white, const LichessPlayer& black);
+	                const OnlinePlayer& white, const OnlinePlayer& black);
 
 	QString gameId() const { return _gameId; }
 	bool    isEmpty() const { return _gameId.isEmpty(); }
 	bool    rated() const { return _rated; }
 	QString speed() const { return _speed; }             // "rapid", "classical", "correspondence", …; "" unknown
 	int     daysPerTurn() const { return _daysPerTurn; } // a correspondence game's; 0 otherwise
-	const LichessPlayer& player(bool white) const { return white ? _white : _black; }
+	const OnlinePlayer& player(bool white) const { return white ? _white : _black; }
 	QString url() const;                                 // https://lichess.org/<id>
 
 	QJsonObject toJson() const;
@@ -81,8 +81,8 @@ private:
 	bool    _rated = false;
 	QString _speed;
 	int     _daysPerTurn = 0;
-	LichessPlayer _white;
-	LichessPlayer _black;
+	OnlinePlayer _white;
+	OnlinePlayer _black;
 };
 
 // One game of the active profile, as the games library keeps it (BL-19): who, when, the moves in UCI, the

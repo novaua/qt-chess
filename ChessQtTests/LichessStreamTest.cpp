@@ -3,13 +3,13 @@
 #include <QNetworkRequest>
 #include <CppUnitTest.h>
 #include <vector>
-#include "LichessStream.h"
+#include "OnlineStream.h"
 #include "TestSupport.h"
 #include "FakeLichess.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-// LichessStream (BL-10 step 1, LI-06's reconnect as a class): one ndjson stream against FakeLichess.
+// OnlineStream (BL-10 step 1, LI-06's reconnect as a class): one ndjson stream against FakeLichess.
 // The owner's side (what a line means, when it counts as back) is LichessClient's; these tests play
 // the owner: they call connected() on the first line after a reconnect.
 namespace LichessTests
@@ -31,18 +31,18 @@ namespace LichessTests
 		}
 
 		// Lines as "line <text>" ("line " for a keep-alive), and the stream's other signals.
-		static void record(LichessStream& stream, QStringList& events, bool markConnected = true)
+		static void record(OnlineStream& stream, QStringList& events, bool markConnected = true)
 		{
-			QObject::connect(&stream, &LichessStream::line, [&stream, &events, markConnected](const QByteArray& text) {
+			QObject::connect(&stream, &OnlineStream::line, [&stream, &events, markConnected](const QByteArray& text) {
 				events << "line " + QString::fromUtf8(text);
 				if (markConnected)
 					stream.connected();
 			});
-			QObject::connect(&stream, &LichessStream::connectionChanged, [&](bool connected) { events << (connected ? "back" : "lost"); });
-			QObject::connect(&stream, &LichessStream::stopped, [&](bool authExpired, int status) {
+			QObject::connect(&stream, &OnlineStream::connectionChanged, [&](bool connected) { events << (connected ? "back" : "lost"); });
+			QObject::connect(&stream, &OnlineStream::stopped, [&](bool authExpired, int status) {
 				events << QString("stopped %1%2").arg(status).arg(authExpired ? " auth" : "");
 			});
-			QObject::connect(&stream, &LichessStream::ended, [&](QNetworkReply::NetworkError error, QString, bool) {
+			QObject::connect(&stream, &OnlineStream::ended, [&](QNetworkReply::NetworkError error, QString, bool) {
 				events << (error == QNetworkReply::NoError ? "ended" : "ended with an error");
 			});
 		}
@@ -59,7 +59,7 @@ namespace LichessTests
 				FakeLichess::line(socket, "b");
 				socket->disconnectFromHost();
 			};
-			LichessStream stream(_nam, "event stream");
+			OnlineStream stream(_nam, "event stream");
 			stream.setTiming(5000, 100);
 			QStringList events;
 			record(stream, events);
@@ -82,7 +82,7 @@ namespace LichessTests
 				if (lichess.count(Events) == 1)
 					socket->disconnectFromHost();
 			};
-			LichessStream stream(_nam, "event stream");
+			OnlineStream stream(_nam, "event stream");
 			stream.setTiming(5000, 100);
 			QStringList events;
 			record(stream, events);
@@ -102,7 +102,7 @@ namespace LichessTests
 				FakeLichess::startStream(socket);
 				FakeLichess::line(socket, "hello"); // then nothing, the socket open
 			};
-			LichessStream stream(_nam, "event stream");
+			OnlineStream stream(_nam, "event stream");
 			stream.setTiming(300, 100);
 			QStringList events;
 			record(stream, events);
@@ -126,7 +126,7 @@ namespace LichessTests
 				timer->start(100);
 				keepAlive.push_back(std::move(timer));
 			};
-			LichessStream stream(_nam, "event stream");
+			OnlineStream stream(_nam, "event stream");
 			stream.setTiming(1000, 100); // ten keep-alive lines to each allowed silence
 			QStringList events;
 			record(stream, events, false);
@@ -154,7 +154,7 @@ namespace LichessTests
 						FakeLichess::answer(socket, status, status == 401 ? "Unauthorized" : "Not Found");
 					}
 				};
-				LichessStream stream(_nam, "event stream");
+				OnlineStream stream(_nam, "event stream");
 				stream.setTiming(5000, 100);
 				QStringList events;
 				record(stream, events, false);
@@ -190,7 +190,7 @@ namespace LichessTests
 				if (n == 1)
 					socket->disconnectFromHost();
 			};
-			LichessStream stream(_nam, "event stream");
+			OnlineStream stream(_nam, "event stream");
 			stream.setTiming(5000, 100);
 			QStringList events;
 			record(stream, events);
@@ -216,7 +216,7 @@ namespace LichessTests
 					FakeLichess::line(socket, "hello");
 				socket->disconnectFromHost();
 			};
-			LichessStream stream(_nam, "event stream");
+			OnlineStream stream(_nam, "event stream");
 			stream.setTiming(5000, 100);
 			QStringList events;
 			record(stream, events, false); // never back: each reconnect fails again
@@ -241,7 +241,7 @@ namespace LichessTests
 				FakeLichess::startStream(socket);
 				FakeLichess::line(socket, QByteArray::number(lichess.count(Events)));
 			};
-			LichessStream stream(_nam, "event stream");
+			OnlineStream stream(_nam, "event stream");
 			stream.setTiming(5000, 100);
 			QStringList events;
 			record(stream, events);
@@ -264,7 +264,7 @@ namespace LichessTests
 				FakeLichess::line(socket, "hello");
 				socket->disconnectFromHost();
 			};
-			LichessStream stream(_nam, "event stream");
+			OnlineStream stream(_nam, "event stream");
 			stream.setTiming(5000, 200);
 			QStringList events;
 			record(stream, events, false);
@@ -290,9 +290,9 @@ namespace LichessTests
 				socket->write("a\nend\nb\n");
 				socket->flush();
 			};
-			LichessStream stream(_nam, "stream");
+			OnlineStream stream(_nam, "stream");
 			QStringList lines;
-			QObject::connect(&stream, &LichessStream::line, [&](const QByteArray& text) {
+			QObject::connect(&stream, &OnlineStream::line, [&](const QByteArray& text) {
 				lines << QString::fromUtf8(text);
 				if (text == "end")
 					stream.close();

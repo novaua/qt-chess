@@ -1,46 +1,46 @@
 #include "stdafx.h"
-#include "LichessStream.h"
-#include "LichessClient.h"
+#include "OnlineStream.h"
+#include "OnlineClient.h"
 #include <QNetworkAccessManager>
 #include <algorithm>
 
-LichessStream::LichessStream(QNetworkAccessManager& nam, const QString& name, QObject* parent)
+OnlineStream::OnlineStream(QNetworkAccessManager& nam, const QString& name, QObject* parent)
     : QObject(parent), _nam(nam), _name(name)
 {
     _retry.setSingleShot(true);
-    connect(&_retry, &QTimer::timeout, this, &LichessStream::start);
+    connect(&_retry, &QTimer::timeout, this, &OnlineStream::start);
     _watchdog.setSingleShot(true);
     _watchdog.setInterval(20000);
     connect(&_watchdog, &QTimer::timeout, this, [this]() {
-        qDebug() << "LichessClient: nothing from the" << _name << "for" << _watchdog.interval() << "ms";
+        qDebug() << "OnlineClient: nothing from the" << _name << "for" << _watchdog.interval() << "ms";
         drop();
         lose();
     });
 }
 
-void LichessStream::setTiming(int silenceMs, int firstRetryMs)
+void OnlineStream::setTiming(int silenceMs, int firstRetryMs)
 {
     _watchdog.setInterval(silenceMs);
     _firstRetryMs = firstRetryMs;
 }
 
-void LichessStream::open(const QNetworkRequest& request)
+void OnlineStream::open(const QNetworkRequest& request)
 {
     close();
     _request = request;
     start();
 }
 
-void LichessStream::reopen()
+void OnlineStream::reopen()
 {
     if (_lost || _request.url().isEmpty())
         return; // a reconnect is on its way anyway, or nothing to open
-    qDebug() << "LichessClient:" << _name << "opened again";
+    qDebug() << "OnlineClient:" << _name << "opened again";
     drop();
     start();
 }
 
-void LichessStream::close()
+void OnlineStream::close()
 {
     _retry.stop();
     drop();
@@ -50,7 +50,7 @@ void LichessStream::close()
     _attempt = 0;
 }
 
-void LichessStream::setReconnect(bool reconnect)
+void OnlineStream::setReconnect(bool reconnect)
 {
     _reconnect = reconnect;
     if (reconnect && _reply)
@@ -61,7 +61,7 @@ void LichessStream::setReconnect(bool reconnect)
     }
 }
 
-void LichessStream::connected()
+void OnlineStream::connected()
 {
     _attempt = 0;
     if (_lost) {
@@ -70,7 +70,7 @@ void LichessStream::connected()
     }
 }
 
-void LichessStream::start()
+void OnlineStream::start()
 {
     _reply = _nam.get(_request);
     auto* reply = _reply;
@@ -83,7 +83,7 @@ void LichessStream::start()
         while (reply == _reply && reply->canReadLine()) {
             const QByteArray text = reply->readLine().trimmed();
             if (!text.isEmpty()) // a keep-alive (every ~7 s) isn't logged (BL-31: the log's size)
-                qDebug() << "LichessClient:" << _name << "line:" << text.left(300);
+                qDebug() << "OnlineClient:" << _name << "line:" << text.left(300);
             emit line(text);
         }
         if (reply == _reply && _reconnect)
@@ -93,13 +93,13 @@ void LichessStream::start()
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (reply != _reply)
             return; // closed, or replaced by reopen()
-        // A 401 may come before LichessClient's own check has marked the reply.
+        // A 401 may come before OnlineClient's own check has marked the reply.
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const bool authExpired = reply->property("authExpiredReported").toBool() || status == 401;
         // A reply we drop never comes here: canceled is a timeout (LI-12), said as such.
-        const bool timedOut = LichessClient::timedOut(reply);
+        const bool timedOut = OnlineClient::timedOut(reply);
         const auto error = timedOut ? QNetworkReply::TimeoutError : reply->error();
-        const QString errorString = timedOut ? LichessClient::noAnswerMessage() : reply->errorString();
+        const QString errorString = timedOut ? _noAnswerMessage : reply->errorString();
         _watchdog.stop();
         _reply = nullptr;
         reply->deleteLater();
@@ -108,7 +108,7 @@ void LichessStream::start()
             return;
         }
         if (authExpired || (400 <= status && status < 500)) {
-            qDebug() << "LichessClient:" << _name << "refused: HTTP" << status;
+            qDebug() << "OnlineClient:" << _name << "refused: HTTP" << status;
             close(); // reopen() won't ask again either; open() a new one to try later
             emit stopped(authExpired, status);
             return;
@@ -117,13 +117,13 @@ void LichessStream::start()
     });
 
     connect(reply, &QNetworkReply::errorOccurred, this, [this, reply](QNetworkReply::NetworkError code) {
-        qDebug() << "LichessClient:" << _name << "error | HTTP"
+        qDebug() << "OnlineClient:" << _name << "error | HTTP"
                  << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()
                  << "| code:" << code << "|" << reply->errorString();
     });
 }
 
-void LichessStream::drop()
+void OnlineStream::drop()
 {
     _watchdog.stop();
     if (!_reply)
@@ -134,11 +134,11 @@ void LichessStream::drop()
     reply->deleteLater();
 }
 
-void LichessStream::lose()
+void OnlineStream::lose()
 {
     const int delay = (std::min)(_firstRetryMs << (std::min)(_attempt, 4), 15000); // windows.h has a min macro
     ++_attempt;
-    qDebug() << "LichessClient:" << _name << "lost; reconnecting in" << delay << "ms";
+    qDebug() << "OnlineClient:" << _name << "lost; reconnecting in" << delay << "ms";
     if (!_lost) {
         _lost = true;
         emit connectionChanged(false);

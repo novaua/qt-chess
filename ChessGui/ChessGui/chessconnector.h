@@ -27,7 +27,7 @@
 #include "AppConfig.h"
 #include "AvatarProvider.h"
 #include "UserManager.h"
-#include "LichessClient.h"
+#include "OnlineClient.h"
 #include "gamelibrary.h"
 #include "gameanalyzer.h"
 #include "gameanalysis.h"
@@ -159,7 +159,7 @@ public:
 
 	void setAvatarProvider(AvatarProvider* ap) { _avatarProvider = ap; }
 	void setUserManager(UserManager* um);
-	void setLichessClient(LichessClient* lc);
+	void setLichessClient(OnlineClient* lc);
 	void setGameLibrary(GameLibrary* library); // BL-19: where the local games are kept
 	void setScreenshotScene(const QVariantMap& scene);
 
@@ -317,7 +317,7 @@ signals:
 
 public slots:
 	// One call per user action (CLAUDE.md "Key Conventions"). A Lichess game starts and ends
-	// through LichessClient::gameStarted / gameEnded, handled below.
+	// through OnlineClient::gameStarted / gameEnded, handled below.
 	// limitSec, incSec: the time control; 0 and 0: no clock. chess960 (LI-01A): StandardGame, RandomChess960
 	// (one of the 960 at random: the setup dialogs) or a position's number 0-959 (the tests, the scenes).
 	// Rematch keeps the game's start position.
@@ -414,13 +414,13 @@ public slots:
 	Q_INVOKABLE void respondRematch(bool accept);
 	Q_INVOKABLE void rematch();
 	// LI-16: the finished Lichess game's New opponent (CanSeekAgain): our rematch challenge still waiting is
-	// withdrawn, then the same seek again (LichessClient::seekAgain). The game stays on the board until the
+	// withdrawn, then the same seek again (OnlineClient::seekAgain). The game stays on the board until the
 	// seek's game replaces it, as a rematch's does.
 	Q_INVOKABLE void newOpponent();
 	// BL-10: accept a Lichess challenge to the player. The game on the board stays until Lichess has
 	// started the new one (then a robot game is autosaved, a correspondence game goes on at Lichess),
-	// so a refused Accept (LichessClient::challengeAcceptFailed) loses nothing. The game starts
-	// through LichessClient::gameStarted, as for a link. False (nothing sent) while
+	// so a refused Accept (OnlineClient::challengeAcceptFailed) loses nothing. The game starts
+	// through OnlineClient::gameStarted, as for a link. False (nothing sent) while
 	// CanAcceptChallenge is false.
 	Q_INVOKABLE bool acceptChallenge(const QString& challengeId);
 
@@ -537,7 +537,7 @@ private:
 
 	AvatarProvider* _avatarProvider = nullptr;
 	UserManager*    _userManager    = nullptr;
-	LichessClient*  _lichessClient  = nullptr;
+	OnlineClient*  _lichessClient  = nullptr;
 	QString         _onlineGameId;
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;
@@ -595,7 +595,7 @@ private:
 	QString _gameMode;
 	QString _opponentName;
 	QString _opponentUserId;
-	LichessPlayer _lichessMe, _lichessOpponent; // LI-07: a Lichess game's players, from its gameFull
+	OnlinePlayer _lichessMe, _lichessOpponent; // LI-07: a Lichess game's players, from its gameFull
 	QJsonObject _onlineGameFull; // LI-14: the Lichess game's gameFull (rated, speed, clock, created) for its record
 	QString _pendingOffer;
 	int  _drawOfferPly = -1; // ply of our last Lichess draw offer; -1 = none in this game

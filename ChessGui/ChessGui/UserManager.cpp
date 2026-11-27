@@ -2,7 +2,7 @@
 #include "UserManager.h"
 #include "AppConfig.h"
 #include "AvatarProvider.h"
-#include "LichessAuth.h"
+#include "OnlineAuth.h"
 #include "gamelibrary.h"
 #include "gamesignature.h"
 
@@ -334,7 +334,7 @@ void UserManager::saveLichessCredentials(const QString& plainToken, const QStrin
     if (!u) return;
     if (u->lichessUsername.compare(username, Qt::CaseInsensitive) != 0)
         u->lichessRatings.clear(); // another account's ratings
-    u->lichessTokenEncrypted = LichessClient::encryptToken(plainToken);
+    u->lichessTokenEncrypted = OnlineClient::encryptToken(plainToken);
     u->lichessUsername       = username;
     u->lichessExpired        = false;
     save();
@@ -357,7 +357,7 @@ QString UserManager::lichessToken()
 {
     if (!lichessConnected())
         return {};
-    const QString token = LichessClient::decryptToken(lichessTokenEncrypted());
+    const QString token = OnlineClient::decryptToken(lichessTokenEncrypted());
     if (token.isEmpty()) {
         qWarning() << "UserManager: the Lichess sign-in of" << activeUserId()
                    << "can't be decrypted here (linked on another PC or Windows account): reconnect";
@@ -394,13 +394,17 @@ void UserManager::clearLichessToken()
     emit usersChanged();
 }
 
-void UserManager::startLichessAuth(bool newUser)
+bool UserManager::startLichessAuth(bool newUser)
 {
     cancelLichessLink();
+    if (!_onlineServer) {
+        emit lichessLinkFailed(QStringLiteral("Online play isn't available"));
+        return false;
+    }
     _lichessNewUser = newUser;
-    _lichessAuth = new LichessAuth(this);
+    _lichessAuth = _onlineServer->createAuth(this);
 
-    connect(_lichessAuth, &LichessAuth::loginSucceeded, this, [this](const QString& token, const QString& username) {
+    connect(_lichessAuth, &OnlineAuth::loginSucceeded, this, [this](const QString& token, const QString& username) {
         const bool newUser = _lichessNewUser;
         finishLichessAuth();
         if (newUser) {
@@ -417,12 +421,13 @@ void UserManager::startLichessAuth(bool newUser)
         }
         saveLichessCredentials(token, username);
     });
-    connect(_lichessAuth, &LichessAuth::loginFailed, this, [this](const QString& error) {
-        qDebug() << "[LichessAuth] sign-in failed:" << error;
+    connect(_lichessAuth, &OnlineAuth::loginFailed, this, [this](const QString& error) {
+        qDebug() << "[OnlineAuth] sign-in failed:" << error;
         finishLichessAuth();
         emit lichessLinkFailed(error);
     });
     emit lichessLinkingChanged();
+    return true;
 }
 
 void UserManager::finishLichessAuth()
@@ -437,21 +442,21 @@ void UserManager::finishLichessAuth()
 void UserManager::linkLichess()
 {
     if (!activeUser()) return;
-    startLichessAuth(false);
-    _lichessAuth->startLogin();
+    if (startLichessAuth(false))
+        _lichessAuth->startLogin();
 }
 
 void UserManager::linkLichessToken(const QString& token)
 {
     if (!activeUser() || token.trimmed().isEmpty()) return;
-    startLichessAuth(false);
-    _lichessAuth->useToken(token.trimmed());
+    if (startLichessAuth(false))
+        _lichessAuth->useToken(token.trimmed());
 }
 
 void UserManager::createUserWithLichess()
 {
-    startLichessAuth(true);
-    _lichessAuth->startLogin();
+    if (startLichessAuth(true))
+        _lichessAuth->startLogin();
 }
 
 void UserManager::cancelLichessLink()
