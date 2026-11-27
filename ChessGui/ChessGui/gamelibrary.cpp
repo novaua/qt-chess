@@ -43,7 +43,7 @@ LocalRating LocalRating::fromJson(const QJsonObject& o)
 // ── LichessGameInfo ──────────────────────────────────────────────────────────
 
 LichessGameInfo::LichessGameInfo(const QString& gameId, bool rated, const QString& speed, int daysPerTurn,
-                                 const LichessPlayer& white, const LichessPlayer& black)
+                                 const OnlinePlayer& white, const OnlinePlayer& black)
 	: _gameId(gameId), _rated(rated), _speed(speed), _daysPerTurn(daysPerTurn), _white(white), _black(black)
 {
 }
@@ -74,8 +74,8 @@ LichessGameInfo LichessGameInfo::fromJson(const QJsonObject& o)
 		return {};
 	return LichessGameInfo(o.value(QStringLiteral("gameId")).toString(), o.value(QStringLiteral("rated")).toBool(),
 		o.value(QStringLiteral("speed")).toString(), o.value(QStringLiteral("daysPerTurn")).toInt(),
-		LichessPlayer::fromJson(o.value(QStringLiteral("white")).toObject()),
-		LichessPlayer::fromJson(o.value(QStringLiteral("black")).toObject()));
+		OnlinePlayer::fromJson(o.value(QStringLiteral("white")).toObject()),
+		OnlinePlayer::fromJson(o.value(QStringLiteral("black")).toObject()));
 }
 
 // ── GameRecord ───────────────────────────────────────────────────────────────

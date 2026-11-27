@@ -176,9 +176,9 @@ namespace GameLibraryTests
 			r.clockLimitSec = 600;
 			r.clockIncSec = 5;
 			r.resultRecorded = true;
-			const LichessPlayer me = LichessPlayer::fromJson(QJsonObject{
+			const OnlinePlayer me = OnlinePlayer::fromJson(QJsonObject{
 				{ "id", "alice" }, { "name", "Alice" }, { "rating", 1500 }, { "provisional", true } });
-			LichessPlayer them = LichessPlayer::fromJson(QJsonObject{
+			OnlinePlayer them = OnlinePlayer::fromJson(QJsonObject{
 				{ "id", "magnus" }, { "name", "Magnus" }, { "title", "GM" }, { "rating", 2850 } });
 			them.setFlairUrl(QStringLiteral("https://lichess1.org/assets/flair/img/people.crown.webp"));
 			r.lichess = LichessGameInfo("abcd1234", true, "rapid", 0, me, them);
@@ -210,10 +210,10 @@ namespace GameLibraryTests
 			Assert::AreEqual(QStringLiteral("e2e4 e7e5"), kept->moves.join(' '));
 
 			// Lichess's AI keeps its level (its name is made from it), an anonymous player has none.
-			const LichessPlayer ai = LichessPlayer::fromJson(LichessPlayer::fromJson(QJsonObject{ { "aiLevel", 3 } }).toJson());
+			const OnlinePlayer ai = OnlinePlayer::fromJson(OnlinePlayer::fromJson(QJsonObject{ { "aiLevel", 3 } }).toJson());
 			Assert::IsTrue(ai.isAi());
 			Assert::AreEqual(QStringLiteral("Stockfish level 3"), ai.name());
-			Assert::IsTrue(LichessPlayer().toJson().isEmpty());
+			Assert::IsTrue(OnlinePlayer().toJson().isEmpty());
 			Assert::IsTrue(GameRecord::fromJson(makeRecord("local", true, { "e2e4" }).toJson()).lichess.isEmpty(),
 				L"a local game has none");
 

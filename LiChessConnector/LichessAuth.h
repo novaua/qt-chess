@@ -1,24 +1,23 @@
 #pragma once
 #include "lichessconnector_global.h"
+#include "OnlineAuth.h"
 #include <QObject>
 #include <QTcpServer>
 #include <QNetworkAccessManager>
 
 class QNetworkReply;
 
-class LICHESSCONNECTOR_EXPORT LichessAuth : public QObject
+// Lichess's sign-in (LI-18: its OnlineAuth): OAuth with PKCE in the browser (a local QTcpServer takes the
+// callback), or a personal API token; either ends with the account's username from /api/account.
+class LICHESSCONNECTOR_EXPORT LichessAuth : public OnlineAuth
 {
 	Q_OBJECT
 
 public:
 	explicit LichessAuth(QObject* parent = nullptr);
-	void startLogin();                    // OAuth in the browser
-	void useToken(const QString& token);  // a personal API token instead of OAuth
-	void cancel();                        // stop waiting for the browser; no signal follows
-
-signals:
-	void loginSucceeded(const QString& token, const QString& username);
-	void loginFailed(const QString& error);
+	void startLogin() override;                    // OAuth in the browser
+	void useToken(const QString& token) override;  // a personal API token instead of OAuth
+	void cancel() override;                        // stop waiting for the browser; no signal follows
 
 private slots:
 	void onNewConnection();

@@ -1,7 +1,7 @@
 # ChessQtTests/
 
 The tests of the Qt parts: a DLL for the Microsoft CppUnitTest runner (Test Explorer, or
-`vstest.console.exe x64\Debug\ChessQtTests.dll`). It links ChessCore, UciConnector and LiChessConnector, and
+`vstest.console.exe x64\Debug\ChessQtTests.dll`). It links ChessCore, UciConnector, OnlineCore and LiChessConnector, and
 **compiles the ChessGui sources it tests** (`AppConfig`, `UserManager`, `gamelibrary`, `gameanalyzer`,
 `movegate`, …): a test of another ChessGui file adds that `.cpp` to `ChessQtTests.vcxproj`.
 

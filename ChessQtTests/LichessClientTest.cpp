@@ -9,6 +9,7 @@
 #include <memory>
 #include <CppUnitTest.h>
 #include "LichessClient.h"
+#include "LichessServer.h"
 #include "TestSupport.h"
 #include "FakeLichess.h"
 
@@ -48,12 +49,12 @@ namespace LichessTests
 
 		TEST_METHOD(ColorFromUrl_PlayerLinks_Test)
 		{
-			Assert::AreEqual(QString("black"), LichessClient::colorFromUrl("https://lichess.org/game/OHp33WmD?color=black"));
-			Assert::AreEqual(QString("white"), LichessClient::colorFromUrl("https://lichess.org/game/OHp33WmD?color=white"));
-			Assert::AreEqual(QString("black"), LichessClient::colorFromUrl("https://lichess.org/AbCdEfGh/black"));
-			Assert::IsTrue(LichessClient::colorFromUrl("https://lichess.org/game/OHp33WmD").isEmpty(), L"random: no side");
-			Assert::IsTrue(LichessClient::colorFromUrl("AbCdEfGh").isEmpty());
-			Assert::IsTrue(LichessClient::colorFromUrl("https://lichess.org/whitexyz").isEmpty(), L"an id, not a side");
+			Assert::AreEqual(QString("black"), LichessServer().colorFromUrl("https://lichess.org/game/OHp33WmD?color=black"));
+			Assert::AreEqual(QString("white"), LichessServer().colorFromUrl("https://lichess.org/game/OHp33WmD?color=white"));
+			Assert::AreEqual(QString("black"), LichessServer().colorFromUrl("https://lichess.org/AbCdEfGh/black"));
+			Assert::IsTrue(LichessServer().colorFromUrl("https://lichess.org/game/OHp33WmD").isEmpty(), L"random: no side");
+			Assert::IsTrue(LichessServer().colorFromUrl("AbCdEfGh").isEmpty());
+			Assert::IsTrue(LichessServer().colorFromUrl("https://lichess.org/whitexyz").isEmpty(), L"an id, not a side");
 		}
 
 		TEST_METHOD(GameIdFromUrl_BareId_ReturnsSame)
@@ -298,7 +299,7 @@ namespace LichessTests
 
 		TEST_METHOD(ParseOngoingGames_PlayerAnonymousAiAndVariants_Test)
 		{
-			auto games = LichessClient::parseOngoingGames(Json(R"({
+			auto games = LichessClient().parseOngoingGames(Json(R"({
 				"nbMyTurn": 1,
 				"nowPlaying": [
 					{ "gameId": "rapid001", "fullId": "rapid001abcd", "color": "white", "fen": "x", "lastMove": "e7e5",
@@ -346,7 +347,7 @@ namespace LichessTests
 		// LI-01A: standard and Chess960 only; the Board API would play the rest, Chess++ doesn't.
 		TEST_METHOD(ParseOngoingGames_VariantsPlayedHere_Test)
 		{
-			auto games = LichessClient::parseOngoingGames(Json(R"({ "nowPlaying": [
+			auto games = LichessClient().parseOngoingGames(Json(R"({ "nowPlaying": [
 				{ "gameId": "std00001", "speed": "rapid", "source": "friend", "variant": { "key": "standard" } },
 				{ "gameId": "c9600001", "speed": "correspondence", "source": "friend", "variant": "chess960" },
 				{ "gameId": "zh000001", "speed": "rapid", "source": "friend", "variant": { "key": "crazyhouse" } },
@@ -373,14 +374,14 @@ namespace LichessTests
 			Assert::AreEqual(QString("Racing Kings"), LichessClient::variantName("racingKings"));
 			Assert::AreEqual(QString("Crazyhouse"), LichessClient::variantName("crazyhouse"));
 			Assert::AreEqual(QString("Newvariant"), LichessClient::variantName("newvariant"), L"an unknown key, capitalised");
-			Assert::IsTrue(LichessClient::playableVariant("standard") && LichessClient::playableVariant("chess960"));
-			Assert::IsFalse(LichessClient::playableVariant("crazyhouse") || LichessClient::playableVariant("fromPosition"));
+			Assert::IsTrue(LichessServer().playsVariant("standard") && LichessServer().playsVariant("chess960"));
+			Assert::IsFalse(LichessServer().playsVariant("crazyhouse") || LichessServer().playsVariant("fromPosition"));
 		}
 
 		// The Board API: Rapid, Classical, Correspondence; Blitz only in direct challenges and vs AI.
 		TEST_METHOD(ParseOngoingGames_SpeedsTheBoardApiPlays_Test)
 		{
-			auto games = LichessClient::parseOngoingGames(Json(R"({ "nowPlaying": [
+			auto games = LichessClient().parseOngoingGames(Json(R"({ "nowPlaying": [
 				{ "gameId": "blitzFrn", "speed": "blitz",  "source": "friend", "variant": { "key": "standard" } },
 				{ "gameId": "blitzLob", "speed": "blitz",  "source": "lobby",  "variant": { "key": "standard" } },
 				{ "gameId": "bulletLo", "speed": "bullet", "source": "lobby",  "variant": { "key": "standard" } },
@@ -398,15 +399,15 @@ namespace LichessTests
 
 		TEST_METHOD(ParseOngoingGames_NoGames_Empty)
 		{
-			Assert::IsTrue(LichessClient::parseOngoingGames(Json(R"({ "nbMyTurn": 0, "nowPlaying": [] })")).isEmpty());
-			Assert::IsTrue(LichessClient::parseOngoingGames(Json(R"({})")).isEmpty());
+			Assert::IsTrue(LichessClient().parseOngoingGames(Json(R"({ "nbMyTurn": 0, "nowPlaying": [] })")).isEmpty());
+			Assert::IsTrue(LichessClient().parseOngoingGames(Json(R"({})")).isEmpty());
 		}
 
 		// Another profile's account (or none): the games shown belong to the old one.
 		TEST_METHOD(OngoingGames_TokenChange_ClearsTheList_Test)
 		{
 			LichessClient client;
-			client.setOngoingGames(LichessClient::parseOngoingGames(Json(R"({ "nowPlaying": [
+			client.setOngoingGames(client.parseOngoingGames(Json(R"({ "nowPlaying": [
 				{ "gameId": "rapid001", "speed": "rapid", "variant": { "key": "standard" } } ] })")));
 			Assert::AreEqual(1, (int)client.ongoingGames().size());
 
@@ -713,18 +714,18 @@ namespace LichessTests
 				"state":{"moves":"","status":"started"}})");
 			Assert::AreEqual(QString("Magnus"), opponent);
 			Assert::AreEqual(QString("Me"), meAtStart, L"the players are there when gameStarted comes");
-			const LichessPlayer& white = client.gamePlayer(true);
-			const LichessPlayer& black = client.gamePlayer(false);
+			const OnlinePlayer& white = client.gamePlayer(true);
+			const OnlinePlayer& black = client.gamePlayer(false);
 			Assert::AreEqual(QString("GM"), white.title());
 			Assert::AreEqual(QString("2850"), white.ratingText());
 			Assert::AreEqual(QString(), black.title(), L"null: no title");
 			Assert::AreEqual(QString("1523?"), black.ratingText(), L"provisional, as lichess.org writes it");
 
-			const LichessPlayer ai = LichessPlayer::fromJson(QJsonDocument::fromJson(R"({"aiLevel":3})").object());
+			const OnlinePlayer ai = OnlinePlayer::fromJson(QJsonDocument::fromJson(R"({"aiLevel":3})").object());
 			Assert::AreEqual(QString("Stockfish level 3"), ai.name());
 			Assert::IsTrue(ai.isAi());
 			Assert::AreEqual(QString(), ai.ratingText());
-			const LichessPlayer anonymous = LichessPlayer::fromJson(QJsonDocument::fromJson(R"({"id":null})").object());
+			const OnlinePlayer anonymous = OnlinePlayer::fromJson(QJsonDocument::fromJson(R"({"id":null})").object());
 			Assert::AreEqual(QString(), anonymous.name(), L"anonymous: no name (the connector says Anonymous)");
 		}
 

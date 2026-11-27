@@ -180,7 +180,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;$(SolutionDir)\LiChessConnector;.;$(SolutionDir)\ChessCore;release;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;$(SolutionDir)\LiChessConnector;$(SolutionDir)\OnlineCore;.;$(SolutionDir)\ChessCore;release;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-Zc:strictStrings -w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>release\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -293,7 +293,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;$(SolutionDir)\LiChessConnector;.;$(SolutionDir)\ChessCore;debug;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>GeneratedFiles\$(ConfigurationName);GeneratedFiles;$(SolutionDir)\UciConnector;$(SolutionDir)\LiChessConnector;$(SolutionDir)\OnlineCore;.;$(SolutionDir)\ChessCore;debug;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>debug\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -517,6 +517,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\LiChessConnector\LiChessConnector.vcxproj">
       <Project>{2ed0175f-4de2-440a-965e-04b2f1e4e3c0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\OnlineCore\OnlineCore.vcxproj">
+      <Project>{210ec68a-2be6-4ac7-8327-ca3364cae3a9}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\UciConnector\UciConnector.vcxproj">
       <Project>{bb742a5a-2729-45f2-90c1-2fa70de41600}</Project>

@@ -125,8 +125,8 @@ namespace GamePgnTests
 			r.clockLimitSec = 600;
 			r.clockIncSec = 5;
 			r.lichess = LichessGameInfo("abcd1234", true, "rapid", 0,
-				LichessPlayer::fromJson(QJsonObject{ { "name", "Magnus" }, { "title", "GM" }, { "rating", 2850 } }),
-				LichessPlayer::fromJson(QJsonObject{ { "name", "alice_lichess" }, { "rating", 1500 } }));
+				OnlinePlayer::fromJson(QJsonObject{ { "name", "Magnus" }, { "title", "GM" }, { "rating", 2850 } }),
+				OnlinePlayer::fromJson(QJsonObject{ { "name", "alice_lichess" }, { "rating", 1500 } }));
 			const auto pgn = GamePgn::ofRecord(r, QStringLiteral("Alice"));
 			Assert::IsTrue(pgn.has_value());
 			const QString text = pgn->text();
@@ -142,8 +142,8 @@ namespace GamePgnTests
 			// A casual correspondence game against an anonymous player, without ratings.
 			r.clockLimitSec = r.clockIncSec = 0;
 			r.opponentName = QStringLiteral("Anonymous");
-			r.lichess = LichessGameInfo("efgh5678", false, "correspondence", 3, LichessPlayer(),
-				LichessPlayer::fromJson(QJsonObject{ { "name", "alice_lichess" } }));
+			r.lichess = LichessGameInfo("efgh5678", false, "correspondence", 3, OnlinePlayer(),
+				OnlinePlayer::fromJson(QJsonObject{ { "name", "alice_lichess" } }));
 			const QString casual = GamePgn::ofRecord(r, QStringLiteral("Alice"))->text();
 			Assert::IsTrue(has(casual, "[Event \"Casual Correspondence game\"]"), casual.toStdWString().c_str());
 			Assert::IsTrue(has(casual, "[White \"Anonymous\"]"));
@@ -153,7 +153,7 @@ namespace GamePgnTests
 			// A Chess960 game: lichess.org names it by the variant, not the speed (review of #250-#252).
 			GameRecord c960 = record("lichess", true, { "f1g1", "f8g8" });
 			c960.setStartPosition(Chess::StartPosition::Chess960(3));
-			c960.lichess = LichessGameInfo("c9600001", true, "blitz", 0, LichessPlayer(), LichessPlayer());
+			c960.lichess = LichessGameInfo("c9600001", true, "blitz", 0, OnlinePlayer(), OnlinePlayer());
 			const auto pgn960 = GamePgn::ofRecord(c960, QStringLiteral("Alice"));
 			Assert::IsTrue(pgn960.has_value());
 			Assert::AreEqual(QStringLiteral("Rated Chess960 game"), pgn960->event());

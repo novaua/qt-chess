@@ -7,9 +7,9 @@
 #include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
-#include "LichessClient.h"
+#include "OnlineClient.h"
 
-class LichessAuth;
+class OnlineAuth;
 struct GameRecord;
 class QJsonArray;
 class QJsonObject;
@@ -137,6 +137,8 @@ public:
     void saveLichessCredentials(const QString& plainToken, const QString& username);
     void setLichessAccount(const QString& username, const QVariantMap& ratings); // after /api/account
     void setLichessExpired();                                                     // a 401
+    // LI-18: the server the Lichess sign-in goes to (its OnlineAuth); none: linking fails, said.
+    void setOnlineServer(std::shared_ptr<OnlineServer> server) { _onlineServer = std::move(server); }
 
     static QString usersFilePath();
     static QString backupFilePath(int n); // backups/users-<n>.json, 1 = newest
@@ -220,7 +222,8 @@ private:
     QString     _activeUserId;
     bool        _isLoggedIn = false;
     bool        _damaged    = false;
-    LichessAuth* _lichessAuth = nullptr;
+    OnlineAuth* _lichessAuth = nullptr;
+    std::shared_ptr<OnlineServer> _onlineServer; // setOnlineServer: its sign-in (LI-18)
     bool         _lichessNewUser = false; // the sign-in creates a profile
 
     QVariantList _restoredStatistics; // takeRestoredStatistics()
@@ -256,7 +259,7 @@ private:
     static QString swapInProfileDir(const QString& userId, const QString& staging);
     // At load: what a crash mid-swap left (a staging folder; an old folder set aside and not put back).
     static void recoverInterruptedImports();
-    void startLichessAuth(bool newUser);
+    bool startLichessAuth(bool newUser); // false (said with lichessLinkFailed): no server to sign in to
     void finishLichessAuth();
     User*       activeUser();
     const User* activeUser() const;

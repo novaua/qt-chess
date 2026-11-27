@@ -33,6 +33,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FakeUci", "FakeUci\FakeUci.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LiChessConnector", "LiChessConnector\LiChessConnector.vcxproj", "{2ED0175F-4DE2-440A-965E-04B2F1E4E3C0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OnlineCore", "OnlineCore\OnlineCore.vcxproj", "{210EC68A-2BE6-4AC7-8327-CA3364CAE3A9}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Installer", "Installer", "{AE37CA9D-AD1F-4CE6-ADB0-892AC6863581}"
 	ProjectSection(SolutionItems) = preProject
 		installer\ChessSetup.iss = installer\ChessSetup.iss
@@ -88,6 +90,10 @@ Global
 		{2ED0175F-4DE2-440A-965E-04B2F1E4E3C0}.Debug|x64.Build.0 = Debug|x64
 		{2ED0175F-4DE2-440A-965E-04B2F1E4E3C0}.Release|x64.ActiveCfg = Release|x64
 		{2ED0175F-4DE2-440A-965E-04B2F1E4E3C0}.Release|x64.Build.0 = Release|x64
+		{210EC68A-2BE6-4AC7-8327-CA3364CAE3A9}.Debug|x64.ActiveCfg = Debug|x64
+		{210EC68A-2BE6-4AC7-8327-CA3364CAE3A9}.Debug|x64.Build.0 = Debug|x64
+		{210EC68A-2BE6-4AC7-8327-CA3364CAE3A9}.Release|x64.ActiveCfg = Release|x64
+		{210EC68A-2BE6-4AC7-8327-CA3364CAE3A9}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

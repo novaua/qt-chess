@@ -4,7 +4,7 @@
 #include "appservices.h"
 #include "fakelichessserver.h"
 #include "gamelibrary.h"
-#include "LichessClient.h"
+#include "OnlineClient.h"
 #include "UserManager.h"
 
 #include <QClipboard>
@@ -117,8 +117,8 @@ QString TestSetup::addLichessGame()
 	r.clockLimitSec = 600;
 	r.clockIncSec = 5;
 	r.lichess = LichessGameInfo(QStringLiteral("kept0001"), true, QStringLiteral("rapid"), 0,
-		LichessPlayer::fromJson(QJsonObject{ { "id", "testerchess" }, { "name", "TesterChess" }, { "rating", 1650 } }),
-		LichessPlayer::fromJson(QJsonObject{ { "id", "magnus" }, { "name", "Magnus" }, { "title", "GM" }, { "rating", 2850 } }));
+		OnlinePlayer::fromJson(QJsonObject{ { "id", "testerchess" }, { "name", "TesterChess" }, { "rating", 1650 } }),
+		OnlinePlayer::fromJson(QJsonObject{ { "id", "magnus" }, { "name", "Magnus" }, { "title", "GM" }, { "rating", 2850 } }));
 	return _services->gameLibrary()->put(r);
 }
 

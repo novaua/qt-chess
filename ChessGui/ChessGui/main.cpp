@@ -13,7 +13,7 @@
 #include "AppConfig.h"
 #include "AvatarProvider.h"
 #include "UserManager.h"
-#include "LichessClient.h"
+#include "OnlineClient.h"
 #include "gamelibrary.h"
 #include "gameanalysis.h"
 
@@ -48,7 +48,7 @@ void customLogMessageHandler(QtMsgType type, const QMessageLogContext&, const QS
 
 // Screenshot scenes with several profiles, a linked Lichess account, statistics or backups. No network:
 // the token is a placeholder and the account isn't refreshed in screenshot mode.
-static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
+static void seedScreenshotProfiles(UserManager* um, const OnlineClient* lichess, QVariantMap& sceneMap)
 {
 	const QString scene = sceneMap.value("scene").toString();
 	if (scene == "restore") { // two backups: the profiles before Alice, and now (the same as users.json)
@@ -69,7 +69,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 	// The Online page's "Your games" and Home's Continue (LI-04): fixed rows, no network.
 	if (scene == "online" || scene == "online-game-menu" || scene == "continue" || scene == "continue-online" || scene == "continue-list"
 	    || scene == "continue-list-online" || scene == "continue-list-starting" || scene == "continue-starting") {
-		sceneMap["ongoingGames"] = LichessClient::parseOngoingGames(QJsonDocument::fromJson(R"({ "nowPlaying": [
+		sceneMap["ongoingGames"] = lichess->parseOngoingGames(QJsonDocument::fromJson(R"({ "nowPlaying": [
 			{ "gameId": "aEPqtBMc", "color": "white", "isMyTurn": true, "secondsLeft": 540,
 			  "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "lastMove": "b8c6",
 			  "opponent": { "id": "friend", "username": "Friend", "rating": 1650 },
@@ -138,7 +138,7 @@ static void seedScreenshotProfiles(UserManager* um, QVariantMap& sceneMap)
 // Scene "takeback" (LI-03 check, not in `all`): a Lichess game fed to the stream parser as the Board
 // API sends it: four moves, then the list after an accepted takeback of two. The window is grabbed
 // once the board has shown that. No network.
-static void playTakebackScene(ChessConnector* connector, LichessClient* lichess)
+static void playTakebackScene(ChessConnector* connector, OnlineClient* lichess)
 {
 	lichess->setCurrentGameId(QStringLiteral("takeback1"));
 	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"takeback1",
@@ -156,7 +156,7 @@ static void playTakebackScene(ChessConnector* connector, LichessClient* lichess)
 // Scenes "clock-online" and "clock-correspondence" (LI-02): a Lichess game with its clock (clock-online:
 // the players' titles and ratings on the cards, LI-07), fed to the
 // stream parser as the Board API sends it. Time stands still, so the times are the ones sent here.
-static void playClockScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
+static void playClockScene(ChessConnector* connector, OnlineClient* lichess, const QString& scene)
 {
 	lichess->setCurrentGameId(QStringLiteral("clock1"));
 	lichess->handleGameStreamLine(scene == "clock-online"
@@ -175,7 +175,7 @@ static void playClockScene(ChessConnector* connector, LichessClient* lichess, co
 // parser, White (us) after 1. e4 e5 2. Nf3, Black to move. premove: Bf1-c4 waits, the d2 pawn shows
 // where it may go (premove-capture: the f3 knight, which may take on e5, BL-21). premove-played: Black's Nc6 comes, then Bc4 is played (not posted: offline).
 // premove-dropped: e4-e5 waits, and after Nc6 the pawn can't move there: the premove is gone.
-static void playPremoveScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
+static void playPremoveScene(ChessConnector* connector, OnlineClient* lichess, const QString& scene)
 {
 	lichess->setCurrentGameId(QStringLiteral("premove1"));
 	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"premove1",
@@ -264,8 +264,8 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 			}
 			if (*k.title)
 				opponent["title"] = QString::fromLatin1(k.title);
-			const LichessPlayer me = LichessPlayer::fromJson(QJsonObject{ { "id", "testerchess" }, { "name", "TesterChess" }, { "rating", 1688 } });
-			const LichessPlayer them = LichessPlayer::fromJson(opponent);
+			const OnlinePlayer me = OnlinePlayer::fromJson(QJsonObject{ { "id", "testerchess" }, { "name", "TesterChess" }, { "rating", 1688 } });
+			const OnlinePlayer them = OnlinePlayer::fromJson(opponent);
 			r.lichess = LichessGameInfo(QString::fromLatin1(k.id), k.rated, QString::fromLatin1(k.speed), k.days,
 			                            k.white ? me : them, k.white ? them : me);
 			library->put(r);
@@ -328,7 +328,7 @@ static void seedScreenshotGames(GameLibrary* library, const QString& scene)
 // Scene "rejoin" (BL-18): an unfinished Lichess game joined with its moves (as Continue does). Ready
 // with the first frame drawn after the join, the game page's first (Take-Screenshot.ps1 grabs this
 // scene without a delay): it must show the game's position already, not the start position.
-static void playRejoinScene(ChessConnector* connector, LichessClient* lichess, QQuickWindow* window)
+static void playRejoinScene(ChessConnector* connector, OnlineClient* lichess, QQuickWindow* window)
 {
 	lichess->setCurrentGameId(QStringLiteral("rejoin01"));
 	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"rejoin01",
@@ -345,7 +345,7 @@ static void playRejoinScene(ChessConnector* connector, LichessClient* lichess, Q
 
 // Scene "reconnecting" (LI-06): a Lichess game whose connection is lost: the bar over the board. The
 // stream parser can't lose a connection it hasn't got, so the scene says it did.
-static void playReconnectingScene(ChessConnector* connector, LichessClient* lichess)
+static void playReconnectingScene(ChessConnector* connector, OnlineClient* lichess)
 {
 	lichess->setCurrentGameId(QStringLiteral("reconnect1"));
 	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"reconnect1",
@@ -360,7 +360,7 @@ static void playReconnectingScene(ChessConnector* connector, LichessClient* lich
 // Scenes "draw-offer" and "messages" (BL-13 step 3): a Lichess game whose opponent offers a draw: the
 // offer over the command bar (in the InfoBar when it doesn't fit, e.g. 640 wide). "messages" then opens
 // the recent messages (ScreenshotScene.qml adds earlier ones).
-static void playDrawOfferScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
+static void playDrawOfferScene(ChessConnector* connector, OnlineClient* lichess, const QString& scene)
 {
 	lichess->setCurrentGameId(QStringLiteral("draw1"));
 	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"draw1",
@@ -377,7 +377,7 @@ static void playDrawOfferScene(ChessConnector* connector, LichessClient* lichess
 // opponent left the game. The countdown; the win can be claimed (the opponent's turn); the player's turn
 // (Lichess takes the claim only on the opponent's turn: a move first); a refused claim's error, which
 // takes the command bar's place for its 4 s (the claim waits for an answer: it comes back then).
-static void playOpponentLeftScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
+static void playOpponentLeftScene(ChessConnector* connector, OnlineClient* lichess, const QString& scene)
 {
 	lichess->setCurrentGameId(QStringLiteral("gone1"));
 	const QByteArray moves = scene == "opponent-left-turn" ? "e2e4 e7e5" : "e2e4 e7e5 g1f3";
@@ -397,7 +397,7 @@ static void playOpponentLeftScene(ChessConnector* connector, LichessClient* lich
 // Scene "lichess-result" (LI-14): a rated Rapid game on Lichess, the opponent (FM Friend, Black) resigned after
 // 3. Bc4 Nf6: its result card has Analyse (when an engine is found), as a local game's, and the game is kept.
 // "lichess-new-opponent" (LI-16): the same game paired by Quick pairing: New opponent in New game's place.
-static void playLichessResultScene(ChessConnector* connector, LichessClient* lichess, const QString& scene)
+static void playLichessResultScene(ChessConnector* connector, OnlineClient* lichess, const QString& scene)
 {
 	lichess->setCurrentGameId(QStringLiteral("result1"));
 	if (scene == "lichess-new-opponent")
@@ -416,7 +416,7 @@ static void playLichessResultScene(ChessConnector* connector, LichessClient* lic
 
 // Scenes "challenge", "challenge-unplayable" and "challenge-ingame" (BL-10): challenges to Tester
 // (TesterChess on Lichess), fed to the event stream's parser (no network).
-static void seedChallenges(LichessClient* lichess, const QString& scene)
+static void seedChallenges(OnlineClient* lichess, const QString& scene)
 {
 	const bool online = scene.startsWith("online-challenges");
 	if (scene == "challenge-unplayable" || online) {
@@ -442,7 +442,7 @@ static void seedChallenges(LichessClient* lichess, const QString& scene)
 }
 
 // Scene "challenge-ingame": a real-time Lichess game on the board, then a challenge: Decline only.
-static void playChallengeInGameScene(ChessConnector* connector, LichessClient* lichess)
+static void playChallengeInGameScene(ChessConnector* connector, OnlineClient* lichess)
 {
 	lichess->setCurrentGameId(QStringLiteral("ingame01"));
 	lichess->handleGameStreamLine(R"({"type":"gameFull","id":"ingame01","clock":{"initial":600000,"increment":5000},
@@ -456,7 +456,7 @@ static void playChallengeInGameScene(ChessConnector* connector, LichessClient* l
 // Scenes "continue-starting", "continue-list-starting" and "challenge-accepting" (BL-16): what a button
 // shows while Lichess hasn't answered yet. Lichess is a local server that takes the request and never
 // answers, so the rejoin or the Accept stays under way (no network).
-static void useSilentLichess(LichessClient* lichess)
+static void useSilentLichess(OnlineClient* lichess)
 {
 	auto* server = new QTcpServer(lichess);
 	QObject::connect(server, &QTcpServer::newConnection, server, [server]() {
@@ -593,7 +593,7 @@ int main(int argc, char* argv[])
 			sceneMap["width"]  = size[0].toInt();
 			sceneMap["height"] = size[1].toInt();
 		}
-		seedScreenshotProfiles(userManager, sceneMap);
+		seedScreenshotProfiles(userManager, lichessClient, sceneMap);
 		connector->setScreenshotScene(sceneMap);
 
 		const int delay = qMax(0, parser.value(delayOption).toInt());

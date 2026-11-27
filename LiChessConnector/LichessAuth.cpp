@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "LichessAuth.h"
-#include "LichessClient.h"
+#include "OnlineClient.h"
 
 #include <QCryptographicHash>
 #include <QJsonDocument>
@@ -28,14 +28,14 @@ static QString base64Url(const QByteArray& data)
 // cancel() disconnects before it aborts: a canceled reply here timed out.
 QString LichessAuth::errorMessage(const QNetworkReply* reply)
 {
-	return LichessClient::timedOut(reply) ? LichessClient::noAnswerMessage() : reply->errorString();
+	return OnlineClient::timedOut(reply) ? QStringLiteral("Lichess didn't answer") : reply->errorString();
 }
 
 LichessAuth::LichessAuth(QObject* parent)
-	: QObject(parent)
+	: OnlineAuth(parent)
 {
 	connect(&_server, &QTcpServer::newConnection, this, &LichessAuth::onNewConnection);
-	_nam.setTransferTimeout(LichessClient::RequestTimeoutMs); // LI-12: else a silent server is waited for forever
+	_nam.setTransferTimeout(OnlineClient::RequestTimeoutMs); // LI-12: else a silent server is waited for forever
 }
 
 void LichessAuth::cancel()

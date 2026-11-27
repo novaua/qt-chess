@@ -17,7 +17,7 @@ AppServices::AppServices(QObject* owner, bool offline)
 	: _connector(new ChessConnector(owner))
 	, _avatarProvider(new AvatarProvider(owner))
 	, _userManager(new UserManager(owner))
-	, _lichessClient(new LichessClient(owner))
+	, _lichessClient(new LichessClient(owner)) // LI-18 step 3: made by OnlineHub, from its plugin
 	, _appInfo(new AppInfo(owner))
 	, _gameLibrary(new GameLibrary(owner))
 {
@@ -26,6 +26,7 @@ AppServices::AppServices(QObject* owner, bool offline)
 	_connector->setLichessClient(_lichessClient);
 	_connector->setGameLibrary(_gameLibrary);
 	_gameLibrary->setUserManager(_userManager); // the active profile's games (and the old saves migrated)
+	_userManager->setOnlineServer(_lichessClient->sharedServer()); // its sign-in
 	_lichessClient->setOffline(offline);
 }
 
@@ -42,8 +43,8 @@ void AppServices::start()
 	QObject::connect(_userManager, &UserManager::lichessChanged, &_guard, [this]() { updateLichessToken(); });
 	updateLichessToken(); // load() sets the active user silently: seed the token now
 
-	QObject::connect(_lichessClient, &LichessClient::accountFetched, _userManager, &UserManager::setLichessAccount);
-	QObject::connect(_lichessClient, &LichessClient::authExpired, _userManager, &UserManager::setLichessExpired);
+	QObject::connect(_lichessClient, &OnlineClient::accountFetched, _userManager, &UserManager::setLichessAccount);
+	QObject::connect(_lichessClient, &OnlineClient::authExpired, _userManager, &UserManager::setLichessExpired);
 	// A Lichess game left unfinished (Home, switch user) is now one of the ongoing games (LI-04).
 	auto* connector = _connector;
 	auto* lichess = _lichessClient;
@@ -51,7 +52,7 @@ void AppServices::start()
 		if (!connector->isOnlineGame())
 			lichess->refreshOngoingGames();
 	});
-	QObject::connect(lichess, &LichessClient::gameEnded, lichess, [lichess]() {
+	QObject::connect(lichess, &OnlineClient::gameEnded, lichess, [lichess]() {
 		QTimer::singleShot(3000, lichess, [lichess]() {
 			lichess->refreshAccount();      // the new rating
 			lichess->refreshOngoingGames(); // that game is no longer ongoing
@@ -65,7 +66,7 @@ void AppServices::registerQmlTypes() const
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "ChessConnector", _connector);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "AvatarProvider", _avatarProvider);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "UserManager", _userManager);
-	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "LichessClient", _lichessClient);
+	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "LichessClient", _lichessClient); // LI-18 step 3: Online
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "AppInfo", _appInfo);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "GameLibrary", _gameLibrary); // BL-19
 	qmlRegisterType<LayoutGate>("ChessPlusPlus", 1, 0, "LayoutGate"); // BL-11
