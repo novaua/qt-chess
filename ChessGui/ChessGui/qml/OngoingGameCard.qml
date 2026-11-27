@@ -3,7 +3,7 @@ import QtQuick.Controls
 import ChessPlusPlus
 import "lichess.js" as Lichess
 
-// An unfinished Lichess game (a row of LichessClient.ongoingGames) as a GameCard: Continue rejoins it
+// An unfinished Lichess game (a row of Online.current.ongoingGames) as a GameCard: Continue rejoins it
 // (ChessConnector.continueOnlineGame), or lichess.org opens a game the Board API can't play here.
 // On the Online page and in the Continue list (BL-17). A right click on it opens a menu (LI-10): Continue,
 // Open on lichess.org, Copy link.

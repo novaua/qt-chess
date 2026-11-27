@@ -40,7 +40,8 @@ Page {
             Layout.alignment: Qt.AlignHCenter
         }
         Label {
-            text: "Play against the computer, with a friend on this PC, or online on Lichess."
+            text: Online.available ? "Play against the computer, with a friend on this PC, or online on Lichess."
+                                   : "Play against the computer or with a friend on this PC."
             color: Theme.textSecondary
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
@@ -49,6 +50,8 @@ Page {
         }
 
         Button {
+            objectName: "continueWithLichess"
+            visible: Online.available   // LI-18: no online server's plugin
             text: page._linking ? "Waiting for the browser…" : "Continue with Lichess"
             icon.source: Theme.icon("globe")
             highlighted: true
@@ -102,6 +105,7 @@ Page {
         }
 
         Label {
+            visible: Online.available
             text: "Local profiles work offline. You can link a Lichess account later in your profile."
             font: Theme.caption
             color: Theme.textSecondary

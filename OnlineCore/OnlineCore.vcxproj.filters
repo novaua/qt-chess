@@ -43,6 +43,9 @@
     <ClCompile Include="OnlineStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="OnlineHub.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="OnlineClient.h">
@@ -55,6 +58,9 @@
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="OnlineAuth.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="OnlineHub.h">
       <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>

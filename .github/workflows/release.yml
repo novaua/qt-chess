@@ -104,7 +104,9 @@ jobs:
           New-Item -Path deploy -ItemType Directory -Force
           Copy-Item x64\Release\ChessGui.exe       deploy\
           Copy-Item x64\Release\OnlineCore.dll deploy\
-          Copy-Item x64\Release\LiChessConnector.dll deploy\
+          # LI-18: the online servers' plugins, loaded from the folder "online" beside the app
+          New-Item -Path deploy\online -ItemType Directory -Force
+          Copy-Item x64\Release\online\*.dll deploy\online\
           # windeployqt bundles vc_redist.x64.exe only when VCINSTALLDIR is set
           # (setup-msbuild, unlike a VS dev prompt, doesn't set it).
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
@@ -118,7 +120,7 @@ jobs:
         shell: pwsh
         run: |
           $expected = "${{ steps.version.outputs.build }}"
-          foreach ($f in 'deploy\ChessGui.exe', 'deploy\OnlineCore.dll', 'deploy\LiChessConnector.dll') {
+          foreach ($f in 'deploy\ChessGui.exe', 'deploy\OnlineCore.dll', 'deploy\online\LichessOnline.dll') {
             $vi = (Get-Item $f).VersionInfo
             Write-Host "$f : $($vi.ProductName) $($vi.ProductVersion) / $($vi.CompanyName)"
             if ($vi.ProductName -ne 'Chess++' -or [string]::IsNullOrEmpty($vi.CompanyName)) {

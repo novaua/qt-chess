@@ -16,7 +16,7 @@ Page {
     signal backRequested()
 
     readonly property var _local: GameLibrary.unfinishedGames
-    readonly property var _games: UserManager.lichessConnected ? LichessClient.ongoingGames : []
+    readonly property var _games: UserManager.lichessConnected ? (Online.current?.ongoingGames ?? []) : []
     readonly property int _count: _local.length + _games.length
     // "Your turn" as the cards say it: a game vs the robot on the player's move (a two-player game is
     // both players' at this computer), a Lichess game on theirs.
@@ -62,7 +62,7 @@ Page {
 
             Label {
                 text: page._count === 0
-                      ? (LichessClient.ongoingGamesLoading ? "Loading…" : "No unfinished games.")
+                      ? (Online.current?.ongoingGamesLoading ? "Loading…" : "No unfinished games.")
                       : page._count + (page._count === 1 ? " unfinished game" : " unfinished games")
                         + (page._myTurnCount === 0 ? "" : page._count === 1 ? " · your turn" : " · your turn in " + page._myTurnCount)
                 color: Theme.textSecondary

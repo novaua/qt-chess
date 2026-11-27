@@ -5,10 +5,10 @@ import ChessPlusPlus
 import "timecontrols.js" as TimeControls
 
 // LI-09: lichess.org's quick pairing grid, on the Online page. Each tile is an action: a click seeks a
-// random opponent with that clock (seekRequested; LichessClient.startSeek). The Board API seeks only
+// random opponent with that clock (seekRequested; Online.current.startSeek). The Board API seeks only
 // Rapid and Classical: the Bullet and Blitz tiles are greyed, and open lichess.org's lobby (the owner's
 // decision D1). The twelfth tile, Custom, asks for the Seek dialog (customRequested, D2): a clock of
-// the player's own, or correspondence. While a seek waits (LichessClient.seek), its tile shows a ring and
+// the player's own, or correspondence. While a seek waits (Online.current.seek), its tile shows a ring and
 // the time it has waited (Custom: its clock too), and a click on it cancels the seek; the others wait. One Tab stop: the arrows move between
 // the tiles, Enter or Space clicks one. A tile shows its clock and speed only, as lichess.org's: no rating (the
 // owner's hand tests, 2026-11-22: "1500?" read as a setting; the ratings are on the Profile page).
@@ -24,8 +24,8 @@ GridLayout {
     readonly property var tiles: TimeControls.presets.map(p => Object.assign({
             lichessOnly: p.speed === "Bullet" || p.speed === "Blitz", custom: false }, p))
         .concat([{ label: "Custom", limitSec: 0, incSec: 0, speed: "", lichessOnly: false, custom: true }])
-    readonly property var seek: LichessClient.seek
-    readonly property bool seeking: LichessClient.seeking
+    readonly property var seek: Online.current.seek
+    readonly property bool seeking: Online.current.seeking
     // The waiting seek's tile: Custom's for the dialog's (even with a tile's clock), else its clock's.
     readonly property int seekingIndex: {
         if (!seeking)
@@ -35,7 +35,7 @@ GridLayout {
         const i = tiles.findIndex(t => !t.custom && t.limitSec === seek.limitSec && t.incSec === seek.incrementSec)
         return i >= 0 ? i : tiles.length - 1
     }
-    readonly property int elapsedSec: LichessClient.seekWaitedSec   // counted once, in C++, for every view
+    readonly property int elapsedSec: Online.current.seekWaitedSec   // counted once, in C++, for every view
     property int current: 6   // the keyboard's tile: 10+0 to start with
 
     function usable(index) {
@@ -45,7 +45,7 @@ GridLayout {
     function activate(index) {
         const tile = tiles[index]
         if (index === seekingIndex)
-            LichessClient.cancelSeek()
+            Online.current.cancelSeek()
         else if (tile.lichessOnly)
             Qt.openUrlExternally("https://lichess.org/")
         else if (!usable(index))

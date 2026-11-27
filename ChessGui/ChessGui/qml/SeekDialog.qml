@@ -10,7 +10,7 @@ import "lichess.js" as Lichess
 // Correspondence (days per move). Rated or casual and the variant come from the Quick pairing card
 // (openWith). The Board API seeks Rapid, Classical and Correspondence only: a faster clock can't be
 // sent, and says why. A real-time seek waits as a tile's does (the Custom tile shows it:
-// realTimeSeekStarted); a correspondence one is left on Lichess (LichessClient.seekSent, D6). The last
+// realTimeSeekStarted); a correspondence one is left on Lichess (OnlineClient.seekSent, D6). The last
 // choice is remembered. available: a seek may start now (ChessGame: no seek waiting, no game starting or
 // running in real time), checked again on Seek, as the state may change while the dialog is open.
 AppDialog {
@@ -33,7 +33,7 @@ AppDialog {
     readonly property int limitSec: Math.round(minuteSteps[Math.round(minutesSlider.value)] * 60)
     readonly property int incSec: incrementSteps[Math.round(incrementSlider.value)]
     readonly property int days: daySteps[daysRow.checkedIndex]
-    readonly property string speed: LichessClient.speedOf(limitSec, incSec)   // "rapid"
+    readonly property string speed: Online.current?.speedOf(limitSec, incSec) ?? ""   // "rapid"
     readonly property bool tooFast: !correspondence && speed !== "rapid" && speed !== "classical"
     readonly property bool canSeek: !tooFast && available
     readonly property string minutesText: TimeControls.label(limitSec, 0).replace(/\+0$/, "")   // "20", "½"
@@ -74,9 +74,9 @@ AppDialog {
             AppSettings.seekLimitSec = limitSec
             AppSettings.seekIncSec = incSec
         }
-        LichessClient.startSeek(correspondence ? 0 : limitSec, correspondence ? 0 : incSec, correspondence ? days : 0,
+        Online.current.startSeek(correspondence ? 0 : limitSec, correspondence ? 0 : incSec, correspondence ? days : 0,
                                 rated, chess960 ? "chess960" : "standard")
-        if (!correspondence && LichessClient.seeking)
+        if (!correspondence && Online.current.seeking)
             realTimeSeekStarted()
     }
 
@@ -181,7 +181,7 @@ AppDialog {
         Label {
             objectName: "seekUnavailable"
             visible: !dialog.available
-            text: LichessClient.seeking ? "A seek is waiting already: cancel it first."
+            text: Online.current?.seeking ? "A seek is waiting already: cancel it first."
                                         : "A game is starting or going on: one real-time game at a time."
             color: Theme.critical
             font: Theme.caption

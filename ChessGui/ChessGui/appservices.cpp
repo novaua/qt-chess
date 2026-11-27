@@ -4,30 +4,47 @@
 
 #include "AppInfo.h"
 #include "AvatarProvider.h"
-#include "LichessClient.h"
+#include "OnlineHub.h"
 #include "UserManager.h"
 #include "chessconnector.h"
 #include "gamelibrary.h"
 #include "layoutgate.h"
 
+#include <QCoreApplication>
 #include <QTimer>
 #include <QtQml/qqml.h>
 
-AppServices::AppServices(QObject* owner, bool offline)
+AppServices::AppServices(QObject* owner, bool offline, const QString& pluginDir)
 	: _connector(new ChessConnector(owner))
 	, _avatarProvider(new AvatarProvider(owner))
 	, _userManager(new UserManager(owner))
-	, _lichessClient(new LichessClient(owner)) // LI-18 step 3: made by OnlineHub, from its plugin
+	, _onlineHub(new OnlineHub(owner))
 	, _appInfo(new AppInfo(owner))
 	, _gameLibrary(new GameLibrary(owner))
 {
 	_connector->setAvatarProvider(_avatarProvider);
 	_connector->setUserManager(_userManager);
-	_connector->setLichessClient(_lichessClient);
 	_connector->setGameLibrary(_gameLibrary);
 	_gameLibrary->setUserManager(_userManager); // the active profile's games (and the old saves migrated)
-	_userManager->setOnlineServer(_lichessClient->sharedServer()); // its sign-in
-	_lichessClient->setOffline(offline);
+
+	// LI-18: the online servers are plugins; without one, the app plays locally only.
+	_onlineHub->loadPlugins(pluginDir);
+	for (OnlineClient* client : _onlineHub->clients())
+		client->setOffline(offline);
+	_onlineClient = _onlineHub->current();
+	// Until a profile has an account per server (LI-18 step 4), its one account is Lichess's: the profile's
+	// sign-in and token go to Lichess's client only, never to another server's.
+	_lichessAccountClient = _onlineHub->client(QStringLiteral("lichess"));
+	if (_onlineClient)
+		_connector->setOnlineClient(_onlineClient);
+	if (_lichessAccountClient)
+		_userManager->setOnlineServer(_lichessAccountClient->sharedServer()); // its sign-in
+}
+
+// static
+QString AppServices::defaultPluginDir()
+{
+	return QCoreApplication::applicationDirPath() + QStringLiteral("/online");
 }
 
 void AppServices::start()
@@ -43,21 +60,24 @@ void AppServices::start()
 	QObject::connect(_userManager, &UserManager::lichessChanged, &_guard, [this]() { updateLichessToken(); });
 	updateLichessToken(); // load() sets the active user silently: seed the token now
 
-	QObject::connect(_lichessClient, &OnlineClient::accountFetched, _userManager, &UserManager::setLichessAccount);
-	QObject::connect(_lichessClient, &OnlineClient::authExpired, _userManager, &UserManager::setLichessExpired);
-	// A Lichess game left unfinished (Home, switch user) is now one of the ongoing games (LI-04).
+	if (_lichessAccountClient) {
+		QObject::connect(_lichessAccountClient, &OnlineClient::accountFetched, _userManager, &UserManager::setLichessAccount);
+		QObject::connect(_lichessAccountClient, &OnlineClient::authExpired, _userManager, &UserManager::setLichessExpired);
+	}
+	// An online game left unfinished (Home, switch user) is now one of the ongoing games (LI-04).
 	auto* connector = _connector;
-	auto* lichess = _lichessClient;
-	QObject::connect(connector, &ChessConnector::isOnlineGameChanged, lichess, [connector, lichess]() {
-		if (!connector->isOnlineGame())
-			lichess->refreshOngoingGames();
-	});
-	QObject::connect(lichess, &OnlineClient::gameEnded, lichess, [lichess]() {
-		QTimer::singleShot(3000, lichess, [lichess]() {
-			lichess->refreshAccount();      // the new rating
-			lichess->refreshOngoingGames(); // that game is no longer ongoing
+	for (OnlineClient* client : _onlineHub->clients()) {
+		QObject::connect(connector, &ChessConnector::isOnlineGameChanged, client, [connector, client]() {
+			if (!connector->isOnlineGame())
+				client->refreshOngoingGames();
 		});
-	});
+		QObject::connect(client, &OnlineClient::gameEnded, client, [client]() {
+			QTimer::singleShot(3000, client, [client]() {
+				client->refreshAccount();      // the new rating
+				client->refreshOngoingGames(); // that game is no longer ongoing
+			});
+		});
+	}
 }
 
 void AppServices::registerQmlTypes() const
@@ -66,26 +86,31 @@ void AppServices::registerQmlTypes() const
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "ChessConnector", _connector);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "AvatarProvider", _avatarProvider);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "UserManager", _userManager);
-	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "LichessClient", _lichessClient); // LI-18 step 3: Online
+	// LI-18: the online servers; Online.current is the client the app plays on (null without a plugin).
+	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "Online", _onlineHub);
+	qmlRegisterUncreatableType<OnlineClient>("ChessPlusPlus", 1, 0, "OnlineClient", QStringLiteral("Online.current"));
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "AppInfo", _appInfo);
 	qmlRegisterSingletonInstance("ChessPlusPlus", 1, 0, "GameLibrary", _gameLibrary); // BL-19
 	qmlRegisterType<LayoutGate>("ChessPlusPlus", 1, 0, "LayoutGate"); // BL-11
 }
 
-// The active profile's Lichess token goes to the client (none while it is expired). A new token:
-// fetch the account for the ratings; a 401 on any call, or a token this Windows account can't decrypt
-// (UserManager::lichessToken), marks the link expired.
+// The active profile's Lichess token goes to Lichess's client (none while it is expired; nowhere without
+// the Lichess plugin). A new token: fetch the account for the ratings; a 401 on any call, or a token this
+// Windows account can't decrypt (UserManager::lichessToken), marks the link expired.
 void AppServices::updateLichessToken()
 {
+	auto* client = _lichessAccountClient;
+	if (!client)
+		return;
 	const QString token = _userManager->lichessToken();
-	_lichessClient->setUsername(_userManager->lichessUsername());
+	client->setUsername(_userManager->lichessUsername());
 	if (token == _lastToken)
 		return;
 	_lastToken = token;
-	_lichessClient->setToken(token);
+	client->setToken(token);
 	if (!token.isEmpty()) { // each does nothing offline (setOffline)
-		_lichessClient->refreshAccount();
-		_lichessClient->refreshOngoingGames(); // LI-04: Continue and the Online page
-		_lichessClient->startEventStream();    // BL-10: challenges, games started elsewhere
+		client->refreshAccount();
+		client->refreshOngoingGames(); // LI-04: Continue and the Online page
+		client->startEventStream();    // BL-10: challenges, games started elsewhere
 	}
 }

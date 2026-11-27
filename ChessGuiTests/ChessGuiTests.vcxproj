@@ -62,7 +62,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>.;$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(SolutionDir)\LiChessConnector;$(SolutionDir)\OnlineCore;$(SolutionDir)\UciConnector;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(SolutionDir)\OnlineCore;$(SolutionDir)\UciConnector;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>-w34100 -w34189 -w44996 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
@@ -90,8 +90,11 @@
     <ProjectReference Include="..\ChessCore\ChessCore.vcxproj">
       <Project>{113a444b-2f1c-4b33-9905-41a466ffef7f}</Project>
     </ProjectReference>
+    <!-- LI-18: the Lichess plugin, built with the app into online\, not linked (OnlineHub loads it) -->
     <ProjectReference Include="..\LiChessConnector\LiChessConnector.vcxproj">
       <Project>{2ed0175f-4de2-440a-965e-04b2f1e4e3c0}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
     </ProjectReference>
     <ProjectReference Include="..\OnlineCore\OnlineCore.vcxproj">
       <Project>{210ec68a-2be6-4ac7-8327-ca3364cae3a9}</Project>
@@ -172,6 +175,7 @@
     <None Include="qml\tst_chess960.qml" />
     <None Include="qml\tst_lichess960.qml" />
     <None Include="qml\tst_noEngine.qml" />
+    <None Include="qml\tst_noOnline.qml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

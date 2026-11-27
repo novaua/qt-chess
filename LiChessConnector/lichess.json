@@ -1,0 +1,6 @@
+{
+    "id": "lichess",
+    "name": "Lichess",
+    "order": 10,
+    "coreVersion": 1
+}

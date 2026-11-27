@@ -177,9 +177,10 @@ Each plugin's class: `Q_PLUGIN_METADATA(IID OnlineProviderPlugin_iid FILE "liche
 
 ### `ChessConnector`
 
-- `setLichessClient` → `setOnlineHub`. The game's client is the one whose `gameStarted` came (`_gameClient`);
-  game signals of another client are ignored while it plays. One online game at a time, as now.
-- `onLichess*` → `onOnline*`; `LichessGameUrl` → `OnlineGameUrl`; new `OnlineServer` (the server of the game on
+- `setLichessClient` → `setOnlineClient` (step 3: the hub's current client). Step 5, with two servers: the game's
+  client is the one whose `gameStarted` came (`_gameClient`); game signals of another client are ignored while it
+  plays. One online game at a time, as now.
+- `onLichess*` → `onOnline*`; `LichessGameUrl` → `OnlineGameUrl` (step 3); new `OnlineServer` (the server of the game on
   the board or of the kept game replayed, else null), from which QML takes the name and traits.
 - `acceptChallenge(serverId, challengeId)`, `continueOnlineGame(serverId, gameId)`: the item's server.
 
@@ -196,7 +197,7 @@ Each plugin's class: `Q_PLUGIN_METADATA(IID OnlineProviderPlugin_iid FILE "liche
 - `AppServices` makes the hub, loads the plugins from `<app>\online\`, and wires each client's
   `accountFetched` / `authExpired` to `UserManager` by server id. `offline` (screenshots, UI tests) goes to every
   client.
-- The screenshot scenes use the Lichess plugin's client; a scene whose plugin isn't loaded is skipped with a line.
+- The screenshot scenes use the Lichess plugin's client; without the plugin a scene ends with exit code 5 (step 3).
 - No `--server` option: the address is part of the account (rule 4).
 
 ### QML

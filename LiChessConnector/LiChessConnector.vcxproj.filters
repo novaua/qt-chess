@@ -54,6 +54,9 @@
     <QtMoc Include="LichessServer.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="LichessPlugin.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="LiChessConnector.rc">

@@ -28,7 +28,7 @@ Page {
     readonly property bool _starting: _busy || ChessConnector.StartingOnlineGame || ChessConnector.AcceptingChallengeId !== ""
 
     readonly property string _opponent: opponentField.text.trim()   // empty: a challenge with a link
-    readonly property bool _opponentValid: _opponent === "" || LichessClient.isUsername(_opponent)
+    readonly property bool _opponentValid: _opponent === "" || Online.current.isUsername(_opponent)
     readonly property bool _named: _opponent !== "" && _opponentValid
     readonly property bool _realTime: tcType.checkedIndex === 1
     // What the chosen time control is on Lichess, and the player's rating there. Chess960 has one
@@ -37,9 +37,9 @@ Page {
                                   : _realTime ? tcClock.speed : tcType.checkedIndex === 2 ? "Correspondence" : ""
     readonly property var _perf: UserManager.lichessRatings[_mode.toLowerCase()]
 
-    readonly property var _games: LichessClient.ongoingGames
+    readonly property var _games: Online.current.ongoingGames
     readonly property int _myTurnCount: _games.filter(g => g.isMyTurn).length
-    readonly property var _challenges: LichessClient.incomingChallenges
+    readonly property var _challenges: Online.current.incomingChallenges
 
     // BL-10: one line under the challenger's name.
     function _challengeDetails(c) {
@@ -50,7 +50,7 @@ Page {
             parts.push("Rematch")
         return parts.filter(p => p !== "").join(" · ")
     }
-    // The reasons Lichess shows the challenger (LichessClient::declineChallenge).
+    // The reasons Lichess shows the challenger (Online.current::declineChallenge).
     readonly property var _declineReasons: [
         { text: "Decline",                     reason: "generic" },
         { text: "Not now",                     reason: "later" },
@@ -66,7 +66,7 @@ Page {
     // game did start: route() replaces this page by the game page then. A rejoin: ChessConnector.
     function _dropStarting() {
         if (_busy && !ChessConnector.InGame)
-            LichessClient.stopStream()
+            Online.current.stopStream()
         _busyAction = ""
         ChessConnector.cancelOnlineStart()
     }
@@ -91,7 +91,7 @@ Page {
         errorBar.visible = false
         seekSentBar.visible = false
         quickVariant.remember()
-        LichessClient.startSeek(limitSec, incSec, 0, AppSettings.quickRated, quickVariant.chess960 ? "chess960" : "standard")
+        Online.current.startSeek(limitSec, incSec, 0, AppSettings.quickRated, quickVariant.chess960 ? "chess960" : "standard")
     }
     // The bars stay until a seek is sent (onSeekChanged, onSeekSent): Cancel in the dialog sends none.
     function _customSeek() {
@@ -113,13 +113,13 @@ Page {
         const v = variant.chess960 ? "chess960" : "standard"
         variant.remember()
         if (_opponent !== "")
-            _start(() => LichessClient.challengePlayer(_opponent, limitSec, incSec, days, color, v))
+            _start(() => Online.current.challengePlayer(_opponent, limitSec, incSec, days, color, v))
         else
-            _start(() => LichessClient.createOpenChallenge(limitSec / 60, incSec, color, v, days))
+            _start(() => Online.current.createOpenChallenge(limitSec / 60, incSec, color, v, days))
     }
 
     Connections {
-        target: LichessClient
+        target: Online.current
         function onChallengeCreated(gameId, joinUrl) { page._busyAction = "" }
         function onDirectChallengeSent(challengeId, opponentName) { page._busyAction = "" }
         function onDirectChallengeLeft(opponentName) { page._busyAction = "" }
@@ -140,7 +140,7 @@ Page {
             seekSentBar.show(message, "success")
         }
         function onSeekChanged() {
-            if (LichessClient.seeking) {
+            if (Online.current.seeking) {
                 errorBar.visible = false
                 seekSentBar.visible = false
             }
@@ -275,7 +275,7 @@ Page {
                                                 delegate: MenuItem {
                                                     required property var modelData
                                                     text: modelData.text
-                                                    onTriggered: LichessClient.declineChallenge(challengeRow.modelData.id, modelData.reason)
+                                                    onTriggered: Online.current.declineChallenge(challengeRow.modelData.id, modelData.reason)
                                                 }
                                             }
                                         }
@@ -337,7 +337,7 @@ Page {
                     Button {
                         objectName: "quickCancelButton"
                         text: "Cancel"
-                        onClicked: LichessClient.cancelSeek()
+                        onClicked: Online.current.cancelSeek()
                     }
                 }
                 Label {
@@ -490,7 +490,7 @@ Page {
                             if (!enabled)
                                 return
                             errorBar.visible = false
-                            if (LichessClient.joinFromUrl(joinUrlField.text.trim()))
+                            if (Online.current.joinFromUrl(joinUrlField.text.trim()))
                                 page._busyAction = "join"
                             else
                                 errorBar.show("That isn't a Lichess link or game ID", "critical")
@@ -505,8 +505,8 @@ Page {
                 id: gamesCard
                 visible: UserManager.lichessConnected
                 title: "Your games"
-                subtitle: LichessClient.ongoingGamesError !== "" ? "Couldn't load your games: " + LichessClient.ongoingGamesError
-                        : page._games.length === 0 ? (LichessClient.ongoingGamesLoading ? "Loading…"
+                subtitle: Online.current.ongoingGamesError !== "" ? "Couldn't load your games: " + Online.current.ongoingGamesError
+                        : page._games.length === 0 ? (Online.current.ongoingGamesLoading ? "Loading…"
                               : "No unfinished games. A game you leave before it ends waits here, and so does a correspondence game.")
                         : page._games.length + (page._games.length === 1 ? " game" : " games")
                           + (page._myTurnCount > 0 ? " · your turn in " + page._myTurnCount : "")

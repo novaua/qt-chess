@@ -387,7 +387,7 @@ void ChessConnector::pawnPromote(int index, const QString& piece)
 	// sent, the list replaces it.
 	if (_listAfterPromotion) {
 		const auto [moves, refused] = *std::exchange(_listAfterPromotion, std::nullopt);
-		onLichessMoveListReplaced(moves, refused);
+		onOnlineMoveListReplaced(moves, refused);
 		return;
 	}
 	onHumanMoveDone();
@@ -401,10 +401,10 @@ void ChessConnector::onHumanMoveDone()
 	moveOnBoard();
 	updateRecord();
 
-	if (!_onlineGameId.isEmpty() && _lichessClient) {
+	if (!_onlineGameId.isEmpty() && _onlineClient) {
 		const auto& rec = _game->GetGameRecord();
 		if (!rec.empty())
-			_lichessClient->postMove(_onlineGameId,
+			_onlineClient->postMove(_onlineGameId,
 				QString::fromStdString(rec.back().ToUciString()));
 	}
 
@@ -673,7 +673,7 @@ void ChessConnector::setReconnecting(bool reconnecting)
 
 // LI-06: OnlineClient reconnects on its own. Our board keeps the game meanwhile: the player may
 // move (the move is posted; the resync tells whether it arrived), and the clock goes on, as on Lichess.
-void ChessConnector::onLichessConnectionChanged(bool connected)
+void ChessConnector::onOnlineConnectionChanged(bool connected)
 {
 	if (!isOnlineGame())
 		return;
@@ -779,7 +779,7 @@ QString ChessConnector::playerFlair() const
 	return lichessPlayersShown() ? _lichessMe.flairUrl() : QString();
 }
 
-QString ChessConnector::lichessGameUrl() const
+QString ChessConnector::onlineGameUrl() const
 {
 	const QString id = isOnlineGame() ? _onlineGameId : _keptLichessGameId;
 	return id.isEmpty() ? QString() : QStringLiteral("https://lichess.org/") + id;
@@ -787,12 +787,12 @@ QString ChessConnector::lichessGameUrl() const
 
 // LI-11: the flairs of the game's players came after its start (OnlineClient asks /api/users): the
 // opponent's is their avatar, the player's shows after their name.
-void ChessConnector::onLichessPlayersChanged()
+void ChessConnector::onOnlinePlayersChanged()
 {
-	if (!isOnlineGame() || _onlineGameId != _lichessClient->currentGameId())
+	if (!isOnlineGame() || _onlineGameId != _onlineClient->currentGameId())
 		return;
-	_lichessMe       = _lichessClient->gamePlayer(_config.playerPlaysWhite);
-	_lichessOpponent = _lichessClient->gamePlayer(!_config.playerPlaysWhite);
+	_lichessMe       = _onlineClient->gamePlayer(_config.playerPlaysWhite);
+	_lichessOpponent = _onlineClient->gamePlayer(!_config.playerPlaysWhite);
 	if (_avatarProvider)
 		_avatarProvider->setOpponentOnline(_lichessOpponent.flairUrl());
 	emit gameInfoChanged();
@@ -827,31 +827,31 @@ QString ChessConnector::gameTitle() const
 bool ChessConnector::continueOnlyGame()
 {
 	const QList<GameRecord> local = _library ? _library->unfinished() : QList<GameRecord>{};
-	const bool linked = _lichessClient && _userManager && _userManager->lichessConnected();
+	const bool linked = _onlineClient && _userManager && _userManager->lichessConnected();
 	// Before the Lichess games have ever come, the list shows the local games at once and the Lichess
 	// ones when they come. Once they have, a refresh in flight (and there are several in the first
 	// seconds after a start) doesn't make the last list wrong: decide on it (BL-24).
-	if (linked && !_lichessClient->ongoingGamesLoaded()) {
+	if (linked && !_onlineClient->ongoingGamesLoaded()) {
 		qDebug() << "ChessConnector: Continue opens the list | local:" << local.size() << "| Lichess games not loaded yet";
 		return false;
 	}
-	const QVariantList online = linked ? _lichessClient->ongoingGames() : QVariantList{};
+	const QVariantList online = linked ? _onlineClient->ongoingGames() : QVariantList{};
 	if (local.size() == 1 && online.isEmpty())
 		return continueGame(local.first().id);
 	if (local.isEmpty() && online.size() == 1 && online.first().toMap().value(QStringLiteral("canPlayHere")).toBool())
 		return continueOnlineGame(online.first().toMap().value(QStringLiteral("gameId")).toString());
 	qDebug() << "ChessConnector: Continue opens the list | local:" << local.size() << "| Lichess:" << online.size()
-	         << (linked && _lichessClient->ongoingGamesLoading() ? "(refreshing)" : "");
+	         << (linked && _onlineClient->ongoingGamesLoading() ? "(refreshing)" : "");
 	return false;
 }
 
 bool ChessConnector::continueOnlineGame(const QString& gameId)
 {
-	if (gameId.isEmpty() || !_lichessClient || !_userManager || !_userManager->lichessConnected())
+	if (gameId.isEmpty() || !_onlineClient || !_userManager || !_userManager->lichessConnected())
 		return false;
 	_onlineStartUserId = _userManager->activeUserId();
 	_startTiming.begin(QStringLiteral("continue on Lichess"));
-	_lichessClient->rejoinGame(gameId);
+	_onlineClient->rejoinGame(gameId);
 	return true;
 }
 
@@ -859,7 +859,7 @@ void ChessConnector::cancelOnlineStart()
 {
 	_startTiming.cancel();
 	if (startingOnlineGame() || !acceptingChallengeId().isEmpty())
-		_lichessClient->stopStream(); // no game is on yet: nothing else is lost
+		_onlineClient->stopStream(); // no game is on yet: nothing else is lost
 }
 
 void ChessConnector::checkOnlineStart()
@@ -1037,7 +1037,7 @@ bool ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite,
 	setPendingOffer({});
 	setOpponentGone(false);
 	setReconnecting(false);
-	_onlineRealTime = false; // until its clock says (onLichessClockStarted)
+	_onlineRealTime = false; // until its clock says (onOnlineClockStarted)
 	_engineAutoPlay = false;
 	_onlineGameId = gameId;
 	_drawOfferPly = -1;
@@ -1064,18 +1064,18 @@ bool ChessConnector::startOnlineGame(const QString& gameId, bool playingAsWhite,
 	}
 	emit newGameStarted(false);
 
-	if (_lichessClient) {
-		connect(_lichessClient, &OnlineClient::opponentMoveReceived,
-			this, &ChessConnector::onLichessOpponentMoves,
+	if (_onlineClient) {
+		connect(_onlineClient, &OnlineClient::opponentMoveReceived,
+			this, &ChessConnector::onOnlineOpponentMoves,
 			Qt::UniqueConnection);
-		connect(_lichessClient, &OnlineClient::moveListReplaced,
-			this, &ChessConnector::onLichessMoveListReplaced,
+		connect(_onlineClient, &OnlineClient::moveListReplaced,
+			this, &ChessConnector::onOnlineMoveListReplaced,
 			Qt::UniqueConnection);
 	}
 	return allPlayed;
 }
 
-void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsWhite,
+void ChessConnector::onOnlineGameStarted(const QString& gameId, bool playingAsWhite,
 	const QString& opponentName, const QString& opponentAvatar, const QStringList& moves,
 	const QString& variant, const QString& startFen)
 {
@@ -1093,11 +1093,11 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 		qWarning() << "ChessConnector: Lichess game" << gameId << "can't be played here | variant:" << variant
 		           << "| initialFen:" << startFen;
 		_startTiming.cancel();
-		emit gameStartFailed(_lichessClient->server().playsVariant(variant)
+		emit gameStartFailed(_onlineClient->server().playsVariant(variant)
 			? QStringLiteral("its start position isn't one Chess++ can play. Open it on lichess.org.")
 			: QStringLiteral("it is %1, and Chess++ plays standard chess and Chess960. "
 			                 "Open it on lichess.org.").arg(OnlineClient::variantName(variant)));
-		_lichessClient->stopStream(); // the game on the board (if any) stays as it was
+		_onlineClient->stopStream(); // the game on the board (if any) stays as it was
 		return;
 	}
 	// A Lichess game replaces a local game (BL-10: a challenge accepted during it): kept for
@@ -1117,15 +1117,15 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 	_gameMode = QStringLiteral("online");
 	_opponentName = opponent;
 	_opponentUserId.clear();
-	_lichessMe       = _lichessClient->gamePlayer(playingAsWhite);
-	_lichessOpponent = _lichessClient->gamePlayer(!playingAsWhite);
-	_onlineGameFull  = _lichessClient->currentGameFull(); // LI-14: its record once it ends (a mate among the joined moves too)
+	_lichessMe       = _onlineClient->gamePlayer(playingAsWhite);
+	_lichessOpponent = _onlineClient->gamePlayer(!playingAsWhite);
+	_onlineGameFull  = _onlineClient->currentGameFull(); // LI-14: its record once it ends (a mate among the joined moves too)
 	if (!startOnlineGame(gameId, playingAsWhite, *start, joined ? moves : QStringList{})) {
 		emit gameStartFailed(QStringLiteral("Lichess sent a move Chess++ can't play"));
 		endGame(); // stops the stream; back where the player was (Home), not a board out of step with Lichess
 		return;
 	}
-	// LI-11: a Lichess player: their flair once it comes (onLichessPlayersChanged), until then (and without
+	// LI-11: a Lichess player: their flair once it comes (onOnlinePlayersChanged), until then (and without
 	// one) the standard avatar, never one of the library's.
 	Q_UNUSED(opponentAvatar); // Lichess sends none
 	if (_avatarProvider)
@@ -1133,16 +1133,16 @@ void ChessConnector::onLichessGameStarted(const QString& gameId, bool playingAsW
 	_startTiming.step("setup");
 	setGameMode(QStringLiteral("online"), opponent);
 	if (!joined && !moves.isEmpty())
-		onLichessOpponentMoves(moves.join(QLatin1Char(' ')));
+		onOnlineOpponentMoves(moves.join(QLatin1Char(' ')));
 }
 
-void ChessConnector::onLichessGameEnded(const QString& status, const QString& winner)
+void ChessConnector::onOnlineGameEnded(const QString& status, const QString& winner)
 {
 	if (!isOnlineGame())
 		return; // not the game on the board: its result isn't this game's
-	if (_lichessClient) {
-		_lichessClient->stopStream();
-		_lichessClient->watchForRematch();
+	if (_onlineClient) {
+		_onlineClient->stopStream();
+		_onlineClient->watchForRematch();
 	}
 	// resignAndLeave(): leave once the result is in, after this signal (not inside it).
 	if (_leaveAfterResign.isActive())
@@ -1192,14 +1192,14 @@ void ChessConnector::onLichessGameEnded(const QString& status, const QString& wi
 	setResult(result, text);
 }
 
-void ChessConnector::onLichessOpponentGone(bool gone, int claimWinInSeconds)
+void ChessConnector::onOnlineOpponentGone(bool gone, int claimWinInSeconds)
 {
 	if (_gameOver && gone)
 		return;
 	setOpponentGone(gone, claimWinInSeconds);
 }
 
-void ChessConnector::onLichessClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence)
+void ChessConnector::onOnlineClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence)
 {
 	if (!isOnlineGame())
 		return; // a Lichess game that isn't on the board (refused): the local game's clock stays its own
@@ -1217,8 +1217,8 @@ void ChessConnector::onLichessClockStarted(qint64 limitMs, qint64 incrementMs, b
 
 void ChessConnector::resignGame()
 {
-	if (!_onlineGameId.isEmpty() && _lichessClient) {
-		_lichessClient->resign(_onlineGameId);
+	if (!_onlineGameId.isEmpty() && _onlineClient) {
+		_onlineClient->resign(_onlineGameId);
 		return;
 	}
 	if (_gameOver)
@@ -1286,30 +1286,30 @@ bool ChessConnector::canOfferDraw() const
 
 void ChessConnector::offerDraw()
 {
-	if (!canOfferDraw() || !_lichessClient)
+	if (!canOfferDraw() || !_onlineClient)
 		return;
-	_lichessClient->offerDraw(_onlineGameId, true);
+	_onlineClient->offerDraw(_onlineGameId, true);
 	_drawOfferPly = _game->GetMoveCount();
 	emit canOfferDrawChanged();
 }
 
 void ChessConnector::claimVictory()
 {
-	if (canClaimVictory() && !_onlineGameId.isEmpty() && _lichessClient)
-		_lichessClient->claimVictory(_onlineGameId);
+	if (canClaimVictory() && !_onlineGameId.isEmpty() && _onlineClient)
+		_onlineClient->claimVictory(_onlineGameId);
 }
 
 void ChessConnector::respondDraw(bool accept)
 {
 	setPendingOffer({});
-	if (!_onlineGameId.isEmpty() && _lichessClient)
-		_lichessClient->offerDraw(_onlineGameId, accept);
+	if (!_onlineGameId.isEmpty() && _onlineClient)
+		_onlineClient->offerDraw(_onlineGameId, accept);
 }
 
 void ChessConnector::requestTakeback()
 {
-	if (!_onlineGameId.isEmpty() && _lichessClient)
-		_lichessClient->requestTakeback(_onlineGameId, true);
+	if (!_onlineGameId.isEmpty() && _onlineClient)
+		_onlineClient->requestTakeback(_onlineGameId, true);
 	else if (!_clock->timeUp()) // a flag ends the game for good: the side out of time has nothing to go on with
 		movePrev();
 }
@@ -1317,21 +1317,21 @@ void ChessConnector::requestTakeback()
 void ChessConnector::respondTakeback(bool accept)
 {
 	setPendingOffer({});
-	if (!_onlineGameId.isEmpty() && _lichessClient)
-		_lichessClient->requestTakeback(_onlineGameId, accept);
+	if (!_onlineGameId.isEmpty() && _onlineClient)
+		_onlineClient->requestTakeback(_onlineGameId, accept);
 }
 
 void ChessConnector::respondRematch(bool accept)
 {
 	setPendingOffer({});
-	if (!_lichessClient)
+	if (!_onlineClient)
 		return;
 	if (accept) {
 		_startTiming.begin(QStringLiteral("rematch on Lichess"));
-		_lichessClient->acceptRematch(); // the game starts through OnlineClient::gameStarted
+		_onlineClient->acceptRematch(); // the game starts through OnlineClient::gameStarted
 	}
 	else
-		_lichessClient->declineRematch();
+		_onlineClient->declineRematch();
 }
 
 void ChessConnector::setUserManager(UserManager* um)
@@ -1526,37 +1526,37 @@ void ChessConnector::cancelAnalysis()
 	_analyzer->cancel();
 }
 
-void ChessConnector::setLichessClient(OnlineClient* lc)
+void ChessConnector::setOnlineClient(OnlineClient* lc)
 {
-	_lichessClient = lc;
-	if (_lichessClient) {
-		connect(_lichessClient, &OnlineClient::canRematchChanged,
+	_onlineClient = lc;
+	if (_onlineClient) {
+		connect(_onlineClient, &OnlineClient::canRematchChanged,
 			this, &ChessConnector::canRematchChanged, Qt::UniqueConnection);
-		connect(_lichessClient, &OnlineClient::gameStarted, this, &ChessConnector::onLichessGameStarted);
-		connect(_lichessClient, &OnlineClient::gamePlayersChanged, this, &ChessConnector::onLichessPlayersChanged);
-		connect(_lichessClient, &OnlineClient::rejoiningChanged, this, &ChessConnector::startingOnlineGameChanged);
-	connect(_lichessClient, &OnlineClient::acceptingChanged, this, &ChessConnector::acceptingChallengeChanged);
+		connect(_onlineClient, &OnlineClient::gameStarted, this, &ChessConnector::onOnlineGameStarted);
+		connect(_onlineClient, &OnlineClient::gamePlayersChanged, this, &ChessConnector::onOnlinePlayersChanged);
+		connect(_onlineClient, &OnlineClient::rejoiningChanged, this, &ChessConnector::startingOnlineGameChanged);
+	connect(_onlineClient, &OnlineClient::acceptingChanged, this, &ChessConnector::acceptingChallengeChanged);
 		// A refused Accept, or a Lichess game that never came (a challenge canceled, an error): not timed.
-		connect(_lichessClient, &OnlineClient::challengeAcceptFailed, this, [this] { _startTiming.cancel(); });
-		connect(_lichessClient, &OnlineClient::challengeCanceled, this, [this] {
+		connect(_onlineClient, &OnlineClient::challengeAcceptFailed, this, [this] { _startTiming.cancel(); });
+		connect(_onlineClient, &OnlineClient::challengeCanceled, this, [this] {
 			_startTiming.cancel();
 			_rematchChallengeId.clear();
 		});
-		connect(_lichessClient, &OnlineClient::challengeDeclined, this, [this] {
+		connect(_onlineClient, &OnlineClient::challengeDeclined, this, [this] {
 			_startTiming.cancel();
 			_rematchChallengeId.clear();
 		});
 		// BL-36: a challenge made with a game on the board is its rematch (the Online page is reached from
 		// Home only); leaving the game withdraws it (endGame()).
-		connect(_lichessClient, &OnlineClient::challengeCreated, this, [this](const QString& gameId) {
+		connect(_onlineClient, &OnlineClient::challengeCreated, this, [this](const QString& gameId) {
 			if (inGame()) _rematchChallengeId = gameId;
 		});
-		connect(_lichessClient, &OnlineClient::directChallengeSent, this, [this](const QString& challengeId) {
+		connect(_onlineClient, &OnlineClient::directChallengeSent, this, [this](const QString& challengeId) {
 			if (inGame()) _rematchChallengeId = challengeId;
 		});
 		// LI-13: a game action Lichess refused, or didn't answer, is said; also after the game was left (a
 		// Resign that never got there: the game goes on, and is lost on time). A Resign-and-leave stays.
-		connect(_lichessClient, &OnlineClient::gameActionFailed, this,
+		connect(_onlineClient, &OnlineClient::gameActionFailed, this,
 		        [this](const QString& gameId, const QString& action, const QString& message) {
 			const bool thisGame = gameId == _onlineGameId;
 			if (thisGame && !_gameResult.isEmpty())
@@ -1568,32 +1568,32 @@ void ChessConnector::setLichessClient(OnlineClient* lc)
 			emit gameActionFailed(message);
 		});
 		// e.g. the game ended meanwhile: the list is out of date.
-		connect(_lichessClient, &OnlineClient::rejoinFailed, this, [this](const QString&, const QString& message) {
+		connect(_onlineClient, &OnlineClient::rejoinFailed, this, [this](const QString&, const QString& message) {
 			_startTiming.cancel();
 			emit gameStartFailed(message);
-			_lichessClient->refreshOngoingGames();
+			_onlineClient->refreshOngoingGames();
 		});
-		connect(_lichessClient, &OnlineClient::gameEnded,   this, &ChessConnector::onLichessGameEnded);
-		connect(_lichessClient, &OnlineClient::opponentGone, this, &ChessConnector::onLichessOpponentGone);
-		connect(_lichessClient, &OnlineClient::clockStarted, this, &ChessConnector::onLichessClockStarted);
-		connect(_lichessClient, &OnlineClient::gameConnectionChanged, this, &ChessConnector::onLichessConnectionChanged);
-		connect(_lichessClient, &OnlineClient::gameStreamStopped, this, [this]() { setReconnecting(false); });
-		connect(_lichessClient, &OnlineClient::clockUpdated, this,
+		connect(_onlineClient, &OnlineClient::gameEnded,   this, &ChessConnector::onOnlineGameEnded);
+		connect(_onlineClient, &OnlineClient::opponentGone, this, &ChessConnector::onOnlineOpponentGone);
+		connect(_onlineClient, &OnlineClient::clockStarted, this, &ChessConnector::onOnlineClockStarted);
+		connect(_onlineClient, &OnlineClient::gameConnectionChanged, this, &ChessConnector::onOnlineConnectionChanged);
+		connect(_onlineClient, &OnlineClient::gameStreamStopped, this, [this]() { setReconnecting(false); });
+		connect(_onlineClient, &OnlineClient::clockUpdated, this,
 			[this](qint64 whiteMs, qint64 blackMs, bool whiteToMove, bool running) {
 				if (isOnlineGame()) // Lichess's times are for its game only, never a local game's clock
 					_clock->setSnapshot(whiteMs, blackMs, whiteToMove, running);
 			});
 		// An offer that comes with the opponent's move is shown after the move.
-		connect(_lichessClient, &OnlineClient::drawOfferReceived, this, [this]() {
+		connect(_onlineClient, &OnlineClient::drawOfferReceived, this, [this]() {
 			afterHeldMoves([this] { if (isOnlineGame() && !_gameOver) setPendingOffer(QStringLiteral("draw")); });
 		});
-		connect(_lichessClient, &OnlineClient::takebackRequested, this, [this]() {
+		connect(_onlineClient, &OnlineClient::takebackRequested, this, [this]() {
 			afterHeldMoves([this] { if (isOnlineGame() && !_gameOver) setPendingOffer(QStringLiteral("takeback")); });
 		});
-		connect(_lichessClient, &OnlineClient::rematchOffered, this, [this]() {
+		connect(_onlineClient, &OnlineClient::rematchOffered, this, [this]() {
 			if (isOnlineGame() && _gameOver) setPendingOffer(QStringLiteral("rematch"));
 		});
-		connect(_lichessClient, &OnlineClient::rematchOfferCanceled, this, [this]() {
+		connect(_onlineClient, &OnlineClient::rematchOfferCanceled, this, [this]() {
 			if (_pendingOffer == QLatin1String("rematch")) setPendingOffer({});
 		});
 	}
@@ -1626,11 +1626,11 @@ void ChessConnector::beginGame(bool online)
 
 bool ChessConnector::acceptChallenge(const QString& challengeId)
 {
-	if (!_lichessClient || !canAcceptChallenge())
+	if (!_onlineClient || !canAcceptChallenge())
 		return false;
 	_startTiming.begin(QStringLiteral("accept a Lichess challenge"));
 	_onlineStartUserId = _userManager ? _userManager->activeUserId() : QString();
-	_lichessClient->acceptChallenge(challengeId); // the challenger chose the sides
+	_onlineClient->acceptChallenge(challengeId); // the challenger chose the sides
 	return true;
 }
 
@@ -1642,8 +1642,8 @@ void ChessConnector::rematch()
 	if (_lastGameOnline) {
 		if (_pendingOffer == QLatin1String("rematch"))
 			respondRematch(true); // like Lichess: asking back accepts the opponent's offer
-		else if (_lichessClient)
-			_lichessClient->createRematch();
+		else if (_onlineClient)
+			_onlineClient->createRematch();
 		return;
 	}
 	_nextStart = _game->GetStartPosition(); // a Chess960 rematch: the same position (LI-01A)
@@ -1659,11 +1659,11 @@ void ChessConnector::rematch()
 
 void ChessConnector::newOpponent()
 {
-	if (!isOnlineGame() || _gameResult.isEmpty() || !canSeekAgain() || _lichessClient->seeking())
+	if (!isOnlineGame() || _gameResult.isEmpty() || !canSeekAgain() || _onlineClient->seeking())
 		return; // a seek waits already: Cancel is the command bar's
 	// First: startSeek refuses while a challenge of ours waits. cancelChallenge clears that at once.
 	withdrawRematch();
-	_lichessClient->seekAgain();
+	_onlineClient->seekAgain();
 }
 
 // LI-01A: StandardGame, RandomChess960 or a Chess960 position's number.
@@ -2013,7 +2013,7 @@ void ChessConnector::onGateRelease(const QString& uciMove, MoveGate::Source sour
 // From the Lichess stream: the opponent's move, or all moves of the game when it is (re)joined.
 // Our own moves are not echoed (OnlineClient skips them). They wait in the gate like the robot's
 // answer; Lichess's own turn rule keeps the player from moving meanwhile (canPlayerMove()).
-void ChessConnector::onLichessOpponentMoves(const QString& uciMoves)
+void ChessConnector::onOnlineOpponentMoves(const QString& uciMoves)
 {
 	if (!isOnlineGame())
 		return;
@@ -2027,7 +2027,7 @@ void ChessConnector::onLichessOpponentMoves(const QString& uciMoves)
 // From the Lichess stream: the game's moves as Lichess has them, when they aren't ours plus new
 // moves: an accepted takeback (shorter), our move that Lichess refused, or a disagreement. The game
 // goes back to the last move both have, then plays the rest of Lichess's list.
-void ChessConnector::onLichessMoveListReplaced(const QString& uciMoves, bool moveRefused)
+void ChessConnector::onOnlineMoveListReplaced(const QString& uciMoves, bool moveRefused)
 {
 	if (!isOnlineGame())
 		return;
@@ -2395,7 +2395,7 @@ void ChessConnector::withdrawRematch()
 	if (_rematchChallengeId.isEmpty())
 		return;
 	const QString challengeId = std::exchange(_rematchChallengeId, QString());
-	if (_lichessClient) _lichessClient->cancelChallenge(challengeId);
+	if (_onlineClient) _onlineClient->cancelChallenge(challengeId);
 }
 
 void ChessConnector::endGame()
@@ -2415,7 +2415,7 @@ void ChessConnector::endGame()
 	keepGameOnLeave(); // an unfinished local game stays in the library as it is: Continue offers it
 	_clock->stop();
 	if (!_onlineGameId.isEmpty()) {
-		if (_lichessClient) _lichessClient->stopStream();
+		if (_onlineClient) _onlineClient->stopStream();
 		_onlineGameId.clear();
 		_afterHeldMoves.clear();
 		_listAfterPromotion.reset();
@@ -2443,8 +2443,8 @@ void ChessConnector::switchUser()
 	endGame(); // keeps the game for the user who played it
 	// LI-09: a quick pairing seek is this profile's. The profile picker keeps its Lichess token, so a
 	// new token wouldn't end it, and a game paired meanwhile would start behind the picker.
-	if (_lichessClient)
-		_lichessClient->cancelSeek();
+	if (_onlineClient)
+		_onlineClient->cancelSeek();
 	if (_userManager)
 		_userManager->logout();
 }

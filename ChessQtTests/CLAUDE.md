@@ -1,7 +1,8 @@
 # ChessQtTests/
 
 The tests of the Qt parts: a DLL for the Microsoft CppUnitTest runner (Test Explorer, or
-`vstest.console.exe x64\Debug\ChessQtTests.dll`). It links ChessCore, UciConnector, OnlineCore and LiChessConnector, and
+`vstest.console.exe x64\Debug\ChessQtTests.dll`). It links ChessCore, UciConnector and OnlineCore, compiles the Lichess plugin's classes it tests
+(`LichessServer`, `LichessAuth`, `LichessClient`: the plugin's DLL is in `online\`, LI-18), and
 **compiles the ChessGui sources it tests** (`AppConfig`, `UserManager`, `gamelibrary`, `gameanalyzer`,
 `movegate`, …): a test of another ChessGui file adds that `.cpp` to `ChessQtTests.vcxproj`.
 
@@ -17,7 +18,8 @@ The tests of the Qt parts: a DLL for the Microsoft CppUnitTest runner (Test Expl
   `GameLibraryTest.cpp` (the games library, BL-19; its signed files, BL-20), `GameSignatureTest.cpp` (BL-20: the
   signature, key 1 pinned, a game file read back), `GamePgnTest.cpp` (a kept game's PGN), `GameAnalysisTest.cpp`
   (the engine's analysis of a kept game), `UciConnectorTest.cpp` (the UCI protocol), `ChessEnginePlayerTest.cpp`
-  (also `EngineWorker`), and the Lichess ones below.
+  (also `EngineWorker`), `OnlineHubTest.cpp` (LI-18: the plugins taken or skipped, their order), and the
+  Lichess ones below.
 - **Lichess without Lichess:** `LichessClientTest.cpp`'s `LichessReconnectTests`, `LichessStreamTest.cpp`,
   `LichessChallengeTest.cpp` and `LichessSeekTest.cpp` (LI-09's quick pairing seek, `FakeSeekLichess`) play
   against `FakeLichess` (`FakeLichess.h`), a `QTcpServer` on 127.0.0.1 that answers each request with

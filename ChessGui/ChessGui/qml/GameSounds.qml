@@ -109,7 +109,7 @@ Item {
     // BL-10: a new challenge to the player (one resent after a reconnect isn't new). The window flashes
     // the taskbar button.
     Connections {
-        target: LichessClient
+        target: Online.current
         function onChallengeReceived(challengeId) { sounds.play("challenge") }
     }
 }

@@ -111,8 +111,10 @@ Page {
                 }
             }
 
-            // ── Lichess ──
+            // ── Lichess ── (LI-18: only with its plugin; the profile keeps the account either way)
             SectionCard {
+                objectName: "lichessSection"
+                visible: Online.available
                 title: "Lichess account"
                 subtitle: UserManager.lichessConnected || UserManager.lichessNeedsReconnect ? ""
                           : "Link your Lichess account to play online. The app can then create challenges and play your moves."

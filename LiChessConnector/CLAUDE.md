@@ -1,7 +1,7 @@
 # LiChessConnector/
 
-lichess.org as an online server (LI-18, plan `docs/LI-18-OnlineServersPlan.md`): a DLL (`LICHESSCONNECTOR_EXPORT`),
-Qt Core + Network, on `OnlineCore` (`OnlineCore/CLAUDE.md`: the Board API client, `OnlineClient`, which does all
+lichess.org as an online server (LI-18, plan `docs/LI-18-OnlineServersPlan.md`): a Qt plugin,
+`x64\<config>\online\LichessOnline.dll`, Qt Core + Network, on `OnlineCore` (`OnlineCore/CLAUDE.md`: the Board API client, `OnlineClient`, which does all
 the playing). Here only what Lichess does its own way. Its tests: `ChessQtTests/` (`Lichess*Test.cpp`, against
 `FakeLichess`).
 
@@ -14,10 +14,12 @@ the playing). Here only what Lichess does its own way. Its tests: `ChessQtTests/
 - `LichessAuth` — Lichess's `OnlineAuth`: OAuth with PKCE in the browser (a local `QTcpServer` takes the
   callback, `board:play challenge:write`), or a personal API token (`useToken`); both end with the account's
   username from `/api/account`.
-- `LichessClient` — an `OnlineClient` with a `LichessServer` of its own: the app's (`AppServices`, until LI-18
-  step 3's `OnlineHub`) and the Lichess tests'.
+- `LichessPlugin` (`lichess.json`: id `lichess`, order 10) — the plugin `OnlineHub` loads: `createServer`.
+- `LichessClient` — an `OnlineClient` with a `LichessServer` of its own: the Lichess tests'.
 
 ## Invariants
 - Nothing here plays: a Lichess behaviour of the Board API (a stream, a challenge, a seek) goes into
   `OnlineClient`; only what another server would do otherwise goes here.
-- `ChessGui` includes this folder's headers only in `appservices.cpp` (LI-18 step 3: none).
+- Nothing includes this folder's headers or links the plugin: `ChessGui` and `ChessGuiTests` only build it
+  (`LinkLibraryDependencies` false), so it can be left out; `ChessQtTests` compiles the classes it tests
+  (`LichessServer`, `LichessAuth`, `LichessClient`). `scripts\Check-OnlineIsolation.ps1` checks it.

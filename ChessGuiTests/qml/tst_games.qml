@@ -383,7 +383,7 @@ TestCase {
         app.waitForPage("game", 10000)
         compare(ChessConnector.GameMode, "replay")
         compare(ChessConnector.GameTitle, "Lichess · TesterChess vs Magnus · 20 Nov 2026")
-        compare(ChessConnector.LichessGameUrl, "https://lichess.org/kept0001")
+        compare(ChessConnector.OnlineGameUrl, "https://lichess.org/kept0001")
         const opponent = app.item("opponentCard"), player = app.item("playerCard")
         compare(findChild(opponent, "playerName").text, "Magnus")
         compare(findChild(opponent, "playerTitle").text, "GM")
@@ -397,6 +397,6 @@ TestCase {
         compare(ChessConnector.PlayFromHere.gameId, undefined, "not Played from here")
         verify(!ChessConnector.continueGame("lichess-kept0001"), "never continued")
         app.leaveToHome()
-        compare(ChessConnector.LichessGameUrl, "", "gone with the replay")
+        compare(ChessConnector.OnlineGameUrl, "", "gone with the replay")
     }
 }

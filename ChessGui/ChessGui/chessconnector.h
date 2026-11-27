@@ -108,7 +108,7 @@ class ChessConnector : public QObject
 		// the name. The opponent's flair is their avatar (AvatarProvider.opponentUrl).
 		Q_PROPERTY(QString PlayerFlair    READ playerFlair     NOTIFY gameInfoChanged)
 		// LI-14: the Lichess game on the board, played or a kept one replayed: its lichess.org page; "" otherwise.
-		Q_PROPERTY(QString LichessGameUrl READ lichessGameUrl  NOTIFY gameInfoChanged)
+		Q_PROPERTY(QString OnlineGameUrl READ onlineGameUrl  NOTIFY gameInfoChanged)
 		Q_PROPERTY(QString ResultText READ resultText NOTIFY gameResultChanged) // e.g. "Bob wins by checkmate"
 		Q_PROPERTY(QString PendingOffer READ pendingOffer NOTIFY pendingOfferChanged) // Lichess opponent offers: "", "draw", "takeback", "rematch"
 		Q_PROPERTY(bool CanOfferDraw    READ canOfferDraw    NOTIFY canOfferDrawChanged) // Lichess: from ply 2, then 20 plies after our last offer
@@ -159,7 +159,7 @@ public:
 
 	void setAvatarProvider(AvatarProvider* ap) { _avatarProvider = ap; }
 	void setUserManager(UserManager* um);
-	void setLichessClient(OnlineClient* lc);
+	void setOnlineClient(OnlineClient* lc);
 	void setGameLibrary(GameLibrary* library); // BL-19: where the local games are kept
 	void setScreenshotScene(const QVariantMap& scene);
 
@@ -189,8 +189,8 @@ public:
 	bool canReviewNext() const;
 	bool isOnlineGame()  const { return !_onlineGameId.isEmpty(); }
 	// Local games can always be replayed; a Lichess game needs its settings and a token.
-	bool canRematch()    const { return !_lastGameOnline || (_lichessClient && _lichessClient->canRematch()); }
-	bool canSeekAgain()  const { return _lastGameOnline && _lichessClient && _lichessClient->canSeekAgain(); }
+	bool canRematch()    const { return !_lastGameOnline || (_onlineClient && _onlineClient->canRematch()); }
+	bool canSeekAgain()  const { return _lastGameOnline && _onlineClient && _onlineClient->canSeekAgain(); }
 	bool rematchSwapsColours() const { return _rematchSwapsColours; }
 	void setRematchSwapsColours(bool on);
 	// Hidden while reviewing earlier moves: the king may not be on that square then.
@@ -207,7 +207,7 @@ public:
 	QString playerDetail() const;
 	QString opponentDetail() const;
 	QString playerFlair() const;
-	QString lichessGameUrl() const;
+	QString onlineGameUrl() const;
 	// The cards show the Lichess players (LI-07): a Lichess game, or a kept one replayed (LI-14).
 	bool    lichessPlayersShown() const { return isOnlineGame() || !_keptLichessGameId.isEmpty(); }
 	QString resultText() const { return _resultText; }
@@ -219,8 +219,8 @@ public:
 	int     claimWinSeconds() const { return _claimWin->secondsLeft(); }
 	bool    canClaimVictory() const { return _claimWin->canClaim(); }
 	bool startingOnlineGame() const { return !startingGameId().isEmpty(); }
-	QString startingGameId() const { return _lichessClient ? _lichessClient->rejoiningGameId() : QString(); }
-	QString acceptingChallengeId() const { return _lichessClient ? _lichessClient->acceptingChallengeId() : QString(); }
+	QString startingGameId() const { return _onlineClient ? _onlineClient->rejoiningGameId() : QString(); }
+	QString acceptingChallengeId() const { return _onlineClient ? _onlineClient->acceptingChallengeId() : QString(); }
 	QStringList capturedByDark()  const;
 	QStringList capturedByLight() const;
 	int materialBalance() const;
@@ -427,13 +427,13 @@ public slots:
 private slots:
 	void onEngineMoveFound(int request, const QString& move);
 	void onEngineMoveError(int request, const QString& message, const QString& details);
-	void onLichessPlayersChanged(); // LI-11: the players' flairs came
-	void onLichessGameStarted(const QString& gameId, bool playingAsWhite, const QString& opponentName,
+	void onOnlinePlayersChanged(); // LI-11: the players' flairs came
+	void onOnlineGameStarted(const QString& gameId, bool playingAsWhite, const QString& opponentName,
 		const QString& opponentAvatar, const QStringList& moves, const QString& variant, const QString& startFen);
-	void onLichessGameEnded(const QString& status, const QString& winner);
-	void onLichessOpponentGone(bool gone, int claimWinInSeconds);
-	void onLichessClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence);
-	void onLichessConnectionChanged(bool connected);
+	void onOnlineGameEnded(const QString& status, const QString& winner);
+	void onOnlineOpponentGone(bool gone, int claimWinInSeconds);
+	void onOnlineClockStarted(qint64 limitMs, qint64 incrementMs, bool correspondence);
+	void onOnlineConnectionChanged(bool connected);
 	void onClockFlagged(bool white); // a local game: that side's time is up
 
 private:
@@ -488,8 +488,8 @@ private:
 	void startClock();        // a new or continued local game: _clockLimitSec and _clockIncSec
 	void playRobotMove(const QString& uciMove); // the gate released it: play it on the GUI thread
 	void onGateRelease(const QString& uciMove, MoveGate::Source source);
-	void onLichessOpponentMoves(const QString& uciMoves); // one move, or the whole game on a resync
-	void onLichessMoveListReplaced(const QString& uciMoves, bool moveRefused); // a takeback, a refused move, a disagreement
+	void onOnlineOpponentMoves(const QString& uciMoves); // one move, or the whole game on a resync
+	void onOnlineMoveListReplaced(const QString& uciMoves, bool moveRefused); // a takeback, a refused move, a disagreement
 	void playOnlineMoves(const QStringList& uciMoves); // the gate released them: play them
 	// On the game, then history and counters; how many were played. announce: a check (or mate) by the
 	// last one is told; false: none is (moves already played elsewhere).
@@ -537,7 +537,7 @@ private:
 
 	AvatarProvider* _avatarProvider = nullptr;
 	UserManager*    _userManager    = nullptr;
-	OnlineClient*  _lichessClient  = nullptr;
+	OnlineClient*  _onlineClient  = nullptr;
 	QString         _onlineGameId;
 	QThread* _engineThread = nullptr;
 	EngineWorker* _engineWorker = nullptr;

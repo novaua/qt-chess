@@ -57,8 +57,8 @@ Item {
         if (name === "levels")   dialogs.levels.open()
         if (name.startsWith("profile") && name !== "profiles") window.openProfile()
         if (name === "quick-pairing-indicator") {   // LI-09 D5: Home while a 10+0 seek waits 0:42, its menu open
-            LichessClient.startSeek(600, 0, 0, true, "standard")   // offline: nothing is sent
-            LichessClient.fixSeekWaited(42)
+            Online.current.startSeek(600, 0, 0, true, "standard")   // offline: nothing is sent
+            Online.current.fixSeekWaited(42)
             const indicator = findItem(pages.currentItem, "seekIndicator")
             Qt.callLater(() => indicator.clicked())
         }
@@ -67,8 +67,8 @@ Item {
             // main.cpp: Tester with a Lichess account for online and online-empty, the games for online.
             window.openOnline()
             if (name === "quick-pairing-waiting") {   // LI-09: 10+0 waits 0:12 (offline: nothing is sent)
-                LichessClient.startSeek(600, 0, 0, true, "standard")
-                LichessClient.fixSeekWaited(12)   // the tile's, the line's and the command bar's
+                Online.current.startSeek(600, 0, 0, true, "standard")
+                Online.current.fixSeekWaited(12)   // the tile's, the line's and the command bar's
             }
             // LI-09 D2: the Custom seek: 20+0 Rapid; 5+3 Blitz (Seek off, the reason); 3 days per move.
             if (name.startsWith("seek-dialog")) {

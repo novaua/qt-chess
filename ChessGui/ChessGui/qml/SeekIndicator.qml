@@ -4,7 +4,7 @@ import ChessPlusPlus
 import "timecontrols.js" as TimeControls
 
 // LI-09 (the owner's decision D5): a quick pairing seek goes on beyond the Online page, and every page's
-// command bar (CommandBar) shows it while LichessClient.seek waits: a turning ring (a still clock with
+// command bar (CommandBar) shows it while Online.current.seek waits: a turning ring (a still clock with
 // Reduce animations), the time it has waited beside it when the bar has room (showTime). A click opens
 // its menu: what is sought, and Cancel seeking. Lichess's game opens from any page when someone takes it.
 ToolButton {
@@ -12,10 +12,10 @@ ToolButton {
 
     property bool showTime: true
 
-    readonly property bool seeking: LichessClient.seeking
+    readonly property bool seeking: Online.current?.seeking ?? false
     // Counted once, in C++, for every view (each page's bar, the grid's tile): once a second.
-    readonly property string elapsedText: seeking ? TimeControls.elapsed(LichessClient.seekWaitedSec) : ""
-    readonly property string seekText: seeking ? TimeControls.seekText(LichessClient.seek) : ""
+    readonly property string elapsedText: seeking ? TimeControls.elapsed(Online.current.seekWaitedSec) : ""
+    readonly property string seekText: seeking ? TimeControls.seekText(Online.current.seek) : ""
 
     objectName: "seekIndicator"
     visible: seeking
@@ -68,7 +68,7 @@ ToolButton {
             objectName: "cancelSeekItem"
             text: "Cancel seeking"
             icon.source: Theme.icon("close")
-            onTriggered: LichessClient.cancelSeek()
+            onTriggered: Online.current?.cancelSeek()
         }
     }
 }

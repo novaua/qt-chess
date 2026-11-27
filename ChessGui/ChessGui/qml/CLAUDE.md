@@ -1,12 +1,16 @@
 # ChessGui/ChessGui/qml/
 
-The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `LichessClient`, `GameLibrary`,
+The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Online`, `GameLibrary`,
 `AvatarProvider`, `AppInfo`, singletons in module `ChessPlusPlus`; their API is in
 `.claude/rules/chessgui-cpp.md` and the headers.
 
 ## Rules
 - The game only through `ChessConnector`, one call per user action (the root's Key Conventions, rule 1).
 - A file that uses the services has `import ChessPlusPlus`.
+- Online play is `Online.current` (LI-18: the `OnlineClient` of the first server plugin), **null without a
+  plugin**: what is always there (the window, Home, the command bars, the game page, the Continue list) reads it
+  with `?.` and `??`, and hides online play by `Online.available` (Home's `onlineCard`, Welcome's
+  `continueWithLichess`, the profile's `lichessSection`); the Online page and its parts are reached only with it.
 - Pages ask for the app's dialogs through signals; `ChessGame.qml` and its parts (`ProfileFiles`, …) own them and
   the window's InfoBars. A page's own confirm or note stays in it (`GamesPage`'s Delete and `SettingsPage`'s
   "Games kept" `ConfirmDialog`; the InfoBars of `MovesPanel`, `OnlinePage`, `ProfilePage`). A page with a dialog
@@ -70,7 +74,7 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   "GM Magnus (2850)", "Rapid 10+5 · Rated · you play White · …"), shared with Home and the Continue list.
 - `OnlinePage.qml` — pushed by "Play online" (`onlineCard`): the challenges to the player with Accept and
   Decline… with Lichess's reasons; Quick pairing (`QuickPairingGrid`, lichess.org's tiles: Rapid and Classical
-  seek a random opponent (`LichessClient.startSeek`), Bullet and Blitz greyed, Custom: `SeekDialog`; Rated /
+  seek a random opponent (`Online.current.startSeek`), Bullet and Blitz greyed, Custom: `SeekDialog`; Rated /
   Casual, `AppSettings.quickRated`, `quickChess960`); the seek goes on when the page is left, shown in every
   command bar (`SeekIndicator`). A new challenge (a link, or to a named Lichess player, the only way to play
   Blitz; its Variant row, `AppSettings.onlineChess960`, apart from the local dialogs', and the Chess960 rating
@@ -83,7 +87,7 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   and `AnalysisSummary` (the moves panel; "Best was …" in green) for an analysed game; Analyse on the result card
   and in More. A Lichess game from Quick pairing (`ChessConnector.CanSeekAgain`, LI-16) has **New opponent** in
   New game's place, on the result card and in the moves panel (`ChessConnector.newOpponent()`; busy "Looking for
-  an opponent…" while `LichessClient.seeking`; the page stays until the seek's game replaces it; Ctrl+N too). The review bar's **Play from here** (`MovesPanel`, the sheet handle in a narrow window) → its menu
+  an opponent…" while `Online.current.seeking`; the page stays until the seek's game replaces it; Ctrl+N too). The review bar's **Play from here** (`MovesPanel`, the sheet handle in a narrow window) → its menu
   (vs computer… / Two players…) → the setup dialogs' `openFrom(position)`.
 - `WelcomePage`, `ProfilePickerPage`, `ProfilePage`, `SettingsPage` — first run, "Who's playing?", the profile,
   the settings.
@@ -121,7 +125,7 @@ The app's QML. The C++ it calls: `ChessConnector` (the game), `UserManager`, `Li
   messages" in the game's More menu and Home's account menu, Ctrl+M, a dot for new ones (`NewMessagesDot`,
   `RecentMessagesMenuItem`); cleared when the profile changes.
 - `GameCard` — a game: a `BoardPreview`, who, whose turn or the result, Continue / Open, an optional Delete.
-  `OngoingGameCard`: one of `LichessClient.ongoingGames`; a right click opens its menu: Continue (a game playable
+  `OngoingGameCard`: one of `Online.current.ongoingGames`; a right click opens its menu: Continue (a game playable
   here), Open on lichess.org, Copy link (`AppInfo.copyToClipboard`, "Link copied").
 - `TimeControlPicker` (the clock tiles of the setup dialogs and the challenge card), `VariantPicker` (the setup
   dialogs' Variant row, Standard / Chess960, `AppSettings.chess960`; none in Play from here; `online`: the Online

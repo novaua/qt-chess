@@ -55,7 +55,7 @@ TestCase {
         waitRequest("POST /api/challenge/chal0001/decline")
         compare(FakeLichess.bodyOf("POST /api/challenge/chal0001/decline"), "reason=generic")
         tryVerify(() => !bar().visible, 3000, "the bar gone")
-        compare(LichessClient.incomingChallenges.length, 0)
+        compare(Online.current.incomingChallenges.length, 0)
     }
 
     // Another one, accepted: the game page, the board turned for Black (the challenger plays White),
@@ -147,7 +147,7 @@ TestCase {
         app.click("challengeHideButton")
         tryVerify(() => !bar().visible, 3000, "the bar hidden")
         verify(!FakeLichess.received("POST /api/challenge/chal0002/decline"), "hidden, not declined")
-        compare(LichessClient.incomingChallenges.length, 1, "still waiting on Lichess")
+        compare(Online.current.incomingChallenges.length, 1, "still waiting on Lichess")
     }
 
     // The game's stream is cut and Lichess refuses it for a moment: "Reconnecting to Lichess…" over
@@ -195,7 +195,7 @@ TestCase {
                            "[White \"FriendlyRival\"]", "[Black \"" + me + "\"]", "[WhiteElo \"1712\"]",
                            "[BlackElo \"1650\"]", "[TimeControl \"600+5\"]", "[Result \"0-1\"]"])
             verify(pgn.indexOf(tag) >= 0, tag + " in\n" + pgn)
-        compare(ChessConnector.LichessGameUrl, "https://lichess.org/game0001")
+        compare(ChessConnector.OnlineGameUrl, "https://lichess.org/game0001")
         app.click("moreButton")
         tryVerify(() => moreItems()[0].menu.opened, 3000, "More")
         verify(moreItems().every(item => item.visible), "More: Analyse, the game and its analysis on lichess.org")
@@ -216,13 +216,13 @@ TestCase {
     function test_09_continueWithItsMoves() {
         FakeLichess.addOngoingGame("game0002", "SlowPlayer", "black", "d2d4 d7d5 c2c4",
                                    "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2")
-        LichessClient.refreshOngoingGames()   // as the Online page's refresh does
-        tryVerify(() => LichessClient.ongoingGames.length === 1, 3000, "the game listed")
+        Online.current.refreshOngoingGames()   // as the Online page's refresh does
+        tryVerify(() => Online.current.ongoingGames.length === 1, 3000, "the game listed")
         // BL-24: Continue while the list refreshes (there are several in the first seconds after a start)
         // still joins the only game, not the Continue list. Called directly, as the card's click does
         // (ChessGame.continueGames): a click could let the refresh's answer in first.
-        LichessClient.refreshOngoingGames()
-        verify(LichessClient.ongoingGamesLoading, "a refresh in flight")
+        Online.current.refreshOngoingGames()
+        verify(Online.current.ongoingGamesLoading, "a refresh in flight")
         verify(ChessConnector.continueOnlyGame(), "the only game joined, not the list")
         waitRequest("GET /api/board/game/stream/game0002")
         app.waitForPage("game", 10000)
@@ -297,8 +297,8 @@ TestCase {
     function test_12_copyGameLink() {
         FakeLichess.addOngoingGame("zhGame01", "Housey", "white", "e2e4", "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
                                    "crazyhouse")
-        LichessClient.refreshOngoingGames()
-        tryVerify(() => LichessClient.ongoingGames.some(g => g.gameId === "zhGame01"), 3000, "the game listed")
+        Online.current.refreshOngoingGames()
+        tryVerify(() => Online.current.ongoingGames.some(g => g.gameId === "zhGame01"), 3000, "the game listed")
         app.click("onlineCard")
         app.waitForPage("online", 5000)
         tryVerify(() => app.find("ongoingGame_zhGame01") !== null, 3000, "its card")
@@ -378,7 +378,7 @@ TestCase {
         app.waitForPage("game", 10000)
         compare(ChessConnector.GameMode, "online")
         compare(ChessConnector.OpponentName, "Stranger")
-        compare(LichessClient.seek.limitSec, undefined, "the seek is over")
+        compare(Online.current.seek.limitSec, undefined, "the seek is over")
         compare(FakeLichess.closedByApp("POST /api/board/seek"), 1, "closed by Lichess, not the app")
         AppSettings.quickRated = true
 
@@ -436,7 +436,7 @@ TestCase {
         mouseClick(cancelItem)
         tryVerify(() => closed() === closedBefore + 1, 3000, "Lichess sees the seek closed")
         tryVerify(() => !indicator().visible, 3000, "the icon gone")
-        compare(LichessClient.seek.limitSec, undefined)
+        compare(Online.current.seek.limitSec, undefined)
 
         // Taken while on Home: the game opens.
         seekFrom("15+10")
@@ -456,7 +456,7 @@ TestCase {
         seekFrom("30+0")
         app.switchUserFromHome()
         tryVerify(() => closed() === closedBefore + 2, 3000, "the seek closed on Switch user")
-        compare(LichessClient.seek.limitSec, undefined)
+        compare(Online.current.seek.limitSec, undefined)
         app.pickProfile("Tester")
     }
 
@@ -574,26 +574,26 @@ TestCase {
 
     // A challenge from the player to a named Lichess player (BL-35 step 4: LichessChallenges): its
     // dialog, then declined ("… declined the challenge" in the recent messages); another one canceled.
-    // FakeLichess doesn't take the player's own challenges, so the test gives LichessClient's answers
+    // FakeLichess doesn't take the player's own challenges, so the test gives Online.current's answers
     // (its signals) itself.
     function test_16_challengeFromThePlayer() {
         const dialog = app.item("challengeDialog")
         const challenges = app.item("lichessChallenges")
-        LichessClient.directChallengeSent("myChal01", "Friend")
+        Online.current.directChallengeSent("myChal01", "Friend")
         tryVerify(() => dialog.opened, 3000, "the challenge dialog")
         compare(dialog.challengeId, "myChal01")
         compare(dialog.opponentName, "Friend")
         verify(!dialog.isRematch, "not a rematch: no game on the board")
 
-        LichessClient.challengeDeclined("Friend")
+        Online.current.challengeDeclined("Friend")
         app.waitClosed(dialog)
         compare(challenges.pendingId, "", "nothing pending")
         compare(challenges.opponentName, "")
         verify(app.recentMessages().indexOf("Friend declined the challenge") >= 0, app.recentMessages().join(" | "))
 
-        LichessClient.directChallengeSent("myChal02", "Friend")
+        Online.current.directChallengeSent("myChal02", "Friend")
         tryVerify(() => dialog.opened, 3000, "the dialog again")
-        LichessClient.challengeCanceled()
+        Online.current.challengeCanceled()
         app.waitClosed(dialog)
         compare(challenges.pendingId, "", "nothing pending")
     }
@@ -648,7 +648,7 @@ TestCase {
 
     // BL-36: a rematch challenge still waiting for the opponent goes with the game it was made from: leaving it
     // for Home withdraws it (ChessConnector.endGame(), one call). FakeLichess doesn't take the player's own
-    // challenges, so the test gives LichessClient's answer (challengeCreated) itself; its dialog is closed
+    // challenges, so the test gives Online.current's answer (challengeCreated) itself; its dialog is closed
     // without its Cancel, which would withdraw it.
     function test_19_leaveWithdrawsTheRematch() {
         FakeLichess.challenge("game0019", "Rival19", 1500, "white")
@@ -665,7 +665,7 @@ TestCase {
         verify(!app.item("newOpponentButton").visible, "no New opponent")
 
         const dialog = app.item("challengeDialog")
-        LichessClient.challengeCreated("rematch19", "https://lichess.org/rematch19")
+        Online.current.challengeCreated("rematch19", "https://lichess.org/rematch19")
         tryVerify(() => dialog.opened, 3000, "the rematch's dialog")
         verify(dialog.isRematch, "made with the game on the board: a rematch")
         dialog.close()
@@ -717,23 +717,23 @@ TestCase {
         tryCompare(ChessConnector, "OpponentName", "Second", 10000, "the new game on the board")
         compare(app.page().objectName, "game")
         compare(ChessConnector.GameResult, "", "a new game")
-        verify(!LichessClient.seeking)
+        verify(!Online.current.seeking)
 
         // A rematch challenge of ours waits (its dialog closed without Cancel, as in test 19): New opponent
         // withdraws it, and the seek isn't refused.
         FakeLichess.endGame("seek0021", "resign", "white")
         tryVerify(() => app.find("resultCard")?.visible, 3000, "the result card again")
         const dialog = app.item("challengeDialog")
-        LichessClient.challengeCreated("rematch20", "https://lichess.org/rematch20")
+        Online.current.challengeCreated("rematch20", "https://lichess.org/rematch20")
         tryVerify(() => dialog.opened, 3000, "the rematch's dialog")
         dialog.close()
         app.waitClosed(dialog)
         app.click("newOpponentButton")
         waitRequest("POST /api/challenge/rematch20/cancel")
         tryVerify(() => FakeLichess.seekOpen, 3000, "the seek sent")
-        verify(LichessClient.seeking, "not refused")
+        verify(Online.current.seeking, "not refused")
 
-        LichessClient.cancelSeek()
+        Online.current.cancelSeek()
         tryVerify(() => !FakeLichess.seekOpen, 3000)
         app.leaveToHome()
     }

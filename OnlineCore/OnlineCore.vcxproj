@@ -118,10 +118,13 @@
     <QtMoc Include="OnlineStream.h" />
     <QtMoc Include="OnlineServer.h" />
     <QtMoc Include="OnlineAuth.h" />
+    <QtMoc Include="OnlineHub.h" />
+    <ClInclude Include="OnlineProviderPlugin.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="onlinecore_global.h" />
     <ClCompile Include="OnlineClient.cpp" />
     <ClCompile Include="OnlineStream.cpp" />
+    <ClCompile Include="OnlineHub.cpp" />
     <ClInclude Include="stdafx.h" />
     <ResourceCompile Include="OnlineCore.rc" />
     <ClCompile Include="stdafx.cpp">

@@ -111,7 +111,7 @@ ApplicationWindow {
     // LI-09 (D5): Back from the Online page while a quick pairing seek waits: it goes on, said once a seek.
     property real _seekToldSince: 0
     function _tellSeekGoesOn() {
-        const seek = LichessClient.seek
+        const seek = Online.current?.seek ?? ({})
         if (seek.since === undefined || seek.since === _seekToldSince)
             return
         _seekToldSince = seek.since
@@ -153,6 +153,8 @@ ApplicationWindow {
     // The Online page (not signed in: it says so and leads to the profile); a challenge still waiting
     // for the friend opens over it.
     function playOnline() {
+        if (!Online.available)   // LI-18: no online server's plugin
+            return
         openOnline()
         lichessChallenges.resumePending()
     }
@@ -605,7 +607,7 @@ ApplicationWindow {
                 Button {
                     objectName: "challengeDeclineButton"
                     text: "Decline"
-                    onClicked: LichessClient.declineChallenge(lichessChallenges.challenge.id)
+                    onClicked: Online.current?.declineChallenge(lichessChallenges.challenge.id)
                 }
                 Button {
                     objectName: "challengeHideButton"
@@ -654,7 +656,7 @@ ApplicationWindow {
                 }
             }
 
-            // LI-06: the Lichess game's stream was lost; LichessClient reconnects on its own.
+            // LI-06: the Lichess game's stream was lost; its OnlineClient reconnects on its own.
             InfoBar {
                 width: parent.width
                 visible: messageCenter.reconnecting && !messageCenter.statusShows("connection")
@@ -724,7 +726,7 @@ ApplicationWindow {
     // Lichess, the window's part: the taskbar flash and the seek's dialog and messages. The challenges'
     // own: LichessChallenges.
     Connections {
-        target: LichessClient
+        target: Online.current   // null without a plugin: nothing to hear
 
         function onGameStarted(gameId, playingAsWhite, opponentName, opponentAvatarUrl) {
             seekDialog.closeAtOnce()   // BL-16: not a fade under "Starting the game…"
@@ -798,9 +800,9 @@ ApplicationWindow {
     SeekDialog {
         id: seekDialog
         objectName: "seekDialog"
-        available: !LichessClient.seeking && ChessConnector.CanAcceptChallenge && !ChessConnector.StartingOnlineGame
+        available: !(Online.current?.seeking ?? false) && ChessConnector.CanAcceptChallenge && !ChessConnector.StartingOnlineGame
                    && ChessConnector.AcceptingChallengeId === ""
-        onRealTimeSeekStarted: root._customSeekSince = LichessClient.seek.since
+        onRealTimeSeekStarted: root._customSeekSince = Online.current?.seek.since ?? 0
     }
 
     // Waiting for the opponent to accept a Lichess challenge.

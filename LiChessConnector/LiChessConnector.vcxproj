@@ -60,8 +60,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <!-- LI-18: a plugin, loaded by OnlineHub from the folder "online" beside the app -->
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\online\</OutDir>
+    <TargetName>LichessOnline</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <!-- LI-18: a plugin, loaded by OnlineHub from the folder "online" beside the app -->
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\online\</OutDir>
+    <TargetName>LichessOnline</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -118,6 +124,8 @@
   <ItemGroup>
     <QtMoc Include="LichessAuth.h" />
     <QtMoc Include="LichessServer.h" />
+    <QtMoc Include="LichessPlugin.h" />
+    <None Include="lichess.json" />
     <ClInclude Include="LichessClient.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="lichessconnector_global.h" />

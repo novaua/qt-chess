@@ -18,7 +18,7 @@ AppDialog {
     width: 400
     acceptEnabled: false
 
-    onRejected: LichessClient.cancelChallenge(dialog.challengeId)
+    onRejected: Online.current?.cancelChallenge(dialog.challengeId)
 
     ColumnLayout {
         anchors.fill: parent

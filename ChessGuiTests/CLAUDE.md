@@ -28,7 +28,9 @@ except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too
   restart's second run finds the first's data); `main.cpp` sets the app's style and names.
 - `// ui-test-runs: 2` in a file runs it twice on one data folder: a restart (`tst_restart.qml`); each function
   skips itself in the other run (`TestRun.run`).
-- `// ui-test-engine: none` runs it without an engine (`tst_noEngine`).
+- `// ui-test-engine: none` runs it without an engine (`tst_noEngine`); `// ui-test-online: none` without the
+  online servers' plugins (LI-18, `tst_noOnline`: `CHESS_UI_TEST_ONLINE=none`, `TestSetup` loads none). The others
+  load `online\LichessOnline.dll` as the app does; `Run-UiTests.ps1` runs `Check-OnlineIsolation.ps1` first.
 - `TestRun` (`TestSetup` as a QML singleton, module `ChessGuiTests`, with `FakeLichess`): `linkLichess`,
   `addFinishedGames(n)` (fills the games library without playing), `addLichessGame` (a kept Lichess game,
   LI-14), `addDamagedGame`, `addEditedGame`,
@@ -43,8 +45,8 @@ except `main.cpp`: **a new ChessGui source goes into `ChessGuiTests.vcxproj` too
   can be another variant, with a start FEN), `play`, `offerDraw`, `endGame`, `dropGameStreams`,
   `addOngoingGame`, `setPlayer` (a player's title and rating in gameFull), `pairSeek`, `refuseSeeks`, `refuseGameActions`; it checks
   what the app asked (`received("POST /api/…")`, `bodyOf`, `moves(gameId)`). See `tst_lichess.qml`.
-  What it doesn't serve (the player's own challenges) a test gives as `LichessClient`'s answer, calling its
-  signal (`LichessClient.challengeDeclined("Friend")`, `tst_lichess` test 16).
+  What it doesn't serve (the player's own challenges) a test gives as the client's answer, calling its
+  signal (`Online.current.challengeDeclined("Friend")`, `tst_lichess` test 16).
 
 ## Writing a test
 - A `TestCase` in `qml/tst_<area>.qml` with an `AppDriver` (`app.start()` in `initTestCase`, `app.stop()` in
