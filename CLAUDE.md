@@ -15,7 +15,7 @@ a folder, Read its `CLAUDE.md`** (Grep and Glob don't load it).
 |---|---|
 | `ChessCore/CLAUDE.md` · `ChessTests/CLAUDE.md` | the chess rules (castling and FEN for any set-up, invariants); their tests |
 | `UciConnector/CLAUDE.md` · `FakeUci/CLAUDE.md` | the UCI engine (API, Chess960 requests, which engine runs); the tests' stand-in |
-| `OnlineCore/CLAUDE.md` · `LiChessConnector/CLAUDE.md` | online play: `OnlineClient` by area, `OnlineServer`; Lichess's own (`LichessServer`, `LichessAuth`) |
+| `OnlineCore/CLAUDE.md` · `LiChessConnector/CLAUDE.md` | online play: `OnlineClient` by area, `OnlineServer`, the plugins (`OnlineHub`); the Lichess plugin |
 | `ChessQtTests/CLAUDE.md` | the Qt parts' tests: what they need, `FakeLichess` |
 | `ChessGui/ChessGui/CLAUDE.md` | the app's folder: its C++ by area, assets, which lists a new file goes into |
 | `.claude/rules/chessgui-cpp.md` | ChessGui's C++ class by class, invariants (loads with a `.h` / `.cpp` there) |
@@ -49,18 +49,18 @@ scripts\Take-Screenshot.ps1 -Scene all      # screenshots of the app's views (in
 |---|---|---|
 | `ChessCore` | static lib, no Qt | the chess rules, `Chess::` |
 | `UciConnector` | static lib, Qt Core | a UCI engine (Stockfish) through `QProcess` |
-| `OnlineCore` | DLL, Qt Core + Network | online play, the Board API: `OnlineClient`, `OnlineStream`, `OnlineServer`, `OnlineAuth` |
-| `LiChessConnector` | DLL, on `OnlineCore` | Lichess's own: `LichessServer`, `LichessAuth` (LI-18) |
+| `OnlineCore` | DLL, Qt Core + Network | online play, the Board API: `OnlineClient`, `OnlineStream`, `OnlineServer`, `OnlineAuth`, `OnlineHub` |
+| `LiChessConnector` | Qt plugin `online\LichessOnline.dll` | Lichess's own: `LichessServer`, `LichessAuth`; nothing links it (LI-18) |
 | `ChessGui` (`ChessGui/ChessGui/`) | the app, Qt Quick | the QML UI and its C++: `ChessConnector`, models, profiles, the games library, the robot |
 | `FakeUci` | console exe, no Qt | the tests' stand-in engine |
 | `ChessTests` · `ChessQtTests` | test DLLs | ChessCore's tests; the Qt parts' (ChessGui's C++ built from its sources) |
 | `ChessGuiTests` | console exe, Qt Quick Test | the UI tests (every ChessGui `.cpp` but `main.cpp`) |
 
 ```
-ChessGui: QML pages → ChessConnector (the game), UserManager, GameLibrary, LichessClient, …
+ChessGui: QML pages → ChessConnector (the game), UserManager, GameLibrary, Online (OnlineHub), …
   ├─ ChessCore: Game → Board, MoveGeneration, GameChecks, StartPosition
   ├─ UciConnector ← ChessEnginePlayer / EngineWorker (the robot), GameAnalyzer (the analysis)
-  └─ OnlineCore: OnlineClient → OnlineStream, OnlineServer ← LiChessConnector: LichessServer, LichessAuth
+  └─ OnlineCore: OnlineHub → OnlineClient → OnlineStream, OnlineServer ⇠ plugin LiChessConnector: LichessServer
 FakeUci, ChessTests → ChessCore;   ChessQtTests, ChessGuiTests → all five above (+ FakeUci)
 ```
 
@@ -70,8 +70,8 @@ FakeUci, ChessTests → ChessCore;   ChessQtTests, ChessGuiTests → all five ab
 - C++ style (OO, `std::shared_ptr`, `Chess::` without Qt, `PieceColors::Light`, no formatters): `.claude/rules/cpp-style.md`.
 - QML ↔ C++ boundary:
   1. Anything that reads or changes the game — including flows that combine the game with users or Lichess (start a local or online game, game end, rematch, switch user during a game) — goes through `ChessConnector`, as **one call per user action**. QML never strings game steps together itself, and never sees `Chess::` types (`Game`, `Board`, engine).
-  2. `UserManager` and `LichessClient` stay separate services. QML may call them directly for non-game work: profiles, login, Lichess account and challenge setup, ratings. Don't forward their API through `ChessConnector`.
-  3. Expose QML-visible services as typed singletons (`qmlRegisterSingletonInstance`), not context properties: `ChessConnector`, `UserManager`, `LichessClient`, `AvatarProvider`, `AppInfo` and `GameLibrary` in module `ChessPlusPlus` (`AppServices`: made, wired and registered there, for `main.cpp` and the UI tests alike). A QML file that uses them has `import ChessPlusPlus`.
+  2. `UserManager` and `Online.current` (the `OnlineClient`) stay separate services. QML may call them directly for non-game work: profiles, login, Lichess account and challenge setup, ratings. Don't forward their API through `ChessConnector`.
+  3. Expose QML-visible services as typed singletons (`qmlRegisterSingletonInstance`), not context properties: `ChessConnector`, `UserManager`, `Online`, `AvatarProvider`, `AppInfo` and `GameLibrary` in module `ChessPlusPlus` (`AppServices`: made, wired and registered there, for `main.cpp` and the UI tests alike). A QML file that uses them has `import ChessPlusPlus`.
 - The Lichess token never reaches QML and is never exported (`UserManager::lichessToken()` is C++ only).
 - **A new ChessGui source goes into `ChessGuiTests.vcxproj` too** (the link fails without it); the other lists it goes into: `ChessGui/ChessGui/CLAUDE.md`.
 

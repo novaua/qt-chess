@@ -26,7 +26,8 @@ Page {
 
     // BL-17: every unfinished game, the kept local ones (BL-19: vs the robot and two players) and the
     // Lichess ones (LI-04). Continue opens the only one directly, else the list of them all.
-    readonly property var _onlineGames: UserManager.lichessConnected ? LichessClient.ongoingGames : []
+    readonly property var _onlineGames: UserManager.lichessConnected ? (Online.current?.ongoingGames ?? []) : []
+    readonly property int _challengeCount: Online.current?.incomingChallenges.length ?? 0
     readonly property var _localGames: GameLibrary.unfinishedGames
     readonly property int _myTurnCount: _onlineGames.filter(g => g.isMyTurn).length
     readonly property int _pendingCount: _localGames.length + _onlineGames.length
@@ -43,8 +44,8 @@ Page {
     // A fresh list each time Home shows (back from a game, Settings, the profile): an opponent may
     // have moved or ended a game meanwhile.
     StackView.onActivated: {
-        if (UserManager.lichessConnected && !LichessClient.ongoingGamesLoading)
-            LichessClient.refreshOngoingGames()
+        if (UserManager.lichessConnected && Online.current && !Online.current.ongoingGamesLoading)
+            Online.current.refreshOngoingGames()
     }
 
     // Transparent: the window's photo shows through (ChessGame.qml, BL-11).
@@ -197,11 +198,12 @@ Page {
                 }
                 HomeCard {
                     objectName: "onlineCard"
+                    visible: Online.available   // LI-18: no online server's plugin, no online play
                     text: "Play online"
                     // BL-10: the challenges waiting for an answer are on the Online page.
                     description: UserManager.lichessConnected
-                                 ? (LichessClient.incomingChallenges.length === 1 ? "1 challenge waiting for you"
-                                    : LichessClient.incomingChallenges.length > 1 ? LichessClient.incomingChallenges.length + " challenges waiting for you"
+                                 ? (page._challengeCount === 1 ? "1 challenge waiting for you"
+                                    : page._challengeCount > 1 ? page._challengeCount + " challenges waiting for you"
                                     : "Challenge a friend on Lichess")
                                : UserManager.lichessNeedsReconnect ? "Lichess sign-in expired: reconnect in your profile"
                                : "Link your Lichess account in your profile first"

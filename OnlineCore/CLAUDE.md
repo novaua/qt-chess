@@ -2,9 +2,9 @@
 
 Online play through the Board API (Lichess's, which other servers answer too; LI-18, plan
 `docs/LI-18-OnlineServersPlan.md`): a DLL (`ONLINECORE_EXPORT`), Qt Core + Network, that knows no server. What a
-server does its own way is its `OnlineServer`'s: Lichess's is in `LiChessConnector/`. `OnlineClient` is a QML
-singleton (`AppServices`, still named `LichessClient` there until LI-18 step 3); QML calls it directly for
-non-game work (account, challenges, seeks), the game itself goes through `ChessConnector` (rule 1 and 2 of the
+server does its own way is its `OnlineServer`'s, in that server's plugin: Lichess's is `LiChessConnector/`.
+QML has `Online` (the `OnlineHub`) and its `current` client (`Online.current`, null without a plugin); it calls
+that directly for non-game work (account, challenges, seeks), the game itself goes through `ChessConnector` (rule 1 and 2 of the
 root's Key Conventions). Its tests: `ChessQtTests/` (`Lichess*Test.cpp`, with a `LichessClient`, against
 `FakeLichess`).
 
@@ -22,6 +22,13 @@ root's Key Conventions). Its tests: `ChessQtTests/` (`Lichess*Test.cpp`, with a 
   `createAuth`.
 - `OnlineAuth` — the interface of a sign-in (`startLogin`, `useToken`, `cancel`; `loginSucceeded` /
   `loginFailed`), made by the server. The token goes to `UserManager` (ChessGui), which stores it.
+- `OnlineHub` — the servers the app has (QML singleton `Online`): `loadPlugins(dir)` (the folder "online" beside
+  the app, `AppServices::defaultPluginDir`) reads each DLL's metadata first and skips one of another
+  `coreVersion` (`CoreVersion`), without an id, or of an id already there (logged); `addPlugin` for the tests.
+  One `OnlineClient` per plugin; `current` (the first by the plugin's `order`), `available`, `client(id)`,
+  `providers` (`{ id, name }`).
+- `OnlineProviderPlugin` — a server's plugin: `createServer(address)`; `Q_PLUGIN_METADATA(IID
+  OnlineProviderPlugin_iid FILE "<server>.json")` with `{ id, name, order, coreVersion }`.
 - `OnlinePlayer`, `RematchInfo` (in `OnlineClient.h`): a game's player as `gameFull` gives them; the last game's
   settings for a rematch.
 
@@ -80,6 +87,8 @@ root's Key Conventions). Its tests: `ChessQtTests/` (`Lichess*Test.cpp`, with a 
 - One seek at a time; none while a real-time challenge of ours waits.
 - Chess++ plays only what the server's `playsVariant` allows (Lichess: standard and chess960): another variant is listed with `canPlayHere`
   false, and a game of one that starts anyway is refused by `ChessConnector::onLichessGameStarted`.
-- `OnlineCore` includes no server's header: what is Lichess's goes into `LichessServer` (LI-18).
+- `OnlineCore` includes no server's header and references no plugin: what is Lichess's goes into its plugin
+  (LI-18; `scripts\Check-OnlineIsolation.ps1`).
+- A raised `OnlineServer` / `OnlineProviderPlugin` contract raises `OnlineHub::CoreVersion` and the plugins'.
 - Tests never play against lichess.org: `FakeLichess` on 127.0.0.1 (`setBaseUrl`). The one exception,
   `LichessNetworkTests`, only checks a fake token there.

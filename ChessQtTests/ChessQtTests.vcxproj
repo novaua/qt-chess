@@ -62,6 +62,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PreprocessorDefinitions>LICHESSCONNECTOR_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(SolutionDir)\LiChessConnector;$(SolutionDir)\OnlineCore;$(SolutionDir)\UciConnector;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
@@ -78,6 +79,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="Configuration">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PreprocessorDefinitions>LICHESSCONNECTOR_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)\ChessCore;$(SolutionDir)\ChessGui\ChessGui;$(SolutionDir)\LiChessConnector;$(SolutionDir)\OnlineCore;$(SolutionDir)\UciConnector;$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
@@ -98,9 +100,6 @@
   <ItemGroup>
     <ProjectReference Include="..\ChessCore\ChessCore.vcxproj">
       <Project>{113a444b-2f1c-4b33-9905-41a466ffef7f}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\LiChessConnector\LiChessConnector.vcxproj">
-      <Project>{2ed0175f-4de2-440a-965e-04b2f1e4e3c0}</Project>
     </ProjectReference>
     <ProjectReference Include="..\OnlineCore\OnlineCore.vcxproj">
       <Project>{210ec68a-2be6-4ac7-8327-ca3364cae3a9}</Project>
@@ -127,6 +126,7 @@
     <ClCompile Include="LichessStreamTest.cpp" />
     <ClCompile Include="LichessChallengeTest.cpp" />
     <ClCompile Include="LichessSeekTest.cpp" />
+    <ClCompile Include="OnlineHubTest.cpp" />
     <ClCompile Include="UciConnectorTest.cpp" />
     <ClCompile Include="UserManagerTest.cpp" />
     <ClCompile Include="GameLibraryTest.cpp" />
@@ -134,6 +134,12 @@
     <ClCompile Include="GamePgnTest.cpp" />
     <ClCompile Include="GameAnalysisTest.cpp" />
     <!-- UserManager and what it needs, from the app (it has no library of its own) -->
+    <!-- LI-18: the Lichess plugin's classes the tests use, compiled in (its DLL is in online\) -->
+    <ClCompile Include="..\LiChessConnector\LichessAuth.cpp" />
+    <ClCompile Include="..\LiChessConnector\LichessClient.cpp" />
+    <ClCompile Include="..\LiChessConnector\LichessServer.cpp" />
+    <QtMoc Include="..\LiChessConnector\LichessAuth.h" />
+    <QtMoc Include="..\LiChessConnector\LichessServer.h" />
     <ClCompile Include="..\ChessGui\ChessGui\AppConfig.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\AvatarProvider.cpp" />
     <ClCompile Include="..\ChessGui\ChessGui\UserManager.cpp" />

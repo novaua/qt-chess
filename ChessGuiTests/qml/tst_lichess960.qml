@@ -102,9 +102,9 @@ TestCase {
     function test_2_continueOngoing960() {
         FakeLichess.addOngoingGame("c9600002", "Slow960", "white", "g2g3 g7g6",
                                    "bqnnrkrb/pppppp1p/6p1/8/8/6P1/PPPPPP1P/BQNNRKRB w KQkq - 0 2", "chess960", start3)
-        LichessClient.refreshOngoingGames()
-        tryVerify(() => LichessClient.ongoingGames.length === 1, 3000, "the game listed")
-        const listed = LichessClient.ongoingGames[0]
+        Online.current.refreshOngoingGames()
+        tryVerify(() => Online.current.ongoingGames.length === 1, 3000, "the game listed")
+        const listed = Online.current.ongoingGames[0]
         compare(listed.canPlayHere, true, "Chess960 can be played here")
         compare(listed.variantName, "Chess960")
 
@@ -144,9 +144,9 @@ TestCase {
         waitRequest("POST /api/challenge/zh000001/decline")
 
         FakeLichess.addOngoingGame("zh000002", "Housey", "white", "e2e4", "", "crazyhouse")
-        LichessClient.refreshOngoingGames()
-        tryVerify(() => LichessClient.ongoingGames.some(g => g.gameId === "zh000002"), 3000, "the game listed")
-        compare(LichessClient.ongoingGames.find(g => g.gameId === "zh000002").canPlayHere, false)
+        Online.current.refreshOngoingGames()
+        tryVerify(() => Online.current.ongoingGames.some(g => g.gameId === "zh000002"), 3000, "the game listed")
+        compare(Online.current.ongoingGames.find(g => g.gameId === "zh000002").canPlayHere, false)
 
         startFailed.clear()
         verify(ChessConnector.continueOnlineGame("zh000002"))

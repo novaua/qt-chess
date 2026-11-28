@@ -23,7 +23,7 @@ function elapsed(seconds) {
     return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0")
 }
 
-// A quick pairing seek (LichessClient.seek) as its menu says it: "10+0 Rapid · Rated", "· Chess960".
+// A quick pairing seek (Online.current.seek) as its menu says it: "10+0 Rapid · Rated", "· Chess960".
 function seekText(seek) {
     return label(seek.limitSec, seek.incrementSec) + " " + Lichess.speedName(seek.speed ?? "") + " · " + (seek.rated ? "Rated" : "Casual")
            + (seek.variant === "chess960" ? " · Chess960" : "")

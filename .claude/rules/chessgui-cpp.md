@@ -174,7 +174,11 @@ action**; it owns the `Game`, the robot (`EngineWorker` on its thread), the `Mov
   `<CacheLocation>/qml/<exe>-<hash of its path>` (`QML_DISK_CACHE_PATH`), called by `main.cpp` and `TestSetup`
   before the QML engine.
 - `AppServices` (`appservices.h/cpp`): the QML services, how they work together (the Lichess token, account,
-  ongoing games) and their registration; `main.cpp` and the UI tests' `TestSetup` both use it.
+  ongoing games) and their registration; `main.cpp` and the UI tests' `TestSetup` both use it. LI-18: it makes
+  the `OnlineHub` and loads the server plugins from `pluginDir` (`defaultPluginDir()`: "online" beside the
+  exe; the tests' `tst_noOnline`: none); `onlineClient()` (the hub's current, `ChessConnector`'s) and
+  `lichessAccountClient()` (the profile's Lichess token goes only there); without a plugin both are null and
+  the app plays locally. The screenshot scenes need the Lichess plugin (exit code 5 without it).
 
 ## Infrastructure
 - `AppLog` (`applog.h/cpp`): `<data>/logs/ChessPlusPlus_AppDebug.log` (a screenshot scene's beside its picture,

@@ -567,10 +567,16 @@ int main(int argc, char* argv[])
 	qInstallMessageHandler(customLogMessageHandler);
 
 	// The QML singletons must outlive the engine: children of the app, not of the engine.
-	AppServices services(&app, screenshotMode); // offline in the scenes: their Lichess token is a placeholder
+	// Offline in the scenes: their Lichess token is a placeholder. LI-18: the online servers are the plugins
+	// in the folder "online" beside the executable.
+	AppServices services(&app, screenshotMode, AppServices::defaultPluginDir());
 	auto* connector = services.connector();
 	auto* userManager = services.userManager();
-	auto* lichessClient = services.lichessClient();
+	auto* lichessClient = services.lichessAccountClient(); // the scenes play on Lichess (a fake one)
+	if (screenshotMode && !lichessClient) {
+		qCritical() << "Screenshot: no Lichess plugin in" << AppServices::defaultPluginDir() << "(LichessOnline.dll)";
+		return 5;
+	}
 
 	QQmlApplicationEngine engine;
 

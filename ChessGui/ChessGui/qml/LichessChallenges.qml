@@ -45,15 +45,15 @@ Item {
         center.pendingId  = UserManager.pendingChallengeId
         center.pendingUrl = UserManager.pendingChallengeUrl
         center.dialogRequested()
-        LichessClient.resumeOpenChallenge(center.pendingId, center.pendingUrl)
+        Online.current?.resumeOpenChallenge(center.pendingId, center.pendingUrl)
     }
     // ── BL-10: challenges to the player ──
     // The bar shows the oldest one not hidden. The finished game's rematch offer has its own bar.
     property var  _hidden: ({})   // id → true: "Hide" until the next challenge arrives
     // Lichess's answer to an Accept is awaited (the bar's or the Online page's: one state, BL-16)
     readonly property bool accepting: ChessConnector.AcceptingChallengeId !== ""
-    readonly property var challengesShown: LichessClient.incomingChallenges.filter(c =>
-        !_hidden[c.id] && c.id !== LichessClient.rematchOfferId)
+    readonly property var challengesShown: (Online.current?.incomingChallenges ?? []).filter(c =>
+        !_hidden[c.id] && c.id !== Online.current.rematchOfferId)
     readonly property var challenge: challengesShown.length > 0 ? challengesShown[0] : null
 
     function text(c) {
@@ -81,7 +81,7 @@ Item {
     }
 
     Connections {
-        target: LichessClient
+        target: Online.current
 
         // A challenge created while the finished game is still on screen is a rematch
         // (the Online page is only reachable from Home).

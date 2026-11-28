@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Screenshots of ChessGui views, without clicking through the app.
 
@@ -120,7 +120,7 @@ if (-not ($dllDirs | Where-Object { Test-Path (Join-Path $_ $qtCore) } | Select-
 }
 
 $exitMeaning = @{ 1 = 'grabbing or saving the window failed'; 2 = 'timed out waiting for the scene';
-                  3 = 'QML failed to load'; 4 = 'unknown scene' }
+                  3 = 'QML failed to load'; 4 = 'unknown scene'; 5 = 'no Lichess plugin (online\LichessOnline.dll)' }
 # The robot scenes set the engine of the app they start in this shell's environment: the shell's
 # own values (none, or an engine of its own) are put back for the other scenes and at the end.
 $engineVars = 'CHESS_ENGINE_PATH', 'FAKEUCI_MOVES', 'FAKEUCI_DELAY_MS'

@@ -53,13 +53,21 @@ void TestSetup::applicationAvailable()
 	// Children of the app: the QML singletons outlive the test file's engine, as in main.cpp.
 	// Lichess is FakeLichess on 127.0.0.1 (BL-05 step 4c): online, but nothing reaches lichess.org,
 	// and without linkLichess() there is no token, so nothing is asked of it at all.
+	// LI-18: the app's plugins (online\ beside the tests), or none in a file run without them
+	// ("// ui-test-online: none": Run-UiTests.ps1 sets CHESS_UI_TEST_ONLINE=none).
+	const bool online = qEnvironmentVariable("CHESS_UI_TEST_ONLINE") != QLatin1String("none");
+	const QString pluginDir = online ? AppServices::defaultPluginDir() : _dataDir + QStringLiteral("/no-plugins");
 	_lichess = new FakeLichessServer(QCoreApplication::instance());
-	_services = std::make_unique<AppServices>(QCoreApplication::instance(), false);
-	_services->lichessClient()->setBaseUrl(_lichess->url());
-	_services->lichessClient()->setAssetBaseUrl(_lichess->url()); // LI-11: the flairs' images too
-	// A lost stream is tried again after 0.2 s (then 0.4, 0.8, …), a move without an answer gives up
-	// after 3 s; FakeLichess's keep-alive comes every second, well inside the 10 s of silence.
-	_services->lichessClient()->setStreamTiming(10000, 200, 3000, 1000, 2000);
+	_services = std::make_unique<AppServices>(QCoreApplication::instance(), false, pluginDir);
+	if (OnlineClient* lichess = _services->lichessAccountClient()) {
+		lichess->setBaseUrl(_lichess->url());
+		lichess->setAssetBaseUrl(_lichess->url()); // LI-11: the flairs' images too
+		// A lost stream is tried again after 0.2 s (then 0.4, 0.8, …), a move without an answer gives up
+		// after 3 s; FakeLichess's keep-alive comes every second, well inside the 10 s of silence.
+		lichess->setStreamTiming(10000, 200, 3000, 1000, 2000);
+	} else if (online) {
+		qCritical() << "TestSetup: no Lichess plugin in" << pluginDir;
+	}
 	_services->start();
 	_services->registerQmlTypes();
 	qmlRegisterSingletonInstance("ChessGuiTests", 1, 0, "TestRun", this);

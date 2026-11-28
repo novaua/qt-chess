@@ -332,19 +332,19 @@ Page {
                     // LI-14: a finished Lichess game, played here or a kept one replayed: on lichess.org.
                     MenuItem {
                         objectName: "lichessGameMenuItem"
-                        visible: ChessConnector.LichessGameUrl !== "" && (page.gameOver || page.mode === "replay")
+                        visible: ChessConnector.OnlineGameUrl !== "" && (page.gameOver || page.mode === "replay")
                         height: visible ? implicitHeight : 0
                         text: "Open on lichess.org"
                         icon.source: Theme.icon("link")
-                        onTriggered: Qt.openUrlExternally(ChessConnector.LichessGameUrl)
+                        onTriggered: Qt.openUrlExternally(ChessConnector.OnlineGameUrl)
                     }
                     MenuItem {
                         objectName: "lichessAnalysisMenuItem"
-                        visible: ChessConnector.LichessGameUrl !== "" && (page.gameOver || page.mode === "replay")
+                        visible: ChessConnector.OnlineGameUrl !== "" && (page.gameOver || page.mode === "replay")
                         height: visible ? implicitHeight : 0
                         text: "Open the analysis on lichess.org"
                         icon.source: Theme.icon("analyse")
-                        onTriggered: Qt.openUrlExternally(ChessConnector.LichessGameUrl + "/analysis")
+                        onTriggered: Qt.openUrlExternally(ChessConnector.OnlineGameUrl + "/analysis")
                     }
                     MenuSeparator {}
                     MenuItem {
@@ -526,7 +526,7 @@ Page {
                 canRematch: page.canRematch
                 canAnalyse: ChessConnector.CanAnalyse && AppInfo.engineFound
                 canSeekAgain: ChessConnector.CanSeekAgain
-                seeking: LichessClient.seeking
+                seeking: Online.current?.seeking ?? false
                 onAnalyseRequested: page.analyse()
                 onRematchRequested: ChessConnector.rematch()
                 onNewGameRequested: page.newGameRequested()
@@ -587,7 +587,7 @@ Page {
                     resultActions: page._resultHidden
                     canRematch: page.canRematch
                     canSeekAgain: ChessConnector.CanSeekAgain
-                    seeking: LichessClient.seeking
+                    seeking: Online.current?.seeking ?? false
                     onExportRequested: page.exportPgnRequested()
                     onPlayFromHereClicked: button => page.openFromHereMenu(button)
                     onAnalyseRequested: page.analyse()

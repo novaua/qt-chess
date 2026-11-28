@@ -16,7 +16,8 @@
     A test file with a line "// ui-test-runs: 2" runs twice on the same data folder, as the app
     restarted (TestRun.run is 1, then 2); its results are <file>-run1.txt, <file>-run2.txt.
     A line "// ui-test-engine: none" runs it without a chess engine (CHESS_ENGINE_PATH names a file
-    that isn't there; BL-25), instead of FakeUci.
+    that isn't there; BL-25), instead of FakeUci. A line "// ui-test-online: none" runs it without the
+    online servers' plugins (LI-18: no Lichess; CHESS_UI_TEST_ONLINE=none).
 
     A failed test function leaves a picture of the app's window: test-results\ui\<TestCase>-<function>.png
     (its path is printed with the failure).
@@ -80,6 +81,13 @@ if ($Build) {
 
 $exe = "$root\x64\$Configuration\ChessGuiTests.exe"
 if (-not (Test-Path $exe)) { throw "$exe not found - build it first (-Build)" }
+
+# LI-18: the online servers stay plugins (nothing else uses their code); the files run without them prove it.
+& (Join-Path $PSScriptRoot 'Check-OnlineIsolation.ps1')
+if ($LASTEXITCODE -ne 0) { throw "Check-OnlineIsolation.ps1: $LASTEXITCODE problem(s)" }
+if (-not (Test-Path "$root\x64\$Configuration\online\LichessOnline.dll")) {
+    throw "online\LichessOnline.dll not found next to the exe - build the solution (or -Build)"
+}
 
 # Without Qt's DLLs Windows shows a "DLL not found" dialog for every run: check once, before the first.
 $qtCore = if ($Configuration -eq 'Debug') { 'Qt6Cored.dll' } else { 'Qt6Core.dll' }
@@ -182,6 +190,8 @@ try {
         $runs = [regex]::Match($text, '(?m)^\s*//\s*ui-test-runs:\s*(\d+)')
         $runCount = if ($runs.Success) { [int]$runs.Groups[1].Value } else { 1 }
         $noEngine = $text -match '(?m)^\s*//\s*ui-test-engine:\s*none'
+        # LI-18: without the online servers' plugins (TestSetup loads none); '' removes the variable.
+        $env:CHESS_UI_TEST_ONLINE = if ($text -match '(?m)^\s*//\s*ui-test-online:\s*none') { 'none' } else { '' }
         if ($runCount -le 1) {
             if (-not (Invoke-TestRun $file $file.BaseName 1 '' $noEngine)) { $failedFiles++ }
             continue
@@ -198,7 +208,7 @@ try {
         }
     }
 } finally {
-    Remove-Item Env:CHESS_UI_TEST_RUN, Env:CHESS_UI_TEST_DATA_DIR -ErrorAction SilentlyContinue
+    Remove-Item Env:CHESS_UI_TEST_RUN, Env:CHESS_UI_TEST_DATA_DIR, Env:CHESS_UI_TEST_ONLINE -ErrorAction SilentlyContinue
     if ($null -ne $engineBefore) { $env:CHESS_ENGINE_PATH = $engineBefore } else { Remove-Item Env:CHESS_ENGINE_PATH -ErrorAction SilentlyContinue }
 }
 

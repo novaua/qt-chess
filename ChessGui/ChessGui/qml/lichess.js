@@ -7,11 +7,11 @@ function speedName(speed) {
               classical: "Classical", correspondence: "Correspondence" })[speed] ?? speed
 }
 
-// An unfinished game's card line (LichessClient.ongoingGames): the board shows our side, this the rest.
+// An unfinished game's card line (Online.current.ongoingGames): the board shows our side, this the rest.
 function gameDetails(game) {
     var parts = [speedName(game.speed)]
     if (game.variant !== "standard")
-        parts.push(game.variantName)   // Lichess's name: "Chess960" (LichessClient)
+        parts.push(game.variantName)   // Lichess's name: "Chess960" (Online.current)
     if (game.timeLeftText !== "")
         parts.push(game.timeLeftText + " left")
     return parts.join(" · ")
